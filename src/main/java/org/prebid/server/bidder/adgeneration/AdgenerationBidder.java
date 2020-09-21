@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
  */
 public class AdgenerationBidder implements Bidder<Void> {
 
-    private static final String VERSION = "1.0.0";
+    private static final String VERSION = "1.0.1";
     private static final String DEFAULT_REQUEST_CURRENCY = "JPY";
     private static final MultiMap HEADERS = HttpUtil.headers();
     private static final Pattern REPLACE_VAST_XML_PATTERN = Pattern.compile("/\\r?\\n/g", Pattern.CASE_INSENSITIVE);

@@ -17,7 +17,7 @@
         "cat": [],
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8080/event?t=win&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i",
+        "wurl": "http://localhost:8080/event?t=win&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i&int=",
         "ext": {
           "appnexus": {
             "brand_id": 350,
@@ -40,7 +40,7 @@
         "crid": "crid2",
         "w": 300,
         "h": 600,
-        "wurl": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i"
+        "wurl": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int="
       }
     },
     {
@@ -50,7 +50,7 @@
         "impid": "impStoredAuctionResponse",
         "crid": "crid1",
         "price": 0.9,
-        "wurl": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i"
+        "wurl": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int="
       }
     },
     {
@@ -63,7 +63,7 @@
         "crid": "crid1",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i",
+        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=",
         "ext": {
           "rp": {
             "targeting": [
@@ -85,7 +85,7 @@
         "impid": "impStoredAuctionResponse",
         "crid": "crid1",
         "price": 0.8,
-        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i"
+        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int="
       }
     },
     {
@@ -95,7 +95,7 @@
         "impid": "impStoredBidResponse",
         "crid": "crid1",
         "price": 0.8,
-        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i"
+        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int="
       }
     },
     {
@@ -124,7 +124,7 @@
             "bid_ad_type": 3
           }
         },
-        "wurl": "http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i"
+        "wurl": "http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int="
       }
     },
     {
@@ -143,7 +143,7 @@
         "crid": "29681110",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i",
+        "wurl": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=",
         "ext": {
           "appnexus": {
             "brand_id": 1,
@@ -157,7 +157,7 @@
     },
     {
       "type": "xml",
-      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b]]></Impression>",
+      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
       "expiry": 120
     }
   ]

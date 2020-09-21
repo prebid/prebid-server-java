@@ -171,7 +171,7 @@ public class TargetingKeywordsCreator {
 
         try {
             return PriceGranularity.createFromString(stringPriceGranularity);
-        } catch (PreBidException ex) {
+        } catch (PreBidException e) {
             logger.error("Price range granularity error: ''{0}'' is not a recognized granularity",
                     stringPriceGranularity);
         }

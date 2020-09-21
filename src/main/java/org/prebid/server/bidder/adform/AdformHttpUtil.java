@@ -102,6 +102,11 @@ class AdformHttpUtil {
         params.add("gdpr=" + parameters.getGdprApplies());
         params.add("gdpr_consent=" + parameters.getConsent());
 
+        final String eids = parameters.getEids();
+        if (StringUtils.isNotEmpty(eids)) {
+            params.add("eids=" + eids);
+        }
+
         final List<String> encodedMids = new ArrayList<>();
         final List<Long> masterTagIds = parameters.getMasterTagIds();
         final List<String> keyValues = parameters.getKeyValues();

@@ -581,9 +581,18 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void adminHandlerShouldRespondWithOk() {
+    public void loggingHttpInteractionShouldRespondWithOk() {
         given(ADMIN_SPEC)
-                .get("/admin?logging=error&records=1200")
+                .get("/logging/httpinteraction?limit=100")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
+
+    @Test
+    public void loggingChangeLevekShouldRespondWithOk() {
+        given(ADMIN_SPEC)
+                .get("/logging/changelevel?level=info&duration=1")
                 .then()
                 .assertThat()
                 .statusCode(200);

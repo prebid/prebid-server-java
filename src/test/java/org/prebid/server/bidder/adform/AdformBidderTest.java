@@ -26,6 +26,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -66,6 +68,8 @@ public class AdformBidderTest extends VertxTest {
                         .ext(ExtUser.builder()
                                 .consent("consent")
                                 .digitrust(ExtUserDigiTrust.of("id", 123, 1))
+                                .eids(singletonList(ExtUserEid.of("test.com", "some_user_id",
+                                        singletonList(ExtUserEidUid.of("uId", 1, null)), null)))
                                 .build())
                         .build())
                 .device(Device.builder().ua("ua").ip("ip").ifa("ifaId").build())
@@ -81,8 +85,9 @@ public class AdformBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly(
-                        "http://adform.com/openrtb2d?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross"
-                                + "&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA");
+                        "http://adform.com/openrtb2d?CC=1&adid=ifaId&eids=eyJ0ZXN0LmNvbSI6eyJ1SWQiOjF9fQ&fd=1&gdpr=1"
+                                + "&gdpr_consent=consent&ip=ip&pt=gross&rp=4&stid=tid"
+                                + "&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA");
         assertThat(result.getValue()).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.GET);
 
         assertThat(result.getValue())
@@ -172,6 +177,15 @@ public class AdformBidderTest extends VertxTest {
                                 .build(),
                         Imp.builder().build()))
                 .source(Source.builder().tid("tid").build())
+                .user(User.builder()
+                        .buyeruid("buyeruid")
+                        .ext(ExtUser.builder()
+                                .consent("consent")
+                                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
+                                .eids(singletonList(ExtUserEid.of("test.com", "some_user_id",
+                                        singletonList(ExtUserEidUid.of("uId", 1, null)), null)))
+                                .build())
+                        .build())
                 .build();
 
         // when
@@ -180,8 +194,8 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&"
-                        + "stid=tid&bWlkPTE1JnJjdXI9VVNE");
+                .containsExactly("https://adform.com/openrtb2d?CC=1&eids=eyJ0ZXN0LmNvbSI6eyJ1SWQiOjF9fQ&fd=1&gdpr="
+                        + "&gdpr_consent=consent&ip=&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE");
     }
 
     @Test
