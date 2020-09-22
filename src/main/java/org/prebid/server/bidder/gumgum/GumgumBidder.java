@@ -136,8 +136,15 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     private void validateVideoParams(Video video) {
-        if (video.getW() == 0 || video.getH() == 0 || video.getMinduration() == 0 || video.getMaxduration() == 0
-                || video.getPlacement() == 0 || video.getLinearity() == 0) {
+        final Integer w = video.getW();
+        final Integer h = video.getH();
+        final Integer minduration = video.getMinduration();
+        final Integer maxduration = video.getMaxduration();
+        final Integer placement = video.getPlacement();
+        final Integer linearity = video.getLinearity();
+        if (w == null || w == 0 || h == null || h == 0 || minduration == null || minduration == 0
+                || maxduration == null || maxduration == 0 || placement == null || placement == 0
+                || linearity == null || linearity == 0) {
             throw new PreBidException("Invalid or missing video field(s)");
         }
     }
@@ -183,10 +190,8 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private static BidType getMediaType(String impId, List<Imp> requestImps) {
         for (Imp imp : requestImps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
+            if (imp.getId().equals(impId) && imp.getBanner() != null) {
+                return BidType.banner;
             }
         }
         return BidType.video;
