@@ -83,9 +83,9 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private List<ExtImpYieldlab> collectImpExt(List<Imp> imps) {
-        final List<ExtImpYieldlab> extImps = new ArrayList<>();
-        imps.forEach(imp -> extImps.add(parseImpExt(imp)));
-        return extImps;
+        return imps.stream()
+                .map(this::parseImpExt)
+                .collect(Collectors.toList());
     }
 
     private ExtImpYieldlab parseImpExt(Imp imp) {
