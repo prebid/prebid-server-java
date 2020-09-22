@@ -211,6 +211,25 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetCorrectUriIfSiteDomainIsBlank() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder
+                        .site(Site.builder().page("https://www.example.com").domain("").build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://eplanning.com/clientId/1/www.example.com/ROS?ct=1&r=pbs&ncb=1"
+                        + "&ur=https%3A%2F%2Fwww.example.com&e=testadun_itco_de:1x1");
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetCorrectUriWithSizeString() {
         // given
         final BidRequest bidRequest = givenBidRequest(
