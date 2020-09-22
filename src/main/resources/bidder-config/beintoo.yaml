@@ -16,7 +16,7 @@ adapters:
       vendor-id: 618
     usersync:
       url: https://ib.beintoo.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=beintoo&uid=$UID
+      redirect-url: /setuid?bidder=beintoo&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: beintoo
       type: iframe
       support-cors: false
