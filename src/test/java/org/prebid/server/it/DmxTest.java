@@ -52,7 +52,6 @@ public class DmxTest extends IntegrationTest {
                 "openrtb2/dmx/test-auction-dmx-response.json",
                 response, singletonList("dmx"));
 
-        final String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

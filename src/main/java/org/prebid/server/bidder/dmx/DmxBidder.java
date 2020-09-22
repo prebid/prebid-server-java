@@ -2,6 +2,7 @@ package org.prebid.server.bidder.dmx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -47,7 +48,6 @@ public class DmxBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpDmx>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final int INT_VALUE = 1;
     private static final String IMP = "</Impression><Impression><![CDATA[%s]]></Impression>";
     private static final String SEARCH = "</Impression>";
@@ -76,63 +76,31 @@ public class DmxBidder implements Bidder<BidRequest> {
         try {
             final ExtImpDmx extImp = parseImpExt(imps.get(0));
             final String publisherId = extImp.getPublisherId();
-            updatedPublisherId = StringUtils.isBlank(publisherId)
-                    ? publisherId
-                    : extImp.getMemberId();
+            updatedPublisherId = StringUtils.isNotBlank(publisherId) ? publisherId : extImp.getMemberId();
             updatedSellerId = extImp.getSellerId();
-            for (Imp imp : request.getImp()) {
-                final Imp validImp = validateAndModifyImp(imp, parseImpExt(imp));
-                if (validImp != null) {
-                    validImps.add(validImp);
-                }
-            }
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
         }
 
-        boolean anyHasId = false;
-        if (request.getApp() != null) {
-            if (StringUtils.isNotBlank(request.getApp().getId())) {
-                anyHasId = true;
-            }
-        }
-
-        final Site site = request.getSite();
-        if (site != null) {
-            final Publisher publisher = site.getPublisher();
-            if (site.getPublisher() != null) {
-                request.toBuilder()
-                        .site(site.toBuilder().publisher(publisher.toBuilder().id(updatedPublisherId).build()).build())
-                        .build();
-            } else {
-                request.toBuilder()
-                        .site(site.toBuilder().publisher(Publisher.builder().id(updatedPublisherId).build()).build())
-                        .build();
-            }
-        }
-
-        final User user = request.getUser();
-        if (user != null) {
-            if (StringUtils.isNotBlank(user.getId())) {
-                anyHasId = true;
-            }
-            final ExtUser userExt = user.getExt();
-            if (userExt != null) {
-                final ExtUserDigiTrust digitrust = userExt.getDigitrust();
-                if (CollectionUtils.isNotEmpty(userExt.getEids()) || (digitrust != null
-                        && StringUtils.isNotBlank(digitrust.getId()))) {
-                    anyHasId = true;
+        for (Imp imp : request.getImp()) {
+            try {
+                final Imp validImp = validateAndModifyImp(imp, parseImpExt(imp));
+                if (validImp != null) {
+                    validImps.add(validImp);
                 }
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
+        final Site modifiedSite = modifySite(request.getSite(), updatedPublisherId);
         try {
-            checkIfHasId(anyHasId);
+            checkIfHasId(request.getApp(), request.getUser());
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput("This request contained no identifier"));
         }
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
+        final BidRequest outgoingRequest = request.toBuilder().imp(validImps).site(modifiedSite).build();
         final String body = mapper.encode(outgoingRequest);
         final String urlParameter = StringUtils.isNotBlank(updatedSellerId)
                 ? "?sellerid=" + HttpUtil.encodeUrl(updatedSellerId)
@@ -208,12 +176,42 @@ public class DmxBidder implements Bidder<BidRequest> {
                     .build();
         }
 
-        return updatedImp != null && StringUtils.isBlank(updatedImp.getTagid()) && StringUtils.isBlank(imp.getTagid())
-                ? null
-                : updatedImp;
+        return updatedImp;
     }
 
-    private void checkIfHasId(boolean anyHasId) {
+    private Site modifySite(Site site, String updatedPublisherId) {
+        Publisher updatedPublisher = null;
+        if (site != null) {
+            final Publisher publisher = site.getPublisher();
+            updatedPublisher = publisher == null
+                    ? Publisher.builder().id(updatedPublisherId).build()
+                    : publisher.toBuilder().id(updatedPublisherId).build();
+        }
+        return site != null ? site.toBuilder().publisher(updatedPublisher).build() : null;
+    }
+
+    private void checkIfHasId(App app, User user) {
+        boolean anyHasId = false;
+        if (app != null) {
+            if (StringUtils.isNotBlank(app.getId())) {
+                anyHasId = true;
+            }
+        }
+
+        if (user != null) {
+            if (StringUtils.isNotBlank(user.getId())) {
+                anyHasId = true;
+            }
+            final ExtUser userExt = user.getExt();
+            if (userExt != null) {
+                final ExtUserDigiTrust digitrust = userExt.getDigitrust();
+                if (CollectionUtils.isNotEmpty(userExt.getEids()) || (digitrust != null
+                        && StringUtils.isNotBlank(digitrust.getId()))) {
+                    anyHasId = true;
+                }
+            }
+        }
+
         if (!anyHasId) {
             throw new PreBidException("This request contained no identifier");
         }
@@ -247,7 +245,7 @@ public class DmxBidder implements Bidder<BidRequest> {
                     final Bid updatedBid = bidType == BidType.video
                             ? bid.toBuilder().adm(getAdm(bid)).build()
                             : bid;
-                    final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, DEFAULT_BID_CURRENCY);
+                    final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, bidResponse.getCur());
                     bidderBids.add(bidderBid);
                 } catch (PreBidException e) {
                     errors.add(BidderError.badInput(e.getMessage()));
