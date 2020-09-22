@@ -22,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.request.mobilefuse.ExtImpMobilefuse;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -49,8 +48,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> imps = new ArrayList<>();
-
         final ExtImpMobilefuse firstExtImpMobilefuse = request.getImp().stream()
                 .map(this::parseImpExt)
                 .filter(Objects::nonNull)
@@ -61,10 +58,9 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
         }
 
-        for (Imp imp : request.getImp()) {
-            final Imp modifiedImp = modifyImp(imp, firstExtImpMobilefuse);
-            imps.add(modifiedImp);
-        }
+        final List<Imp> imps = request.getImp().stream()
+                .map(imp -> modifyImp(imp, firstExtImpMobilefuse))
+                .collect(Collectors.toList());
 
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
         final String body = mapper.encode(outgoingRequest);
