@@ -99,6 +99,7 @@ public class AdformBidder implements Bidder<Void> {
                         .gdprApplies(requestUtil.getGdprApplies(request.getRegs()))
                         .consent(requestUtil.getConsent(extUser))
                         .currency(currency)
+                        .eids(requestUtil.getEids(extUser, mapper))
                         .build());
 
         final MultiMap headers = httpUtil.buildAdformHeaders(
