@@ -13,7 +13,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -176,12 +175,10 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private static BidderBid toBidderBid(Bid bid, BidRequest bidRequest, String currency) {
         final BidType bidType = getMediaType(bid.getImpid(), bidRequest.getImp());
-        final Bid.BidBuilder bidBuilder = bid.toBuilder();
-        if (bidType == BidType.video) {
-            bidBuilder
-                    .adm(bid.getAdm().replace("${AUCTION_PRICE}", String.valueOf(bid.getPrice())));
-        }
-        return BidderBid.of(bidBuilder.build(), bidType, StringUtils.stripToNull(currency));
+        final Bid updatedBid = bidType == BidType.video
+                ? bid.toBuilder().adm(bid.getAdm().replace("${AUCTION_PRICE}", String.valueOf(bid.getPrice()))).build()
+                : bid;
+        return BidderBid.of(updatedBid, bidType, currency);
     }
 
     private static BidType getMediaType(String impId, List<Imp> requestImps) {
