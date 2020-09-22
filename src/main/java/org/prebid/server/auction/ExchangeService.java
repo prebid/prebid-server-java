@@ -181,13 +181,8 @@ public class ExchangeService {
                 .compose(bidderResponses -> bidResponseCreator.create(
                         bidderResponses,
                         context,
-                        targeting,
                         cacheInfo,
-                        account,
-                        eventsAllowedByRequest(requestExt),
-                        auctionTimestamp(requestExt),
-                        debugEnabled,
-                        timeout))
+                        debugEnabled))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                         routingContext, uidsCookie, bidRequest, bidResponse, account));
     }
@@ -226,24 +221,6 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
         return currency != null ? currency.getUsepbsrates() : null;
-    }
-
-    /**
-     * Returns true if {@link ExtRequest} is present, otherwise - false.
-     */
-    private static boolean eventsAllowedByRequest(ExtRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ObjectNode eventsFromRequest = prebid != null ? prebid.getEvents() : null;
-        return eventsFromRequest != null;
-    }
-
-    /**
-     * Extracts auction timestamp from {@link ExtRequest} or get it from {@link Clock} if it is null.
-     */
-    private long auctionTimestamp(ExtRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final Long auctionTimestamp = prebid != null ? prebid.getAuctiontimestamp() : null;
-        return auctionTimestamp != null ? auctionTimestamp : clock.millis();
     }
 
     /**

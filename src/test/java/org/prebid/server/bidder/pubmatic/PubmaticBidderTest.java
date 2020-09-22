@@ -22,11 +22,15 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.pubmatic.proto.PubmaticBidExt;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
+import org.prebid.server.bidder.pubmatic.proto.VideoCreativeInfo;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
@@ -522,6 +526,85 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(bidType).build(), xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldFillExtBidPrebidVideoDurationIfDurationIsNotNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .ext(mapper.valueToTree(PubmaticBidExt.of(null, VideoCreativeInfo.of(1)))))));
+
+        // when
+        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode bidExt = mapper.createObjectNode();
+        bidExt.set("video", mapper.valueToTree(VideoCreativeInfo.of(1)));
+        bidExt.set("prebid", mapper.valueToTree(ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(1, null)).build()));
+
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(bidExt).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldNotFillExtBidPrebidVideoDurationIfDurationIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .ext(mapper.valueToTree(PubmaticBidExt.of(null, VideoCreativeInfo.of(null)))))));
+
+        // when
+        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode bidExt = mapper.createObjectNode();
+        bidExt.set("video", mapper.valueToTree(VideoCreativeInfo.of(null)));
+
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(bidExt).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldNotFillExtBidPrebidVideoDurationIfVideoIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .ext(mapper.valueToTree(PubmaticBidExt.of(null, null))))));
+
+        // when
+        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(mapper.createObjectNode()).build(),
+                        banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldTakeOnlyFirstCatElement() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .cat(asList("cat1", "cat2")))));
+
+        // when
+        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").cat(singletonList("cat1")).build(),
+                        banner, "USD"));
     }
 
     @Test
