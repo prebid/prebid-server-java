@@ -225,8 +225,8 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://eplanning.com/clientId/1/www.example.com/ROS?ct=1&r=pbs&ncb=1"
-                        + "&ur=https%3A%2F%2Fwww.example.com&e=testadun_itco_de:1x1");
+                .containsOnly("https://eplanning.com/clientId/1/www.example.com/ROS?r=pbs&ncb=1"
+                        + "&ur=https%3A%2F%2Fwww.example.com&e=testadun_itco_de%3A1x1");
     }
 
     @Test
@@ -461,7 +461,6 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     private static HttpCall<Void> givenHttpCall(String body) {
-        return HttpCall.success(
-                null, HttpResponse.of(200, null, body), null);
+        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 }
