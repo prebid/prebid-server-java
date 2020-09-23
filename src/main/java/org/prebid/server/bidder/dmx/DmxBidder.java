@@ -48,7 +48,7 @@ public class DmxBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpDmx>>() {
             };
 
-    private static final int INT_VALUE = 1;
+    private static final int SECURE = 1;
     private static final String IMP = "</Impression><Impression><![CDATA[%s]]></Impression>";
     private static final String SEARCH = "</Impression>";
 
@@ -63,12 +63,11 @@ public class DmxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         if (request.getUser() == null && request.getApp() == null) {
-            return Result.emptyWithError(BidderError
-                    .badInput("No user id or app id found. Could not send request to DMX."));
+            return Result.emptyWithError(
+                    BidderError.badInput("No user id or app id found. Could not send request to DMX."));
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final List<Imp> validImps = new ArrayList<>();
         final List<Imp> imps = request.getImp();
 
         String updatedPublisherId = null;
@@ -82,7 +81,8 @@ public class DmxBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
         }
 
-        for (Imp imp : request.getImp()) {
+        final List<Imp> validImps = new ArrayList<>();
+        for (Imp imp : imps) {
             try {
                 final Imp validImp = validateAndModifyImp(imp, parseImpExt(imp));
                 if (validImp != null) {
@@ -112,8 +112,8 @@ public class DmxBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(uri)
                         .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
                         .body(body)
+                        .payload(outgoingRequest)
                         .build()),
                 errors);
     }
@@ -126,7 +126,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp validateAndModifyImp(Imp imp, ExtImpDmx extImp) {
+    private static Imp validateAndModifyImp(Imp imp, ExtImpDmx extImp) {
         Imp modifiedImp = null;
         final Imp updatedImp = updateImp(imp, extImp);
         if (updatedImp != null) {
@@ -146,7 +146,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         return modifiedImp;
     }
 
-    private Imp updateImp(Imp imp, ExtImpDmx extImp) {
+    private static Imp updateImp(Imp imp, ExtImpDmx extImp) {
         if (StringUtils.isNotBlank(extImp.getPublisherId()) || StringUtils.isNotBlank(extImp.getMemberId())) {
             return fetchParams(imp, extImp);
         } else {
@@ -154,15 +154,16 @@ public class DmxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp fetchParams(Imp imp, ExtImpDmx extImp) {
+    private static Imp fetchParams(Imp imp, ExtImpDmx extImp) {
         Imp updatedImp = null;
+
         final String tagId = extImp.getTagId();
         if (StringUtils.isNotBlank(tagId)) {
             updatedImp = Imp.builder()
                     .id(imp.getId())
                     .tagid(tagId)
                     .ext(imp.getExt())
-                    .secure(INT_VALUE)
+                    .secure(SECURE)
                     .build();
         }
 
@@ -172,14 +173,14 @@ public class DmxBidder implements Bidder<BidRequest> {
                     .id(imp.getId())
                     .tagid(dmxId)
                     .ext(imp.getExt())
-                    .secure(INT_VALUE)
+                    .secure(SECURE)
                     .build();
         }
 
         return updatedImp;
     }
 
-    private Site modifySite(Site site, String updatedPublisherId) {
+    private static Site modifySite(Site site, String updatedPublisherId) {
         Publisher updatedPublisher = null;
         if (site != null) {
             final Publisher publisher = site.getPublisher();
@@ -190,7 +191,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         return site != null ? site.toBuilder().publisher(updatedPublisher).build() : null;
     }
 
-    private void checkIfHasId(App app, User user) {
+    private static void checkIfHasId(App app, User user) {
         boolean anyHasId = false;
         if (app != null) {
             if (StringUtils.isNotBlank(app.getId())) {
@@ -263,7 +264,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         return imps.stream()
                 .filter(imp -> Objects.equals(imp.getId(), impId))
                 .map(imp -> imp.getVideo() != null ? BidType.video : BidType.banner)
@@ -271,7 +272,7 @@ public class DmxBidder implements Bidder<BidRequest> {
                 .orElseThrow(() -> new PreBidException(String.format("Failed to find impression %s", impId)));
     }
 
-    private String getAdm(Bid bid) {
+    private static String getAdm(Bid bid) {
         final String wrappedNurl = String.format(IMP, bid.getNurl());
         return bid.getAdm().replaceFirst(SEARCH, wrappedNurl);
     }

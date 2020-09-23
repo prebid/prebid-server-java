@@ -38,6 +38,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class DmxBidderTest extends VertxTest {
+
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     private DmxBidder dmxBidder;
