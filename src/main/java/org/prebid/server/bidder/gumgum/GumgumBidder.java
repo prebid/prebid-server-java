@@ -13,6 +13,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -29,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -136,25 +138,27 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     private void validateVideoParams(Video video) {
-        if (positiveOrNull(video.getW()) == null || positiveOrNull(video.getH()) == null
-                || positiveOrNull(video.getMinduration()) == null || positiveOrNull(video.getMaxduration()) == null
-                || positiveOrNull(video.getPlacement()) == null || positiveOrNull(video.getLinearity()) == null) {
+        if (anyOfNull(
+                video.getW(),
+                video.getH(),
+                video.getMinduration(),
+                video.getMaxduration(),
+                video.getPlacement(),
+                video.getLinearity())) {
             throw new PreBidException("Invalid or missing video field(s)");
         }
     }
 
-    public static Integer positiveOrNull(Integer parameter) {
-        if (parameter == null) {
-            return null;
-        }
-        return parameter == 0 ? null : parameter;
+    private static boolean anyOfNull(Integer... numbers) {
+        return Arrays.stream(ArrayUtils.nullToEmpty(numbers)).anyMatch(GumgumBidder::isNullOrZero);
+    }
+
+    private static boolean isNullOrZero(Integer number) {
+        return number == null || number == 0;
     }
 
     private static Site modifySite(Site site, String trackingId) {
-        if (site != null) {
-            return site.toBuilder().id(trackingId).build();
-        }
-        return null;
+        return site != null ? site.toBuilder().id(trackingId).build() : null;
     }
 
     @Override

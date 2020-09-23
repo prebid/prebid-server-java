@@ -93,9 +93,9 @@ public class GumgumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                                .video(Video.builder().w(0).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone"))))
-                                .build()))
+                        .video(Video.builder().w(0).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone"))))
+                        .build()))
                 .build();
 
         // when
