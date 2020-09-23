@@ -102,10 +102,22 @@ class AdformHttpUtil {
         params.add("gdpr=" + parameters.getGdprApplies());
         params.add("gdpr_consent=" + parameters.getConsent());
 
+        final String url = parameters.getUrl();
+        if (StringUtils.isNotEmpty(url)) {
+            params.add("url=" + HttpUtil.encodeUrl(url));
+        }
+
+        final String eids = parameters.getEids();
+        if (StringUtils.isNotEmpty(eids)) {
+            params.add("eids=" + eids);
+        }
+
         final List<String> encodedMids = new ArrayList<>();
         final List<Long> masterTagIds = parameters.getMasterTagIds();
         final List<String> keyValues = parameters.getKeyValues();
         final List<String> keyWords = parameters.getKeyWords();
+        final List<String> cdims = parameters.getCdims();
+        final List<Double> minPrices = parameters.getMinPrices();
         for (int i = 0; i < masterTagIds.size(); i++) {
             final StringBuilder mid = new StringBuilder(
                     String.format("mid=%s&rcur=%s", masterTagIds.get(i), parameters.getCurrency()));
@@ -121,6 +133,20 @@ class AdformHttpUtil {
                 final String keyWord = keyWords.get(i);
                 if (StringUtils.isNotBlank(keyWord)) {
                     mid.append(String.format("&mkw=%s", keyWord));
+                }
+            }
+
+            if (CollectionUtils.isNotEmpty(cdims)) {
+                final String cdim = cdims.get(i);
+                if (StringUtils.isNotBlank(cdim)) {
+                    mid.append(String.format("&cdims=%s", cdim));
+                }
+            }
+
+            if (CollectionUtils.isNotEmpty(minPrices)) {
+                final Double minPrice = minPrices.get(i);
+                if (minPrice != null && minPrice > 0) {
+                    mid.append(String.format("&minp=%.2f", minPrice));
                 }
             }
 

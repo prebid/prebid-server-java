@@ -1,0 +1,22 @@
+adapters:
+  beintoo:
+    enabled: false
+    endpoint: https://ib.beintoo.com/um
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: adops@beintoo.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 618
+    usersync:
+      url: https://ib.beintoo.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+      redirect-url: /setuid?bidder=beintoo&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: beintoo
+      type: iframe
+      support-cors: false
