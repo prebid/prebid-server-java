@@ -37,6 +37,7 @@ public class UrlParameters {
 
     String currency;
 
-    String url;
+    String eids;
 
+    String url;
 }

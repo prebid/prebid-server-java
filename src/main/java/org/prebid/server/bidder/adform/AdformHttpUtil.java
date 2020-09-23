@@ -107,6 +107,11 @@ class AdformHttpUtil {
             params.add("url=" + HttpUtil.encodeUrl(url));
         }
 
+        final String eids = parameters.getEids();
+        if (StringUtils.isNotEmpty(eids)) {
+            params.add("eids=" + eids);
+        }
+
         final List<String> encodedMids = new ArrayList<>();
         final List<Long> masterTagIds = parameters.getMasterTagIds();
         final List<String> keyValues = parameters.getKeyValues();

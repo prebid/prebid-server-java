@@ -29,6 +29,9 @@ public class EventUtil {
     private static final String BLANK_FORMAT = "b"; // default
     private static final String IMAGE_FORMAT = "i";
 
+    private static final String INTEGRATION_PARAMETER = "int";
+    private static final int INTEGRATION_PARAMETER_MAX_LENGTH = 64;
+
     private static final String ANALYTICS_PARAMETER = "x";
     private static final String ENABLED_ANALYTICS = "1"; // default
     private static final String DISABLED_ANALYTICS = "0";
@@ -92,6 +95,23 @@ public class EventUtil {
         }
     }
 
+    public static void validateIntegration(RoutingContext context) {
+        final String value = context.request().getParam(INTEGRATION_PARAMETER);
+        if (StringUtils.isNotEmpty(value)) {
+            if (value.length() > INTEGRATION_PARAMETER_MAX_LENGTH) {
+                throw new IllegalArgumentException(String.format(
+                        "Integration '%s' query parameter is longer %s symbols: %s",
+                        INTEGRATION_PARAMETER, INTEGRATION_PARAMETER_MAX_LENGTH, value));
+            }
+            for (int i = 0; i < value.length(); i++) {
+                if (!Character.isLetterOrDigit(value.charAt(i)) && value.charAt(i) != '-' && value.charAt(i) != '_') {
+                    throw new IllegalArgumentException(String.format(
+                            "Integration '%s' query parameter is not valid: %s", INTEGRATION_PARAMETER, value));
+                }
+            }
+        }
+    }
+
     public static EventRequest from(RoutingContext context) {
         final MultiMap queryParams = context.request().params();
 
@@ -116,11 +136,14 @@ public class EventUtil {
                 .timestamp(timestamp)
                 .format(format)
                 .analytics(analytics)
+                .integration(queryParams.get(INTEGRATION_PARAMETER))
                 .build();
     }
 
     static String toUrl(String externalUrl, EventRequest eventRequest) {
-        final String urlWithRequiredParameters = String.format(TEMPLATE_URL, externalUrl,
+        final String urlWithRequiredParameters = String.format(
+                TEMPLATE_URL,
+                externalUrl,
                 eventRequest.getType(),
                 eventRequest.getBidId(),
                 eventRequest.getAccountId());
@@ -137,7 +160,7 @@ public class EventUtil {
         }
 
         // bidder
-        if (eventRequest.getBidder() != null) {
+        if (StringUtils.isNotEmpty(eventRequest.getBidder())) {
             result.append(nameValueAsQueryString(BIDDER_PARAMETER, eventRequest.getBidder()));
         }
 
@@ -147,6 +170,10 @@ public class EventUtil {
         } else if (eventRequest.getFormat() == EventRequest.Format.image) {
             result.append(nameValueAsQueryString(FORMAT_PARAMETER, IMAGE_FORMAT));
         }
+
+        // integration
+        result.append(nameValueAsQueryString(
+                INTEGRATION_PARAMETER, StringUtils.stripToEmpty(eventRequest.getIntegration())));
 
         // analytics
         if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
@@ -159,6 +186,6 @@ public class EventUtil {
     }
 
     private static String nameValueAsQueryString(String name, String value) {
-        return StringUtils.isEmpty(value) ? StringUtils.EMPTY : "&" + name + "=" + value;
+        return "&" + name + "=" + value;
     }
 }
