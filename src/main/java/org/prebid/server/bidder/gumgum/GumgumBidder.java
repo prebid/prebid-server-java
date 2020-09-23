@@ -136,17 +136,18 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     private void validateVideoParams(Video video) {
-        final Integer w = video.getW();
-        final Integer h = video.getH();
-        final Integer minduration = video.getMinduration();
-        final Integer maxduration = video.getMaxduration();
-        final Integer placement = video.getPlacement();
-        final Integer linearity = video.getLinearity();
-        if (w == null || w == 0 || h == null || h == 0 || minduration == null || minduration == 0
-                || maxduration == null || maxduration == 0 || placement == null || placement == 0
-                || linearity == null || linearity == 0) {
+        if (positiveOrNull(video.getW()) == null || positiveOrNull(video.getH()) == null
+                || positiveOrNull(video.getMinduration()) == null || positiveOrNull(video.getMaxduration()) == null
+                || positiveOrNull(video.getPlacement()) == null || positiveOrNull(video.getLinearity()) == null) {
             throw new PreBidException("Invalid or missing video field(s)");
         }
+    }
+
+    public static Integer positiveOrNull(Integer parameter) {
+        if (parameter == null) {
+            return null;
+        }
+        return parameter == 0 ? null : parameter;
     }
 
     private static Site modifySite(Site site, String trackingId) {
