@@ -210,24 +210,20 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toList());
     }
 
-    private String adapterNameFor(String name) {
-        return bidderCatalog.isAlias(name) ? bidderCatalog.nameByAlias(name) : name;
-    }
-
     private boolean isValidAdapterName(String name) {
-        return bidderCatalog.isValidAdapterName(adapterNameFor(name));
+        return bidderCatalog.isValidAdapterName(name);
     }
 
     private Adapter<?, ?> adapterByName(String name) {
-        return bidderCatalog.adapterByName(adapterNameFor(name));
+        return bidderCatalog.adapterByName(name);
     }
 
     private Usersyncer usersyncerByName(String name) {
-        return bidderCatalog.usersyncerByName(adapterNameFor(name));
+        return bidderCatalog.usersyncerByName(name);
     }
 
     private BidderInfo bidderInfoByName(String name) {
-        return bidderCatalog.bidderInfoByName(adapterNameFor(name));
+        return bidderCatalog.bidderInfoByName(name);
     }
 
     private Future<Map<Integer, Boolean>> resolveVendorsToGdpr(PreBidRequestContext preBidRequestContext,
@@ -339,7 +335,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
         return preBidRequestContext.getAdapterRequests().stream()
-                .filter(ar -> !bidderCatalog.isValidName(adapterNameFor(ar.getBidderCode())))
+                .filter(ar -> !bidderCatalog.isValidName(ar.getBidderCode()))
                 .map(ar -> BidderStatus.builder().bidder(ar.getBidderCode()).error("Unsupported bidder").build());
     }
 

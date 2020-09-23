@@ -570,8 +570,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, null,
-                        null, null, 2, true, true, false));
+                .willReturn(BidderInfo.create(true, null, null, null, null, null, 2, true, true, false));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -602,8 +601,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, null,
-                        null, null, 2, true, true, false));
+                .willReturn(BidderInfo.create(true, null, null, null, null, null, 2, true, true, false));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -858,32 +856,6 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithExpectedUsersyncInfoForBidderAlias() throws IOException {
-        // given
-        given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(singletonList("rubiconAlias"), 0, null, null, null, null, null)));
-
-        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
-        given(bidderCatalog.isAlias("rubiconAlias")).willReturn(true);
-        given(bidderCatalog.nameByAlias("rubiconAlias")).willReturn(RUBICON);
-
-        rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
-        givenUsersyncersReturningFamilyName();
-
-        givenTcfServiceReturningVendorIdResult(singleton(1));
-        givenTcfServiceReturningBidderNamesResult(emptySet());
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse.getBidderStatus())
-                .extracting(bidderStatus -> bidderStatus.getUsersync().getUrl())
-                .containsOnly("http://rubiconexample.com");
-    }
-
-    @Test
     public void shouldTolerateMissingTcfParamsInRequestForUsersyncInfo() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
@@ -1110,10 +1082,10 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
-        given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(BidderInfo.create(true, null, null,
-                null, null, 2, true, true, false));
-        given(bidderCatalog.bidderInfoByName(APPNEXUS)).willReturn(BidderInfo.create(true, null, null,
-                null, null, 2, true, false, false));
+        given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(
+                BidderInfo.create(true, null, null, null, null, null, 2, true, true, false));
+        given(bidderCatalog.bidderInfoByName(APPNEXUS)).willReturn(
+                BidderInfo.create(true, null, null, null, null, null, 2, true, false, false));
 
         given(privacyEnforcementService.isCcpaEnforced(any(), any())).willReturn(true);
 

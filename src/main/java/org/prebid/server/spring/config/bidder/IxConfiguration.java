@@ -5,9 +5,7 @@ import org.prebid.server.bidder.ix.IxAdapter;
 import org.prebid.server.bidder.ix.IxBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,14 +43,13 @@ public class IxConfiguration {
 
     @Bean
     BidderDeps ixBidderDeps() {
-        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
-
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new IxBidder(configProperties.getEndpoint(), mapper))
-                .adapterCreator(() -> new IxAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint(),
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new IxBidder(config.getEndpoint(), mapper))
+                .adapterCreator(config -> new IxAdapter(
+                        config.getUsersync().getCookieFamilyName(),
+                        config.getEndpoint(),
                         mapper))
                 .assemble();
     }

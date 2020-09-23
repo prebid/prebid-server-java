@@ -5,6 +5,7 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.EncodeException;
@@ -83,9 +84,8 @@ public class BidderParamValidator {
 
         final Map<String, JsonNode> bidderRawSchemas = new LinkedHashMap<>();
 
-        bidderCatalog.names()
-                .forEach(bidderRequester -> bidderRawSchemas.put(bidderRequester,
-                        createSchemaNode(schemaDirectory, bidderRequester, mapper)));
+        bidderCatalog.names().forEach(bidder -> bidderRawSchemas.put(
+                bidder, createSchemaNode(schemaDirectory, maybeResolveAlias(bidderCatalog, bidder), mapper)));
 
         return new BidderParamValidator(toBidderSchemas(bidderRawSchemas), toSchemas(bidderRawSchemas, mapper));
     }
@@ -111,6 +111,10 @@ public class BidderParamValidator {
             throw new IllegalArgumentException(String.format("Couldn't parse %s bidder schema", bidder), e);
         }
         return result;
+    }
+
+    private static String maybeResolveAlias(BidderCatalog bidderCatalog, String bidder) {
+        return ObjectUtils.defaultIfNull(bidderCatalog.bidderInfoByName(bidder).getAliasOf(), bidder);
     }
 
     private static JsonNode createSchemaNode(String schemaDirectory, String bidder, JacksonMapper mapper) {

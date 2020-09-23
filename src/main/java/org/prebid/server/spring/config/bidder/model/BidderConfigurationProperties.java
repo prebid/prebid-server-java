@@ -1,17 +1,16 @@
 package org.prebid.server.spring.config.bidder.model;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 @Validated
 @Data
-@NoArgsConstructor
 public class BidderConfigurationProperties {
 
     @NotNull
@@ -33,7 +32,7 @@ public class BidderConfigurationProperties {
     private List<String> deprecatedNames;
 
     @NotNull
-    private List<String> aliases;
+    private Map<String, Object> aliases = Collections.emptyMap();
 
     @NotNull
     private MetaInfo metaInfo;
@@ -42,4 +41,10 @@ public class BidderConfigurationProperties {
     private UsersyncConfigurationProperties usersync;
 
     private Map<String, String> extraInfo;
+
+    private final Class<? extends BidderConfigurationProperties> selfClass;
+
+    public BidderConfigurationProperties() {
+        selfClass = this.getClass();
+    }
 }

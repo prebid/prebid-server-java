@@ -23,7 +23,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
@@ -58,17 +57,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Currency;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Used in OpenRTB request processing.
@@ -91,7 +85,6 @@ public class AuctionRequestFactory {
     private final ImplicitParametersExtractor paramsExtractor;
     private final IpAddressHelper ipAddressHelper;
     private final UidsCookieService uidsCookieService;
-    private final BidderCatalog bidderCatalog;
     private final RequestValidator requestValidator;
     private final InterstitialProcessor interstitialProcessor;
     private final TimeoutResolver timeoutResolver;
@@ -111,7 +104,6 @@ public class AuctionRequestFactory {
                                  ImplicitParametersExtractor paramsExtractor,
                                  IpAddressHelper ipAddressHelper,
                                  UidsCookieService uidsCookieService,
-                                 BidderCatalog bidderCatalog,
                                  RequestValidator requestValidator,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
@@ -131,7 +123,6 @@ public class AuctionRequestFactory {
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
@@ -494,18 +485,15 @@ public class AuctionRequestFactory {
         final ExtRequestPrebid prebid = ext.getPrebid();
 
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, getImpMediaTypes(imps));
-        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
         final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
         final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest);
 
-        if (updatedTargeting != null || updatedAliases != null || updatedCache != null || updatedChannel != null) {
+        if (updatedTargeting != null || updatedCache != null || updatedChannel != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
 
             return ExtRequest.of(prebidBuilder
-                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
-                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
                     .cache(ObjectUtils.defaultIfNull(updatedCache,
@@ -644,34 +632,6 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Returns aliases according to request.imp[i].ext.{bidder}
-     * or null (if no aliases at all or they are already presented in request).
-     */
-    private Map<String, String> aliasesOrNull(ExtRequestPrebid prebid, List<Imp> imps) {
-        final Map<String, String> aliases = getIfNotNullOrDefault(prebid, ExtRequestPrebid::getAliases,
-                Collections.emptyMap());
-
-        // go through imps' bidders and figure out preconfigured aliases
-        final Map<String, String> resolvedAliases = imps.stream()
-                .filter(Objects::nonNull)
-                .filter(imp -> imp.getExt() != null) // request validator is not called yet
-                .flatMap(imp -> asStream(imp.getExt().fieldNames())
-                        .filter(bidder -> !aliases.containsKey(bidder))
-                        .filter(bidderCatalog::isAlias))
-                .distinct()
-                .collect(Collectors.toMap(Function.identity(), bidderCatalog::nameByAlias));
-
-        final Map<String, String> result;
-        if (resolvedAliases.isEmpty()) {
-            result = null;
-        } else {
-            result = new HashMap<>(aliases);
-            result.putAll(resolvedAliases);
-        }
-        return result;
-    }
-
-    /**
      * Returns populated {@link ExtRequestPrebidCache} or null if no changes were applied.
      */
     private ExtRequestPrebidCache cacheOrNull(ExtRequestPrebid prebid) {
@@ -724,17 +684,8 @@ public class AuctionRequestFactory {
         return !Objects.equals(requestTimeout, timeout) ? timeout : null;
     }
 
-    private static <T> Stream<T> asStream(Iterator<T> iterator) {
-        final Iterable<T> iterable = () -> iterator;
-        return StreamSupport.stream(iterable.spliterator(), false);
-    }
-
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
         return target != null ? getter.apply(target) : null;
-    }
-
-    private static <T, R> R getIfNotNullOrDefault(T target, Function<T, R> getter, R defaultValue) {
-        return ObjectUtils.defaultIfNull(getIfNotNull(target, getter), defaultValue);
     }
 
     /**

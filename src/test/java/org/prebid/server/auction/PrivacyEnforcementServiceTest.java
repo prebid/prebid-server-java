@@ -819,7 +819,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 bidderToUser,
                 extUser,
                 asList(bidder1Name, bidder2Name, bidder3Name),
-                BidderAliases.of(bidderCatalog))
+                BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -874,7 +874,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(bidderCatalog))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -1169,7 +1169,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceCcpa) {
-        return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, true), enforceCcpa, false);
+        return BidderInfo.of(
+                true,
+                null,
+                null,
+                null,
+                null,
+                new BidderInfo.GdprInfo(gdprVendorId, true),
+                enforceCcpa,
+                false);
     }
 }

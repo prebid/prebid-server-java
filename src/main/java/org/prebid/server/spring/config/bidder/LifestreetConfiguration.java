@@ -5,9 +5,7 @@ import org.prebid.server.bidder.lifestreet.LifestreetAdapter;
 import org.prebid.server.bidder.lifestreet.LifestreetBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,15 +43,14 @@ public class LifestreetConfiguration {
 
     @Bean
     BidderDeps lifestreetBidderDeps() {
-        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
-
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new LifestreetBidder(configProperties.getEndpoint(), mapper))
-                .adapterCreator(() -> new LifestreetAdapter(usersync.getCookieFamilyName(),
-                        configProperties.getEndpoint(), mapper))
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new LifestreetBidder(config.getEndpoint(), mapper))
+                .adapterCreator(config -> new LifestreetAdapter(
+                        config.getUsersync().getCookieFamilyName(),
+                        config.getEndpoint(),
+                        mapper))
                 .assemble();
     }
 }

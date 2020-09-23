@@ -1,5 +1,6 @@
 package org.prebid.server.it;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -36,11 +37,13 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -64,7 +67,7 @@ public class ApplicationTest extends IntegrationTest {
     private static final String ADFORM = "adform";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
-    private static final String APPNEXUS_CONFIGURED_ALIAS = "districtm";
+    private static final String DISTRICTM_APPNEXUS_ALIAS = "districtm";
     private static final String RUBICON = "rubicon";
 
     private static final int ADMIN_PORT = 8060;
@@ -137,10 +140,10 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void auctionShouldRespondWithBidsFromAppnexusAlias() throws IOException {
+    public void auctionShouldRespondWithBidsFromDistrictmAppnexusAlias() throws IOException {
         // given
         // appnexus bid response for ad unit 4
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/districtm-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/districtm/test-districtm-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/districtm/test-districtm-bid-response-1.json"))));
 
@@ -170,7 +173,7 @@ public class ApplicationTest extends IntegrationTest {
 
         final String expectedAuctionResponse = legacyAuctionResponseFrom(
                 "auction/districtm/test-auction-districtm-response.json",
-                response, asList(APPNEXUS, APPNEXUS_CONFIGURED_ALIAS));
+                response, singletonList(DISTRICTM_APPNEXUS_ALIAS));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -473,34 +476,47 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void biddersParamsShouldReturnBidderSchemas() throws JSONException {
-        // given
-        final Map<String, JsonNode> bidderNameToSchema = getBidderNamesFromParamFiles().stream()
-                .collect(Collectors.toMap(Function.identity(), ApplicationTest::jsonSchemaToJsonNode));
-
+    public void biddersParamsShouldReturnBidderSchemas() throws JSONException, IOException {
         // when
         final Response response = given(SPEC)
                 .when()
                 .get("/bidders/params");
 
         // then
-        JSONAssert.assertEquals(bidderNameToSchema.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        final Map<String, JsonNode> responseAsMap = jacksonMapper.decodeValue(response.asString(),
+                new TypeReference<Map<String, JsonNode>>() {
+                });
+
+        final List<String> bidders = getBidderNamesFromParamFiles();
+        final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        bidderName -> jsonSchemaToJsonNode(aliases.getOrDefault(bidderName, bidderName))));
+
+        assertThat(responseAsMap.keySet()).containsOnlyElementsOf(expectedMap.keySet());
+        assertThat(responseAsMap).containsAllEntriesOf(expectedMap);
+
+        JSONAssert.assertEquals(expectedMap.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
-    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws JSONException, IOException {
-        // given
-        final List<String> bidderNames = getBidderNamesFromParamFiles();
-        final List<String> bidderAliases = getBidderAliasesFromConfigFiles();
-
+    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws IOException {
         // when
         final Response response = given(SPEC)
                 .when()
                 .get("/info/bidders");
 
         // then
-        final String expectedResponse = CollectionUtils.union(bidderNames, bidderAliases).toString();
-        JSONAssert.assertEquals(expectedResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        final List<String> responseAsList = jacksonMapper.decodeValue(response.asString(),
+                new TypeReference<List<String>>() {
+                });
+
+        final List<String> bidders = getBidderNamesFromParamFiles();
+        final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        final Collection<String> expectedBidders = CollectionUtils.union(bidders, aliases.keySet());
+
+        assertThat(responseAsList).containsOnlyElementsOf(expectedBidders);
     }
 
     @Test
@@ -666,27 +682,30 @@ public class ApplicationTest extends IntegrationTest {
         return Collections.emptyList();
     }
 
-    private static List<String> getBidderAliasesFromConfigFiles() throws IOException {
+    private static Map<String, String> getBidderAliasesFromConfigFiles() throws IOException {
         final String folderPath = "src/main/resources/bidder-config";
         final File folder = new File(folderPath);
         final String[] files = folder.list();
         if (files != null) {
             final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
-            final List<String> aliases = new ArrayList<>();
+            final Map<String, String> aliases = new HashMap<>();
             for (String fileName : files) {
                 final JsonNode configNode = mapper.readValue(new File(folderPath, fileName), JsonNode.class);
-                final JsonNode aliasesNode = configNode.get("adapters").fields().next().getValue().get("aliases");
+                final Map.Entry<String, JsonNode> bidderEntry = configNode.get("adapters").fields().next();
+                final String bidderName = bidderEntry.getKey();
+                final JsonNode aliasesNode = bidderEntry.getValue().get("aliases");
 
-                if (!aliasesNode.isNull()) {
-                    for (String alias : aliasesNode.textValue().split(",")) {
-                        aliases.add(alias.trim());
+                if (aliasesNode.isObject()) {
+                    Iterator<String> iterator = aliasesNode.fieldNames();
+                    while (iterator.hasNext()) {
+                        aliases.put(iterator.next().trim(), bidderName);
                     }
                 }
             }
             return aliases;
         }
-        return Collections.emptyList();
+        return Collections.emptyMap();
     }
 
     private static JsonNode jsonSchemaToJsonNode(String bidderName) {

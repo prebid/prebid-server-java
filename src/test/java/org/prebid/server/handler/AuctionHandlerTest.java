@@ -474,23 +474,6 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSupportOfBidderAlias() {
-        // given
-        given(bidderCatalog.isAlias("rubiconAlias")).willReturn(true);
-        given(bidderCatalog.nameByAlias("rubiconAlias")).willReturn(RUBICON);
-
-        final List<AdapterRequest> adapterRequests =
-                singletonList(AdapterRequest.of("rubiconAlias", singletonList(null)));
-        givenPreBidRequestContext(identity(), builder -> builder.adapterRequests(adapterRequests));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verify(httpAdapterConnector).call(eq(rubiconAdapter), any(), eq(adapterRequests.get(0)), any());
-    }
-
-    @Test
     public void shouldTolerateUnsupportedBidderInPreBidRequest() throws IOException {
         // given
         final List<AdapterRequest> adapterRequests = asList(
@@ -920,8 +903,15 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo(int gdprVendorId) {
-        return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, true), true, false);
+        return BidderInfo.of(
+                true,
+                null,
+                null,
+                null,
+                null,
+                new BidderInfo.GdprInfo(gdprVendorId, true),
+                true,
+                false);
     }
 
     private static PrivacyEnforcementAction actionWithUserSync(boolean blockPixelSync) {

@@ -3,6 +3,7 @@ package org.prebid.server.spring.env;
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.EncodedResource;
 import org.springframework.core.io.support.PropertySourceFactory;
 
@@ -28,12 +29,17 @@ public class YamlPropertySourceFactory implements PropertySourceFactory {
         return new PropertiesPropertySource(sourceName, propertiesFromYaml);
     }
 
+    public static Properties readPropertiesFromYamlResource(Resource resource) {
+        final YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+        factory.setResources(resource);
+        factory.afterPropertiesSet();
+
+        return factory.getObject();
+    }
+
     private Properties loadYamlIntoProperties(EncodedResource resource) throws FileNotFoundException {
         try {
-            final YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-            factory.setResources(resource.getResource());
-            factory.afterPropertiesSet();
-            return factory.getObject();
+            return readPropertiesFromYamlResource(resource.getResource());
         } catch (IllegalStateException e) {
             // for ignoreResourceNotFound
             final Throwable cause = e.getCause();

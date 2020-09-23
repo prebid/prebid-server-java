@@ -10,7 +10,6 @@ import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,19 +56,20 @@ public class BrightrollConfiguration {
         final Map<String, PublisherOverride> publisherIdToOverride = configProperties.getAccounts() == null
                 ? Collections.emptyMap()
                 : configProperties.getAccounts().stream()
-                        .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
+                .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint(), mapper,
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new BrightrollBidder(
+                        config.getEndpoint(),
+                        mapper,
                         publisherIdToOverride))
                 .assemble();
     }
 
     private PublisherOverride toPublisherOverride(BidderAccount bidderAccount) {
         return PublisherOverride.of(bidderAccount.getBadv(), bidderAccount.getBcat(), bidderAccount.getImpBattr(),
-               bidderAccount.getBidFloor());
+                bidderAccount.getBidFloor());
     }
 
     @Validated

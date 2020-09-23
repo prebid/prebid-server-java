@@ -239,13 +239,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return allBidders;
     }
 
-    /**
-     * Determines original bidder's name.
-     */
-    private String bidderNameFor(String bidder) {
-        return bidderCatalog.isAlias(bidder) ? bidderCatalog.nameByAlias(bidder) : bidder;
-    }
-
     private Future<Void> handleVendorIdResult(TcfResponse<Integer> tcfResponse) {
 
         final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getActions();
@@ -348,7 +341,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private Set<String> extractCcpaEnforcedBidders(Account account, Collection<String> biddersToSync, Privacy privacy) {
         if (privacyEnforcementService.isCcpaEnforced(privacy.getCcpa(), account)) {
             return biddersToSync.stream()
-                    .filter(bidder -> bidderCatalog.bidderInfoByName(bidderNameFor(bidder)).isCcpaEnforced())
+                    .filter(bidder -> bidderCatalog.bidderInfoByName(bidder).isCcpaEnforced())
                     .collect(Collectors.toSet());
         }
         return Collections.emptySet();
@@ -380,29 +373,29 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                                  Set<String> biddersRejectedByTcf,
                                                  Set<String> biddersRejectedByCcpa,
                                                  Privacy privacy) {
-        final BidderUsersyncStatus result;
-        final boolean isNotAlias = !bidderCatalog.isAlias(bidder);
 
-        if (isNotAlias && !bidderCatalog.isValidName(bidder)) {
+        final BidderUsersyncStatus result;
+
+        if (!bidderCatalog.isValidName(bidder)) {
             result = bidderStatusBuilder(bidder)
                     .error("Unsupported bidder")
                     .build();
-        } else if (isNotAlias && !bidderCatalog.isActive(bidder)) {
+        } else if (!bidderCatalog.isActive(bidder)) {
             result = bidderStatusBuilder(bidder)
                     .error(String.format("%s is not configured properly on this Prebid Server deploy. "
                             + "If you believe this should work, contact the company hosting the service "
                             + "and tell them to check their configuration.", bidder))
                     .build();
-        } else if (isNotAlias && biddersRejectedByTcf.contains(bidder)) {
+        } else if (biddersRejectedByTcf.contains(bidder)) {
             result = bidderStatusBuilder(bidder)
                     .error(REJECTED_BY_TCF)
                     .build();
-        } else if (isNotAlias && biddersRejectedByCcpa.contains(bidder)) {
+        } else if (biddersRejectedByCcpa.contains(bidder)) {
             result = bidderStatusBuilder(bidder)
                     .error(REJECTED_BY_CCPA)
                     .build();
         } else {
-            final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
+            final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidder);
             final UsersyncInfo hostBidderUsersyncInfo = hostBidderUsersyncInfo(context, privacy, usersyncer);
 
             if (hostBidderUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {

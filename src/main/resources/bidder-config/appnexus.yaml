@@ -6,7 +6,9 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases: districtm
+    aliases:
+      districtm:
+        enabled: false
     meta-info:
       maintainer-email: prebid-server@xandr.com
       app-media-types:
