@@ -683,8 +683,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
         final String userId = user != null ? user.getId() : null;
-        final String resolvedId = userId == null ? resolveUserId(user) : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
+        final String resolvedId = userId == null ? resolveUserId(extUser) : null;
         final List<ExtUserEid> extUserEids = extUser != null ? extUser.getEids() : null;
         final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUserEids)
@@ -692,8 +692,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<ExtUserTpIdRubicon> userExtTpIds = sourceToUserEidExt != null
                 ? extractExtUserTpIds(sourceToUserEidExt)
                 : null;
-        final boolean isHasStypeToRemove = isHasStypeToRemove(extUserEids);
-        final List<ExtUserEid> resolvedExtUserEids = isHasStypeToRemove
+        final boolean hasStypeToRemove = hasStypeToRemove(extUserEids);
+        final List<ExtUserEid> resolvedExtUserEids = hasStypeToRemove
                 ? prepareExtUserEids(extUserEids)
                 : extUserEids;
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
@@ -701,7 +701,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String liverampId = extractLiverampId(sourceToUserEidExt);
 
         if (userExtRp == null && userExtTpIds == null && userExtData == null && liverampId == null
-                && resolvedId == null && !isHasStypeToRemove) {
+                && resolvedId == null && !hasStypeToRemove) {
             return user;
         }
 
@@ -730,8 +730,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String resolveUserId(User user) {
-        final ExtUser extUser = user != null ? user.getExt() : null;
+    private String resolveUserId(ExtUser extUser) {
         final List<ExtUserEid> extUserEids = extUser != null ? extUser.getEids() : null;
         return CollectionUtils.emptyIfNull(extUserEids)
                 .stream()
@@ -755,7 +754,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return extUserEidUidExt != null ? extUserEidUidExt.getStype() : null;
     }
 
-    private boolean isHasStypeToRemove(List<ExtUserEid> extUserEids) {
+    private boolean hasStypeToRemove(List<ExtUserEid> extUserEids) {
         return CollectionUtils.emptyIfNull(extUserEids).stream()
                 .filter(Objects::nonNull)
                 .map(ExtUserEid::getUids)

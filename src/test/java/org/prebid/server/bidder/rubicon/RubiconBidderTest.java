@@ -783,7 +783,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateUseIdIfMissingFromFirstUidStypePpuid() {
+    public void makeHttpRequestsShouldCreateUserIdIfMissingFromFirstUidStypePpuid() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(ExtUser.builder()
@@ -809,7 +809,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotCreateUseIdIfMissingWhenNoUidWithppiudType() {
+    public void makeHttpRequestsShouldNotCreateUseIdIfMissingWhenNoUidWithPpuidType() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(ExtUser.builder()
