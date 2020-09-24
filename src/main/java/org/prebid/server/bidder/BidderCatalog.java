@@ -31,12 +31,21 @@ public class BidderCatalog {
                 .forEach(this::processDeps);
     }
 
-    private void processDeps(BidderInstanceDeps coreDeps) {
-        final String bidderName = coreDeps.getName();
+    private void processDeps(BidderInstanceDeps deps) {
+        final String bidderName = deps.getName();
 
-        bidderDepsMap.put(bidderName, coreDeps);
-        deprecatedNameToError.putAll(createErrorsForDeprecatedNames(coreDeps));
-        processVendorId(coreDeps, bidderName);
+        validateBidderName(bidderName);
+
+        bidderDepsMap.put(bidderName, deps);
+        deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps));
+        processVendorId(deps, bidderName);
+    }
+
+    private void validateBidderName(String bidderName) {
+        if (bidderDepsMap.containsKey(bidderName)) {
+            throw new IllegalArgumentException(String.format(
+                    "Duplicate bidder or alias '%s'. Please check the configuration", bidderName));
+        }
     }
 
     private Map<String, String> createErrorsForDeprecatedNames(BidderInstanceDeps deps) {
