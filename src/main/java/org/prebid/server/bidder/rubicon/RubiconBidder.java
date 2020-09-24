@@ -722,7 +722,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
 
         return userBuilder
-                .id(resolvedId)
+                .id(ObjectUtils.defaultIfNull(resolvedId, userId))
                 .gender(null)
                 .yob(null)
                 .geo(null)
@@ -783,10 +783,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static ExtUserEidUid cleanExtUserEidUidStype(ExtUserEidUid extUserEidUid) {
         final ExtUserEidUidExt extUserEidUidExt = extUserEidUid.getExt();
-        return STYPE_TO_REMOVE.contains(extUserEidUidExt.getStype())
-                ? ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
-                ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null))
-                : extUserEidUid;
+        return extUserEidUidExt == null || !STYPE_TO_REMOVE.contains(extUserEidUidExt.getStype())
+                ? extUserEidUid
+                : ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
+                ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
