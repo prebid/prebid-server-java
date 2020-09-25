@@ -68,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -1540,6 +1541,32 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(account).isEqualTo(Account.builder().id("").build());
         verifyZeroInteractions(applicationSettings);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithIntegrationFromAccount() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(emptyList())
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("123").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build());
+
+        final Account givenAccount = Account.builder().id("123").defaultIntegration("integration").build();
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(givenAccount));
+
+        // when
+        final AuctionContext auctionContext = factory.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(singletonList(auctionContext.getBidRequest()))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getIntegration)
+                .containsOnly("integration");
     }
 
     private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {
