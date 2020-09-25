@@ -613,9 +613,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Video makeVideo(Imp imp, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
-        Video video = imp.getVideo();
         final String videoType = prebidImpExt != null && prebidImpExt.getIsRewardedInventory() != null
                 && prebidImpExt.getIsRewardedInventory() == 1 ? "rewarded" : null;
+
+        final Video video = imp.getVideo();
 
         if (rubiconVideoParams == null && videoType == null) {
             return video;
@@ -623,16 +624,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
-        final Integer sizeId = (rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null) != null
-                ? rubiconVideoParams.getSizeId()
-                : calculateVideoSizeIdDueToPlacement(video.getPlacement(), imp.getInstl());
+        final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+        final Integer extSizeId = sizeId != null
+                ? sizeId : resolveVideoSizeId(video.getPlacement(), imp.getInstl());
+
         return video.toBuilder()
                 .ext(mapper.mapper().valueToTree(
-                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(sizeId), videoType)))
+                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(extSizeId), videoType)))
                 .build();
     }
 
-    private Integer calculateVideoSizeIdDueToPlacement(Integer placement, Integer instl) {
+    private Integer resolveVideoSizeId(Integer placement, Integer instl) {
         if (placement != null) {
             if (placement == 1) {
                 return 201;
@@ -640,12 +642,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
             if (placement == 3) {
                 return 203;
             }
-        }
-        if (instl != null) {
+        } else if (instl != null) {
             if (instl == 1) {
                 return 202;
             }
         }
+
         return null;
     }
 
