@@ -342,7 +342,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (isVideo(imp)) {
             builder
                     .banner(null)
-                    .video(makeVideo(imp.getVideo(), extRubicon.getVideo(), extPrebid));
+                    .video(makeVideo(imp, extRubicon.getVideo(), extPrebid));
         } else {
             builder
                     .banner(makeBanner(imp.getBanner(), overriddenSizes(extRubicon)))
@@ -612,7 +612,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && video.getLinearity() != null && video.getApi() != null;
     }
 
-    private Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
+    private Video makeVideo(Imp imp, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
+        Video video = imp.getVideo();
         final String videoType = prebidImpExt != null && prebidImpExt.getIsRewardedInventory() != null
                 && prebidImpExt.getIsRewardedInventory() == 1 ? "rewarded" : null;
 
@@ -622,11 +623,30 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
-        final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+        final Integer sizeId = (rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null) != null
+                ? rubiconVideoParams.getSizeId()
+                : calculateVideoSizeIdDueToPlacement(video.getPlacement(), imp.getInstl());
         return video.toBuilder()
                 .ext(mapper.mapper().valueToTree(
                         RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(sizeId), videoType)))
                 .build();
+    }
+
+    private Integer calculateVideoSizeIdDueToPlacement(Integer placement, Integer instl) {
+        if (placement != null) {
+            if (placement == 1) {
+                return 201;
+            }
+            if (placement == 3) {
+                return 203;
+            }
+        }
+        if (instl != null) {
+            if (instl == 1) {
+                return 202;
+            }
+        }
+        return null;
     }
 
     private static List<Format> overriddenSizes(ExtImpRubicon rubiconImpExt) {
