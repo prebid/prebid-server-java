@@ -25,4 +25,11 @@ public class ExtImpAdform {
 
     @JsonProperty("mkw")
     String keyWords;
+
+    String cdims;
+
+    @JsonProperty("minp")
+    Double minPrice;
+
+    String url;
 }

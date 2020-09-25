@@ -134,6 +134,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String FPD_KEYWORDS_FIELD = "keywords";
 
+    private static final String PPUID_STYPE = "ppuid";
+    private static final String SHA256EMAIL_STYPE = "sha256email";
+    private static final String DMP_STYPE = "dmp";
+    private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
+            DMP_STYPE));
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
             };
@@ -679,18 +684,26 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
+        final String userId = user != null ? user.getId() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
+        final String resolvedId = userId == null ? resolveUserId(extUser) : null;
+        final List<ExtUserEid> extUserEids = extUser != null ? extUser.getEids() : null;
         final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
-                ? specialExtUserEids(extUser.getEids())
+                ? specialExtUserEids(extUserEids)
                 : null;
         final List<ExtUserTpIdRubicon> userExtTpIds = sourceToUserEidExt != null
                 ? extractExtUserTpIds(sourceToUserEidExt)
                 : null;
+        final boolean hasStypeToRemove = hasStypeToRemove(extUserEids);
+        final List<ExtUserEid> resolvedExtUserEids = hasStypeToRemove
+                ? prepareExtUserEids(extUserEids)
+                : extUserEids;
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
         final String liverampId = extractLiverampId(sourceToUserEidExt);
 
-        if (userExtRp == null && userExtTpIds == null && userExtData == null && liverampId == null) {
+        if (userExtRp == null && userExtTpIds == null && userExtData == null && liverampId == null
+                && resolvedId == null && !hasStypeToRemove) {
             return user;
         }
 
@@ -698,7 +711,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ? ExtUser.builder()
                 .consent(extUser.getConsent())
                 .digitrust(extUser.getDigitrust())
-                .eids(extUser.getEids())
+                .eids(resolvedExtUserEids)
                 .build()
                 : ExtUser.builder().build();
 
@@ -711,11 +724,71 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
 
         return userBuilder
+                .id(ObjectUtils.defaultIfNull(resolvedId, userId))
                 .gender(null)
                 .yob(null)
                 .geo(null)
                 .ext(mapper.fillExtension(userExt, rubiconUserExt))
                 .build();
+    }
+
+    private String resolveUserId(ExtUser extUser) {
+        final List<ExtUserEid> extUserEids = extUser != null ? extUser.getEids() : null;
+        return CollectionUtils.emptyIfNull(extUserEids)
+                .stream()
+                .map(extUserEid -> getIdFromFirstUuidWithStypePpuid(extUserEid.getUids()))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String getIdFromFirstUuidWithStypePpuid(List<ExtUserEidUid> extUserEidUids) {
+        return CollectionUtils.emptyIfNull(extUserEidUids).stream()
+                .filter(Objects::nonNull)
+                .filter(extUserEidUid -> Objects.equals(PPUID_STYPE, getUserEidUidStype(extUserEidUid)))
+                .map(ExtUserEidUid::getId)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String getUserEidUidStype(ExtUserEidUid extUserEidUid) {
+        final ExtUserEidUidExt extUserEidUidExt = extUserEidUid.getExt();
+        return extUserEidUidExt != null ? extUserEidUidExt.getStype() : null;
+    }
+
+    private boolean hasStypeToRemove(List<ExtUserEid> extUserEids) {
+        return CollectionUtils.emptyIfNull(extUserEids).stream()
+                .filter(Objects::nonNull)
+                .map(ExtUserEid::getUids)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(ExtUserEidUid::getExt)
+                .filter(Objects::nonNull)
+                .map(ExtUserEidUidExt::getStype)
+                .anyMatch(STYPE_TO_REMOVE::contains);
+    }
+
+    private List<ExtUserEid> prepareExtUserEids(List<ExtUserEid> extUserEids) {
+        return CollectionUtils.emptyIfNull(extUserEids).stream()
+                .filter(Objects::nonNull)
+                .map(RubiconBidder::prepareExtUserEid)
+                .collect(Collectors.toList());
+    }
+
+    private static ExtUserEid prepareExtUserEid(ExtUserEid extUserEid) {
+        final List<ExtUserEidUid> extUserEidUids = CollectionUtils.emptyIfNull(extUserEid.getUids()).stream()
+                .filter(Objects::nonNull)
+                .map(RubiconBidder::cleanExtUserEidUidStype)
+                .collect(Collectors.toList());
+        return ExtUserEid.of(extUserEid.getSource(), extUserEid.getId(), extUserEidUids, extUserEid.getExt());
+    }
+
+    private static ExtUserEidUid cleanExtUserEidUidStype(ExtUserEidUid extUserEidUid) {
+        final ExtUserEidUidExt extUserEidUidExt = extUserEidUid.getExt();
+        return extUserEidUidExt == null || !STYPE_TO_REMOVE.contains(extUserEidUidExt.getStype())
+                ? extUserEidUid
+                : ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
+                ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
