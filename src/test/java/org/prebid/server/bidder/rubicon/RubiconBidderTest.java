@@ -144,9 +144,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReplaceDefaultParametersWithExtPrebidBiddersBidder() {
         // given
         final ExtRequest prebidExt = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidders(mapper.createObjectNode()
-                        .set("bidder", mapper.createObjectNode()
-                                .put("integration", "test")))
+                .integration("test")
                 .build());
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(prebidExt),
