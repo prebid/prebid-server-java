@@ -642,10 +642,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
             if (placement == 3) {
                 return 203;
             }
-        } else if (instl != null) {
-            if (instl == 1) {
-                return 202;
-            }
+        }
+
+        if (instl != null && instl == 1) {
+            return 202;
         }
 
         return null;

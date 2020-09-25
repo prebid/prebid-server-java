@@ -323,7 +323,7 @@ public class RubiconBidderTest extends VertxTest {
     public void shouldSetSizeIdTo201IfplacementIs1IfSizeIdIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.video(Video.builder().placement(1).build()),
+                builder -> builder.instl(1).video(Video.builder().placement(1).build()),
                 builder -> builder.video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(null).build()));
 
         // when
@@ -344,7 +344,7 @@ public class RubiconBidderTest extends VertxTest {
     public void shouldSetSizeIdTo203IfplacementIs3IfSizeIdIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.video(Video.builder().placement(3).build()),
+                builder -> builder.instl(1).video(Video.builder().placement(3).build()),
                 builder -> builder.video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(null).build()));
 
         // when
