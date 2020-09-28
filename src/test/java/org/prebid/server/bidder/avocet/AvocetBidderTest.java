@@ -24,7 +24,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,28 +48,12 @@ public class AvocetBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = avocetBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
                         .build()))
-                .id("request_id")
                 .build();
 
         // when
@@ -103,13 +86,14 @@ public class AvocetBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 null,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                        .ext(mapper.createObjectNode().put("avocet", "invalid")))));
         // when
         final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsOnly(
-                BidderError.badServerResponse("Invalid bid extension from endpoint."));
+                BidderError.badServerResponse("Invalid Avocet bidder bid extension"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -122,7 +106,7 @@ public class AvocetBidderTest extends VertxTest {
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").api(3)
-                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0, 2)))))));
+                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0)))))));
 
         // when
         final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
@@ -131,10 +115,12 @@ public class AvocetBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder()
-                        .impid("123")
-                        .api(3)
-                        .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0, 2)))).build(), banner,
-                        "USD"));
+                                .impid("123")
+                                .api(3)
+                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0))))
+                                .build(),
+                        banner,
+                        null));
     }
 
     @Test
@@ -146,7 +132,7 @@ public class AvocetBidderTest extends VertxTest {
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").api(2)
-                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0, 2)))))));
+                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0)))))));
 
         // when
         final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
@@ -155,10 +141,12 @@ public class AvocetBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder()
-                        .impid("123")
-                        .api(2)
-                        .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0, 2)))).build(), video,
-                        "USD"));
+                                .impid("123")
+                                .api(2)
+                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0))))
+                                .build(),
+                        video,
+                        null));
     }
 
     @Test
@@ -170,7 +158,7 @@ public class AvocetBidderTest extends VertxTest {
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").api(1)
-                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0, 2)))))));
+                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0)))))));
 
         // when
         final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
@@ -179,10 +167,12 @@ public class AvocetBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder()
-                        .impid("123")
-                        .api(1)
-                        .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0, 2)))).build(), video,
-                        "USD"));
+                                .impid("123")
+                                .api(1)
+                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0))))
+                                .build(),
+                        video,
+                        null));
     }
 
     @Test
@@ -194,7 +184,7 @@ public class AvocetBidderTest extends VertxTest {
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").api(3)
-                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(1, 2)))))));
+                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(1)))))));
 
         // when
         final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
@@ -203,11 +193,12 @@ public class AvocetBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder()
-                        .impid("123")
-                        .api(3)
-                        .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(1, 2)))).build(), video,
-                        "USD"));
-
+                                .impid("123")
+                                .api(3)
+                                .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(1))))
+                                .build(),
+                        video,
+                        null));
     }
 
     @Test

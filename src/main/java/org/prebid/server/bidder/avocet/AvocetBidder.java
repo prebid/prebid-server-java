@@ -8,8 +8,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.avocet.model.AvocetBidExtension;
 import org.prebid.server.bidder.avocet.model.AvocetResponseExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -31,7 +31,6 @@ import java.util.Objects;
 
 public class AvocetBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final int API_FRAMEWORK_VPAID_1_0 = 1;
     private static final int API_FRAMEWORK_VPAID_2_0 = 2;
 
@@ -45,16 +44,12 @@ public class AvocetBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No valid impressions in the bid request"));
-        }
-
-        String body;
+        final String body;
         try {
             body = mapper.encode(request);
         } catch (EncodeException e) {
-            final String message = String.format("Failed to encode request body, error: %s", e.getMessage());
-            return Result.emptyWithError(BidderError.badInput(message));
+            return Result.emptyWithError(
+                    BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
 
         return Result.of(Collections.singletonList(
@@ -88,21 +83,20 @@ public class AvocetBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
         for (SeatBid seatBid : bidResponse.getSeatbid()) {
             for (Bid bid : seatBid.getBid()) {
-                final ObjectNode ext = bid.getExt();
-                final AvocetResponseExt avocetResponseExt;
+                final BidType bidType;
                 try {
-                    avocetResponseExt = parseResponseExt(ext);
+                    bidType = getBidType(bid);
                 } catch (PreBidException e) {
-                    return Result.emptyWithError(BidderError.badServerResponse("Invalid bid extension from endpoint."));
+                    errors.add(BidderError.badServerResponse(e.getMessage()));
+                    continue;
                 }
-                final BidType bidType = getBidType(bid, avocetResponseExt.getAvocetBidExtension().getDuration());
-                final BidderBid bidderBid = BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
-                bidderBids.add(bidderBid);
+                bidderBids.add(BidderBid.of(bid, bidType, bidResponse.getCur()));
             }
         }
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.of(bidderBids, errors);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
@@ -113,24 +107,31 @@ public class AvocetBidder implements Bidder<BidRequest> {
         }
     }
 
-    private AvocetResponseExt parseResponseExt(ObjectNode ext) {
-        if (ext == null) {
-            throw new PreBidException("Invalid bid extension from endpoint.");
-        }
-        try {
-            return mapper.mapper().treeToValue(ext, AvocetResponseExt.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
-    private static BidType getBidType(Bid bid, Integer duration) {
-        if (duration != 0) {
+    private BidType getBidType(Bid bid) {
+        final Integer api = bid.getApi();
+        if (api != null && (api == API_FRAMEWORK_VPAID_1_0 || api == API_FRAMEWORK_VPAID_2_0)) {
             return BidType.video;
         }
 
-        final Integer api = bid.getApi();
-        return api == API_FRAMEWORK_VPAID_1_0 || api == API_FRAMEWORK_VPAID_2_0 ? BidType.video : BidType.banner;
+        final ObjectNode ext = bid.getExt();
+        if (ext != null) {
+            final AvocetResponseExt responseExt = parseResponseExt(ext);
+            final AvocetBidExtension avocetExt = responseExt.getAvocet();
+            final Integer duration = avocetExt != null ? avocetExt.getDuration() : null;
+            if (duration != null && duration != 0) {
+                return BidType.video;
+            }
+        }
+
+        return BidType.banner;
+    }
+
+    private AvocetResponseExt parseResponseExt(ObjectNode ext) {
+        try {
+            return mapper.mapper().treeToValue(ext, AvocetResponseExt.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Invalid Avocet bidder bid extension", e);
+        }
     }
 
     @Override
