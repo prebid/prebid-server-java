@@ -15,6 +15,7 @@ import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.gamma.model.GammaBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -246,14 +247,67 @@ public class GammaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoWhenBidRequestImpIsVideo() throws JsonProcessingException {
+    public void makeBidsShouldSetAdmFromVastXmlIsPresentAndVideoType() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("id").video(Video.builder().build()).build()))
-                .build();
+        final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+
+        final String adm = "ADM";
+        final GammaBid bid = GammaBid.builder().id("impId").vastXml(adm).build();
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
-                        .id("id")
+                        .id("impId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(bid))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final Bid expectedBid = Bid.builder().id("impId").adm(adm).build();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldSetAdmFromVastXmlAndNurlFromVastUrlAndVideoType() throws JsonProcessingException {
+        // given
+        final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+
+        final String adm = "ADM";
+        final String nurl = "NURL";
+        final GammaBid bid = GammaBid.builder().id("impId").vastXml(adm).vastUrl(nurl).build();
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .id("impId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(bid))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final Bid expectedBid = Bid.builder().id("impId").adm(adm).nurl(nurl).build();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenNoVastXmlAndVideoType() throws JsonProcessingException {
+        // given
+        final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .id("impId")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().build()))
                                 .build()))
@@ -263,13 +317,12 @@ public class GammaBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().build(), video, "USD"));
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
+                "Missing Ad Markup. Run with request.debug = 1 for more info"));
     }
 
     @Test
-    public void makeBidsShouldReturnBannerWhenNoProvided() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenNoAdmAndNotVideoType() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
@@ -284,9 +337,33 @@ public class GammaBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
 
         // then
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
+                "Missing Ad Markup. Run with request.debug = 1 for more info"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerWhenNoProvided() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
+        final Bid bid = Bid.builder().adm("ADM").build();
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .id("id")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(bid))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
+
+        final GammaBid expectedBid = GammaBid.builder().adm("ADM").build();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().build(), banner, "USD"));
+                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test

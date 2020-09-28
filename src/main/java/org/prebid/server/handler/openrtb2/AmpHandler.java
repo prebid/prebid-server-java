@@ -37,7 +37,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.manager.AdminManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -81,7 +81,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final BidderCatalog bidderCatalog;
     private final Set<String> biddersSupportingCustomTargeting;
     private final AmpResponsePostProcessor ampResponsePostProcessor;
-    private final AdminManager adminManager;
+    private final HttpInteractionLogger httpInteractionLogger;
     private final JacksonMapper mapper;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
@@ -92,7 +92,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                       BidderCatalog bidderCatalog,
                       Set<String> biddersSupportingCustomTargeting,
                       AmpResponsePostProcessor ampResponsePostProcessor,
-                      AdminManager adminManager,
+                      HttpInteractionLogger httpInteractionLogger,
                       JacksonMapper mapper) {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
@@ -103,7 +103,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
-        this.adminManager = Objects.requireNonNull(adminManager);
+        this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -132,14 +132,24 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .compose(context -> exchangeService.holdAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
-                .map(result -> addToEvent(result.getLeft(), ampEventBuilder::bidResponse, result))
-                .map(result -> Tuple3.of(result.getLeft(), result.getRight(),
-                        toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
+                .map((Tuple2<BidResponse, AuctionContext> result) ->
+                        addToEvent(result.getLeft(), ampEventBuilder::bidResponse, result))
+                .map((Tuple2<BidResponse, AuctionContext> result) ->
+                        Tuple3.of(
+                                result.getLeft(),
+                                result.getRight(),
+                                toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
 
-                .compose(result -> ampResponsePostProcessor.postProcess(result.getMiddle().getBidRequest(),
-                        result.getLeft(), result.getRight(), routingContext))
+                .compose((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
+                        ampResponsePostProcessor.postProcess(
+                                result.getMiddle().getBidRequest(),
+                                result.getLeft(),
+                                result.getRight(),
+                                routingContext)
+                                .map(ampResponse -> Tuple3.of(result.getLeft(), result.getMiddle(), ampResponse)))
 
-                .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
+                .map((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
+                        addToEvent(result.getRight().getTargeting(), ampEventBuilder::targeting, result))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
@@ -266,28 +276,34 @@ public class AmpHandler implements Handler<RoutingContext> {
         return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
 
-    private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
-                              RoutingContext context, long startTime) {
+    private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,
+                              AmpEvent.AmpEventBuilder ampEventBuilder,
+                              RoutingContext routingContext,
+                              long startTime) {
+
+        final boolean responseSucceeded = responseResult.succeeded();
+        final AuctionContext auctionContext = responseSucceeded ? responseResult.result().getMiddle() : null;
+
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
         final int status;
         final String body;
 
-        final String origin = originFrom(context);
+        final String origin = originFrom(routingContext);
         ampEventBuilder.origin(origin);
 
         // Add AMP headers
-        context.response().headers()
+        routingContext.response().headers()
                 .add("AMP-Access-Control-Allow-Source-Origin", origin)
                 .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
 
-        if (responseResult.succeeded()) {
+        if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK.code();
-            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            body = mapper.encode(responseResult.result());
+            routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            body = mapper.encode(responseResult.result().getRight());
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
@@ -299,11 +315,8 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .collect(Collectors.toList());
                 final String message = String.join("\n", errorMessages);
 
-                // TODO adminManager: enable when admin endpoints can be bound on application port
-                //adminManager.accept(AdminManager.COUNTER_KEY, logger,
-                //        logMessageFrom(invalidRequestException, message, context));
                 conditionalLogger.info(String.format("%s, Referer: %s", message,
-                        context.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
+                        routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = message;
@@ -341,7 +354,9 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
 
         final AmpEvent ampEvent = ampEventBuilder.status(status).errors(errorMessages).build();
-        respondWith(context, status, body, startTime, metricRequestStatus, ampEvent);
+        respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent);
+
+        httpInteractionLogger.maybeLogOpenrtb2Amp(auctionContext, routingContext, status, body);
     }
 
     private static String originFrom(RoutingContext context) {

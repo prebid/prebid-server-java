@@ -5,7 +5,6 @@ import lombok.Getter;
 import java.util.Collections;
 import java.util.List;
 
-@SuppressWarnings("serial")
 public class InvalidRequestException extends RuntimeException {
 
     @Getter
