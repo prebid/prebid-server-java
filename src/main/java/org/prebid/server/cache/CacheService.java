@@ -12,12 +12,12 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
-import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.CacheTtl;
+import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.cache.proto.request.BannerValue;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
@@ -525,15 +525,19 @@ public class CacheService {
                                            Account account,
                                            EventsContext eventsContext) {
 
-        final String bidId = bid.getId();
-        return findBidderForBidId(bidderToVideoBidIdsToModify, bidId)
-                .map(bidder -> eventsService.vastUrlTracking(
-                        bidId,
-                        bidder,
-                        account.getId(),
-                        eventsContext.getAuctionTimestamp(),
-                        eventsContext.getIntegration()))
-                .orElse(null);
+        if (eventsContext.isEnabledForAccountAndRequest()) {
+            final String bidId = bid.getId();
+            return findBidderForBidId(bidderToVideoBidIdsToModify, bidId)
+                    .map(bidder -> eventsService.vastUrlTracking(
+                            bidId,
+                            bidder,
+                            account.getId(),
+                            eventsContext.getAuctionTimestamp(),
+                            eventsContext.getIntegration()))
+                    .orElse(null);
+        }
+
+        return null;
     }
 
     private static Optional<String> findBidderForBidId(Map<String, List<String>> biddersToCacheBidIds, String bidId) {
