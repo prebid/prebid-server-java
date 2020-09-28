@@ -173,8 +173,8 @@ public class SharethroughBidderTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final List<ExtUserEidUid> uids = Arrays.asList(
-                ExtUserEidUid.of("first", null),
-                ExtUserEidUid.of("second", null));
+                ExtUserEidUid.of("first", null, null),
+                ExtUserEidUid.of("second", null, null));
         final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids, null);
         final ExtUser extUser = ExtUser.builder()
                 .consent("consent")

@@ -24,10 +24,12 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.telaria.model.TelariaRequestExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpOutTelaria;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -73,14 +75,19 @@ public class TelariaBidder implements Bidder<BidRequest> {
         final String publisherId = getPublisherId(bidRequest);
         String seatCode = null;
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
+        ExtImpTelaria extImp = null;
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpTelaria extImp = parseImpExt(imp);
+                extImp = parseImpExt(imp);
                 seatCode = extImp.getSeatCode();
                 validImps.add(updateImp(imp, extImp, publisherId));
             } catch (PreBidException e) {
                 return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
+        }
+
+        if (extImp != null && extImp.getExtra() != null) {
+            requestBuilder.ext(mapper.fillExtension(ExtRequest.empty(), TelariaRequestExt.of(extImp.getExtra())));
         }
 
         if (bidRequest.getSite() != null) {

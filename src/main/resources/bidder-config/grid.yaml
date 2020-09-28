@@ -10,6 +10,8 @@ adapters:
     meta-info:
       maintainer-email: grid-tech@themediagrid.com
       app-media-types:
+        - banner
+        - video
       site-media-types:
         - banner
         - video

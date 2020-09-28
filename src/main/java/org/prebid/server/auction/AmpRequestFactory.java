@@ -36,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -68,11 +69,14 @@ public class AmpRequestFactory {
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
     private static final String CONSENT_PARAM = "consent_string";
+
     private static final int NO_LIMIT_SPLIT_MODE = -1;
+    private static final String AMP_CHANNEL = "amp";
 
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
     private final OrtbTypesResolver ortbTypesResolver;
+    private final ImplicitParametersExtractor implicitParametersExtractor;
     private final FpdResolver fpdResolver;
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
@@ -80,12 +84,14 @@ public class AmpRequestFactory {
     public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
                              AuctionRequestFactory auctionRequestFactory,
                              OrtbTypesResolver ortbTypesResolver,
+                             ImplicitParametersExtractor implicitParametersExtractor,
                              FpdResolver fpdResolver,
                              TimeoutResolver timeoutResolver,
                              JacksonMapper mapper) {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
+        this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.mapper = Objects.requireNonNull(mapper);
@@ -113,8 +119,7 @@ public class AmpRequestFactory {
      * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<Tuple2<BidRequest, List<String>>> createBidRequest(RoutingContext context,
-                                                                      String tagId) {
+    private Future<Tuple2<BidRequest, List<String>>> createBidRequest(RoutingContext context, String tagId) {
         final List<String> errors = new ArrayList<>();
         return storedRequestProcessor.processAmpRequest(tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
@@ -174,17 +179,23 @@ public class AmpRequestFactory {
         final boolean setDefaultTargeting;
         final boolean setDefaultCache;
 
+        final boolean setChannel;
+
         if (prebid == null) {
             setDefaultTargeting = true;
             setDefaultCache = true;
+            setChannel = true;
         } else {
             final ExtRequestTargeting targeting = prebid.getTargeting();
             setDefaultTargeting = targeting == null
                     || targeting.getIncludewinners() == null
                     || targeting.getIncludebidderkeys() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
+
             final ExtRequestPrebidCache cache = prebid.getCache();
             setDefaultCache = cache == null || cache.equals(ExtRequestPrebidCache.EMPTY);
+
+            setChannel = prebid.getChannel() == null;
         }
 
         final Integer debugQueryParam = debugFromQueryStringParam(context);
@@ -205,6 +216,7 @@ public class AmpRequestFactory {
         if (setSecure
                 || setDefaultTargeting
                 || setDefaultCache
+                || setChannel
                 || updatedTest != null
                 || updatedDebug != null
                 || updatedAmpData != null) {
@@ -213,7 +225,12 @@ public class AmpRequestFactory {
                     .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
                     .test(ObjectUtils.defaultIfNull(updatedTest, test))
                     .ext(extRequest(
-                            bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug, updatedAmpData))
+                            bidRequest,
+                            setDefaultTargeting,
+                            setDefaultCache,
+                            setChannel,
+                            updatedDebug,
+                            updatedAmpData))
                     .build();
         } else {
             result = bidRequest;
@@ -254,7 +271,7 @@ public class AmpRequestFactory {
 
         final String requestTargeting = request.getParam(TARGETING_REQUEST_PARAM);
         final ObjectNode targetingNode = readTargeting(requestTargeting);
-        ortbTypesResolver.normalizeStandardFpdFields(targetingNode, errors, "targeting");
+        ortbTypesResolver.normalizeTargeting(targetingNode, errors, implicitParametersExtractor.refererFrom(request));
         final Targeting targeting = parseTargeting(targetingNode);
 
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
@@ -556,14 +573,16 @@ public class AmpRequestFactory {
      * Creates updated bidrequest.ext {@link ObjectNode}.
      */
     private ExtRequest extRequest(BidRequest bidRequest,
-                                  ExtRequestPrebid prebid,
                                   boolean setDefaultTargeting,
                                   boolean setDefaultCache,
+                                  boolean setChannel,
                                   Integer updatedDebug,
                                   Map<String, String> updatedAmpData) {
 
         final ExtRequest result;
-        if (setDefaultTargeting || setDefaultCache || updatedDebug != null || updatedAmpData != null) {
+        if (setDefaultTargeting || setDefaultCache || setChannel || updatedDebug != null || updatedAmpData != null) {
+            final ExtRequest requestExt = bidRequest.getExt();
+            final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
@@ -574,6 +593,9 @@ public class AmpRequestFactory {
             if (setDefaultCache) {
                 prebidBuilder.cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                         ExtRequestPrebidCacheVastxml.of(null, null), null));
+            }
+            if (setChannel) {
+                prebidBuilder.channel(ExtRequestPrebidChannel.of(AMP_CHANNEL));
             }
             if (updatedDebug != null) {
                 prebidBuilder.debug(updatedDebug);
