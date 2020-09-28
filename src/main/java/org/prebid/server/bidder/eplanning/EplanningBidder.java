@@ -2,6 +2,7 @@ package org.prebid.server.bidder.eplanning;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -14,6 +15,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.eplanning.model.CleanStepName;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
@@ -33,6 +35,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,6 +57,7 @@ public class EplanningBidder implements Bidder<Void> {
     private static final String DEFAULT_PAGE_URL = "FILE";
     private static final String SEC = "ROS";
     private static final String DFP_CLIENT_ID = "1";
+    private static final String REQUEST_TARGET_INVENTORY = "1";
     private static final List<CleanStepName> CLEAN_STEP_NAMES = Arrays.asList(
             CleanStepName.of("_|\\.|-|\\/", ""),
             CleanStepName.of("\\)\\(|\\(|\\)|:", "_"),
@@ -188,24 +193,69 @@ public class EplanningBidder implements Bidder<Void> {
         final String ip = device != null ? device.getIp() : null;
 
         final Site site = request.getSite();
-        final String pageDomain = site != null && StringUtils.isNotBlank(site.getDomain())
-                ? site.getDomain() : DEFAULT_PAGE_URL;
-        final String pageUrl = site != null && StringUtils.isNotBlank(site.getPage())
-                ? site.getPage() : DEFAULT_PAGE_URL;
+        String pageUrl = DEFAULT_PAGE_URL;
+        if (site != null && StringUtils.isNotBlank(site.getPage())) {
+            pageUrl = site.getPage();
+        }
 
-        String uri = endpointUrl + String.format("/%s/%s/%s/%s?ct=1&r=pbs&ncb=1&ur=%s&e=%s",
-                clientId, DFP_CLIENT_ID, pageDomain, SEC, HttpUtil.encodeUrl(pageUrl),
-                String.join("+", requestsStrings));
+        String pageDomain = DEFAULT_PAGE_URL;
+        if (site != null) {
+            if (StringUtils.isNotBlank(site.getDomain())) {
+                pageDomain = site.getDomain();
+            } else if (StringUtils.isNotBlank(site.getPage())) {
+                pageDomain = parseUrl(site.getPage()).getHost();
+            }
+        }
+
+        final App app = request.getApp();
+        final String requestTarget = app != null && StringUtils.isNotBlank(app.getBundle())
+                ? app.getBundle()
+                : pageDomain;
+
+        final String uri = endpointUrl + String.format("/%s/%s/%s/%s", clientId, DFP_CLIENT_ID, requestTarget, SEC);
+
+        final URIBuilder uriBuilder = new URIBuilder()
+                .setPath(uri)
+                .addParameter("r", "pbs")
+                .addParameter("ncb", "1");
+
+        if (app == null) {
+            uriBuilder.addParameter("ur", pageUrl);
+        }
+        uriBuilder.addParameter("e", String.join("+", requestsStrings));
 
         final User user = request.getUser();
-        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            uri = uri + String.format("&uid=%s", user.getBuyeruid());
+        final String buyeruid = user != null ? user.getBuyeruid() : null;
+        if (StringUtils.isNotBlank(buyeruid)) {
+            uriBuilder.addParameter("uid", buyeruid);
         }
 
         if (StringUtils.isNotBlank(ip)) {
-            uri = uri + String.format("&ip=%s", ip);
+            uriBuilder.addParameter("ip", ip);
         }
-        return uri;
+
+        if (app != null) {
+            if (StringUtils.isNotBlank(app.getName())) {
+                uriBuilder.addParameter("appn", app.getName());
+            }
+            if (StringUtils.isNotBlank(app.getId())) {
+                uriBuilder.addParameter("appid", app.getId());
+            }
+            if (request.getDevice() != null && StringUtils.isNotBlank(request.getDevice().getIfa())) {
+                uriBuilder.addParameter("ifa", request.getDevice().getIfa());
+            }
+            uriBuilder.addParameter("app", REQUEST_TARGET_INVENTORY);
+        }
+
+        return uriBuilder.toString();
+    }
+
+    private static URL parseUrl(String url) {
+        try {
+            return new URL(url);
+        } catch (MalformedURLException e) {
+            throw new PreBidException(String.format("Invalid url: %s", url), e);
+        }
     }
 
     /**

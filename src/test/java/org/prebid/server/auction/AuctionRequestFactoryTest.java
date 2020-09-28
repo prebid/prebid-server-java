@@ -50,6 +50,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -67,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -114,6 +116,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private HttpServerRequest httpRequest;
     @Mock
+    private OrtbTypesResolver ortbTypesResolver;
+    @Mock
     private TimeoutResolver timeoutResolver;
     @Mock
     private TimeoutFactory timeoutFactory;
@@ -143,6 +147,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -182,6 +187,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -219,6 +225,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -265,6 +272,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -295,7 +303,19 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
-                .element(0).asString().startsWith("Error decoding bidRequest: Failed to decode:");
+                .element(0).asString().startsWith("Error decoding bidRequest: Unrecognized token 'body'");
+    }
+
+    @Test
+    public void shouldCallOrtbFieldsResolver() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        factory.fromRequest(routingContext, 0L).result();
+
+        // then
+        verify(ortbTypesResolver).normalizeBidRequest(any(), any(), any());
     }
 
     @Test
@@ -877,6 +897,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -918,6 +939,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -958,6 +980,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -998,6 +1021,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -1064,6 +1088,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -1106,6 +1131,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -1164,6 +1190,67 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .containsOnly(
                         tuple("requestScopedBidderAlias", "bidder1"),
                         tuple("configScopedBidderAlias", "bidder2"));
+    }
+
+    @Test
+    public void shouldSetRequestPrebidChannelWhenMissingInRequestAndApp() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("app"));
+    }
+
+    @Test
+    public void shouldNotSetRequestPrebidChannelWhenMissingInRequestAndNotApp() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly((ExtRequestPrebidChannel) null);
+    }
+
+    @Test
+    public void shouldNotSetRequestPrebidChannelWhenPresentInRequestAndApp() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .channel(ExtRequestPrebidChannel.of("custom"))
+                        .build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("custom"));
     }
 
     @Test
@@ -1454,6 +1541,32 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(account).isEqualTo(Account.builder().id("").build());
         verifyZeroInteractions(applicationSettings);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithIntegrationFromAccount() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(emptyList())
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("123").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build());
+
+        final Account givenAccount = Account.builder().id("123").defaultIntegration("integration").build();
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(givenAccount));
+
+        // when
+        final AuctionContext auctionContext = factory.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(singletonList(auctionContext.getBidRequest()))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getIntegration)
+                .containsOnly("integration");
     }
 
     private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {

@@ -20,5 +20,5 @@ adapters:
       url: https://match.bnmla.com/usersync/s2s_sync?gdpr={{gdpr}}&gdpr_consent={gdpr_consent}}&us_privacy={{us_privacy}}&r=
       redirect-url: /setuid?bidder=visx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={UUID}
       cookie-family-name: engagebdr
-      type: redirect
+      type: iframe
       support-cors: false
