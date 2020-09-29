@@ -7,7 +7,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.adman.ExtImpAdman;
 
 /**
- * AdmanBidder {@link Bidder} implementation.
+ * Adman {@link Bidder} implementation.
  */
 public class AdmanBidder extends OpenrtbBidder<ExtImpAdman> {
 
