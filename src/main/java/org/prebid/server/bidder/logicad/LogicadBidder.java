@@ -31,13 +31,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Logicad {@link Bidder} implementation.
+ */
 public class LogicadBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLogicad>> LOGICAD_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpLogicad>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -50,9 +51,9 @@ public class LogicadBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         try {
-            final Map<ExtImpLogicad, List<Imp>> impToExtImp = getImpToExtImp(request, errors);
+            final Map<ExtImpLogicad, List<Imp>> impToExtImp = getExtImpToImps(request, errors);
             httpRequests.addAll(buildAdapterRequests(request, impToExtImp));
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), errors);
@@ -61,40 +62,40 @@ public class LogicadBidder implements Bidder<BidRequest> {
         return Result.of(httpRequests, errors);
     }
 
-    private Map<ExtImpLogicad, List<Imp>> getImpToExtImp(BidRequest request, List<BidderError> errors) {
-        final Map<ExtImpLogicad, List<Imp>> extToListOfUpdatedImp = new HashMap<>();
+    private Map<ExtImpLogicad, List<Imp>> getExtImpToImps(BidRequest request, List<BidderError> errors) {
+        final Map<ExtImpLogicad, List<Imp>> result = new HashMap<>();
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpLogicad extImpLogicad = parseAndValidateImpExt(imp);
                 final Imp updatedImp = updateImp(imp, extImpLogicad.getTid());
 
-                extToListOfUpdatedImp.putIfAbsent(extImpLogicad, new ArrayList<>());
-                extToListOfUpdatedImp.get(extImpLogicad).add(updatedImp);
+                result.putIfAbsent(extImpLogicad, new ArrayList<>());
+                result.get(extImpLogicad).add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        if (extToListOfUpdatedImp.isEmpty()) {
+        if (result.isEmpty()) {
             throw new PreBidException("No appropriate impressions");
         }
 
-        return extToListOfUpdatedImp;
+        return result;
     }
 
     private ExtImpLogicad parseAndValidateImpExt(Imp imp) {
-        final ExtImpLogicad bidder;
+        final ExtImpLogicad extImp;
         try {
-            bidder = mapper.mapper().convertValue(imp.getExt(), LOGICAD_EXT_TYPE_REFERENCE).getBidder();
+            extImp = mapper.mapper().convertValue(imp.getExt(), LOGICAD_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
 
-        if (StringUtils.isBlank(bidder.getTid())) {
+        if (StringUtils.isBlank(extImp.getTid())) {
             throw new PreBidException("No tid value provided");
         }
 
-        return bidder;
+        return extImp;
     }
 
     private static Imp updateImp(Imp imp, String tid) {
@@ -102,12 +103,13 @@ public class LogicadBidder implements Bidder<BidRequest> {
     }
 
     private List<HttpRequest<BidRequest>> buildAdapterRequests(BidRequest bidRequest,
-                                                               Map<ExtImpLogicad, List<Imp>> impExtToListOfImps) {
+                                                               Map<ExtImpLogicad, List<Imp>> extImpToImps) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
-        for (Map.Entry<ExtImpLogicad, List<Imp>> impExtAndListOfImps : impExtToListOfImps.entrySet()) {
-            final BidRequest updatedBidRequest = bidRequest.toBuilder().imp(impExtAndListOfImps.getValue()).build();
+        for (Map.Entry<ExtImpLogicad, List<Imp>> entry : extImpToImps.entrySet()) {
+            final BidRequest updatedBidRequest = bidRequest.toBuilder().imp(entry.getValue()).build();
             final String body = mapper.encode(updatedBidRequest);
+
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(endpointUrl)
@@ -143,7 +145,7 @@ public class LogicadBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

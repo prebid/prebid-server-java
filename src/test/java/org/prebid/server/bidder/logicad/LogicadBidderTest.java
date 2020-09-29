@@ -176,7 +176,7 @@ public class LogicadBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "EUR"));
     }
 
     @Test
@@ -194,10 +194,6 @@ public class LogicadBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer, ExtImpLogicad.of("tid"));
-    }
-
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                               ExtImpLogicad extImpLogicad) {
         return givenBidRequest(identity(), impCustomizer, extImpLogicad);
@@ -211,17 +207,12 @@ public class LogicadBidderTest extends VertxTest {
                 .build();
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLogicad.of("tid")))))
-                .build();
-    }
-
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
+                .cur("EUR")
                 .build();
     }
 
