@@ -11,7 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -36,15 +35,13 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * SmartadserverBidder {@link Bidder} implementation.
+ * Smartadserver {@link Bidder} implementation.
  */
 public class SmartadserverBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartadserver>> SMARTADSERVER_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpSmartadserver>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -129,14 +126,13 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> toBidderBid(bidRequest, bid, errors, getBidCurrency(bidRequest.getCur(),
-                        bidResponse.getCur())))
+                .map(bid -> toBidderBid(bidRequest, bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         return Result.of(bidderBids, errors);
     }
 
-    private BidderBid toBidderBid(BidRequest bidRequest, Bid bid, List<BidderError> errors, String currency) {
+    private BidderBid toBidderBid(BidRequest bidRequest, Bid bid, String currency, List<BidderError> errors) {
         try {
             final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
             return BidderBid.of(bid, bidType, currency);
@@ -153,13 +149,6 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    protected String getBidCurrency(List<String> requestCurrencies, String responseCurrency) {
-        if (responseCurrency != null) {
-            return responseCurrency;
-        }
-        return CollectionUtils.isNotEmpty(requestCurrencies) ? requestCurrencies.get(0) : DEFAULT_BID_CURRENCY;
     }
 
     @Override
