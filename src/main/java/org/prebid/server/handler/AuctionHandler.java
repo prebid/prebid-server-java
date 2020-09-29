@@ -134,7 +134,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                         composePreBidResponse(result.getLeft(), result.getRight(), vendorsToGdpr))))
 
                 .compose((Tuple3<PreBidRequestContext, Account, PreBidResponse> result) ->
-                        processCacheMarkup(result.getLeft(), result.getRight())
+                        processCacheMarkup(result.getLeft(), result.getRight(), result.getMiddle().getId())
                                 .recover(exception -> failWith(
                                         String.format("Prebid cache failed: %s", exception.getMessage()), exception))
                                 .map(response -> Tuple3.of(result.getLeft(), result.getMiddle(), response)))
@@ -355,15 +355,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private Future<PreBidResponse> processCacheMarkup(PreBidRequestContext preBidRequestContext,
-                                                      PreBidResponse preBidResponse) {
+                                                      PreBidResponse preBidResponse,
+                                                      String accountId) {
+
         final Future<PreBidResponse> result;
 
         final Integer cacheMarkup = preBidRequestContext.getPreBidRequest().getCacheMarkup();
         final List<Bid> bids = preBidResponse.getBids();
         if (!bids.isEmpty() && cacheMarkup != null && (cacheMarkup == 1 || cacheMarkup == 2)) {
             result = (cacheMarkup == 1
-                    ? cacheService.cacheBids(bids, preBidRequestContext.getTimeout())
-                    : cacheService.cacheBidsVideoOnly(bids, preBidRequestContext.getTimeout()))
+                    ? cacheService.cacheBids(bids, preBidRequestContext.getTimeout(), accountId)
+                    : cacheService.cacheBidsVideoOnly(bids, preBidRequestContext.getTimeout(), accountId))
                     .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults));
         } else {
             result = Future.succeededFuture(preBidResponse);

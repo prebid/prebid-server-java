@@ -76,6 +76,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
@@ -258,9 +259,12 @@ public class AuctionHandlerTest extends VertxTest {
                         .timeout(timeout)
                         .adapterRequests(singletonList(AdapterRequest.of(RUBICON, singletonList(null)))));
 
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().id("accountId").build()));
+
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.cacheBids(anyList(), any())).willReturn(Future.succeededFuture(singletonList(
+        given(cacheService.cacheBids(anyList(), any(), anyString())).willReturn(Future.succeededFuture(singletonList(
                 BidCacheResult.of("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315", "cached_asset_url"))));
         given(cacheService.getCachedAssetURLTemplate()).willReturn("cached_asset_url");
 
@@ -268,7 +272,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(cacheService).cacheBids(anyList(), same(timeout));
+        verify(cacheService).cacheBids(anyList(), same(timeout), eq("accountId"));
 
         final PreBidResponse preBidResponse = capturePreBidResponse();
         assertThat(preBidResponse.getBids()).extracting(Bid::getAdm).containsNull();
@@ -317,7 +321,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.cacheBids(anyList(), any())).willReturn(Future.failedFuture("http exception"));
+        given(cacheService.cacheBids(anyList(), any(), any())).willReturn(Future.failedFuture("http exception"));
 
         // when
         auctionHandler.handle(routingContext);
@@ -695,7 +699,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.cacheBids(anyList(), any())).willReturn(Future.failedFuture("http exception"));
+        given(cacheService.cacheBids(anyList(), any(), anyString())).willReturn(Future.failedFuture("http exception"));
 
         // when
         auctionHandler.handle(routingContext);
