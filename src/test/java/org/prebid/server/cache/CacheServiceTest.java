@@ -397,7 +397,7 @@ public class CacheServiceTest extends VertxTest {
                         .shouldCacheBids(true)
                         .bidderToBidIds(singletonMap("bidder", singletonList("bidId1")))
                         .build(),
-                EventsContext.builder().enabledForAccountAndRequest(true).build());
+                EventsContext.builder().enabledForAccount(true).enabledForRequest(true).build());
 
         // then
         verify(eventsService).winUrl(eq("bidId1"), eq("bidder"), eq("accountId"), isNull(), isNull());
@@ -979,7 +979,7 @@ public class CacheServiceTest extends VertxTest {
                         .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
                         .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
                         .build(),
-                EventsContext.builder().enabledForAccountAndRequest(true).build());
+                EventsContext.builder().enabledForAccount(true).enabledForRequest(true).build());
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -1021,7 +1021,7 @@ public class CacheServiceTest extends VertxTest {
                         .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
                         .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
                         .build(),
-                EventsContext.builder().enabledForAccountAndRequest(true).build());
+                EventsContext.builder().enabledForAccount(true).enabledForRequest(true).build());
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -1060,7 +1060,7 @@ public class CacheServiceTest extends VertxTest {
                         .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
                         .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
                         .build(),
-                EventsContext.builder().enabledForAccountAndRequest(false).build());
+                EventsContext.builder().enabledForAccount(false).build());
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();

@@ -505,7 +505,7 @@ public class CacheService {
                                   Account account,
                                   EventsContext eventsContext) {
 
-        if (eventsContext.isEnabledForAccountAndRequest()) {
+        if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
             final String bidId = bid.getId();
             return findBidderForBidId(biddersToCacheBidIds, bidId)
                     .map(bidder -> eventsService.winUrl(
@@ -525,7 +525,7 @@ public class CacheService {
                                            Account account,
                                            EventsContext eventsContext) {
 
-        if (eventsContext.isEnabledForAccountAndRequest()) {
+        if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
             final String bidId = bid.getId();
             return findBidderForBidId(bidderToVideoBidIdsToModify, bidId)
                     .map(bidder -> eventsService.vastUrlTracking(
