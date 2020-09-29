@@ -397,7 +397,7 @@ public class CacheServiceTest extends VertxTest {
                         .shouldCacheBids(true)
                         .bidderToBidIds(singletonMap("bidder", singletonList("bidId1")))
                         .build(),
-                EventsContext.builder().enabledForAccountAndRequest(true).build());
+                EventsContext.builder().enabledForAccount(true).enabledForRequest(true).build());
 
         // then
         verify(eventsService).winUrl(eq("bidId1"), eq("bidder"), eq("accountId"), isNull(), isNull());
@@ -979,7 +979,7 @@ public class CacheServiceTest extends VertxTest {
                         .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
                         .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
                         .build(),
-                eventsContext);
+                EventsContext.builder().enabledForAccount(true).enabledForRequest(true).build());
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -1021,7 +1021,7 @@ public class CacheServiceTest extends VertxTest {
                         .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
                         .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
                         .build(),
-                eventsContext);
+                EventsContext.builder().enabledForAccount(true).enabledForRequest(true).build());
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -1037,6 +1037,44 @@ public class CacheServiceTest extends VertxTest {
                                         + "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
                                         + "</Impression>"))
                                 .build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotAddTrackingImpWhenEventsNotEnabled() throws IOException {
+        // given
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder
+                .id("bid1")
+                .impid("impId1")
+                .adm("<Impression>http:/test.com</Impression>"));
+        final Imp imp1 = givenImp(builder -> builder
+                .id("impId1")
+                .video(Video.builder().build()));
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bid),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
+                        .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
+                        .build(),
+                EventsContext.builder().enabledForAccount(false).build());
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .containsOnly(
+                        PutObject.builder()
+                                .type("json")
+                                .value(mapper.valueToTree(bid))
+                                .build(),
+                        PutObject.builder()
+                                .type("xml")
+                                .value(new TextNode("<Impression>http:/test.com</Impression>"))
+                                .build());
+        verifyZeroInteractions(eventsService);
     }
 
     @Test
