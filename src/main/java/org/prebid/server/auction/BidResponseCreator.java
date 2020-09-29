@@ -73,6 +73,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -265,6 +266,7 @@ public class BidResponseCreator {
                                             Map<String, List<ExtBidderError>> bidErrors) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
+
         final ExtResponseDebug extResponseDebug = debugEnabled
                 ? ExtResponseDebug.of(toExtHttpCalls(bidderResponses, cacheResult), bidRequest)
                 : null;
@@ -985,7 +987,7 @@ public class BidResponseCreator {
             return Collections.emptyMap();
         }
 
-        final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
+        final Map<BidType, TargetingKeywordsCreator> result = new EnumMap<>(BidType.class);
         final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
 
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();
