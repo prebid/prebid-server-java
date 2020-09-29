@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncInfoAssembler;
 import org.prebid.server.bidder.Usersyncer;
@@ -26,11 +27,11 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
@@ -65,7 +66,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final TcfDefinerService tcfDefinerService;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final Integer gdprHostVendorId;
-    private final boolean useGeoLocation;
     private final boolean defaultCoopSync;
     private final List<Collection<String>> listOfCoopSyncBidders;
     private final AnalyticsReporter analyticsReporter;
@@ -81,7 +81,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                              TcfDefinerService tcfDefinerService,
                              PrivacyEnforcementService privacyEnforcementService,
                              Integer gdprHostVendorId,
-                             boolean useGeoLocation,
                              boolean defaultCoopSync,
                              List<Collection<String>> listOfCoopSyncBidders,
                              AnalyticsReporter analyticsReporter,
@@ -98,7 +97,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.gdprHostVendorId = gdprHostVendorId;
-        this.useGeoLocation = useGeoLocation;
         this.defaultCoopSync = defaultCoopSync;
         this.listOfCoopSyncBidders = CollectionUtils.isNotEmpty(listOfCoopSyncBidders)
                 ? listOfCoopSyncBidders
@@ -147,9 +145,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final Integer gdpr = cookieSyncRequest.getGdpr();
-        final String gdprConsent = cookieSyncRequest.getGdprConsent();
-        if (Objects.equals(gdpr, 1) && StringUtils.isBlank(gdprConsent)) {
+        if (gdprParamsNotConsistent(cookieSyncRequest)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String message = "gdpr_consent is required if gdpr is 1";
             context.response().setStatusCode(status).setStatusMessage(message).end();
@@ -161,24 +157,35 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Boolean coopSync = cookieSyncRequest.getCoopSync();
         final Set<String> biddersToSync = biddersToSync(cookieSyncRequest.getBidders(), coopSync, limit);
 
-        final String gdprAsString = gdpr != null ? gdpr.toString() : null;
-        final Ccpa ccpa = Ccpa.of(cookieSyncRequest.getUsPrivacy());
-        final Privacy privacy = Privacy.of(gdprAsString, gdprConsent, ccpa);
-
         final String requestAccount = cookieSyncRequest.getAccount();
         final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
-        final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
-                .compose(account -> tcfDefinerService.resultForVendorIds(
-                        vendorIds, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout)
+                .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
+                        cookieSyncRequest, context.request(), account, timeout)
+                        .map(privacyContext -> Tuple2.of(account, privacyContext)))
+                .map((Tuple2<Account, PrivacyContext> accountAndPrivacy) -> tcfDefinerService.resultForVendorIds(
+                        vendorIds, accountAndPrivacy.getRight().getTcfContext())
                         .compose(this::handleVendorIdResult)
                         .compose(ignored -> tcfDefinerService.resultForBidderNames(
-                                biddersToSync, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout))
+                                biddersToSync,
+                                accountAndPrivacy.getRight().getTcfContext(),
+                                accountAndPrivacy.getLeft().getGdpr()))
                         .map(tcfResponse -> handleBidderNamesResult(
-                                tcfResponse, context, account, uidsCookie, biddersToSync, privacy, limit))
-                        .otherwise(ignored -> handleTcfError(context, uidsCookie, biddersToSync, privacy, limit)));
+                                tcfResponse,
+                                context,
+                                accountAndPrivacy.getLeft(),
+                                uidsCookie,
+                                biddersToSync,
+                                accountAndPrivacy.getRight().getPrivacy(),
+                                limit))
+                        .otherwise(ignored -> handleTcfError(
+                                context, uidsCookie, biddersToSync, accountAndPrivacy.getRight().getPrivacy(), limit)));
+    }
+
+    private static boolean gdprParamsNotConsistent(CookieSyncRequest request) {
+        return Objects.equals(request.getGdpr(), 1) && StringUtils.isBlank(request.getGdprConsent());
     }
 
     /**

@@ -1,0 +1,98 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "yieldlab": {
+          "adslotId": "12345",
+          "supplyId": "123456789",
+          "adSize": "400x300",
+          "targeting": {
+            "key1": "value1",
+            "key2": "value2"
+          },
+          "extId": "abc"
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "language": "en",
+    "ifa": "ifaId",
+    "devicetype": 4,
+    "connectiontype": 6,
+    "geo": {
+      "lat": 51.499488,
+      "lon": -0.128953
+    },
+    "ua": "userAgent",
+    "ip": "193.168.244.1",
+    "h": 1098,
+    "w": 814
+  },
+  "site": {
+    "id": "siteId",
+    "publisher": {
+      "id": "publisherId"
+    },
+    "page": "http://localhost:9090/gdpr.html"
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "prebid": {
+      "debug": 1,
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        }
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "auctiontimestamp": 1000
+    }
+  },
+  "user": {
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -46,10 +46,6 @@ public class TargetingKeywordsCreator {
      */
     private static final String HB_BIDDER_KEY = "hb_bidder";
     /**
-     * Stores bid ID.
-     */
-    private static final String HB_BIDID_KEY = "hb_bidid";
-    /**
      * Respects rounded CPM value.
      */
     private static final String HB_PB_KEY = "hb_pb";
@@ -171,7 +167,7 @@ public class TargetingKeywordsCreator {
 
         try {
             return PriceGranularity.createFromString(stringPriceGranularity);
-        } catch (PreBidException ex) {
+        } catch (PreBidException e) {
             logger.error("Price range granularity error: ''{0}'' is not a recognized granularity",
                     stringPriceGranularity);
         }
@@ -184,7 +180,6 @@ public class TargetingKeywordsCreator {
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         return truncateKeys(makeFor(
                 bid.getBidder(),
-                bid.getBidId(),
                 winningBid,
                 bid.getPrice(),
                 StringUtils.EMPTY,
@@ -192,18 +187,20 @@ public class TargetingKeywordsCreator {
                 bid.getHeight(),
                 bid.getCacheId(),
                 null,
-                bid.getDealId(),
-                null));
+                bid.getDealId()));
     }
 
     /**
      * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
      */
-    Map<String, String> makeFor(com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid, String cacheId,
-                                String vastCacheId, String winUrl) {
+    Map<String, String> makeFor(com.iab.openrtb.response.Bid bid,
+                                String bidder,
+                                boolean winningBid,
+                                String cacheId,
+                                String vastCacheId) {
+
         final Map<String, String> keywords = makeFor(
                 bidder,
-                bid.getId(),
                 winningBid,
                 bid.getPrice(),
                 "0.0",
@@ -211,8 +208,7 @@ public class TargetingKeywordsCreator {
                 bid.getH(),
                 cacheId,
                 vastCacheId,
-                bid.getDealid(),
-                winUrl);
+                bid.getDealid());
 
         if (resolver == null) {
             return truncateKeys(keywords);
@@ -229,7 +225,6 @@ public class TargetingKeywordsCreator {
      */
     private Map<String, String> makeFor(
             String bidder,
-            String bidId,
             boolean winningBid,
             BigDecimal price,
             String defaultCpm,
@@ -237,8 +232,7 @@ public class TargetingKeywordsCreator {
             Integer height,
             String cacheId,
             String vastCacheId,
-            String dealId,
-            String winUrl) {
+            String dealId) {
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
                 EXCLUDED_BIDDER_KEYS);
@@ -268,10 +262,6 @@ public class TargetingKeywordsCreator {
         }
         if (isApp) {
             keywordMap.put(HB_ENV_KEY, HB_ENV_APP_VALUE);
-        }
-        if (winningBid && winUrl != null) {
-            keywordMap.put(HB_WINURL_KEY, winUrl);
-            keywordMap.put(HB_BIDID_KEY, bidId);
         }
 
         return keywordMap.asMap();

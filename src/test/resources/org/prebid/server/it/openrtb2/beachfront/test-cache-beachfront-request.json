@@ -3,8 +3,8 @@
     {
       "type": "json",
       "value": {
-        "id": "div-gpt-ad-1460505748561-0Banner",
-        "impid": "div-gpt-ad-1460505748561-0",
+        "id": "impId03Banner",
+        "impid": "impId03",
         "price": 2.942807912826538,
         "adm": "<div id=\"44861168\"><script>!function(){console.log\"Hello, ad.\";}();</script></div>",
         "crid": "crid_3",
