@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request.telaria;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -13,4 +14,6 @@ public class ExtImpTelaria {
 
     @JsonProperty("seatCode")
     String seatCode;
+
+    ObjectNode extra;
 }

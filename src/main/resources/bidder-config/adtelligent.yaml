@@ -1,7 +1,7 @@
 adapters:
   adtelligent:
     enabled: false
-    endpoint: http://hb.adtelligent.com/auction
+    endpoint: http://ghb.adtelligent.com/pbs/ortb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
@@ -18,7 +18,7 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://sync.adtelligent.com/csync?t=p&ep=0&redir=
+      url: https://sync.adtelligent.com/csync?t=p&ep=0&gdpr={{gdpr}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
       redirect-url: /setuid?bidder=adtelligent&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={uid}
       cookie-family-name: adtelligent
       type: redirect
