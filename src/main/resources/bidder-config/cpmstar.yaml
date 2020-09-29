@@ -19,7 +19,7 @@ adapters:
       vendor-id: 0
     usersync:
       url: https://server.cpmstar.com/usersync.aspx?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=cpmstar&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      redirect-url: /setuid?bidder=cpmstar&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: cpmstar
       type: redirect
       support-cors: false

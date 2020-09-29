@@ -30,7 +30,7 @@
         ]
       },
       "ext": {
-        "audienceNetwork":{
+        "audienceNetwork": {
           "placementId": "placement2",
           "publisherId": "pub2"
         }
@@ -50,16 +50,13 @@
       }
     }
   ],
+  "app": {
+  },
   "device": {
     "pxratio": 4.2,
     "dnt": 2,
     "language": "en",
     "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
   },
   "at": 1,
   "tmax": 5000,

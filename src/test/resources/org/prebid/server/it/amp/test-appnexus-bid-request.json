@@ -105,7 +105,10 @@
           "source": "static",
           "value": "static_value1"
         }
-      ]
+      ],
+      "channel": {
+        "name": "amp"
+      }
     }
   }
 }

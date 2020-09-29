@@ -19,7 +19,7 @@ adapters:
       vendor-id: 0
     usersync:
       url: https://y.one.impact-ad.jp/hbs_cs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
-      redirect-url: /setuid?bidder=yieldone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      redirect-url: /setuid?bidder=yieldone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: yieldone
       type: redirect
       support-cors: false
