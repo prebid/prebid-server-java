@@ -38,8 +38,6 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `geolocation_fail` - number of failed geo location lookup responses
 - `geolocation_circuitbreaker_opened` - number of times geo location circuit breaker was opened (geo location resource is unavailable)
 - `geolocation_circuitbreaker_closed` - number of times geo location circuit breaker was closed (geo location resource is available again)
-- `prebid_cache_request_success_time` - timer tracking how long did successful cache request take
-- `prebid_cache_request_error_time` - timer tracking how long did failed cache request take
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID
@@ -64,6 +62,16 @@ Following metrics are collected and submitted if account is configured with `det
 - `account.<account-id>.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
 - `account.<account-id>.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
 - `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId` ([UnauthorizedAccountException.java](https://github.com/rubicon-project/prebid-server-java/blob/master/src/main/java/org/prebid/server/exception/UnauthorizedAccountException.java))
+
+## General Prebid Cache metrics
+- `prebid_cache.requests.ok` - timer tracking how long did successful cache requests take
+- `prebid_cache.requests.err` - timer tracking how long did failed cache requests take
+- `prebid_cache.creative_size` - histogram tracking creative sizes
+
+## Prebid Cache per-account metrics
+- `account.<account-id>.prebid_cache.requests.ok` - timer tracking how long did successful cache requests take when incoming request was from `<account-id>`
+- `account.<account-id>.prebid_cache.requests.err` - timer tracking how long did failed cache requests take when incoming request was from `<account-id>`
+- `account.<account-id>.prebid_cache.creative_size` - histogram tracking creative sizes when incoming request was from `<account-id>`
 
 ## /cookie_sync endpoint metrics
 - `cookie_sync_requests` - number of requests received

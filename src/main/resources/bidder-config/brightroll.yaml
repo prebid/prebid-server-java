@@ -137,7 +137,7 @@ adapters:
         bid_floor: 0.3
     usersync:
       url: https://pr-bh.ybp.yahoo.com/sync/rubiconprebidserver?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
-      redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
+      redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: brightroll
       type: redirect
       support-cors: false
