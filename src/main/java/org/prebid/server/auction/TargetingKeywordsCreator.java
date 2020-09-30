@@ -189,6 +189,7 @@ public class TargetingKeywordsCreator {
                                 boolean winningBid,
                                 String cacheId,
                                 String vastCacheId) {
+
         final Map<String, String> keywords = makeFor(
                 bidder,
                 winningBid,

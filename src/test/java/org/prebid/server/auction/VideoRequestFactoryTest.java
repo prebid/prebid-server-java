@@ -24,6 +24,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -211,7 +212,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
-        given(auctionRequestFactory.toAuctionContext(any(), any(), anyList(), anyLong(), any()))
+        given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any()))
                 .willReturn(Future.succeededFuture());
 
         // when
@@ -222,8 +223,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(videoStoredRequestProcessor).processVideoRequest(null, emptySet(), requestVideo);
         verify(auctionRequestFactory).validateRequest(bidRequest);
         verify(auctionRequestFactory).fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
-        verify(auctionRequestFactory).toAuctionContext(routingContext, bidRequest, new ArrayList<>(), 0,
-                timeoutResolver);
+        verify(auctionRequestFactory).toAuctionContext(
+                routingContext, bidRequest, MetricName.video, new ArrayList<>(), 0, timeoutResolver);
 
         assertThat(result.result().getPodErrors()).isEqualTo(mergedBidRequest.getPodErrors());
     }
