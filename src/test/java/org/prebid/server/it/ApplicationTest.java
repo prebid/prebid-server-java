@@ -346,8 +346,13 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null,
-                        null))
+                .body(CookieSyncRequest.builder()
+                        .bidders(asList(RUBICON, APPNEXUS, ADFORM))
+                        .gdpr(1)
+                        .gdprConsent(gdprConsent)
+                        .usPrivacy("1YNN")
+                        .coopSync(false)
+                        .build())
                 .when()
                 .post("/cookie_sync")
                 .then()

@@ -73,6 +73,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -209,7 +210,8 @@ public class BidResponseCreator {
                 : bidderResponses.stream().flatMap(BidResponseCreator::getBids).collect(Collectors.toSet());
 
         final EventsContext eventsContext = EventsContext.builder()
-                .enabledForAccountAndRequest(eventsEnabledForAccountAndRequest(auctionContext))
+                .enabledForAccount(eventsEnabledForAccount(auctionContext))
+                .enabledForRequest(eventsEnabledForRequest(auctionContext))
                 .auctionTimestamp(auctionTimestamp)
                 .integration(integrationFrom(auctionContext))
                 .build();
@@ -264,6 +266,7 @@ public class BidResponseCreator {
                                             Map<String, List<ExtBidderError>> bidErrors) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
+
         final ExtResponseDebug extResponseDebug = debugEnabled
                 ? ExtResponseDebug.of(toExtHttpCalls(bidderResponses, cacheResult), bidRequest)
                 : null;
@@ -405,11 +408,11 @@ public class BidResponseCreator {
                 .collect(Collectors.toList());
 
         final boolean shouldCacheVideoBids = cacheInfo.isShouldCacheVideoBids();
-        final boolean eventsEnabled = BooleanUtils.isTrue(auctionContext.getAccount().getEventsEnabled());
 
-        final Map<String, List<String>> bidderToVideoBidIdsToModify = shouldCacheVideoBids && eventsEnabled
-                ? getBidderAndVideoBidIdsToModify(bidderResponses, auctionContext.getBidRequest().getImp())
-                : Collections.emptyMap();
+        final Map<String, List<String>> bidderToVideoBidIdsToModify =
+                shouldCacheVideoBids && eventsEnabledForAccount(auctionContext)
+                        ? getBidderAndVideoBidIdsToModify(bidderResponses, auctionContext.getBidRequest().getImp())
+                        : Collections.emptyMap();
         final Map<String, List<String>> bidderToBidIds = bidderResponses.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, bidderResponse -> getBids(bidderResponse)
                         .map(Bid::getId)
@@ -918,7 +921,7 @@ public class BidResponseCreator {
                                 String eventBidId,
                                 EventsContext eventsContext) {
 
-        return eventsContext.isEnabledForAccountAndRequest()
+        return eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()
                 ? eventsService.createEvent(
                 eventBidId,
                 bidder,
@@ -928,20 +931,20 @@ public class BidResponseCreator {
                 : null;
     }
 
-    private static boolean eventsEnabledForAccountAndRequest(AuctionContext auctionContext) {
-        final Account account = auctionContext.getAccount();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-
-        final boolean eventsEnabledForAccount = BooleanUtils.isTrue(account.getEventsEnabled());
-        return eventsEnabledForAccount
-                && (eventsEnabledForChannel(account, bidRequest) || eventsAllowedByRequest(bidRequest));
+    private static boolean eventsEnabledForAccount(AuctionContext auctionContext) {
+        return BooleanUtils.isTrue(auctionContext.getAccount().getEventsEnabled());
     }
 
-    private static boolean eventsEnabledForChannel(Account account, BidRequest bidRequest) {
-        final AccountAnalyticsConfig analyticsConfig = account.getAnalyticsConfig();
+    private static boolean eventsEnabledForRequest(AuctionContext auctionContext) {
+        return eventsEnabledForChannel(auctionContext) || eventsAllowedByRequest(auctionContext);
+    }
+
+    private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
+        final AccountAnalyticsConfig analyticsConfig = auctionContext.getAccount().getAnalyticsConfig();
         final Map<String, Boolean> channelConfig = analyticsConfig != null ? analyticsConfig.getAuctionEvents() : null;
 
-        return channelConfig != null && BooleanUtils.toBoolean(channelConfig.get(channelFromRequest(bidRequest)));
+        return channelConfig != null
+                && BooleanUtils.toBoolean(channelConfig.get(channelFromRequest(auctionContext.getBidRequest())));
     }
 
     private static String channelFromRequest(BidRequest bidRequest) {
@@ -952,8 +955,8 @@ public class BidResponseCreator {
         return channel != null ? channel.getName() : null;
     }
 
-    private static boolean eventsAllowedByRequest(BidRequest bidRequest) {
-        final ExtRequest requestExt = bidRequest.getExt();
+    private static boolean eventsAllowedByRequest(AuctionContext auctionContext) {
+        final ExtRequest requestExt = auctionContext.getBidRequest().getExt();
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
 
         return prebid != null && prebid.getEvents() != null;
@@ -987,7 +990,7 @@ public class BidResponseCreator {
             return Collections.emptyMap();
         }
 
-        final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
+        final Map<BidType, TargetingKeywordsCreator> result = new EnumMap<>(BidType.class);
         final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
 
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();

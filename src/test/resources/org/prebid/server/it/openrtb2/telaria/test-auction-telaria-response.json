@@ -12,35 +12,36 @@
           "crid": "test_video_crid",
           "exp": 120,
           "ext": {
-            "bidder": {
-              "format": "VIDEO"
-            },
             "prebid": {
               "type": "video",
               "targeting": {
                 "hb_pb": "0.00",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_host_telaria": "{{ cache.host }}",
-                "hb_cache_path_telaria": "{{ cache.path }}",
-                "hb_bidder_telaria": "telaria",
-                "hb_bidder": "telaria",
                 "hb_cache_id_telaria": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
-                "hb_uuid_telaria": "8aa68c39-680d-46f5-ba83-fcd761d436fe",
+                "hb_uuid_telaria": "0553c675-4afc-431a-b22c-0ea9cc01977e",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_uuid": "0553c675-4afc-431a-b22c-0ea9cc01977e",
+                "hb_pb_telaria": "0.00",
+                "hb_bidder": "telaria",
                 "hb_cache_id": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
-                "hb_uuid": "8aa68c39-680d-46f5-ba83-fcd761d436fe",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_pb_telaria": "0.00"
+                "hb_cache_path_telaria": "{{ cache.path }}",
+                "hb_pb_telaria": "0.00",
+                "hb_cache_host_telaria": "{{ cache.host }}",
+                "hb_bidder_telaria": "telaria"
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
+                  "url": "{{ cache.resource_url }}9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
                   "cacheId": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d"
                 },
                 "vastXml": {
-                  "url": "http://localhost:8090/cache?uuid=8aa68c39-680d-46f5-ba83-fcd761d436fe",
-                  "cacheId": "8aa68c39-680d-46f5-ba83-fcd761d436fe"
+                  "url": "{{ cache.resource_url }}0553c675-4afc-431a-b22c-0ea9cc01977e",
+                  "cacheId": "0553c675-4afc-431a-b22c-0ea9cc01977e"
                 }
               }
+            },
+            "bidder": {
+              "format": "VIDEO"
             }
           }
         }
