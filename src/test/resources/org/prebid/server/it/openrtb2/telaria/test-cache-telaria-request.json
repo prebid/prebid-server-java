@@ -13,7 +13,8 @@
         "ext": {
           "format": "VIDEO"
         }
-      }
+      },
+      "expiry" : 120
     },
     {
       "type": "xml",
