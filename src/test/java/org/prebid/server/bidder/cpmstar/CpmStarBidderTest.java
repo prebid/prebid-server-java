@@ -73,8 +73,7 @@ public class CpmStarBidderTest extends VertxTest {
                 .banner(null)
                 .id("2")
                 .ext(mapper.valueToTree(ext))
-                .banner(Banner.builder().w(300).h(400).build())
-        );
+                .banner(Banner.builder().w(300).h(400).build()));
         final Imp audioImp = givenImp(impBuilder -> impBuilder
                 .banner(null)
                 .id("2")
@@ -92,7 +91,7 @@ public class CpmStarBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput(
                         "Only Banner and Video bid-types are supported at this time"));
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test

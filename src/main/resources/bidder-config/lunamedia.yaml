@@ -1,0 +1,25 @@
+adapters:
+  lunamedia:
+    enabled: false
+    endpoint: http://api.lunamedia.io/xp/get?pubid=
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: josh@lunamedia.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://api.lunamedia.io/xp/user-sync?redirect=
+      redirect-url: /setuid?bidder=lunamedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: lunamedia
+      type: iframe
+      support-cors: false

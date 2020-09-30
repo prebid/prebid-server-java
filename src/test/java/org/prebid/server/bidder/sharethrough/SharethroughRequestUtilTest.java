@@ -123,8 +123,8 @@ public class SharethroughRequestUtilTest extends VertxTest {
         // given
         final String consent = "con";
         final List<ExtUserEidUid> uids = Arrays.asList(
-                ExtUserEidUid.of("first", null),
-                ExtUserEidUid.of("second", null));
+                ExtUserEidUid.of("first", null, null),
+                ExtUserEidUid.of("second", null, null));
         final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids, null);
 
         final ExtUser extUser = ExtUser.builder()
@@ -142,13 +142,13 @@ public class SharethroughRequestUtilTest extends VertxTest {
     public void getUserInfoShouldReturnUserInfoWithTtdUidFromFirstExtUserEidUidFromSecondExtUserEid() {
         // given
         final List<ExtUserEidUid> uidsFromFirst = Arrays.asList(
-                ExtUserEidUid.of("firstFromFirst", null),
-                ExtUserEidUid.of("secondFromFirst", null));
+                ExtUserEidUid.of("firstFromFirst", null, null),
+                ExtUserEidUid.of("secondFromFirst", null, null));
         final ExtUserEid firstExtUserEid = ExtUserEid.of("badSource", null, uidsFromFirst, null);
 
         final List<ExtUserEidUid> uidsFromSecond = Arrays.asList(
-                ExtUserEidUid.of("firstFromSecond", null),
-                ExtUserEidUid.of("secondFromSecond", null));
+                ExtUserEidUid.of("firstFromSecond", null, null),
+                ExtUserEidUid.of("secondFromSecond", null, null));
         final ExtUserEid secondExtUserEid = ExtUserEid.of("adserver.org", null, uidsFromSecond, null);
 
         final ExtUser extUser = ExtUser.builder()

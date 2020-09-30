@@ -8,8 +8,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
+import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -17,6 +16,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.gamma.model.GammaBid;
+import org.prebid.server.bidder.gamma.model.GammaBidResponse;
+import org.prebid.server.bidder.gamma.model.GammaSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -31,12 +33,10 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class GammaBidder implements Bidder<Void> {
 
@@ -211,27 +211,39 @@ public class GammaBidder implements Bidder<Void> {
         }
 
         try {
-            final BidResponse bidResponse = mapper.decodeValue(body, BidResponse.class);
-            return Result.of(extractBids(bidResponse, bidRequest), Collections.emptyList());
+            final GammaBidResponse bidResponse = mapper.decodeValue(body, GammaBidResponse.class);
+            final List<BidderError> errors = new ArrayList<>();
+            return Result.of(extractBidsAndFillErorrs(bidResponse, bidRequest, errors), errors);
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(
                     String.format("bad server response: %s", e.getMessage())));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
+    private static List<BidderBid> extractBidsAndFillErorrs(GammaBidResponse bidResponse,
+                                                            BidRequest bidRequest,
+                                                            List<BidderError> errors) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, bidRequest);
+                : bidsFromResponse(bidResponse, bidRequest, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse.getSeatbid().stream()
-                .map(SeatBid::getBid)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getMediaTypes(bidResponse.getId(), bidRequest.getImp()),
-                        DEFAULT_BID_CURRENCY))
-                .collect(Collectors.toList());
+    private static List<BidderBid> bidsFromResponse(GammaBidResponse bidResponse,
+                                                    BidRequest bidRequest,
+                                                    List<BidderError> errors) {
+        final List<BidderBid> bidderBids = new ArrayList<>();
+        for (GammaSeatBid gammaSeatBid : bidResponse.getSeatbid()) {
+            for (GammaBid gammaBid : gammaSeatBid.getBid()) {
+                try {
+                    final BidType mediaType = getMediaTypes(bidResponse.getId(), bidRequest.getImp());
+                    final Bid updatedBid = convertBid(gammaBid, mediaType);
+                    bidderBids.add(BidderBid.of(updatedBid, mediaType, DEFAULT_BID_CURRENCY));
+                } catch (PreBidException e) {
+                    errors.add(BidderError.badServerResponse(e.getMessage()));
+                }
+            }
+        }
+        return bidderBids;
     }
 
     private static BidType getMediaTypes(String impId, List<Imp> imps) {
@@ -241,6 +253,32 @@ public class GammaBidder implements Bidder<Void> {
             }
         }
         return BidType.banner;
+    }
+
+    private static Bid convertBid(GammaBid gammaBid, BidType bidType) {
+        final boolean isVideo = BidType.video.equals(bidType);
+        if (!isVideo && StringUtils.isBlank(gammaBid.getAdm())) {
+            throw new PreBidException("Missing Ad Markup. Run with request.debug = 1 for more info");
+        }
+
+        if (isVideo) {
+            //Return inline VAST XML Document (Section 6.4.2)
+            final String vastXml = gammaBid.getVastXml();
+            if (StringUtils.isNotBlank(vastXml)) {
+                final Bid.BidBuilder<?, ?> bidBuilder = gammaBid.toBuilder().adm(vastXml);
+
+                final String vastUrl = gammaBid.getVastUrl();
+                if (StringUtils.isNotBlank(vastUrl)) {
+                    bidBuilder.nurl(vastUrl);
+                }
+
+                return bidBuilder.build();
+            } else {
+                throw new PreBidException("Missing Ad Markup. Run with request.debug = 1 for more info");
+            }
+        }
+
+        return gammaBid;
     }
 
     @Override
