@@ -23,6 +23,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -103,7 +104,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
                 + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_ccpa BIT, "
                 + "tcf_config varchar(512), analytics_sampling_factor INT, truncate_target_attr INT, "
-                + "bid_validations varchar(512));");
+                + "default_integration varchar(64), analytics_config varchar(512), bid_validations varchar(512));");
         connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
                 + "NOT NULL, config varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, reqid varchar(40) "
@@ -121,10 +122,11 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + " NOT NULL);");
         connection.createStatement().execute("insert into accounts_account "
                 + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
-                + "tcf_config, analytics_sampling_factor, truncate_target_attr, bid_validations) "
+                + "tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, "
+                + "bid_validations) "
                 + "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true, "
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}}', 1, 0, "
-                + "'{\"banner-creative-max-size\": \"enforce\"}');");
+                + "'web', '{\"auction-events\": {\"amp\": true}}', '{\"banner-creative-max-size\": \"enforce\"}');");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)"
                 + " values ('adUnitConfigId', 'config');");
         connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
@@ -181,6 +183,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                             .build())
                     .truncateTargetAttr(0)
+                    .defaultIntegration("web")
+                    .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                     .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                     .build());
             async.complete();

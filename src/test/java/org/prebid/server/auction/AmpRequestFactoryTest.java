@@ -25,6 +25,7 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -34,6 +35,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -41,8 +43,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -81,6 +83,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
+    private ImplicitParametersExtractor implicitParametersExtractor;
+    @Mock
     private FpdResolver fpdResolver;
 
     @Before
@@ -102,7 +106,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .getArgument(0));
 
         factory = new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, ortbTypesResolver,
-                fpdResolver, timeoutResolver, jacksonMapper);
+                implicitParametersExtractor, fpdResolver, timeoutResolver, jacksonMapper);
     }
 
     @Test
@@ -210,6 +214,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build())
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null), null))
+                        .channel(ExtRequestPrebidChannel.of("amp"))
                         .build());
     }
 
@@ -222,10 +227,10 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        factory.fromRequest(routingContext, 0L).result();
 
         // then
-        verify(ortbTypesResolver).normalizeStandardFpdFields(any(), anyList(), any());
+        verify(ortbTypesResolver).normalizeTargeting(any(), anyList(), any());
     }
 
     @Test
@@ -390,6 +395,44 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(extBidRequest -> extBidRequest.getPrebid().getCache().getBids())
                 .containsExactly(ExtRequestPrebidCacheBids.of(null, null));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithChannelIfStoredBidRequestExtHasNoChannel() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(null)),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(extBidRequest -> extBidRequest.getPrebid().getChannel())
+                .containsExactly(ExtRequestPrebidChannel.of("amp"));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithChannelFromStoredBidRequest() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .channel(ExtRequestPrebidChannel.of("custom"))
+                                .build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(extBidRequest -> extBidRequest.getPrebid().getChannel())
+                .containsExactly(ExtRequestPrebidChannel.of("custom"));
     }
 
     @Test
@@ -1162,7 +1205,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<List<String>> errorsCaptor = ArgumentCaptor.forClass(
                 List.class);
-        verify(auctionRequestFactory).toAuctionContext(any(), any(), errorsCaptor.capture(), anyLong(), any());
+        verify(auctionRequestFactory).toAuctionContext(any(), any(), any(), errorsCaptor.capture(), anyLong(), any());
         assertThat(errorsCaptor.getValue()).contains("Amp request parameter consent_string or gdpr_consent have"
                 + " invalid format: consent-value");
     }
@@ -1383,7 +1426,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.toAuctionContext(any(), any(), anyList(), anyLong(), any()))
+        given(auctionRequestFactory.toAuctionContext(any(), any(), eq(MetricName.amp), anyList(), anyLong(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         AuctionContext.builder()
                                 .bidRequest((BidRequest) invocationOnMock.getArguments()[1])

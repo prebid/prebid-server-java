@@ -12,6 +12,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.mapper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
@@ -99,7 +100,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, "
                         + "events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, "
-                        + "bid_validations "
+                        + "default_integration, analytics_config, bid_validations "
                         + "FROM accounts_account where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.builder()
@@ -109,10 +110,12 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .videoCacheTtl(row.getInteger(3))
                         .eventsEnabled(row.getBoolean(4))
                         .enforceCcpa(row.getBoolean(5))
-                        .gdpr(jsonToModel(row.getString(6), AccountGdprConfig.class))
+                        .gdpr(toModel(row.getString(6), AccountGdprConfig.class))
                         .analyticsSamplingFactor(row.getInteger(7))
                         .truncateTargetAttr(row.getInteger(8))
-                        .bidValidations(jsonToModel(row.getString(9), AccountBidValidationConfig.class))
+                        .defaultIntegration(row.getString(9))
+                        .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
+                        .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
@@ -153,9 +156,9 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
     }
 
-    private <T> T jsonToModel(String json, Class<T> modelClass) {
+    private <T> T toModel(String source, Class<T> targetClass) {
         try {
-            return json != null ? mapper.decodeValue(json, modelClass) : null;
+            return source != null ? mapper.decodeValue(source, targetClass) : null;
         } catch (DecodeException e) {
             throw new PreBidException(e.getMessage());
         }

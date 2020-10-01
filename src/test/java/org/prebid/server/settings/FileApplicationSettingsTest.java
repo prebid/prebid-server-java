@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -101,6 +102,11 @@ public class FileApplicationSettingsTest {
                         + "purpose-one-treatment-interpretation: access-allowed"
                         + "},"
                         + "analyticsSamplingFactor : '1',"
+                        + "truncateTargetAttr: '20',"
+                        + "defaultIntegration: 'web',"
+                        + "analyticsConfig: {"
+                        + "auction-events: {amp: 'true'}"
+                        + "},"
                         + "bidValidations: {"
                         + "banner-creative-max-size: 'enforce'"
                         + "}"
@@ -136,6 +142,9 @@ public class FileApplicationSettingsTest {
                         .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                         .build())
                 .analyticsSamplingFactor(1)
+                .truncateTargetAttr(20)
+                .defaultIntegration("web")
+                .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                 .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                 .build());
     }

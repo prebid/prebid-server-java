@@ -1,8 +1,9 @@
 package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -19,7 +20,8 @@ import java.util.List;
  * memory pressure. In order to avoid unnecessary allocations this class is made mutable (as an exception) i.e. this
  * decision could be seen as a performance optimisation.
  */
-@Builder(toBuilder = true)
+@SuperBuilder(toBuilder = true)
+@NoArgsConstructor
 @Data
 public class Bid {
 

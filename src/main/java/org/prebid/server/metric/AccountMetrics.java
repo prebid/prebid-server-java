@@ -20,6 +20,7 @@ class AccountMetrics extends UpdatableMetrics {
     private final Function<MetricName, RequestTypeMetrics> requestTypeMetricsCreator;
     private final Map<MetricName, RequestTypeMetrics> requestTypeMetrics;
     private final RequestMetrics requestsMetrics;
+    private final CacheMetrics cacheMetrics;
     private final ResponseMetrics responseMetrics;
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
@@ -31,6 +32,7 @@ class AccountMetrics extends UpdatableMetrics {
                 new RequestTypeMetrics(metricRegistry, counterType, createPrefix(account), requestType);
         requestTypeMetrics = new HashMap<>();
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(account));
+        cacheMetrics = new CacheMetrics(metricRegistry, counterType, createPrefix(account));
         responseMetrics = new ResponseMetrics(metricRegistry, counterType, createPrefix(account));
     }
 
@@ -52,6 +54,10 @@ class AccountMetrics extends UpdatableMetrics {
 
     RequestMetrics requests() {
         return requestsMetrics;
+    }
+
+    CacheMetrics cache() {
+        return cacheMetrics;
     }
 
     ResponseMetrics response() {

@@ -18,5 +18,5 @@ adapters:
       url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
       redirect-url: /setuid?bidder=emx_digital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: emx_digital
-      type: redirect
+      type: iframe
       support-cors: false

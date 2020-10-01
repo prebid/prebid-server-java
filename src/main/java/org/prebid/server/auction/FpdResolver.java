@@ -14,7 +14,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
@@ -45,6 +44,7 @@ public class FpdResolver {
     private static final Set<String> KNOWN_FPD_ATTRIBUTES = new HashSet<>(Arrays.asList(USER, SITE, APP, BIDDERS));
     private static final String ALLOW_ALL_BIDDERS = "*";
     private static final String EXT = "ext";
+    private static final String CONTEXT = "context";
     private static final String DATA = "data";
     private static final Set<String> USER_DATA_ATTR = Collections.singleton("geo");
     private static final Set<String> APP_DATA_ATTR = new HashSet<>(Arrays.asList("id", "content", "publisher",
@@ -84,7 +84,6 @@ public class FpdResolver {
     }
 
     private ExtUser updateUserExtDataWithFpdAttr(ObjectNode fpdUser, ExtUser originExtUser, ObjectNode extData) {
-
         ObjectNode resultData = extData != null ? extData : jacksonMapper.mapper().createObjectNode();
         USER_DATA_ATTR.forEach(attribute -> setAttr(fpdUser, resultData, attribute));
         return originExtUser != null
@@ -100,7 +99,7 @@ public class FpdResolver {
         final ExtApp resolvedExtApp = resolveAppExt(fpdApp, resultApp);
         return resultApp.toBuilder()
                 .name(getFirstNotNull(getString(fpdApp, "name"), resultApp.getName()))
-                .bundle(getFirstNotNull(getString(fpdApp, "bundle"), resultApp.getName()))
+                .bundle(getFirstNotNull(getString(fpdApp, "bundle"), resultApp.getBundle()))
                 .storeurl(getFirstNotNull(getString(fpdApp, "storeurl"), resultApp.getStoreurl()))
                 .domain(getFirstNotNull(getString(fpdApp, "domain"), resultApp.getDomain()))
                 .cat(getFirstNotNull(getStrings(fpdApp, "cat"), resultApp.getCat()))
@@ -142,7 +141,7 @@ public class FpdResolver {
                 .page(getFirstNotNull(getString(fpdSite, "page"), resultSite.getPage()))
                 .keywords(getFirstNotNull(getString(fpdSite, "keywords"), resultSite.getKeywords()))
                 .ref(getFirstNotNull(getString(fpdSite, "ref"), resultSite.getRef()))
-                .search(getFirstNotNull(getString(fpdSite, "search"), resultSite.getRef()))
+                .search(getFirstNotNull(getString(fpdSite, "search"), resultSite.getSearch()))
                 .ext(resolvedExtSite)
                 .build();
     }
@@ -173,22 +172,23 @@ public class FpdResolver {
             return impExt;
         }
 
-        final ExtImp extImp = impExt != null ? getExtImp(impExt) : null;
-        final ExtImpContext extImpContext = extImp != null ? extImp.getContext() : null;
-        final ObjectNode extImpContextData = extImpContext != null ? extImpContext.getData() : null;
+        if (impExt == null) {
+            return jacksonMapper.mapper().createObjectNode()
+                    .set(CONTEXT, jacksonMapper.mapper().createObjectNode().set(DATA, targeting));
+        }
+
+        final JsonNode extImpContext = impExt.get(CONTEXT);
+        final JsonNode extImpContextData = extImpContext != null && extImpContext.isObject()
+                ? extImpContext.get(DATA)
+                : null;
+
         final ObjectNode resolvedData = extImpContextData != null
                 ? (ObjectNode) jsonMergeUtil.merge(targeting, extImpContextData)
                 : targeting;
-        final ExtImp resolvedExtImp = ExtImp.of(extImp != null ? extImp.getPrebid() : null,
-                extImpContext != null
-                        ? ExtImpContext.of(
-                        extImpContext.getKeywords(),
-                        extImpContext.getSearch(),
-                        extImpContext.getAdserver(),
-                        resolvedData)
-                        : ExtImpContext.of(null, null, null, resolvedData));
 
-        return jacksonMapper.mapper().valueToTree(resolvedExtImp);
+        return extImpContext != null && extImpContext.isObject()
+                ? impExt.set(CONTEXT, ((ObjectNode) extImpContext).set(DATA, resolvedData))
+                : impExt.set(CONTEXT, jacksonMapper.mapper().createObjectNode().set(DATA, resolvedData));
     }
 
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
@@ -238,17 +238,7 @@ public class FpdResolver {
         final List<String> bidders = Collections.singletonList(ALLOW_ALL_BIDDERS);
 
         return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
-                ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                        moveDataAttributesToExtData(siteNode), null, moveDataAttributesToExtData(userNode)))));
-    }
-
-    private ObjectNode moveDataAttributesToExtData(ObjectNode source) {
-        final JsonNode dataNode = source != null ? source.get(DATA) : null;
-        if (dataNode != null) {
-            source.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, dataNode));
-            source.remove(DATA);
-        }
-        return source;
+                ExtBidderConfig.of(ExtBidderConfigFpd.of(siteNode, null, userNode))));
     }
 
     private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {

@@ -26,10 +26,13 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Base64;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +60,8 @@ public class AdformBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdform.of(15L, "gross", "color:red", "red"))))
+                                ExtImpAdform.of(15L, "gross", "color:red", "red", "300X60", 2.5,
+                                        "https://adform.com?a=b"))))
                         .build()))
                 .site(Site.builder().page("www.example.com").build())
                 .regs(Regs.of(null, ExtRegs.of(1, null)))
@@ -66,6 +70,8 @@ public class AdformBidderTest extends VertxTest {
                         .ext(ExtUser.builder()
                                 .consent("consent")
                                 .digitrust(ExtUserDigiTrust.of("id", 123, 1))
+                                .eids(singletonList(ExtUserEid.of("test.com", "some_user_id",
+                                        singletonList(ExtUserEidUid.of("uId", 1, null)), null)))
                                 .build())
                         .build())
                 .device(Device.builder().ua("ua").ip("ip").ifa("ifaId").build())
@@ -76,13 +82,16 @@ public class AdformBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = adformBidder.makeHttpRequests(bidRequest);
 
         // then
+        final String expectedEncodedPart = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("mid=15&rcur=USD&mkv=color:red&mkw=red&cdims=300X60&minp=2.50".getBytes());
 
-        // bWlkPTE1 is Base64 encoded "mid=15" value
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly(
-                        "http://adform.com/openrtb2d?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross"
-                                + "&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA");
+                        "http://adform.com/openrtb2d?CC=1&adid=ifaId&eids=eyJ0ZXN0LmNvbSI6eyJ1SWQiOjF9fQ&fd=1&gdpr=1"
+                                + "&gdpr_consent=consent&ip=ip&pt=gross&rp=4&stid=tid"
+                                + "&url=https%3A%2F%2Fadform.com%3Fa%3Db"
+                                + "&" + expectedEncodedPart);
         assertThat(result.getValue()).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.GET);
 
         assertThat(result.getValue())
@@ -127,7 +136,7 @@ public class AdformBidderTest extends VertxTest {
                         .id("Imp12")
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpAdform.of(0L, null, null, null))))
+                                null, ExtImpAdform.of(0L, null, null, null, null, null, null))))
                         .build()))
                 .build();
 
@@ -147,7 +156,7 @@ public class AdformBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(
-                                        null, ExtImpAdform.of(15L, null, null, null))))
+                                        null, ExtImpAdform.of(15L, null, null, null, null, null, null))))
                                 .build(),
                         Imp.builder().build()))
                 .build();
@@ -168,10 +177,19 @@ public class AdformBidderTest extends VertxTest {
                                 .banner(Banner.builder().build())
                                 .secure(1)
                                 .ext(mapper.valueToTree(ExtPrebid.of(
-                                        null, ExtImpAdform.of(15L, null, null, null))))
+                                        null, ExtImpAdform.of(15L, null, null, null, null, null, null))))
                                 .build(),
                         Imp.builder().build()))
                 .source(Source.builder().tid("tid").build())
+                .user(User.builder()
+                        .buyeruid("buyeruid")
+                        .ext(ExtUser.builder()
+                                .consent("consent")
+                                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
+                                .eids(singletonList(ExtUserEid.of("test.com", "some_user_id",
+                                        singletonList(ExtUserEidUid.of("uId", 1, null)), null)))
+                                .build())
+                        .build())
                 .build();
 
         // when
@@ -180,8 +198,8 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&"
-                        + "stid=tid&bWlkPTE1JnJjdXI9VVNE");
+                .containsExactly("https://adform.com/openrtb2d?CC=1&eids=eyJ0ZXN0LmNvbSI6eyJ1SWQiOjF9fQ&fd=1&gdpr="
+                        + "&gdpr_consent=consent&ip=&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE");
     }
 
     @Test
