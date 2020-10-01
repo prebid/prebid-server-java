@@ -20,7 +20,7 @@ class AccountMetrics extends UpdatableMetrics {
     private final Function<MetricName, RequestTypeMetrics> requestTypeMetricsCreator;
     private final Map<MetricName, RequestTypeMetrics> requestTypeMetrics;
     private final RequestMetrics requestsMetrics;
-    private final ValidationErrorMetrics validationErrorMetrics;
+    private final ResponseMetrics responseMetrics;
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
@@ -31,8 +31,7 @@ class AccountMetrics extends UpdatableMetrics {
                 new RequestTypeMetrics(metricRegistry, counterType, createPrefix(account), requestType);
         requestTypeMetrics = new HashMap<>();
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(account));
-        validationErrorMetrics = new ValidationErrorMetrics(
-                metricRegistry, counterType, createPrefix(account));
+        responseMetrics = new ResponseMetrics(metricRegistry, counterType, createPrefix(account));
     }
 
     private static String createPrefix(String account) {
@@ -55,7 +54,7 @@ class AccountMetrics extends UpdatableMetrics {
         return requestsMetrics;
     }
 
-    ValidationErrorMetrics validationError() {
-        return validationErrorMetrics;
+    ResponseMetrics response() {
+        return responseMetrics;
     }
 }

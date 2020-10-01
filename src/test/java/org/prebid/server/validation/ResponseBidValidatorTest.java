@@ -348,7 +348,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldIncrementValidationErrorSizeMetrics() {
+    public void validateShouldIncrementSizeValidationErrMetrics() {
         // when
         responseBidValidator.validate(
                 givenBid(builder -> builder.w(150).h(200)),
@@ -357,11 +357,27 @@ public class ResponseBidValidatorTest extends VertxTest {
                 bidderAliases);
 
         // then
-        verify(metrics).updateValidationErrorMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.size);
+        verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
     }
 
     @Test
-    public void validateShouldIncrementValidationErrorSecureMetrics() {
+    public void validateShouldIncrementSizeValidationWarnMetrics() {
+        // given
+        responseBidValidator = new ResponseBidValidator(warn, warn, metrics);
+
+        // when
+        responseBidValidator.validate(
+                givenBid(builder -> builder.w(150).h(200)),
+                givenBidderRequest(identity()),
+                givenAccount(),
+                bidderAliases);
+
+        // then
+        verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
+    }
+
+    @Test
+    public void validateShouldIncrementSecureValidationErrMetrics() {
         // when
         responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
@@ -370,7 +386,23 @@ public class ResponseBidValidatorTest extends VertxTest {
                 bidderAliases);
 
         // then
-        verify(metrics).updateValidationErrorMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.secure);
+        verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
+    }
+
+    @Test
+    public void validateShouldIncrementSecureValidationWarnMetrics() {
+        // given
+        responseBidValidator = new ResponseBidValidator(warn, warn, metrics);
+
+        // when
+        responseBidValidator.validate(
+                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
+                givenBidderRequest(builder -> builder.secure(1)),
+                givenAccount(),
+                bidderAliases);
+
+        // then
+        verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
     }
 
     private static BidderBid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

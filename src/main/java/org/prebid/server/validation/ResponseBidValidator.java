@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Validator for response {@link Bid} object.
@@ -98,11 +99,10 @@ public class ResponseBidValidator {
 
         final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
         if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip && bannerSizeIsNotValid(bid, bidderRequest)) {
-            metrics.updateValidationErrorMetrics(
-                    aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), MetricName.size);
-
             return singleWarningOrValidationException(
                     bannerMaxSizeEnforcement,
+                    metricName -> metrics.updateSizeValidationMetrics(
+                            aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), metricName),
                     "Bid \"%s\" has 'w' and 'h' that are not valid. Bid dimensions: '%dx%d'",
                     bid.getId(), bid.getW(), bid.getH());
         }
@@ -158,11 +158,10 @@ public class ResponseBidValidator {
         final Imp imp = findCorrespondingImp(bidderRequest.getBidRequest(), bidderBid.getBid());
 
         if (isImpSecure(imp) && markupIsNotSecure(bid)) {
-            metrics.updateValidationErrorMetrics(
-                    aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), MetricName.secure);
-
             return singleWarningOrValidationException(
                     secureMarkupEnforcement,
+                    metricName -> metrics.updateSecureValidationMetrics(
+                            aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), metricName),
                     "Bid \"%s\" has insecure creative but should be in secure context",
                     bid.getId());
         }
@@ -189,13 +188,17 @@ public class ResponseBidValidator {
                 || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
     }
 
-    private static List<String> singleWarningOrValidationException(
-            BidValidationEnforcement enforcement, String message, Object... args) throws ValidationException {
+    private static List<String> singleWarningOrValidationException(BidValidationEnforcement enforcement,
+                                                                   Consumer<MetricName> metricsRecorder,
+                                                                   String message,
+                                                                   Object... args) throws ValidationException {
 
         switch (enforcement) {
             case enforce:
+                metricsRecorder.accept(MetricName.err);
                 throw new ValidationException(message, args);
             case warn:
+                metricsRecorder.accept(MetricName.warn);
                 return Collections.singletonList(String.format(message, args));
             default:
                 throw new IllegalStateException(String.format("Unexpected enforcement: %s", enforcement));
