@@ -63,10 +63,10 @@ class AdformRequestUtil {
      */
     String getEids(ExtUser extUser, JacksonMapper mapper) {
         final List<ExtUserEid> eids = extUser != null ? extUser.getEids() : null;
-        final Map<String, Map<String, ArrayList<Integer>>> eidsMap = new HashMap<>();
+        final Map<String, Map<String, List<Integer>>> eidsMap = new HashMap<>();
         if (CollectionUtils.isNotEmpty(eids)) {
             for (ExtUserEid eid : eids) {
-                final Map<String, ArrayList<Integer>> uidMap = eidsMap.computeIfAbsent(eid.getSource(),
+                final Map<String, List<Integer>> uidMap = eidsMap.computeIfAbsent(eid.getSource(),
                         ignored -> new HashMap<>());
                 for (ExtUserEidUid uid : eid.getUids()) {
                     uidMap.putIfAbsent(uid.getId(), new ArrayList<Integer>());
