@@ -131,6 +131,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 .compose(result -> failedIfNull(result, adUnitConfigId, "AdUnitConfig"));
     }
 
+    @Override
+    public Future<String> getCategory(String primaryAdServer, String publisher, String iabCat) {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Transforms the first row of {@link ResultSet} to required object or returns null.
      * <p>

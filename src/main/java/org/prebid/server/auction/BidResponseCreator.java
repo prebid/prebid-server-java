@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -97,6 +98,7 @@ public class BidResponseCreator {
     private static final String PREBID_EXT = "prebid";
 
     private final CacheService cacheService;
+    private final CategoryMapper categoryMapper;
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -110,6 +112,7 @@ public class BidResponseCreator {
     private final String cacheAssetUrlTemplate;
 
     public BidResponseCreator(CacheService cacheService,
+                              CategoryMapper categoryMapper,
                               BidderCatalog bidderCatalog,
                               EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
@@ -119,6 +122,7 @@ public class BidResponseCreator {
                               JacksonMapper mapper) {
 
         this.cacheService = Objects.requireNonNull(cacheService);
+        this.categoryMapper = Objects.requireNonNull(categoryMapper);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -161,12 +165,28 @@ public class BidResponseCreator {
                     .build());
         }
 
-        return cacheBidsAndCreateResponse(
-                bidderResponses,
-                auctionContext,
-                cacheInfo,
-                auctionTimestamp,
-                debugEnabled);
+        final ExtRequestTargeting targeting = targeting(auctionContext.getBidRequest());
+
+        final Future<CategoryMappingResult> categoryMappingResultFuture =
+                targeting != null && targeting.getIncludebrandcategory() != null
+                        ? categoryMapper.applyCategoryMapping(bidderResponses, targeting)
+                        : Future.succeededFuture(CategoryMappingResult.of(null, bidderResponses, null));
+
+        return categoryMappingResultFuture
+                .map(categoryMappingResult -> updateWithCategoryErrors(categoryMappingResult, auctionContext))
+                .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
+                        categoryMappingResult.getBidderResponses(),
+                        auctionContext,
+                        cacheInfo,
+                        auctionTimestamp,
+                        targeting,
+                debugEnabled));
+    }
+
+    private static CategoryMappingResult updateWithCategoryErrors(CategoryMappingResult categoryMappingResult,
+                                                                  AuctionContext auctionContext) {
+        auctionContext.getPrebidErrors().addAll(CollectionUtils.emptyIfNull(categoryMappingResult.getErrors()));
+        return categoryMappingResult;
     }
 
     private static int validateTruncateAttrChars(int truncateAttrChars) {
@@ -190,13 +210,12 @@ public class BidResponseCreator {
                                                            AuctionContext auctionContext,
                                                            BidRequestCacheInfo cacheInfo,
                                                            long auctionTimestamp,
+                                                           ExtRequestTargeting targeting,
                                                            boolean debugEnabled) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
         bidderResponses.forEach(BidResponseCreator::removeRedundantBids);
-
-        ExtRequestTargeting targeting = targeting(bidRequest);
         final Set<Bid> winningBids = newOrEmptySet(targeting);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 

@@ -30,6 +30,14 @@ public class CpmRange {
     }
 
     /**
+     * Formats {@link BigDecimal} value with a given precision and return it's string representation.
+     */
+    public static String format(BigDecimal value, Integer precision) {
+        final String format = String.format("%%.%sf", precision);
+        return String.format(LOCALE, format, value);
+    }
+
+    /**
      * Rounding price by specified rules defined in {@link PriceGranularity} object and returns it in {@link BigDecimal}
      * format
      */
@@ -63,13 +71,5 @@ public class CpmRange {
      */
     private static boolean includes(BigDecimal cpm, BigDecimal min, BigDecimal max) {
         return cpm.compareTo(min) >= 0 && cpm.compareTo(max) <= 0;
-    }
-
-    /**
-     * Formats {@link BigDecimal} value with a given precision and return it's string representation.
-     */
-    private static String format(BigDecimal value, Integer precision) {
-        final String format = String.format("%%.%sf", precision);
-        return String.format(LOCALE, format, value);
     }
 }

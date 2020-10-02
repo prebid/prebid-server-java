@@ -275,7 +275,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(1, null, null))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(1, null, null, null))
                         .build())
                 .build();
 
@@ -303,7 +303,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(-120, null, null))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(-120, null, null, null))
                         .build())
                 .build();
 
@@ -331,7 +331,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(0, null, null))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(0, null, null, null))
                         .build())
                 .build();
 
