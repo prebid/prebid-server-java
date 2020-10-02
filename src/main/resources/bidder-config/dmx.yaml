@@ -1,0 +1,25 @@
+adapters:
+  dmx:
+    enabled: false
+    endpoint: https://dmx-direct.districtm.io/b/v2
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: steve@districtm.net
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 144
+    usersync:
+      url: https://dmx.districtm.io/s/v1/img/s/10007?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect=
+      redirect-url: /setuid?bidder=datablocks&gdpr=${gdpr}&gdpr_consent=${gdpr_consent}&uid=${uid}
+      cookie-family-name: dmx
+      type: redirect
+      support-cors: false

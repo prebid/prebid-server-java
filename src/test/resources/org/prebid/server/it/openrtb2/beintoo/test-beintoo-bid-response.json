@@ -1,0 +1,22 @@
+{
+  "id": "some_test_auction",
+  "seatbid": [
+    {
+      "seat": "12356",
+      "bid": [
+        {
+          "id": "uuid",
+          "adm": "<div id=\"123456789_ad\"><script>!function(){console.log\"Hello, world.\";}();<\/script><\/div>",
+          "impid": "uuid",
+          "ttl": 300,
+          "crid": "94395500",
+          "w": 300,
+          "price": 2.942808,
+          "adid": "94395500",
+          "h": 250
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}

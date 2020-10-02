@@ -19,7 +19,7 @@ adapters:
       vendor-id: 0
     usersync:
       url: https://sync.aralego.com/idsync?gdpr={{gdpr}}}&gdpr_consent={{gdpr_consent}}&usprivacy={{us_privacy}}&redirect=
-      redirect-url: /setuid?bidder=ucfunnel&uid=SspCookieUserId
+      redirect-url: /setuid?bidder=ucfunnel&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=SspCookieUserId
       cookie-family-name: ucfunnel
       type: redirect
       support-cors: false

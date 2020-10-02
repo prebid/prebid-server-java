@@ -91,6 +91,8 @@ public class AdformBidder implements Bidder<Void> {
                         .keyValues(getKeyValues(extImpAdforms))
                         .keyWords(getKeyWords(extImpAdforms))
                         .priceTypes(getPriceType(extImpAdforms))
+                        .cdims(getCdims(extImpAdforms))
+                        .minPrices(getMinPrices(extImpAdforms))
                         .endpointUrl(endpointUrl)
                         .tid(getTid(request.getSource()))
                         .ip(getIp(device))
@@ -99,6 +101,8 @@ public class AdformBidder implements Bidder<Void> {
                         .gdprApplies(requestUtil.getGdprApplies(request.getRegs()))
                         .consent(requestUtil.getConsent(extUser))
                         .currency(currency)
+                        .eids(requestUtil.getEids(extUser, mapper))
+                        .url(getUrl(extImpAdforms))
                         .build());
 
         final MultiMap headers = httpUtil.buildAdformHeaders(
@@ -210,6 +214,20 @@ public class AdformBidder implements Bidder<Void> {
     }
 
     /**
+     * Converts {@link ExtImpAdform} {@link List} to cdims {@link List}.
+     */
+    private List<String> getCdims(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getCdims).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link ExtImpAdform} {@link List} to minPrices {@link List}.
+     */
+    private List<Double> getMinPrices(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getMinPrice).collect(Collectors.toList());
+    }
+
+    /**
      * Retrieves referer from {@link Site}.
      */
     private String getReferer(Site site) {
@@ -257,6 +275,17 @@ public class AdformBidder implements Bidder<Void> {
      */
     private String getTid(Source source) {
         return source != null ? ObjectUtils.defaultIfNull(source.getTid(), "") : "";
+    }
+
+    /**
+     * Finds not blank url from {@link ExtImpAdform}.
+     */
+    private String getUrl(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream()
+                .map(ExtImpAdform::getUrl)
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .orElse("");
     }
 
     /**
