@@ -186,7 +186,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .targeting(ExtRequestTargeting.builder()
                         .pricegranularity(mapper.valueToTree(PriceGranularity.createFromString("med")))
                         .includebidderkeys(true)
-                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false, null))
                         .build())
                 .build();
         final BidRequest bidRequest = BidRequest.builder()

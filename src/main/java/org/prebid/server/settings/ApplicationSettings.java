@@ -49,4 +49,9 @@ public interface ApplicationSettings {
      * Fetches Video stored requests and imps
      */
     Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout);
+
+    /**
+     * Fetches video category
+     */
+    Future<String> getCategory(String primaryAdServer, String publisher, String iabCat);
 }

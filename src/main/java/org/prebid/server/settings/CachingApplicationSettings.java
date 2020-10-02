@@ -94,6 +94,11 @@ public class CachingApplicationSettings implements ApplicationSettings {
         return getFromCacheOrDelegate(videoCache, requestIds, impIds, timeout, delegate::getVideoStoredData);
     }
 
+    @Override
+    public Future<String> getCategory(String primaryAdServer, String publisher, String iabCat) {
+        throw new UnsupportedOperationException();
+    }
+
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, Map<String, String> accountToErrorCache,
                                                         String key, Timeout timeout,
                                                         BiFunction<String, Timeout, Future<T>> retriever) {

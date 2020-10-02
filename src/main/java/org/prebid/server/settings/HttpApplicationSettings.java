@@ -127,6 +127,11 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
+    @Override
+    public Future<String> getCategory(String primaryAdServer, String publisher, String iabCat) {
+        throw new UnsupportedOperationException();
+    }
+
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
                                                      Timeout timeout) {
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {

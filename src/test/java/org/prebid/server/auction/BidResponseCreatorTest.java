@@ -28,6 +28,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -39,8 +40,10 @@ import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
@@ -121,6 +124,9 @@ public class BidResponseCreatorTest extends VertxTest {
     private EventsService eventsService;
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
+    @Mock
+    private CategoryMapper categoryMapper;
+
     private Clock clock;
 
     private Timeout timeout;
@@ -132,6 +138,9 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheService.getEndpointHost()).willReturn("testHost");
         given(cacheService.getEndpointPath()).willReturn("testPath");
         given(cacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
+        given(categoryMapper.applyCategoryMapping(any(), any())).willAnswer(invocationOnMock ->
+                Future.succeededFuture(CategoryMappingResult.of(null, invocationOnMock.getArgument(0), null))
+        );
 
         given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
@@ -140,6 +149,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         bidResponseCreator = new BidResponseCreator(
                 cacheService,
+                categoryMapper,
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
@@ -468,6 +478,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(
                 cacheService,
+                categoryMapper,
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
@@ -523,6 +534,65 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldUseBidsReturnedInCategoryMapperResultAndUpdateErrors() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.targeting(givenTargeting().toBuilder()
+                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null, null)).build())));
+        final Bid bid1 = Bid.builder().id("bidId1").price(BigDecimal.ONE).adm("adm").impid("i1")
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
+        final Bid bid2 = Bid.builder().id("bidId2").price(BigDecimal.ONE).adm("adm").impid("i1")
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid1, banner, "USD"), BidderBid.of(bid2, banner, "USD")), 100));
+
+        given(categoryMapper.applyCategoryMapping(any(), any()))
+                .willReturn(Future.succeededFuture(CategoryMappingResult.of(null,
+                        singletonList(BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid1, banner, "USD")),
+                                100)),
+                        singletonList("Filtered bid 2"))));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getId)
+                .containsOnly("bidId1");
+
+        assertThat(auctionContext.getPrebidErrors()).containsOnly("Filtered bid 2");
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenCategoryMappingThrowsPrebidException() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.targeting(givenTargeting().toBuilder()
+                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null, null)).build())));
+        final Bid bid1 = Bid.builder().id("bidId1").price(BigDecimal.ONE).adm("adm").impid("i1")
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid1, banner, "USD")), 100));
+
+        given(categoryMapper.applyCategoryMapping(any(), any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("category exception")));
+
+        // when
+        final Future<BidResponse> result = bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO,
+                false);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("category exception");
     }
 
     @Test
@@ -845,6 +915,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(
                 cacheService,
+                categoryMapper,
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
@@ -1834,7 +1905,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .account(Account.empty("accountId"))
                 .bidRequest(bidRequest)
                 .timeout(timeout)
-                .prebidErrors(emptyList());
+                .prebidErrors(new ArrayList<>());
 
         return contextCustomizer.apply(auctionContextBuilder)
                 .build();
