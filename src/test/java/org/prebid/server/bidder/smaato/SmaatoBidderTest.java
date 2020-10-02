@@ -21,19 +21,17 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.smaato.proto.SmaatoSiteExt;
 import org.prebid.server.bidder.smaato.proto.SmaatoSiteExtData;
-import org.prebid.server.bidder.smaato.proto.SmaatoUserExt;
 import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -136,7 +134,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .banner(Banner.builder()
-                                .format(Arrays.asList(Format.builder().w(300).h(500).build(),
+                                .format(asList(Format.builder().w(300).h(500).build(),
                                         Format.builder().w(450).h(150).build()))
                                 .build()));
 
@@ -160,12 +158,12 @@ public class SmaatoBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder()
-                                .id("banner_id").format(Arrays.asList(Format.builder().w(300).h(500).build(),
-                                Format.builder().w(450).h(150).build())).build())
+                                .id("banner_id").format(asList(Format.builder().w(300).h(500).build(),
+                                        Format.builder().w(450).h(150).build())).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpSmaato.of("publisherId", "adspaceId")))).build()))
                 .site(Site.builder()
-                        .ext(mapper.convertValue(SmaatoSiteExt.of(SmaatoSiteExtData.of("keywords")), ExtSite.class))
+                        .ext(ExtSite.of(null, mapper.valueToTree(SmaatoSiteExtData.of("keywords"))))
                         .build())
                 .build();
 
@@ -194,14 +192,15 @@ public class SmaatoBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder()
-                                .id("banner_id").format(Arrays.asList(Format.builder().w(300).h(500)
+                                .id("banner_id").format(asList(Format.builder().w(300).h(500)
                                                 .build(),
-                                Format.builder().w(450).h(150).build())).build())
+                                        Format.builder().w(450).h(150).build())).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpSmaato.of("publisherId", "adspaceId")))).build()))
                 .user(User.builder()
-                        .ext(mapper.convertValue(SmaatoUserExt.of(SmaatoUserExtData.of("keywords", "gender", 1)),
-                                ExtUser.class))
+                        .ext(ExtUser.builder()
+                                .data(mapper.valueToTree(SmaatoUserExtData.of("keywords", "gender", 1)))
+                                .build())
                         .build())
                 .build();
 

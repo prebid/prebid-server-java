@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -25,10 +24,13 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smaato.proto.SmaatoBidRequestExt;
+import org.prebid.server.bidder.smaato.proto.SmaatoImage;
 import org.prebid.server.bidder.smaato.proto.SmaatoImageAd;
+import org.prebid.server.bidder.smaato.proto.SmaatoImg;
+import org.prebid.server.bidder.smaato.proto.SmaatoMediaData;
 import org.prebid.server.bidder.smaato.proto.SmaatoRichMediaAd;
-import org.prebid.server.bidder.smaato.proto.SmaatoSiteExt;
-import org.prebid.server.bidder.smaato.proto.SmaatoUserExt;
+import org.prebid.server.bidder.smaato.proto.SmaatoRichmedia;
+import org.prebid.server.bidder.smaato.proto.SmaatoSiteExtData;
 import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -47,6 +49,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SmaatoBidder implements Bidder<BidRequest> {
@@ -85,10 +88,15 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             }
         }
 
-        final Site site = request.getSite();
-        final Site modifiedSite = site != null ? modifySite(site, firstPublisherId) : null;
-        final User user = request.getUser();
-        final User modifiedUser = user != null && user.getExt() != null ? modifyUser(user) : null;
+        final Site modifiedSite;
+        final User modifiedUser;
+        try {
+            modifiedSite = request.getSite() != null ? modifySite(request.getSite(), firstPublisherId) : null;
+            modifiedUser = request.getUser() != null ? modifyUser(request.getUser()) : null;
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return Result.of(Collections.emptyList(), errors);
+        }
 
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(imps)
@@ -96,7 +104,6 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .user(modifiedUser)
                 .ext(mapper.fillExtension(ExtRequest.empty(), SmaatoBidRequestExt.of(CLIENT_VERSION)))
                 .build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -104,7 +111,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
-                        .body(body)
+                        .body(mapper.encode(outgoingRequest))
                         .build()),
                 errors);
     }
@@ -117,7 +124,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, String adspaceId) {
+    private static Imp modifyImp(Imp imp, String adspaceId) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         if (imp.getBanner() != null) {
             return impBuilder.banner(modifyBanner(imp.getBanner())).tagid(adspaceId).ext(null).build();
@@ -130,60 +137,72 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 "invalid MediaType. SMAATO only supports Banner and Video. Ignoring ImpID=%s", imp.getId()));
     }
 
-    private Banner modifyBanner(Banner banner) {
+    private static Banner modifyBanner(Banner banner) {
         if (banner.getW() != null && banner.getH() != null) {
             return banner;
         }
         final List<Format> format = banner.getFormat();
         if (CollectionUtils.isEmpty(format)) {
-            throw new PreBidException(String.format(
-                    "No sizes provided for Banner %s", format));
+            throw new PreBidException(String.format("No sizes provided for Banner %s", format));
         }
         final Format firstFormat = format.get(0);
-        return Banner.builder().w(firstFormat.getW()).h(firstFormat.getH()).build();
+        return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
     }
 
     private Site modifySite(Site site, String firstPublisherId) {
-        final Site.SiteBuilder siteBuilder = site.toBuilder();
-        siteBuilder.publisher(Publisher.builder().id(firstPublisherId).build());
-        final ExtSite ext = site.getExt();
-        if (ext != null) {
-            final SmaatoSiteExt smaatoSiteExt = convertExt(ext, SmaatoSiteExt.class);
-            siteBuilder.keywords(smaatoSiteExt.getData().getKeywords()).ext(null);
-        }
-        return siteBuilder.build();
-    }
+        final Site.SiteBuilder siteBuilder = site.toBuilder()
+                .publisher(Publisher.builder().id(firstPublisherId).build());
 
-    private <T, S> T convertExt(S ext, Class<T> className) {
-        return mapper.mapper().convertValue(ext, className);
+        final ExtSite siteExt = site.getExt();
+        if (siteExt != null) {
+            final SmaatoSiteExtData data = convertExt(siteExt.getData(), SmaatoSiteExtData.class);
+            final String keywords = data != null ? data.getKeywords() : null;
+            siteBuilder.keywords(keywords).ext(null);
+        }
+
+        return siteBuilder.build();
     }
 
     private User modifyUser(User user) {
         final ExtUser ext = user.getExt();
-        final Map<String, JsonNode> mapUserExt = parseUserExt(ext);
-        final SmaatoUserExt smaatoUserExt = convertExt(ext, SmaatoUserExt.class);
+        if (ext == null) {
+            return user;
+        }
+
+        final ObjectNode extDataNode = ext.getData();
+        if (extDataNode == null) {
+            return user;
+        }
+
         final User.UserBuilder userBuilder = user.toBuilder();
-        final SmaatoUserExtData data = smaatoUserExt.getData();
-        final String gender = data.getGender();
+        final SmaatoUserExtData data = convertExt(extDataNode, SmaatoUserExtData.class);
+
+        final String gender = data != null ? data.getGender() : null;
         if (StringUtils.isNotBlank(gender)) {
             userBuilder.gender(gender);
         }
-        final Integer yob = data.getYob();
-        if (yob != 0) {
+
+        final Integer yob = data != null ? data.getYob() : null;
+        if (yob != null && yob != 0) {
             userBuilder.yob(yob);
         }
-        final String keywords = data.getKeywords();
+
+        final String keywords = data != null ? data.getKeywords() : null;
         if (StringUtils.isNotBlank(keywords)) {
             userBuilder.keywords(keywords);
         }
-        mapUserExt.remove("data");
-        userBuilder.ext(convertExt(mapUserExt, ExtUser.class));
+
+        userBuilder.ext(ext.toBuilder().data(null).build());
+
         return userBuilder.build();
     }
 
-    private Map<String, JsonNode> parseUserExt(ExtUser ext) {
-        return mapper.mapper().convertValue(ext, new TypeReference<Map<String, JsonNode>>() {
-        });
+    private <T> T convertExt(ObjectNode ext, Class<T> className) {
+        try {
+            return mapper.mapper().convertValue(ext, className);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(String.format("Cannot decode extension: %s", e.getMessage()), e);
+        }
     }
 
     @Override
@@ -234,7 +253,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String getAdMarkupType(MultiMap headers, String adm) {
+    private static String getAdMarkupType(MultiMap headers, String adm) {
         final String adMarkupType = headers.get("X-SMT-ADTYPE");
         if (StringUtils.isNotBlank(adMarkupType)) {
             return adMarkupType;
@@ -277,45 +296,70 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private String extractAdmImage(String adm) {
-        final SmaatoImageAd image = decode(adm, SmaatoImageAd.class);
+        final SmaatoImageAd imageAd = admToAd(adm, SmaatoImageAd.class);
+        final SmaatoImage image = imageAd.getImage();
+        if (image == null) {
+            return adm;
+        }
+
         final StringBuilder clickEvent = new StringBuilder();
-        image.getImage().getClickTrackers().forEach(tracker -> clickEvent.append(
-                String.format("fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});",
+        CollectionUtils.emptyIfNull(image.getClickTrackers())
+                .forEach(tracker -> clickEvent.append(String.format(
+                        "fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});",
                         HttpUtil.encodeUrl(tracker))));
 
         final StringBuilder impressionTracker = new StringBuilder();
-        image.getImage().getImpressionTrackers().forEach(tracker -> impressionTracker.append(
-                String.format("<img src=\"%s\" alt=\"\" width=\"0\" height=\"0\"/>", tracker)));
+        CollectionUtils.emptyIfNull(image.getImpressionTrackers())
+                .forEach(tracker -> impressionTracker.append(
+                        String.format("<img src=\"%s\" alt=\"\" width=\"0\" height=\"0\"/>", tracker)));
+
+        final SmaatoImg img = image.getImg();
 
         return String.format("<div style=\"cursor:pointer\" onclick=\"%s;window.open(decodeURIComponent"
                         + "('%s'.replace(/\\+/g, ' ')));\"><img src=\"%s\" width=\"%d\" height=\"%d\"/>%s</div>",
                 clickEvent.toString(),
-                HttpUtil.encodeUrl(image.getImage().getImg().getCtaurl()), image.getImage().getImg().getUrl(),
-                image.getImage().getImg().getW(), image.getImage().getImg().getH(),
+                HttpUtil.encodeUrl(StringUtils.stripToEmpty(getIfNotNull(img, SmaatoImg::getCtaurl))),
+                StringUtils.stripToEmpty(getIfNotNull(img, SmaatoImg::getUrl)),
+                getIfNotNull(img, SmaatoImg::getW),
+                getIfNotNull(img, SmaatoImg::getH),
                 impressionTracker.toString());
     }
 
-    private <T, S> T decode(S value, Class<T> className) {
+    private String extractAdmRichMedia(String adm) {
+        final SmaatoRichMediaAd richMediaAd = admToAd(adm, SmaatoRichMediaAd.class);
+        final SmaatoRichmedia richmedia = richMediaAd.getRichmedia();
+        if (richmedia == null) {
+            return adm;
+        }
+
+        final StringBuilder clickEvent = new StringBuilder();
+        CollectionUtils.emptyIfNull(richmedia.getClickTrackers())
+                .forEach(tracker -> clickEvent.append(
+                        String.format("fetch(decodeURIComponent('%s'), {cache: 'no-cache'});",
+                                HttpUtil.encodeUrl(tracker))));
+
+        final StringBuilder impressionTracker = new StringBuilder();
+        CollectionUtils.emptyIfNull(richmedia.getImpressionTrackers())
+                .forEach(tracker -> impressionTracker.append(
+                        String.format("<img src=\"%s\" alt=\"\" width=\"0\" height=\"0\"/>",
+                                tracker)));
+
+        return String.format("<div onclick=\"%s\">%s%s</div>",
+                clickEvent.toString(),
+                StringUtils.stripToEmpty(getIfNotNull(richmedia.getMediadata(), SmaatoMediaData::getContent)),
+                impressionTracker.toString());
+    }
+
+    private <T> T admToAd(String value, Class<T> className) {
         try {
-            return mapper.decodeValue((String) value, className);
+            return mapper.decodeValue(value, className);
         } catch (DecodeException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("Cannot decode bid.adm: %s", e.getMessage()), e);
         }
     }
 
-    private String extractAdmRichMedia(String adm) {
-        final SmaatoRichMediaAd richMediaAd = decode(adm, SmaatoRichMediaAd.class);
-        final StringBuilder clickEvent = new StringBuilder();
-        richMediaAd.getRichmedia().getClickTrackers().forEach(tracker -> clickEvent.append(
-                String.format("fetch(decodeURIComponent('%s'), {cache: 'no-cache'});",
-                        HttpUtil.encodeUrl(tracker))));
-        final StringBuilder impressionTracker = new StringBuilder();
-        richMediaAd.getRichmedia().getImpressionTrackers().forEach(tracker -> impressionTracker.append(
-                String.format("<img src=\"%s\" alt=\"\" width=\"0\" height=\"0\"/>", tracker)));
-
-        return String.format("<div onclick=\"%s\">%s%s</div>", clickEvent,
-                richMediaAd.getRichmedia().getMediadata().getContent(),
-                impressionTracker);
+    private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
+        return target != null ? getter.apply(target) : null;
     }
 
     @Override
