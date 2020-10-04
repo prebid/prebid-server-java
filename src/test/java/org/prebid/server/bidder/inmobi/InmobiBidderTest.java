@@ -159,7 +159,7 @@ public class InmobiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBanerBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()

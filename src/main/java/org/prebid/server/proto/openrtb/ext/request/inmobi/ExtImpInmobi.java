@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request.inmobi;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -8,6 +7,5 @@ import lombok.Value;
 @Value
 public class ExtImpInmobi {
 
-    @JsonProperty("plc")
     String plc;
 }

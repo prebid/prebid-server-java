@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -33,11 +34,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class InmobiBidder implements Bidder<BidRequest> {
+
+    private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private static final TypeReference<ExtPrebid<?, ExtImpInmobi>> INMOBI_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpInmobi>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -51,35 +53,30 @@ public class InmobiBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
 
-        if (request.getImp().size() == 0) {
-            BidderError.badInput("No impression in the request");
-        }
-
         Imp imp = request.getImp().get(0);
 
-        ExtImpInmobi extImpInmobi;
+        final ExtImpInmobi extImpInmobi;
+
         try {
             extImpInmobi = parseImpExt(imp);
         } catch (Exception e) {
             return Result.emptyWithError(BidderError.badInput("bad InMobi bidder ext"));
         }
 
-        if (extImpInmobi.getPlc().length() == 0) {
+        if (StringUtils.isEmpty(extImpInmobi.getPlc())) {
             return Result.emptyWithError(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
         }
 
         if (imp.getBanner() != null) {
-            Banner banner = imp.getBanner();
-            if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0
-                    || banner.getH() == 0) && banner.getFormat().size() > 0) {
-                Format format = banner.getFormat().get(0);
-                banner.toBuilder().w(format.getW()).h(format.getH());
+            final Banner banner = imp.getBanner();
+            if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0 || banner.getH() == 0)
+                    && !Objects.isNull(banner.getFormat()) && banner.getFormat().size() > 0) {
+                final Format format = banner.getFormat().get(0);
+                imp = imp.toBuilder().banner(banner.toBuilder().w(format.getW()).h(format.getH()).build()).build();
             }
         }
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(request.getImp()).build();
-
-        final String body = mapper.encode(outgoingRequest);
+        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -87,7 +84,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
-                        .body(body)
+                        .body(mapper.encode(outgoingRequest))
                         .build()),
                 errors);
     }
@@ -102,12 +99,10 @@ public class InmobiBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected http status code: %s.",
-                    statusCode)));
         }
 
         try {
@@ -131,21 +126,18 @@ public class InmobiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
+                        Objects.isNull(bidResponse.getCur()) ? DEFAULT_BID_CURRENCY : bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
     protected BidType getBidType(String impId, List<Imp> imps) {
-        BidType mediaType = BidType.banner;
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getVideo() != null) {
-                    mediaType = BidType.video;
-                    break;
-                }
+            if (imp.getId().equals(impId) && imp.getVideo() != null) {
+                return BidType.video;
             }
         }
-        return mediaType;
+        return BidType.banner;
     }
 
     @Override

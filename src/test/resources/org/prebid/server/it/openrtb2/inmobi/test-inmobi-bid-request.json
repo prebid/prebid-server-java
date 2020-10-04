@@ -2,7 +2,7 @@
   "id": "tid",
   "imp": [
     {
-      "id": "test-imp-banner-id",
+      "id": "impId001",
       "banner": {
         "format": [
           {
@@ -10,12 +10,12 @@
             "h": 250
           }
         ],
-        "w": 500,
-        "h": 400
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "bidder": {
-          "plc": "9042"
+          "plc": "plc"
         }
       }
     }
@@ -39,12 +39,8 @@
     "ifa": "ifaId"
   },
   "user": {
+    "buyeruid" : "IM-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },
@@ -64,10 +60,15 @@
   },
   "ext": {
     "prebid": {
-      "debug": 1,
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
       },
       "targeting": {
         "pricegranularity": {
@@ -83,10 +84,7 @@
         "includebidderkeys": true
       },
       "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
+        "bids": {}
       },
       "auctiontimestamp": 1000
     }
