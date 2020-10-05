@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * DmxBidder {@link Bidder} implementation.
+ * Dmx {@link Bidder} implementation.
  */
 public class DmxBidder implements Bidder<BidRequest> {
 
