@@ -9,9 +9,7 @@
             "w": 300,
             "h": 250
           }
-        ],
-        "w": 300,
-        "h": 250
+        ]
       },
       "ext": {
         "bidder": {
@@ -39,10 +37,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "IM-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "buyeruid" : "IM-UID"
   },
   "at": 1,
   "tmax": 5000,
@@ -60,16 +55,6 @@
   },
   "ext": {
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

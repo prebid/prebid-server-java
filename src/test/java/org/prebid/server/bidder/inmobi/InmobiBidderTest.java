@@ -33,7 +33,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class InmobiBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://api.w.inmobi.com/showad/openrtb/bidder/prebid";
+    private static final String ENDPOINT_URL = "https://test";
 
     private InmobiBidder inmobiBidder;
 
@@ -137,7 +137,7 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
     }
 
     @Test
@@ -155,7 +155,7 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
     }
 
     @Test
@@ -174,7 +174,7 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
     }
 
     @Test

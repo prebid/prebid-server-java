@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -34,8 +35,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class InmobiBidder implements Bidder<BidRequest> {
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private static final TypeReference<ExtPrebid<?, ExtImpInmobi>> INMOBI_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpInmobi>>() {
@@ -67,16 +66,19 @@ public class InmobiBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
         }
 
+        Imp updatedImp = null;
         if (imp.getBanner() != null) {
             final Banner banner = imp.getBanner();
             if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0 || banner.getH() == 0)
-                    && !Objects.isNull(banner.getFormat()) && banner.getFormat().size() > 0) {
+                    && !Objects.isNull(banner.getFormat()) && !CollectionUtils.isNotEmpty(banner.getFormat())) {
                 final Format format = banner.getFormat().get(0);
-                imp = imp.toBuilder().banner(banner.toBuilder().w(format.getW()).h(format.getH()).build()).build();
+                updatedImp =
+                        imp.toBuilder().banner(banner.toBuilder().w(format.getW()).h(format.getH()).build()).build();
             }
         }
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
+        BidRequest outgoingRequest = request.toBuilder()
+                .imp(Collections.singletonList(updatedImp != null ? updatedImp : imp)).build();
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -126,8 +128,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                        Objects.isNull(bidResponse.getCur()) ? DEFAULT_BID_CURRENCY : bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
