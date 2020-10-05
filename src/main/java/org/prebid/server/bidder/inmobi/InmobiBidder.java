@@ -52,7 +52,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
 
-        Imp imp = request.getImp().get(0);
+        final Imp imp = request.getImp().get(0);
 
         final ExtImpInmobi extImpInmobi;
 
@@ -66,19 +66,8 @@ public class InmobiBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
         }
 
-        Imp updatedImp = null;
-        if (imp.getBanner() != null) {
-            final Banner banner = imp.getBanner();
-            if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0 || banner.getH() == 0)
-                    && !Objects.isNull(banner.getFormat()) && !CollectionUtils.isNotEmpty(banner.getFormat())) {
-                final Format format = banner.getFormat().get(0);
-                updatedImp =
-                        imp.toBuilder().banner(banner.toBuilder().w(format.getW()).h(format.getH()).build()).build();
-            }
-        }
-
-        BidRequest outgoingRequest = request.toBuilder()
-                .imp(Collections.singletonList(updatedImp != null ? updatedImp : imp)).build();
+        final BidRequest outgoingRequest = request.toBuilder()
+                .imp(Collections.singletonList(updateImp(imp))).build();
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -97,6 +86,18 @@ public class InmobiBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+    }
+
+    private Imp updateImp(Imp imp) {
+        if (imp.getBanner() != null) {
+            final Banner banner = imp.getBanner();
+            if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0 || banner.getH() == 0)
+                    && CollectionUtils.isNotEmpty(banner.getFormat())) {
+                final Format format = banner.getFormat().get(0);
+                return imp.toBuilder().banner(banner.toBuilder().w(format.getW()).h(format.getH()).build()).build();
+            }
+        }
+        return imp;
     }
 
     @Override
