@@ -43,6 +43,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.within;
 
 public class YieldlabBidderTest extends VertxTest {
+
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     private YieldlabBidder yieldlabBidder;
