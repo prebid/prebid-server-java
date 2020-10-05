@@ -8,6 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -32,13 +33,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Between {@link Bidder} implementation.
+ */
 public class BetweenBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpBetween>> BETWEEN_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBetween>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String URL_HOST_MACRO = "{{Host}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -56,7 +59,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImpBetween extImpBetween = getImpExt(imp);
+                final ExtImpBetween extImpBetween = parseImpExt(imp);
                 validImpsWithExts.put(imp, extImpBetween);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -78,11 +81,8 @@ public class BetweenBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> makeSingleRequest(ExtImpBetween extImpBetween, BidRequest request, Imp imp) {
 
-        final String url = endpointUrl.replace("{{Host}}", extImpBetween.getHost());
-
+        final String url = endpointUrl.replace(URL_HOST_MACRO, extImpBetween.getHost());
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
-
-        final String body = mapper.encode(outgoingRequest);
 
         return
                 HttpRequest.<BidRequest>builder()
@@ -90,11 +90,11 @@ public class BetweenBidder implements Bidder<BidRequest> {
                         .uri(url)
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
-                        .body(body)
+                        .body(mapper.encode(outgoingRequest))
                         .build();
     }
 
-    private ExtImpBetween getImpExt(Imp imp) {
+    private ExtImpBetween parseImpExt(Imp imp) {
         final ExtImpBetween extImpBetween;
         try {
             extImpBetween = mapper.mapper().convertValue(imp.getExt(), BETWEEN_EXT_TYPE_REFERENCE).getBidder();
@@ -109,9 +109,8 @@ public class BetweenBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.empty();
         }
 
         try {
@@ -123,7 +122,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
@@ -135,8 +134,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                        Objects.isNull(bidResponse.getCur()) ? DEFAULT_BID_CURRENCY : bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

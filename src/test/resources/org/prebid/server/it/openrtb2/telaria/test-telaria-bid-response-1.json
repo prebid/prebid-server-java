@@ -8,6 +8,7 @@
           "crid": "test_video_crid",
           "cid": "test_cid",
           "impid": "impId002",
+          "exp" : 120,
           "id": "1",
           "price": 0.01,
           "ext": {

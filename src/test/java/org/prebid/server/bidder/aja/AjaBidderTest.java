@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class AjaBidderTest extends VertxTest {
+
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     private AjaBidder ajaBidder;
@@ -171,20 +172,6 @@ public class AjaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenResponseWithBadRequest() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(400, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = ajaBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput("Unexpected status code: 400"));
         assertThat(result.getValue()).isEmpty();
     }
 

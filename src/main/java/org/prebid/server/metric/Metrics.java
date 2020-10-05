@@ -28,6 +28,7 @@ public class Metrics extends UpdatableMetrics {
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
+    private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
     private final Function<String, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
@@ -35,6 +36,7 @@ public class Metrics extends UpdatableMetrics {
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterMetrics> adapterMetrics;
+    private final Map<Integer, BidderCardinalityMetrics> bidderCardinailtyMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
     private final PrivacyMetrics privacyMetrics;
@@ -51,10 +53,13 @@ public class Metrics extends UpdatableMetrics {
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
+        bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
+                metricRegistry, counterType, cardinality);
         circuitBreakerMetricsCreator = id -> new CircuitBreakerMetrics(metricRegistry, counterType, id);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
+        bidderCardinailtyMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
         privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
@@ -64,6 +69,10 @@ public class Metrics extends UpdatableMetrics {
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
         return requestMetrics.computeIfAbsent(requestType, requestMetricsCreator);
+    }
+
+    BidderCardinalityMetrics forBidderCardinality(int cardinality) {
+        return bidderCardinailtyMetrics.computeIfAbsent(cardinality, bidderCardinalityMetricsCreator);
     }
 
     AccountMetrics forAccount(String account) {
@@ -170,6 +179,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateRequestTypeMetric(MetricName requestType, MetricName requestStatus) {
         forRequestType(requestType).incCounter(requestStatus);
+    }
+
+    public void updateRequestBidderCardinalityMetric(int bidderCardinality) {
+        forBidderCardinality(bidderCardinality).incCounter(MetricName.requests);
     }
 
     public void updateAccountRequestMetrics(String accountId, MetricName requestType) {

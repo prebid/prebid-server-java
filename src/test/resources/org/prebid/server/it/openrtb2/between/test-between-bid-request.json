@@ -37,10 +37,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "BTW-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "buyeruid" : "BTW-UID"
   },
   "at": 1,
   "tmax": 5000,
@@ -58,16 +55,6 @@
   },
   "ext": {
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -84,7 +71,10 @@
       "cache": {
         "bids": {}
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel" : {
+        "name" : "web"
+      }
     }
   }
 }

@@ -3,28 +3,6 @@
     {
       "type": "json",
       "value": {
-        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
-        "impid": "impStoredAuctionResponse",
-        "price": 0.8,
-        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "466223845",
-        "impid": "impId2",
-        "price": 4.26,
-        "adm": "adm2",
-        "crid": "crid2",
-        "w": 300,
-        "h": 600,
-        "wurl": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "7706636740145184840",
         "impid": "impId3",
         "price": 5,
@@ -55,8 +33,67 @@
     {
       "type": "json",
       "value": {
+        "id": "466223845",
+        "impid": "impId2",
+        "price": 4.26,
+        "adm": "adm2",
+        "crid": "crid2",
+        "w": 300,
+        "h": 600,
+        "wurl": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
+        "impid": "impStoredAuctionResponse",
+        "crid": "crid1",
+        "price": 0.9,
+        "wurl": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "880290288",
+        "impid": "impId1",
+        "price": 8.43,
+        "adm": "<Impression><![CDATA[]]></Impression>",
+        "crid": "crid1",
+        "w": 300,
+        "h": 250,
+        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+        "ext": {
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
+        "impid": "impStoredAuctionResponse",
+        "crid": "crid1",
+        "price": 0.8,
+        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
         "impid": "impStoredBidResponse",
+        "crid": "crid1",
         "price": 0.8,
         "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
       }
@@ -88,40 +125,6 @@
           }
         },
         "wurl": "http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
-        "impid": "impStoredAuctionResponse",
-        "price": 0.9,
-        "wurl": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "880290288",
-        "impid": "impId1",
-        "price": 8.43,
-        "adm": "<Impression><![CDATA[]]></Impression>",
-        "crid": "crid1",
-        "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
-        "ext": {
-          "rp": {
-            "targeting": [
-              {
-                "key": "rpfl_1001",
-                "values": [
-                  "2_tier0100"
-                ]
-              }
-            ]
-          }
-        }
       }
     },
     {
