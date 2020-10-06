@@ -20,6 +20,7 @@ import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class InmobiTest extends IntegrationTest {
+
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromInmobi() throws IOException, JSONException {
         // given

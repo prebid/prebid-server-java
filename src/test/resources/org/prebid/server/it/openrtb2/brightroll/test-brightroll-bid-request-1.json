@@ -210,7 +210,10 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

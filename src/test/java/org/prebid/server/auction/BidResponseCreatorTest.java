@@ -225,7 +225,11 @@ public class BidResponseCreatorTest extends VertxTest {
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(biddersToCacheBidIds)
                         .build()),
-                eq(EventsContext.builder().enabledForAccountAndRequest(true).auctionTimestamp(1000L).build()));
+                eq(EventsContext.builder()
+                        .enabledForAccount(true)
+                        .enabledForRequest(true)
+                        .auctionTimestamp(1000L)
+                        .build()));
     }
 
     @Test
@@ -314,7 +318,11 @@ public class BidResponseCreatorTest extends VertxTest {
                         .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
                         .bidderToBidIds(biddersToCacheBidIds)
                         .build()),
-                eq(EventsContext.builder().enabledForAccountAndRequest(true).auctionTimestamp(1000L).build()));
+                eq(EventsContext.builder()
+                        .enabledForAccount(true)
+                        .enabledForRequest(true)
+                        .auctionTimestamp(1000L)
+                        .build()));
     }
 
     @Test
@@ -858,6 +866,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_someVeryLongBi", "5.00"),
                         tuple("hb_bidder", "someVeryLongBidderName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
                         tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
     }
 
@@ -1128,8 +1137,45 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 extBuilder -> extBuilder
-                        .events(mapper.createObjectNode())
                         .channel(ExtRequestPrebidChannel.of("web"))
+                        .integration("pbjs"));
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.account(account));
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .price(BigDecimal.valueOf(5.67))
+                .impid("i1")
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        final Events events = Events.of("http://event-type-win", "http://event-type-view");
+        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyLong(), anyString()))
+                .willReturn(events);
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(responseBid -> toExtPrebid(responseBid.getExt()).getPrebid().getEvents())
+                .containsOnly(events);
+
+        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldAddExtPrebidEventsIfEventsAreEnabledAndDefaultAccountAnalyticsConfig() {
+        // given
+        final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder
+                        .channel(ExtRequestPrebidChannel.of("amp"))
                         .integration("pbjs"));
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,

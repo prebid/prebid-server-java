@@ -40,6 +40,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class LunamediaBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpLunamedia>> IMP_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpLunamedia>>() {
             };

@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 /**
@@ -10,6 +11,7 @@ import lombok.Value;
  * The specific segment names and value options must be published by the
  * exchange <em>a priori</em> to its bidders.
  */
+@Builder
 @Value
 public class Segment {
 

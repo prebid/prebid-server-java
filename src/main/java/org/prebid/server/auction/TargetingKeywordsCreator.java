@@ -75,15 +75,6 @@ public class TargetingKeywordsCreator {
      * Stores http path for cache service endpoint.
      */
     private static final String HB_CACHE_PATH_KEY = "hb_cache_path";
-    /**
-     * Stores win type url to support event notification.
-     */
-    private static final String HB_WINURL_KEY = "hb_winurl";
-
-    /**
-     * Collection of keys to be excluded from creating key with "_BIDDER" suffix
-     */
-    private static final Set<String> EXCLUDED_BIDDER_KEYS = Collections.singleton(HB_WINURL_KEY);
 
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
@@ -223,19 +214,18 @@ public class TargetingKeywordsCreator {
     /**
      * Common method for creating targeting keywords.
      */
-    private Map<String, String> makeFor(
-            String bidder,
-            boolean winningBid,
-            BigDecimal price,
-            String defaultCpm,
-            Integer width,
-            Integer height,
-            String cacheId,
-            String vastCacheId,
-            String dealId) {
+    private Map<String, String> makeFor(String bidder,
+                                        boolean winningBid,
+                                        BigDecimal price,
+                                        String defaultCpm,
+                                        Integer width,
+                                        Integer height,
+                                        String cacheId,
+                                        String vastCacheId,
+                                        String dealId) {
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
-                EXCLUDED_BIDDER_KEYS);
+                Collections.emptySet());
 
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         keywordMap.put(HB_PB_KEY, roundedCpm);

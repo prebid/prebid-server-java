@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
  * Yieldone {@link Bidder} implementation.
  */
 public class YieldoneBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpYieldone>> YIELDONE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpYieldone>>() {
             };

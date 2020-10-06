@@ -50,6 +50,18 @@ public class IpAddressHelperTest {
     }
 
     @Test
+    public void maskIpv4ShouldZeroLastOctet() {
+        assertThat(ipAddressHelper.maskIpv4("192.168.34.56"))
+                .isEqualTo("192.168.34.0");
+    }
+
+    @Test
+    public void maskIpv4ShouldReturnInputIfIpIsNotValid() {
+        final String ip = "abc";
+        assertThat(ipAddressHelper.maskIpv4(ip)).isSameAs(ip);
+    }
+
+    @Test
     public void anonymizeIpv6ShouldFillDiscardedBitsWithZero() {
         assertThat(ipAddressHelper.anonymizeIpv6("1111:2222:3333:4444:5555:6666:7777:8888"))
                 .isEqualTo("1111:2222:3333:4400::");

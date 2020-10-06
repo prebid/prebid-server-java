@@ -143,8 +143,14 @@ public class TargetingKeywordsCreatorTest {
     @Test
     public void shouldReturnTargetingKeywordsForWinningBid() {
         // given
-        final Bid bid = Bid.builder().bidder("bidder1").price(BigDecimal.ONE).dealId("dealId1").cacheId("cacheId1")
-                .width(50).height(100).build();
+        final Bid bid = Bid.builder()
+                .bidder("bidder1")
+                .price(BigDecimal.ONE)
+                .dealId("dealId1")
+                .cacheId("cacheId1")
+                .width(50)
+                .height(100)
+                .build();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
@@ -177,8 +183,12 @@ public class TargetingKeywordsCreatorTest {
     @Test
     public void shouldReturnTargetingKeywordsForWinningBidOpenrtb() {
         // given
-        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE)
-                .dealid("dealId1").w(50).h(100).build();
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
+                .price(BigDecimal.ONE)
+                .dealid("dealId1")
+                .w(50)
+                .h(100)
+                .build();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
@@ -381,12 +391,12 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, false, false, 5)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, false, false, 7)
                 .makeFor(bid, "bidder", true, null, null);
 
         // then
         assertThat(keywords).hasSize(2)
-                .containsKeys("hb_bi", "hb_pb");
+                .containsKeys("hb_bidd", "hb_pb");
     }
 
     @Test
