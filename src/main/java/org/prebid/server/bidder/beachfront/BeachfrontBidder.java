@@ -393,7 +393,7 @@ public class BeachfrontBidder implements Bidder<Void> {
 
         if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()
                 || bodyString.length() <= 2) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         try {
