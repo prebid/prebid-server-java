@@ -84,13 +84,6 @@ public class OrbidderBidder implements Bidder<BidRequest> {
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return Result.emptyWithError(BidderError.badInput("Invalid request."));
-        } else if (statusCode == HttpResponseStatus.INTERNAL_SERVER_ERROR.code()) {
-            return Result.emptyWithError(BidderError.badInput("Server internal error."));
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    statusCode)));
         }
 
         final BidResponse bidResponse;

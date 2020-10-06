@@ -143,11 +143,6 @@ public class AdheseBidder implements Bidder<Void> {
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return Result.emptyWithError(BidderError.badInput("Invalid request."));
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    statusCode)));
         }
 
         final List<AdheseBid> adheseBid;
