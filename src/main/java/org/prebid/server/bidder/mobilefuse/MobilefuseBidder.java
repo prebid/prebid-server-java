@@ -30,7 +30,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * MobilefuseBidder {@link Bidder} implementation.
+ * Mobilefuse {@link Bidder} implementation.
  */
 public class MobilefuseBidder implements Bidder<BidRequest> {
 
