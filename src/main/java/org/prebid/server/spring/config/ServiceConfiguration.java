@@ -196,6 +196,7 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
+            PrivacyEnforcementService privacyEnforcementService,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
@@ -223,6 +224,7 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 mapper);
     }
 
@@ -487,14 +489,14 @@ public class ServiceConfiguration {
     @Bean
     PrivacyEnforcementService privacyEnforcementService(
             BidderCatalog bidderCatalog,
+            PrivacyExtractor privacyExtractor,
             TcfDefinerService tcfDefinerService,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
-            @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${ccpa.enforce}") boolean ccpaEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, useGeoLocation, ccpaEnforce);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce);
     }
 
     @Bean

@@ -13,6 +13,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,8 @@ class AdformHttpUtil {
     private static final String PRICE_TYPE_NET = "net";
     private static final String PRICE_TYPE_GROSS_PARAM = String.format("pt=%s", PRICE_TYPE_GROSS);
     private static final String PRICE_TYPE_NET_PARAM = String.format("pt=%s", PRICE_TYPE_NET);
+
+    private static final Locale LOCALE = Locale.US;
 
     private final JacksonMapper mapper;
 
@@ -146,7 +149,7 @@ class AdformHttpUtil {
             if (CollectionUtils.isNotEmpty(minPrices)) {
                 final Double minPrice = minPrices.get(i);
                 if (minPrice != null && minPrice > 0) {
-                    mid.append(String.format("&minp=%.2f", minPrice));
+                    mid.append(String.format(LOCALE, "&minp=%.2f", minPrice));
                 }
             }
 

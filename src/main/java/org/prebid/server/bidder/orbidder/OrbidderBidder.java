@@ -36,8 +36,6 @@ public class OrbidderBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpOrbidder>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -103,9 +101,11 @@ public class OrbidderBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
         return Result.of(bidderBids, Collections.emptyList());
     }
