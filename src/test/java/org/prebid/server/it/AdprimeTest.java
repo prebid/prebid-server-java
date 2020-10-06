@@ -21,7 +21,7 @@ import static java.util.Collections.singletonList;
 public class AdprimeTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromSonobi() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromAdprime() throws IOException, JSONException {
         // given
         // Adprime bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adprime-exchange"))
