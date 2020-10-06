@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 public class TelariaBidder implements Bidder<BidRequest> {
+
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final TypeReference<ExtPrebid<?, ExtImpTelaria>> TELARIA_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTelaria>>() {

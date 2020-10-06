@@ -2,6 +2,7 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
@@ -132,12 +133,20 @@ public class PrivacyServiceConfiguration {
             Tcf2Service tcf2Service,
             @Autowired(required = false) GeoLocationService geoLocationService,
             BidderCatalog bidderCatalog,
+            IpAddressHelper ipAddressHelper,
             Metrics metrics) {
 
         final Set<String> eeaCountries = new HashSet<>(Arrays.asList(eeaCountriesAsString.trim().split(",")));
 
         return new TcfDefinerService(
-                gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, bidderCatalog, metrics);
+                gdprConfig,
+                eeaCountries,
+                gdprService,
+                tcf2Service,
+                geoLocationService,
+                bidderCatalog,
+                ipAddressHelper,
+                metrics);
     }
 
     @Bean
