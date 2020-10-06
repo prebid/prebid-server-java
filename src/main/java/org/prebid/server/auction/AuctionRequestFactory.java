@@ -83,6 +83,7 @@ public class AuctionRequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
+    public static final String WEB_CHANNEL = "web";
     public static final String APP_CHANNEL = "app";
 
     private final long maxRequestSize;
@@ -707,7 +708,17 @@ public class AuctionRequestFactory {
      * Returns populated {@link ExtRequestPrebidChannel} or null if no changes were applied.
      */
     private ExtRequestPrebidChannel channelOrNull(ExtRequestPrebid prebid, BidRequest bidRequest) {
-        if ((prebid == null || prebid.getChannel() == null) && bidRequest.getApp() != null) {
+        final String existingChannelName = getIfNotNull(getIfNotNull(prebid,
+                ExtRequestPrebid::getChannel),
+                ExtRequestPrebidChannel::getName);
+
+        if (StringUtils.isNotBlank(existingChannelName)) {
+            return null;
+        }
+
+        if (bidRequest.getSite() != null) {
+            return ExtRequestPrebidChannel.of(WEB_CHANNEL);
+        } else if (bidRequest.getApp() != null) {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);
         }
 

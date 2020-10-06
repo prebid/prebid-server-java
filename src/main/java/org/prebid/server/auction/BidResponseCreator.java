@@ -937,11 +937,17 @@ public class BidResponseCreator {
     }
 
     private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
-        final AccountAnalyticsConfig analyticsConfig = auctionContext.getAccount().getAnalyticsConfig();
-        final Map<String, Boolean> channelConfig = analyticsConfig != null ? analyticsConfig.getAuctionEvents() : null;
+        final AccountAnalyticsConfig analyticsConfig = ObjectUtils.defaultIfNull(
+                auctionContext.getAccount().getAnalyticsConfig(), AccountAnalyticsConfig.fallback());
+        final Map<String, Boolean> channelConfig = analyticsConfig.getAuctionEvents();
 
-        return channelConfig != null
-                && BooleanUtils.toBoolean(channelConfig.get(channelFromRequest(auctionContext.getBidRequest())));
+        final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
+
+        return MapUtils.emptyIfNull(channelConfig).entrySet().stream()
+                .filter(entry -> StringUtils.equalsIgnoreCase(channelFromRequest, entry.getKey()))
+                .findFirst()
+                .map(entry -> BooleanUtils.isTrue(entry.getValue()))
+                .orElse(Boolean.FALSE);
     }
 
     private static String channelFromRequest(BidRequest bidRequest) {

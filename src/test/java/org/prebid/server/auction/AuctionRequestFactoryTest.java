@@ -1219,6 +1219,26 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldSetRequestPrebidChannelWhenMissingInRequestAndSite() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().build())
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("web"));
+    }
+
+    @Test
     public void shouldSetRequestPrebidChannelWhenMissingInRequestAndApp() {
         // given
         givenBidRequest(BidRequest.builder()
@@ -1239,7 +1259,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetRequestPrebidChannelWhenMissingInRequestAndNotApp() {
+    public void shouldNotSetRequestPrebidChannelWhenMissingInRequestAndNotSiteOrApp() {
         // given
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
