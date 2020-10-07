@@ -92,7 +92,7 @@ public class CategoryMapperTest extends VertxTest {
         rubiconBidToCategory.put("2", "15.00_fetchedCat2_15s");
         expectedBidCategory.put("rubicon", rubiconBidToCategory);
         expectedBidCategory.put("otherBid", Collections.singletonMap("4", "15.00_fetchedCat4_5s"));
-        assertThat(resultFuture.result().getBidderToBidCategory()).isEqualTo(expectedBidCategory);
+        assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(expectedBidCategory);
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
@@ -126,7 +126,7 @@ public class CategoryMapperTest extends VertxTest {
         final Map<String, Map<String, String>> expectedBidCategory = new HashMap<>();
         expectedBidCategory.put("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s"));
         expectedBidCategory.put("otherBid", Collections.singletonMap("1", "5.00_fetchedCat2_5s"));
-        assertThat(resultFuture.result().getBidderToBidCategory()).isEqualTo(expectedBidCategory);
+        assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(expectedBidCategory);
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
@@ -155,7 +155,7 @@ public class CategoryMapperTest extends VertxTest {
         assertThat(resultFuture.succeeded()).isTrue();
         final Map<String, Map<String, String>> expectedBidCategory = new HashMap<>();
         expectedBidCategory.put("rubicon", Collections.singletonMap("1", "10.00_cat1_10s"));
-        assertThat(resultFuture.result().getBidderToBidCategory()).isEqualTo(expectedBidCategory);
+        assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(expectedBidCategory);
     }
 
     @Test
@@ -261,7 +261,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Timeout");
@@ -286,7 +286,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid has more than one"
@@ -312,7 +312,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid did not contain a"
@@ -338,7 +338,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Category mapping storage"
@@ -368,7 +368,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "5.00_fetchedCat1_10s")));
     }
 
@@ -391,7 +391,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid duration '20' "
@@ -416,7 +416,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_5s")));
     }
 
@@ -440,7 +440,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated");
@@ -466,7 +466,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_cat1_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated");
@@ -491,7 +491,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated");
@@ -514,7 +514,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
     }
 
@@ -535,7 +535,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_cat1_10s")));
     }
 
@@ -556,7 +556,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_10s")));
     }
 
@@ -583,7 +583,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "rubiconPrefix3_10s")));
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
@@ -614,7 +614,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "rubiconPrefix3_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -646,7 +646,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "rubiconPrefix3_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -678,7 +678,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -710,7 +710,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -746,7 +746,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "rubiconPrefix3_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -778,7 +778,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -813,7 +813,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -849,7 +849,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -883,7 +883,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())
@@ -915,7 +915,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBidderToBidCategory())
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon",
                         Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getBidderResponses())

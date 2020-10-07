@@ -171,7 +171,7 @@ public class BidResponseCreator {
                 .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
                         categoryMappingResult.getBidderResponses(),
                         auctionContext,
-                        categoryMappingResult.getBidderToBidCategory(),
+                        categoryMappingResult.getBiddersToBidsCategories(),
                         cacheInfo,
                         auctionTimestamp,
                         targeting,
@@ -203,7 +203,7 @@ public class BidResponseCreator {
 
     private Future<BidResponse> cacheBidsAndCreateResponse(List<BidderResponse> bidderResponses,
                                                            AuctionContext auctionContext,
-                                                           Map<String, Map<String, String>> bidderToBidCategory,
+                                                           Map<String, Map<String, String>> biddersToBidsCategories,
                                                            BidRequestCacheInfo cacheInfo,
                                                            long auctionTimestamp,
                                                            ExtRequestTargeting targeting,
@@ -234,6 +234,7 @@ public class BidResponseCreator {
         return toBidsWithCacheIds(
                 bidderResponses,
                 bidsToCache,
+                biddersToBidsCategories,
                 auctionContext,
                 cacheInfo,
                 eventsContext)
@@ -409,6 +410,7 @@ public class BidResponseCreator {
      */
     private Future<CacheServiceResult> toBidsWithCacheIds(List<BidderResponse> bidderResponses,
                                                           Set<Bid> bidsToCache,
+                                                          Map<String, Map<String, String>> biddersToBidsCategories,
                                                           AuctionContext auctionContext,
                                                           BidRequestCacheInfo cacheInfo,
                                                           EventsContext eventsContext) {
@@ -440,6 +442,7 @@ public class BidResponseCreator {
                 .shouldCacheVideoBids(shouldCacheVideoBids)
                 .bidderToVideoBidIdsToModify(bidderToVideoBidIdsToModify)
                 .bidderToBidIds(bidderToBidIds)
+                .biddersToBidsCategories(biddersToBidsCategories)
                 .build();
 
         return cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, auctionContext, cacheContext, eventsContext)
