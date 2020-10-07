@@ -1089,6 +1089,35 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldPopulateTargetingKeywordsIfBidWasCachedAndAdmWasRemoved() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.targeting(givenTargeting())));
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("impId").adm("adm").build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .returnCreativeBids(false) // this will cause erasing of bid.adm
+                .build();
+
+        givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of("cacheId", null)));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1)
+                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getTargeting())
+                .doesNotContainNull();
+    }
+
+    @Test
     public void shouldAddExtPrebidEventsIfEventsAreEnabledAndExtRequestPrebidEventPresent() {
         // given
         final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
