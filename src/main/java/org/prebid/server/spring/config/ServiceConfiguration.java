@@ -104,6 +104,7 @@ public class ServiceConfiguration {
                 eventsService,
                 metrics,
                 clock,
+                new UUIDIdGenerator(),
                 mapper);
     }
 
