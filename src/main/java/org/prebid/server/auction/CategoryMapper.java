@@ -15,6 +15,7 @@ import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +27,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -35,6 +37,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Category;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -76,12 +79,12 @@ public class CategoryMapper {
      */
     public Future<CategoryMappingResult> createCategoryMapping(List<BidderResponse> bidderResponses,
                                                                BidRequest bidRequest,
-                                                               ExtRequestTargeting targeting) {
+                                                               ExtRequestTargeting targeting,
+                                                               Timeout timeout) {
         if (targeting == null || targeting.getIncludebrandcategory() == null) {
             return Future.succeededFuture(CategoryMappingResult.of(Collections.emptyMap(), bidderResponses,
                     Collections.emptyList()));
         }
-
         final ExtIncludeBrandCategory includeBrandCategory = targeting.getIncludebrandcategory();
         final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(includeBrandCategory.getWithCategory(), false);
         // translate category definition looks strange, but it follows GO PBS logic
@@ -99,7 +102,7 @@ public class CategoryMapper {
         final String publisher = translateCategories ? includeBrandCategory.getPublisher() : null;
         final List<RejectedBid> rejectedBids = new ArrayList<>();
 
-        return getBidderToBidCategory(bidderResponses, primaryAdServer, publisher, rejectedBids).future()
+        return getBidderToBidCategory(bidderResponses, primaryAdServer, publisher, rejectedBids, timeout).future()
                 .map(bidIdToCategory -> resolveBidsCategories(bidderResponses, bidIdToCategory, bidRequest, targeting,
                         withCategory, rejectedBids));
     }
@@ -132,11 +135,14 @@ public class CategoryMapper {
      * which represents relation between bidId and category.
      */
     private Promise<Map<String, Map<String, String>>> getBidderToBidCategory(List<BidderResponse> bidderResponses,
-                                                                             String primaryAdServer, String publisher,
-                                                                             List<RejectedBid> rejectedBids) {
+                                                                             String primaryAdServer,
+                                                                             String publisher,
+                                                                             List<RejectedBid> rejectedBids,
+                                                                             Timeout timeout) {
         final Promise<Map<String, Map<String, String>>> resultPromise = Promise.promise();
         final CompositeFuture compositeFuture = CompositeFuture.join(bidderResponses.stream()
-                .flatMap(bidderResponse -> makeFetchCategoryFutures(bidderResponse, primaryAdServer, publisher))
+                .flatMap(bidderResponse -> makeFetchCategoryFutures(bidderResponse, primaryAdServer, publisher,
+                        timeout))
                 .collect(Collectors.toList()));
         compositeFuture
                 .setHandler(event -> collectCategoryFetchResults(compositeFuture, resultPromise, rejectedBids));
@@ -148,18 +154,19 @@ public class CategoryMapper {
      */
     private Stream<Future<Tuple3<String, String, String>>> makeFetchCategoryFutures(BidderResponse bidderResponse,
                                                                                     String primaryAdServer,
-                                                                                    String publisher) {
+                                                                                    String publisher,
+                                                                                    Timeout timeout) {
         final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
         final String bidder = bidderResponse.getBidder();
         return bidderBids.stream()
-                .map(bidderBid -> resolveCategory(primaryAdServer, publisher, bidderBid.getBid(), bidder));
+                .map(bidderBid -> resolveCategory(primaryAdServer, publisher, bidderBid.getBid(), bidder, timeout));
     }
 
     /**
      * Fetches category from external source or from bid.cat.
      */
     private Future<Tuple3<String, String, String>> resolveCategory(String primaryAdServer, String publisher, Bid bid,
-                                                                   String bidder) {
+                                                                   String bidder, Timeout timeout) {
         final String bidId = bid.getId();
         final List<String> cat = ListUtils.emptyIfNull(bid.getCat());
         if (cat.size() > 1) {
@@ -170,18 +177,22 @@ public class CategoryMapper {
         }
         final String firstCat = cat.get(0);
         return StringUtils.isNotBlank(primaryAdServer)
-                ? fetchCategory(primaryAdServer, publisher, bid.getId(), bidder, firstCat)
+                ? fetchCategory(primaryAdServer, publisher, bid.getId(), bidder, firstCat, timeout)
                 : Future.succeededFuture(Tuple3.of(bidId, bidder, firstCat));
     }
 
     /**
      * Queries external source for category.
      */
-    private Future<Tuple3<String, String, String>> fetchCategory(String primaryAdServer, String publisher,
-                                                                 String bidId, String bidder, String cat) {
-        return applicationSettings.getCategory(primaryAdServer, publisher, cat)
-                .map(fetchedCategory -> validateFetchedCategory(fetchedCategory, bidId, bidder, primaryAdServer,
-                        publisher))
+    private Future<Tuple3<String, String, String>> fetchCategory(String primaryAdServer,
+                                                                 String publisher,
+                                                                 String bidId,
+                                                                 String bidder,
+                                                                 String cat,
+                                                                 Timeout timeout) {
+        return applicationSettings.getCategories(primaryAdServer, publisher, timeout)
+                .map(fetchedCategories -> findAndValidateCategory(fetchedCategories, cat, bidId, bidder,
+                        primaryAdServer, publisher))
                 .recover(throwable -> wrapWithRejectedBidException(bidId, bidder, throwable))
                 .map(fetchedCategory -> Tuple3.of(bidId, bidder, fetchedCategory));
     }
@@ -189,15 +200,33 @@ public class CategoryMapper {
     /**
      * Throws {@link RejectedBidException} when fetched category is null or empty.
      */
-    private static String validateFetchedCategory(String fetchedCategory, String bidId, String bidder,
+    private static String findAndValidateCategory(Map<String, Category> fetchedCategories, String cat,
+                                                  String bidId, String bidder,
                                                   String primaryAdServer, String publisher) {
-        if (StringUtils.isEmpty(fetchedCategory)) {
-            throw new RejectedBidException(bidId, bidder,
-                    String.format("Category mapping storage for primary ad server: '%s', publisher: '%s' not found",
-                            primaryAdServer, publisher));
-        } else {
-            return fetchedCategory;
+        if (MapUtils.isEmpty(fetchedCategories)) {
+            throw rejectNotFoundCategory(bidId, bidder, primaryAdServer, publisher);
         }
+
+        final Category category = fetchedCategories.get(cat);
+        if (category == null) {
+            throw rejectNotFoundCategory(bidId, bidder, primaryAdServer, publisher);
+        }
+
+        final String categoryId = category.getId();
+
+        if (StringUtils.isEmpty(categoryId)) {
+            throw rejectNotFoundCategory(bidId, bidder, primaryAdServer, publisher);
+        }
+        return categoryId;
+    }
+
+    private static RejectedBidException rejectNotFoundCategory(String bidId,
+                                                               String bidder,
+                                                               String primaryAdServer,
+                                                               String publisher) {
+        return new RejectedBidException(bidId, bidder,
+                String.format("Category mapping storage for primary ad server: '%s', publisher: '%s' not found",
+                        primaryAdServer, publisher));
     }
 
     /**
