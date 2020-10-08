@@ -345,8 +345,13 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null,
-                        null))
+                .body(CookieSyncRequest.builder()
+                        .bidders(asList(RUBICON, APPNEXUS, ADFORM))
+                        .gdpr(1)
+                        .gdprConsent(gdprConsent)
+                        .usPrivacy("1YNN")
+                        .coopSync(false)
+                        .build())
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -580,9 +585,18 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void adminHandlerShouldRespondWithOk() {
+    public void loggingHttpInteractionShouldRespondWithOk() {
         given(ADMIN_SPEC)
-                .get("/admin?logging=error&records=1200")
+                .get("/logging/httpinteraction?limit=100")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
+
+    @Test
+    public void loggingChangeLevekShouldRespondWithOk() {
+        given(ADMIN_SPEC)
+                .get("/logging/changelevel?level=info&duration=1")
                 .then()
                 .assertThat()
                 .statusCode(200);

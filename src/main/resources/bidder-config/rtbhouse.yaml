@@ -15,7 +15,7 @@ adapters:
       supported-vendors:
       vendor-id: 16
     usersync:
-      url:
+      url: https://creativecdn.com/cm-notify?pi=rp-pbserv
       redirect-url:
       cookie-family-name: rtbhouse
       type: redirect

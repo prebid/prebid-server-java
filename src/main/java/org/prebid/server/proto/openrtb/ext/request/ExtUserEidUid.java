@@ -12,5 +12,7 @@ public class ExtUserEidUid {
 
     String id;
 
+    Integer atype;
+
     ExtUserEidUidExt ext;
 }

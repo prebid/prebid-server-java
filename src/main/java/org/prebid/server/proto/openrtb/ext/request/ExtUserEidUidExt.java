@@ -13,4 +13,6 @@ public class ExtUserEidUidExt {
 
     @JsonProperty("rtiPartner")
     String rtiPartner;
+
+    String stype;
 }
