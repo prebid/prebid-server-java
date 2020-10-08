@@ -45,8 +45,7 @@ public class JdbcStoredResponseResultMapper {
         if (responseIds.isEmpty()) {
             errors.add("No stored responses found");
         } else {
-            errors.add(String.format("No stored responses were found for ids: %s", responseIds.stream()
-                    .collect(Collectors.joining(","))));
+            errors.add(String.format("No stored responses were found for ids: %s", String.join(",", responseIds)));
         }
     }
 }
