@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class AdvangelistsBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpAdvangelists>> ADVANGELISTS_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpAdvangelists>>() {
             };

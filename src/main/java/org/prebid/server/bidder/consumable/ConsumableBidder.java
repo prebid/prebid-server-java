@@ -3,7 +3,6 @@ package org.prebid.server.bidder.consumable;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -190,12 +189,12 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bidderBids = extractBids(bidRequest, consumableResponse.getDecisions(), errors);
+        final List<BidderBid> bidderBids = extractBids(bidRequest, consumableResponse.getDecisions());
         return Result.of(bidderBids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, Map<String, ConsumableDecision> impIdToDecisions,
-                                               List<BidderError> errors) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest,
+                                               Map<String, ConsumableDecision> impIdToDecisions) {
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (Map.Entry<String, ConsumableDecision> entry : impIdToDecisions.entrySet()) {
             final ConsumableDecision decision = entry.getValue();
@@ -204,47 +203,26 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                 final ConsumablePricing pricing = decision.getPricing();
                 if (pricing != null && pricing.getClearPrice() != null) {
                     final String impId = entry.getKey();
-                    final Imp imp;
-                    try {
-                        imp = getImpById(impId, bidRequest);
-                    } catch (PreBidException e) {
-                        errors.add(BidderError.badServerResponse(e.getMessage()));
-                        continue;
-                    }
 
-                    final List<Format> formats = imp.getBanner().getFormat();
-                    if (CollectionUtils.isEmpty(formats)) {
-                        errors.add(BidderError.badInput(
-                                String.format("Skipping imp ID: %s - null or empty formats", imp.getId())));
-                        continue;
-                    }
-
-                    final Format firstFormat = formats.get(0);
                     final Bid bid = Bid.builder()
                             .id(bidRequest.getId())
                             .impid(impId)
                             .price(BigDecimal.valueOf(pricing.getClearPrice()))
                             .adm(CollectionUtils.isNotEmpty(decision.getContents())
                                     ? decision.getContents().get(0).getBody() : "")
-                            .w(firstFormat.getW())
-                            .h(firstFormat.getH())
+                            .w(decision.getWidth())
+                            .h(decision.getHeight())
                             .crid(String.valueOf(decision.getAdId()))
                             .exp(30)
                             .build();
+                    // Consumable units are always HTML, never VAST.
+                    // From Prebid's point of view, this means that Consumable units
+                    // are always "banners".
                     bidderBids.add(BidderBid.of(bid, BidType.banner, null));
                 }
             }
         }
         return bidderBids;
-    }
-
-    private static Imp getImpById(String impId, BidRequest bidRequest) {
-        return bidRequest.getImp().stream()
-                .filter(imp -> imp.getId().equals(impId))
-                .findFirst()
-                .orElseThrow(() -> new PreBidException(
-                        String.format("ignoring bid id=%s, request doesn't contain any impression with id=%s",
-                                bidRequest.getId(), impId)));
     }
 
     @Override

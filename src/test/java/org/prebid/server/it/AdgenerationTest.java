@@ -21,6 +21,7 @@ import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class AdgenerationTest extends IntegrationTest {
+
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdgeneration() throws IOException, JSONException {
         // given
