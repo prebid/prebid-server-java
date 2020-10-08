@@ -20,6 +20,7 @@ import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class UcfunnelTest extends IntegrationTest {
+
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromUcfunnel() throws IOException, JSONException {
         // given

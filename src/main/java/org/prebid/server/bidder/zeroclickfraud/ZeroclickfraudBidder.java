@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * ZeroclickfraudBidder {@link Bidder} implementation.
+ * Zeroclickfraud {@link Bidder} implementation.
  */
 public class ZeroclickfraudBidder implements Bidder<BidRequest> {
 
@@ -44,6 +44,7 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
 
     private static final String HOST = "{{Host}}";
     private static final String SOURCE_ID = "{{SourceId}}";
+
     private final String endpointTemplate;
     private final JacksonMapper mapper;
 

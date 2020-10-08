@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 
 public class BasicEnforcePurposeStrategyTest {
+
     private static final int PURPOSE_ID = 1;
 
     @Rule

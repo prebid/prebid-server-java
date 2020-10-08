@@ -190,6 +190,26 @@ public class NotificationEventHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBadRequestWhenIntegrationValueIsInvalid() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("f", "b")
+                .add("x", "invalid")
+                .add("int", "pbjs+="));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
+    }
+
+    @Test
     public void shouldNotPassEventToAnalyticsReporterWhenAccountNotFound() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
@@ -332,7 +352,8 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("bidder", "bidder")
-                .add("ts", "1000"));
+                .add("ts", "1000")
+                .add("int", "pbjs"));
 
         final Account account = Account.builder().eventsEnabled(true).build();
         given(applicationSettings.getAccountById(anyString(), any()))
@@ -348,6 +369,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         queryParams.put("a", "accountId");
         queryParams.put("bidder", "bidder");
         queryParams.put("ts", "1000");
+        queryParams.put("int", "pbjs");
         final HttpContext expectedHttpContext = HttpContext.builder()
                 .queryParams(queryParams)
                 .headers(Collections.emptyMap())
@@ -360,6 +382,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .account(account)
                 .bidder("bidder")
                 .timestamp(1000L)
+                .integration("pbjs")
                 .httpContext(expectedHttpContext)
                 .build());
     }

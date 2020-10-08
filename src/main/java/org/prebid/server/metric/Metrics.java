@@ -39,6 +39,7 @@ public class Metrics extends UpdatableMetrics {
     private final CookieSyncMetrics cookieSyncMetrics;
     private final PrivacyMetrics privacyMetrics;
     private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
+    private final CacheMetrics cacheMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -58,6 +59,7 @@ public class Metrics extends UpdatableMetrics {
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
         privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
         circuitBreakerMetrics = new HashMap<>();
+        cacheMetrics = new CacheMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -86,6 +88,10 @@ public class Metrics extends UpdatableMetrics {
 
     CircuitBreakerMetrics forCircuitBreaker(String id) {
         return circuitBreakerMetrics.computeIfAbsent(id, circuitBreakerMetricsCreator);
+    }
+
+    CacheMetrics cache() {
+        return cacheMetrics;
     }
 
     public void updateSafariRequestsMetric(boolean isSafari) {
@@ -193,14 +199,6 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    private String resolveMetricsBidderName(String bidder) {
-        if (bidderCatalog.isValidName(bidder)) {
-            return bidder;
-        }
-        final String nameByAlias = bidderCatalog.nameByAlias(bidder);
-        return nameByAlias != null ? nameByAlias : METRICS_UNKNOWN_BIDDER;
-    }
-
     public void updateAdapterResponseTime(String bidder, String accountId, int responseTime) {
         final String metricsBidderName = resolveMetricsBidderName(bidder);
         final AdapterMetrics adapterMetrics = forAdapter(metricsBidderName);
@@ -286,7 +284,7 @@ public class Metrics extends UpdatableMetrics {
                                         boolean requestBlocked,
                                         boolean analyticsBlocked) {
 
-        final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
+        final TcfMetrics tcf = forAdapter(resolveMetricsBidderName(bidder)).requestType(requestType).tcf();
 
         if (useridRemoved) {
             tcf.incCounter(MetricName.userid_removed);
@@ -347,6 +345,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updatePrivacyTcfVendorListErrorMetric(int version) {
         updatePrivacyTcfVendorListMetric(version, MetricName.err);
+    }
+
+    public void updatePrivacyTcfVendorListFallbackMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.fallback);
     }
 
     private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
@@ -412,11 +414,22 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateCacheRequestSuccessTime(long timeElapsed) {
-        updateTimer(MetricName.prebid_cache_request_success_time, timeElapsed);
+    public void updateCacheRequestSuccessTime(String accountId, long timeElapsed) {
+        cache().requests().updateTimer(MetricName.ok, timeElapsed);
+        forAccount(accountId).cache().requests().updateTimer(MetricName.ok, timeElapsed);
     }
 
-    public void updateCacheRequestFailedTime(long timeElapsed) {
-        updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
+    public void updateCacheRequestFailedTime(String accountId, long timeElapsed) {
+        cache().requests().updateTimer(MetricName.err, timeElapsed);
+        forAccount(accountId).cache().requests().updateTimer(MetricName.err, timeElapsed);
+    }
+
+    public void updateCacheCreativeSize(String accountId, int creativeSize) {
+        cache().updateHistogram(MetricName.creative_size, creativeSize);
+        forAccount(accountId).cache().updateHistogram(MetricName.creative_size, creativeSize);
+    }
+
+    private String resolveMetricsBidderName(String bidder) {
+        return bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER;
     }
 }
