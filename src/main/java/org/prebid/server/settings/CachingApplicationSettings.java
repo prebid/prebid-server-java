@@ -3,9 +3,11 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.model.TriFunction;
@@ -29,7 +31,9 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     private final Map<String, Account> accountCache;
     private final Map<String, String> accountToErrorCache;
+    private final Map<String, String> adServerPublisherToErrorCache;
     private final Map<String, String> adUnitConfigCache;
+    private final Map<String, Map<String, Category>> categoryConfigCache;
     private final SettingsCache cache;
     private final SettingsCache ampCache;
     private final SettingsCache videoCache;
@@ -42,7 +46,9 @@ public class CachingApplicationSettings implements ApplicationSettings {
         this.delegate = Objects.requireNonNull(delegate);
         this.accountCache = SettingsCache.createCache(ttl, size);
         this.accountToErrorCache = SettingsCache.createCache(ttl, size);
+        this.adServerPublisherToErrorCache = SettingsCache.createCache(ttl, size);
         this.adUnitConfigCache = SettingsCache.createCache(ttl, size);
+        this.categoryConfigCache = SettingsCache.createCache(ttl, size);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
         this.videoCache = Objects.requireNonNull(videoCache);
@@ -95,11 +101,16 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<String> getCategory(String primaryAdServer, String publisher, String iabCat) {
-        throw new UnsupportedOperationException();
+    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        final String compoundKey = StringUtils.isNotBlank(publisher)
+                ? String.format("%s_%s", primaryAdServer, publisher)
+                : primaryAdServer;
+
+        return getFromCacheOrDelegate(categoryConfigCache, adServerPublisherToErrorCache, compoundKey, timeout,
+                (key, timeoutParam) -> delegate.getCategories(primaryAdServer, publisher, timeout));
     }
 
-    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, Map<String, String> accountToErrorCache,
+    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, Map<String, String> errorCache,
                                                         String key, Timeout timeout,
                                                         BiFunction<String, Timeout, Future<T>> retriever) {
 
@@ -108,7 +119,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
             return Future.succeededFuture(cachedValue);
         }
 
-        final String preBidExceptionMessage = accountToErrorCache.get(key);
+        final String preBidExceptionMessage = errorCache.get(key);
         if (preBidExceptionMessage != null) {
             return Future.failedFuture(new PreBidException(preBidExceptionMessage));
         }
@@ -118,7 +129,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
                     cache.put(key, value);
                     return value;
                 })
-                .recover(throwable -> cacheAndReturnFailedFuture(throwable, key, accountToErrorCache));
+                .recover(throwable -> cacheAndReturnFailedFuture(throwable, key, errorCache));
     }
 
     /**

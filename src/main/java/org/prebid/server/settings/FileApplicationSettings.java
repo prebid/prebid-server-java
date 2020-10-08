@@ -11,6 +11,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AdUnitConfig;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.SettingsFile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
@@ -119,7 +120,7 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<String> getCategory(String primaryAdServer, String publisher, String iabCat) {
+    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         throw new UnsupportedOperationException();
     }
 

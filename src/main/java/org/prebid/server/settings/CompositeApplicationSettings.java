@@ -3,6 +3,7 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.model.TriFunction;
@@ -84,8 +85,8 @@ public class CompositeApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<String> getCategory(String primaryAdServer, String publisher, String iabCat) {
-        throw new UnsupportedOperationException();
+    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        return proxy.getCategories(primaryAdServer, publisher, timeout);
     }
 
     /**
@@ -128,6 +129,14 @@ public class CompositeApplicationSettings implements ApplicationSettings {
             return retriever.apply(key, timeout)
                     .recover(throwable -> nextRetriever != null
                             ? nextRetriever.apply(key, timeout)
+                            : Future.failedFuture(throwable));
+        }
+
+        @Override
+        public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+            return applicationSettings.getCategories(primaryAdServer, publisher, timeout)
+                    .recover(throwable -> next != null
+                            ? next.getCategories(primaryAdServer, publisher, timeout)
                             : Future.failedFuture(throwable));
         }
 
@@ -181,11 +190,6 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                                     : getRemainingStoredRequests(requestIds, impIds, timeout,
                                     retrieverResult.getStoredIdToRequest(), retrieverResult.getStoredIdToImp(),
                                     nextRetriever));
-        }
-
-        @Override
-        public Future<String> getCategory(String primaryAdServer, String publisher, String iabCat) {
-            return null;
         }
 
         private static Future<StoredDataResult> getRemainingStoredRequests(

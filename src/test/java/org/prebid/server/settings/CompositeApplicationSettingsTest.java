@@ -10,10 +10,12 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
@@ -150,6 +152,58 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<String> future = compositeApplicationSettings.getAdUnitConfigById("ignore", null);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause().getMessage()).isEqualTo("error2");
+    }
+
+    @Test
+    public void getCategoriesShouldReturnResultFromFirstDelegateIfPresent() {
+        // given
+        given(delegate1.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.succeededFuture(singletonMap("iab", Category.of("id"))));
+
+        // when
+        final Future<Map<String, Category>> future
+                = compositeApplicationSettings.getCategories("adServer", "publisher", null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(singletonMap("iab", Category.of("id")));
+        verifyZeroInteractions(delegate2);
+    }
+
+    @Test
+    public void getCategoriesShouldReturnResultFromSecondDelegateIfFirstDelegateFails() {
+        // given
+        given(delegate1.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error1")));
+
+        given(delegate2.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.succeededFuture(singletonMap("iab", Category.of("id"))));
+
+        // when
+        final Future<Map<String, Category>> future
+                = compositeApplicationSettings.getCategories("adServer", "publisher", null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(singletonMap("iab", Category.of("id")));
+    }
+
+    @Test
+    public void getCategoriesShouldReturnEmptyResultIfAllDelegatesFail() {
+        // given
+        given(delegate1.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error1")));
+
+        given(delegate2.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error2")));
+
+        // when
+        final Future<Map<String, Category>> future
+                = compositeApplicationSettings.getCategories("adServer", "publisher", null);
 
         // then
         assertThat(future.failed()).isTrue();

@@ -169,7 +169,7 @@ public class BidResponseCreator {
 
         final Future<CategoryMappingResult> categoryMappingResultFuture =
                 targeting != null && targeting.getIncludebrandcategory() != null
-                        ? categoryMapper.applyCategoryMapping(bidderResponses, targeting)
+                        ? categoryMapper.applyCategoryMapping(bidderResponses, targeting, auctionContext.getTimeout())
                         : Future.succeededFuture(CategoryMappingResult.of(null, bidderResponses, null));
 
         return categoryMappingResultFuture

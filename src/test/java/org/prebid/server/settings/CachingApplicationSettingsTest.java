@@ -12,12 +12,15 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -206,6 +209,83 @@ public class CachingApplicationSettingsTest {
         assertThat(lastFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("error");
+    }
+
+    @Test
+    public void getCategoriesShouldReturnResultFromCacheOnSuccessiveCalls() {
+        // given
+        given(applicationSettings.getCategories(eq("adServer"), eq("publisher"), same(timeout)))
+                .willReturn(Future.succeededFuture(singletonMap("iab", Category.of("id"))));
+
+        // when
+        final Future<Map<String, Category>> future
+                = cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(singletonMap("iab", Category.of("id")));
+        verify(applicationSettings).getCategories(eq("adServer"), eq("publisher"), same(timeout));
+        verifyNoMoreInteractions(applicationSettings);
+    }
+
+    @Test
+    public void getCategoriesShouldPropagateFailure() {
+        // given
+        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        final Future<Map<String, Category>> future =
+                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getCategoriesShouldCachePreBidException() {
+        // given
+        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        final Future<Map<String, Category>> lastFuture =
+                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+
+        // then
+        verify(applicationSettings).getCategories(anyString(), anyString(), any());
+        assertThat(lastFuture.failed()).isTrue();
+        assertThat(lastFuture.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getCategoriesShouldNotCacheNotPreBidException() {
+        // given
+        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new TimeoutException("timeout")));
+
+        // when
+
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        final Future<Map<String, Category>> lastFuture =
+                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+
+        // then
+        verify(applicationSettings, times(3)).getCategories(anyString(), anyString(), any());
+        assertThat(lastFuture.failed()).isTrue();
+        assertThat(lastFuture.cause())
+                .isInstanceOf(TimeoutException.class)
+                .hasMessage("timeout");
     }
 
     @Test
