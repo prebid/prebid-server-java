@@ -24,6 +24,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class GumgumBidderTest extends VertxTest {
 
@@ -73,7 +75,6 @@ public class GumgumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
-                        givenImp(impBuilder -> impBuilder.banner(null).video(Video.builder().build())),
                         givenImp(impBuilder -> impBuilder.banner(null).audio(Audio.builder().build())),
                         givenImp(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()))))
                 .build();
@@ -88,11 +89,31 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpressionsWithoutBanner() {
+    public void makeHttpRequestsShouldReturnErrorIfVideoFieldsAreNotValid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .video(Video.builder().w(0).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone"))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid or missing video field(s)");
+        assertThat(result.getErrors().get(1).getMessage()).startsWith("No valid impressions");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipImpressionsWithoutBannerOrVideo() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
-                        givenImp(impBuilder -> impBuilder.banner(null).video(Video.builder().build())),
+                        givenImp(impBuilder -> impBuilder.banner(null).video(null).audio(Audio.builder().build())),
                         givenImp(identity())))
                 .build();
 
@@ -182,7 +203,7 @@ public class GumgumBidderTest extends VertxTest {
                         givenImp(identity()),
                         givenImp(impBuilder -> impBuilder
                                 .banner(null)
-                                .video(Video.builder().build())
+                                .audio(Audio.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("invalid imp")))))))
                 .build();
 
@@ -242,17 +263,42 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").build()))
+                .build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .adm("<?xml version=\"1.0\" ${AUCTION_PRICE} xml>")
+                        .price(BigDecimal.valueOf(10)))));
 
         // when
-        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        final Bid expectedBid = Bid.builder()
+                .impid("123")
+                .adm("<?xml version=\"1.0\" 10 xml>")
+                .price(BigDecimal.valueOf(10))
+                .build();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(expectedBid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
+                .build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -288,6 +334,7 @@ public class GumgumBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

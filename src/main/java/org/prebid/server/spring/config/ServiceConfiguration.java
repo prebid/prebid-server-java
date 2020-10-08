@@ -12,9 +12,11 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
@@ -39,7 +41,8 @@ import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.manager.AdminManager;
+import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -119,6 +122,16 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    FpdResolver fpdResolver(JacksonMapper mapper) {
+        return new FpdResolver(mapper);
+    }
+
+    @Bean
+    OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper) {
+        return new OrtbTypesResolver(jacksonMapper);
+    }
+
+    @Bean
     TimeoutResolver timeoutResolver(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,
@@ -180,9 +193,11 @@ public class ServiceConfiguration {
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
             RequestValidator requestValidator,
+            OrtbTypesResolver ortbTypesResolver,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
+            PrivacyEnforcementService privacyEnforcementService,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
@@ -205,10 +220,12 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 requestValidator,
                 new InterstitialProcessor(),
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 mapper);
     }
 
@@ -221,10 +238,20 @@ public class ServiceConfiguration {
     @Bean
     AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
                                         AuctionRequestFactory auctionRequestFactory,
+                                        OrtbTypesResolver ortbTypesResolver,
+                                        ImplicitParametersExtractor implicitParametersExtractor,
+                                        FpdResolver fpdResolver,
                                         TimeoutResolver timeoutResolver,
                                         JacksonMapper mapper) {
 
-        return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver, mapper);
+        return new AmpRequestFactory(
+                storedRequestProcessor,
+                auctionRequestFactory,
+                ortbTypesResolver,
+                implicitParametersExtractor,
+                fpdResolver,
+                timeoutResolver,
+                mapper);
     }
 
     @Bean
@@ -390,13 +417,17 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             @Value("${auction.generate-bid-id}") boolean generateBidId,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
+            Clock clock,
             JacksonMapper mapper) {
 
-        if (truncateAttrChars < 0 || truncateAttrChars > 255) {
-            throw new IllegalArgumentException("settings.targeting.truncate-attr-chars must be between 0 and 255");
-        }
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, generateBidId,
+        return new BidResponseCreator(
+                cacheService,
+                bidderCatalog,
+                eventsService,
+                storedRequestProcessor,
+                generateBidId,
                 truncateAttrChars,
+                clock,
                 mapper);
     }
 
@@ -406,6 +437,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
+            FpdResolver fpdResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -420,6 +452,7 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 storedResponseProcessor,
                 privacyEnforcementService,
+                fpdResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
@@ -452,14 +485,14 @@ public class ServiceConfiguration {
     @Bean
     PrivacyEnforcementService privacyEnforcementService(
             BidderCatalog bidderCatalog,
+            PrivacyExtractor privacyExtractor,
             TcfDefinerService tcfDefinerService,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
-            @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${ccpa.enforce}") boolean ccpaEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, useGeoLocation, ccpaEnforce);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce);
     }
 
     @Bean
@@ -548,7 +581,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AdminManager adminManager() {
-        return new AdminManager();
+    HttpInteractionLogger httpInteractionLogger() {
+        return new HttpInteractionLogger();
+    }
+
+    @Bean
+    LoggerControlKnob loggerControlKnob(Vertx vertx) {
+        return new LoggerControlKnob(vertx);
     }
 }
