@@ -16,6 +16,7 @@ import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -66,9 +67,13 @@ public class VideoRequestFactory {
 
         final Set<String> podConfigIds = podConfigIds(incomingBidRequest);
         return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds)
-                .compose(bidRequestToPodError -> auctionRequestFactory
-                        .toAuctionContext(routingContext, bidRequestToPodError.getData(), new ArrayList<>(),
-                                startTime, timeoutResolver)
+                .compose(bidRequestToPodError -> auctionRequestFactory.toAuctionContext(
+                        routingContext,
+                        bidRequestToPodError.getData(),
+                        MetricName.video,
+                        new ArrayList<>(),
+                        startTime,
+                        timeoutResolver)
                         .map(auctionContext -> WithPodErrors.of(auctionContext, bidRequestToPodError.getPodErrors())));
     }
 

@@ -266,4 +266,3 @@ public class BasicEnforcePurposeStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 }
-

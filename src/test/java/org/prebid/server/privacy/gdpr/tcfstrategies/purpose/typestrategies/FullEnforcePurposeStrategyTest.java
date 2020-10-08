@@ -1040,4 +1040,3 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 }
-

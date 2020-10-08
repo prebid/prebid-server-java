@@ -265,4 +265,3 @@ public class NoEnforcePurposeStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 }
-

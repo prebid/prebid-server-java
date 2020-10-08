@@ -4,7 +4,7 @@
       "type": "json",
       "value": {
         "id": "1",
-        "impid": "imp123",
+        "impid": "impId002",
         "price": 0.01,
         "adm": "<b>hi</b>",
         "cid": "test_cid",
@@ -13,6 +13,11 @@
           "format": "VIDEO"
         }
       }
+    },
+    {
+      "type": "xml",
+      "value": "<b>hi</b>",
+      "expiry": 120
     }
   ]
 }
