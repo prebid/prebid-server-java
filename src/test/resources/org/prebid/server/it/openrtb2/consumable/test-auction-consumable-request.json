@@ -75,7 +75,8 @@
   },
   "regs": {
     "ext": {
-      "gdpr": 0
+      "gdpr": 0,
+      "us_privacy": "1YNN"
     }
   }
 }

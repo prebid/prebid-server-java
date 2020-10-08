@@ -1,6 +1,6 @@
 # Openrtb2
 
-This `/storedrequests/openrtb2` endpoint is bound to `admin.port`.
+Unavailable if notification is disabled (`settings.in-memory-cache.notification-endpoints-enabled` config property).
 
 The goal is to update/invalidate stored request/impression in-memory caches.
 

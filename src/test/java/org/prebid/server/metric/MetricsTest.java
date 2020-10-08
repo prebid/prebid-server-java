@@ -777,6 +777,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updatePrivacyTcfVendorListFallbackMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfVendorListFallbackMetric(1);
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.v1.vendorlist.fallback").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
         given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.none);
@@ -964,19 +973,32 @@ public class MetricsTest {
     @Test
     public void shouldIncrementPrebidCacheRequestSuccessTimer() {
         // when
-        metrics.updateCacheRequestSuccessTime(1424L);
+        metrics.updateCacheRequestSuccessTime("accountId", 1424L);
 
         // then
-        assertThat(metricRegistry.timer("prebid_cache_request_success_time").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.requests.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.ok").getCount()).isEqualTo(1);
     }
 
     @Test
     public void shouldIncrementPrebidCacheRequestFailedTimer() {
         // when
-        metrics.updateCacheRequestFailedTime(1424L);
+        metrics.updateCacheRequestFailedTime("accountId", 1424L);
 
         // then
-        assertThat(metricRegistry.timer("prebid_cache_request_error_time").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.requests.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.err").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheCreativeSizeHistogram() {
+        // when
+        metrics.updateCacheCreativeSize("accountId", 235);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.creative_size").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_size").getCount())
+                .isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

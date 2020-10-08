@@ -209,7 +209,7 @@ public class MetricsConfiguration {
     @Configuration
     @ConditionalOnProperty(prefix = "metrics.prometheus", name = "port")
     static class PrometheusServerConfiguration {
-        private static final Logger logger = LoggerFactory.getLogger(WebConfiguration.AdminServerConfiguration.class);
+        private static final Logger logger = LoggerFactory.getLogger(PrometheusServerConfiguration.class);
 
         @Autowired
         private ContextRunner contextRunner;
