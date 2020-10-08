@@ -32,6 +32,7 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -52,6 +53,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -83,6 +85,8 @@ public class CacheServiceTest extends VertxTest {
     private EventsService eventsService;
     @Mock
     private Metrics metrics;
+    @Mock
+    private UUIDIdGenerator idGenerator;
 
     private Clock clock;
 
@@ -106,6 +110,7 @@ public class CacheServiceTest extends VertxTest {
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         eventsContext = EventsContext.builder().build();
@@ -264,6 +269,7 @@ public class CacheServiceTest extends VertxTest {
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         // when
@@ -592,7 +598,7 @@ public class CacheServiceTest extends VertxTest {
                 givenAuctionContext(
                         accountBuilder -> accountBuilder.id("accountId"),
                         bidRequestBuilder -> bidRequestBuilder
-                        .imp(asList(imp1, imp2))),
+                                .imp(asList(imp1, imp2))),
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)
@@ -685,6 +691,7 @@ public class CacheServiceTest extends VertxTest {
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         // when
@@ -717,6 +724,7 @@ public class CacheServiceTest extends VertxTest {
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         // when
@@ -747,6 +755,7 @@ public class CacheServiceTest extends VertxTest {
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         // when
@@ -818,6 +827,7 @@ public class CacheServiceTest extends VertxTest {
                 CacheContext.builder()
                         .shouldCacheVideoBids(true)
                         .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
+                        .bidderToBidIds(singletonMap("bidder1", singletonList("bidId1")))
                         .build(),
                 eventsContext);
 
@@ -872,6 +882,7 @@ public class CacheServiceTest extends VertxTest {
                 CacheContext.builder()
                         .shouldCacheVideoBids(true)
                         .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
+                        .bidderToBidIds(singletonMap("bidder1", singletonList("bidId1")))
                         .build(),
                 eventsContext);
 
@@ -940,6 +951,156 @@ public class CacheServiceTest extends VertxTest {
                 .containsOnly(
                         PutObject.builder().type("json").value(mapper.valueToTree(bid)).build(),
                         PutObject.builder().type("xml").value(new TextNode("adm")).build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldUpdateVastXmlPutObjectWithKeyWhenBidHasCategoryDuration() throws IOException {
+        // given
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder ->
+                builder.id("bid1").impid("impId1").adm("adm"));
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        given(idGenerator.generateId()).willReturn("randomId");
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bid),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid2")))
+                        .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
+                        .biddersToBidsCategories(singletonMap("bidder", singletonMap("bid1", "bid1Category")))
+                        .build(),
+                eventsContext);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .containsOnly(
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid)).build(),
+                        PutObject.builder().key("bid1Category_randomId").type("xml")
+                                .value(new TextNode("adm")).build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotUpdateVastXmlPutObjectWithKeyWhenBidderIsWasNotFound() throws IOException {
+        // given
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder ->
+                builder.id("bid1").impid("impId1").adm("adm"));
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        given(idGenerator.generateId()).willReturn("randomId");
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bid),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid2")))
+                        .bidderToBidIds(singletonMap("bidder", singletonList("bid2")))
+                        .biddersToBidsCategories(singletonMap("bidder", singletonMap("bid1", "bid1Category")))
+                        .build(),
+                eventsContext);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .containsOnly(
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid)).build(),
+                        PutObject.builder().type("xml")
+                                .value(new TextNode("adm")).build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotUpdateVastXmlPutObjectWithKeyWhenDoesNotHaveCatDur() throws IOException {
+        // given
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder ->
+                builder.id("bid1").impid("impId1").adm("adm"));
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        given(idGenerator.generateId()).willReturn("randomId");
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bid),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid2")))
+                        .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
+                        .biddersToBidsCategories(singletonMap("bidder", emptyMap()))
+                        .build(),
+                eventsContext);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .containsOnly(
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid)).build(),
+                        PutObject.builder().type("xml").value(new TextNode("adm")).build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotGenerateHbCacheIdAndCreateKeyWhenCategoriesMapIsEmpty() throws IOException {
+        // given
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder ->
+                builder.id("bid1").impid("impId1").adm("adm"));
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        given(idGenerator.generateId()).willReturn("randomId");
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bid),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid2")))
+                        .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
+                        .biddersToBidsCategories(null)
+                        .build(),
+                eventsContext);
+
+        // then
+        verifyZeroInteractions(idGenerator);
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .containsOnly(
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid)).build(),
+                        PutObject.builder().type("xml")
+                                .value(new TextNode("adm")).build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldRemoveCatDurPrefixFromVideoUuidFromResponse() throws IOException {
+        // given
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
+                BidCacheResponse.of(asList(CacheObject.of("uuid"), CacheObject.of("catDir_randomId")))));
+
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder ->
+                builder.id("bid1").impid("impId1").adm("adm"));
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        given(idGenerator.generateId()).willReturn("randomId");
+
+        // when
+        final Future<CacheServiceResult> resultFuture = cacheService.cacheBidsOpenrtb(
+                singletonList(bid),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid2")))
+                        .bidderToBidIds(singletonMap("bidder", singletonList("bid1")))
+                        .biddersToBidsCategories(singletonMap("bidder", singletonMap("bid1", "catDir")))
+                        .build(),
+                eventsContext);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getCacheBids()).hasSize(1)
+                .containsEntry(bid, CacheIdInfo.of("uuid", "randomId"));
     }
 
     @Test
