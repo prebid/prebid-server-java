@@ -73,8 +73,8 @@ public class StoredResponseProcessor {
 
         try {
             fillStoredResponseIdsAndRequestingImps(imps, requiredRequestImps, storedResponseIdToImpId, aliases);
-        } catch (InvalidRequestException ex) {
-            return Future.failedFuture(ex);
+        } catch (InvalidRequestException e) {
+            return Future.failedFuture(e);
         }
 
         if (storedResponseIdToImpId.isEmpty()) {

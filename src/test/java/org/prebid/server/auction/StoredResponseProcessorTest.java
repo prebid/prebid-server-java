@@ -48,6 +48,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
@@ -63,6 +64,8 @@ public class StoredResponseProcessorTest extends VertxTest {
 
     private StoredResponseProcessor storedResponseProcessor;
 
+    @Mock
+    private BidderAliases aliases;
     private Timeout timeout;
 
     @Before
@@ -91,7 +94,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -109,7 +112,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -129,7 +132,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -156,7 +159,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -189,7 +192,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -230,7 +233,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -263,7 +266,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
@@ -308,7 +311,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -340,9 +343,13 @@ public class StoredResponseProcessorTest extends VertxTest {
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, emptyList())));
 
+        given(aliases.isAliasDefined(eq("appnexusAlias"))).willReturn(true);
+        given(aliases.resolveBidder(eq("appnexusAlias"))).willReturn("appnexus");
+        given(aliases.resolveAliasVendorId(eq("appnexusAlias"))).willReturn(1);
+
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(singletonMap("appnexusAlias", "appnexus"), singletonMap("appnexusAlias", 1)), timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
@@ -364,7 +371,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -382,7 +389,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -399,7 +406,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -425,7 +432,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -447,7 +454,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                BidderAliases.of(null, null), timeout);
+                aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -584,7 +591,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build();
         final List<AuctionParticipation> auctionParticipations = singletonList(requestAuctionParticipation);
 
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(null, BidType.video, null, null, null, null, null);
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().type(BidType.video).build();
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
                 .seat("rubicon").bid(singletonList(Bid.builder().ext(mapper.createObjectNode()

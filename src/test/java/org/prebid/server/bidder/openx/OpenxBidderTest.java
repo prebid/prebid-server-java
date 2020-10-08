@@ -239,7 +239,7 @@ public class OpenxBidderTest extends VertxTest {
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo4", "bar4"))
-                                                        .delDomain("se-demo-d.openx.net")
+                                                        .platform("PLATFORM")
                                                         .unit("unitId").build()))).build(),
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
@@ -286,7 +286,8 @@ public class OpenxBidderTest extends VertxTest {
                                                                 .build()))
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                        ExtRequest.empty(),
+                                        OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
@@ -312,7 +313,8 @@ public class OpenxBidderTest extends VertxTest {
                                                 .build()))
 
                                 .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                        ExtRequest.empty(),
+                                        OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
@@ -334,7 +336,7 @@ public class OpenxBidderTest extends VertxTest {
                                                                 .build()))
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                        ExtRequest.empty(), OpenxRequestExt.of(null, "PLATFORM", "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())

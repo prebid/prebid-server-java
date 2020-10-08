@@ -7,13 +7,19 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * Defines the contract for bidrequest.ext.prebid.targeting.currency
+ * Defines the contract for bidrequest.ext.prebid.currency
  */
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtRequestCurrency {
+
     /**
      * Defines the contract for bidrequest.ext.prebid.currency.rates
      */
     Map<String, Map<String, BigDecimal>> rates;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.currency.usepbsrates
+     */
+    Boolean usepbsrates;
 }

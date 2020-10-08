@@ -70,7 +70,10 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         videoRequestFactory.fromRequest(routingContext, startTime)
-                .map(contextToErrors -> updateAuctionContextWithPodErrors(contextToErrors, videoEventBuilder))
+                .map(contextToErrors -> addToEvent(
+                        contextToErrors.getData().toBuilder()
+                                .requestTypeMetric(REQUEST_TYPE_METRIC)
+                                .build(), videoEventBuilder::auctionContext, contextToErrors))
 
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
                         .map(context -> WithPodErrors.of(context, contextToErrors.getPodErrors())))
@@ -81,19 +84,6 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
                 .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
                         startTime));
-    }
-
-    private WithPodErrors<AuctionContext> updateAuctionContextWithPodErrors(
-            WithPodErrors<AuctionContext> contextToErrors, VideoEvent.VideoEventBuilder eventBuilder) {
-
-        final AuctionContext typeMetricAuctionContext = contextToErrors.getData().toBuilder()
-                .requestTypeMetric(REQUEST_TYPE_METRIC)
-                .build();
-
-        addToEvent(typeMetricAuctionContext, eventBuilder::auctionContext, typeMetricAuctionContext);
-
-        return WithPodErrors.of(typeMetricAuctionContext, contextToErrors.getPodErrors());
-
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
