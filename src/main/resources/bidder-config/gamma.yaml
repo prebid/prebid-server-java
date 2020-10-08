@@ -19,5 +19,5 @@ adapters:
       url:
       redirect-url:
       cookie-family-name: gamma
-      type: redirect
+      type: iframe
       support-cors: false

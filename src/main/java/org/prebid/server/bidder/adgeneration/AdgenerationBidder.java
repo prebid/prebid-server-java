@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * AdgenerationBidder {@link Bidder} implementation.
+ * Adgeneration {@link Bidder} implementation.
  */
 public class AdgenerationBidder implements Bidder<Void> {
 
