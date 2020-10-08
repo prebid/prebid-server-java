@@ -146,9 +146,9 @@ public class BidResponseCreator {
                                boolean debugEnabled) {
 
         final long auctionTimestamp = auctionTimestamp(auctionContext);
+        final BidRequest bidRequest = auctionContext.getBidRequest();
 
         if (isEmptyBidderResponses(bidderResponses)) {
-            final BidRequest bidRequest = auctionContext.getBidRequest();
             return Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
@@ -165,22 +165,17 @@ public class BidResponseCreator {
                     .build());
         }
 
-        final ExtRequestTargeting targeting = targeting(auctionContext.getBidRequest());
-
-        final Future<CategoryMappingResult> categoryMappingResultFuture =
-                targeting != null && targeting.getIncludebrandcategory() != null
-                        ? categoryMapper.applyCategoryMapping(bidderResponses, targeting)
-                        : Future.succeededFuture(CategoryMappingResult.of(null, bidderResponses, null));
-
-        return categoryMappingResultFuture
+        final ExtRequestTargeting targeting = targeting(bidRequest);
+        return categoryMapper.createCategoryMapping(bidderResponses, bidRequest, targeting)
                 .map(categoryMappingResult -> updateWithCategoryErrors(categoryMappingResult, auctionContext))
                 .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
                         categoryMappingResult.getBidderResponses(),
                         auctionContext,
+                        categoryMappingResult.getBidderToBidCategory(),
                         cacheInfo,
                         auctionTimestamp,
                         targeting,
-                debugEnabled));
+                        debugEnabled));
     }
 
     private static CategoryMappingResult updateWithCategoryErrors(CategoryMappingResult categoryMappingResult,
@@ -208,6 +203,7 @@ public class BidResponseCreator {
 
     private Future<BidResponse> cacheBidsAndCreateResponse(List<BidderResponse> bidderResponses,
                                                            AuctionContext auctionContext,
+                                                           Map<String, Map<String, String>> bidderToBidCategory,
                                                            BidRequestCacheInfo cacheInfo,
                                                            long auctionTimestamp,
                                                            ExtRequestTargeting targeting,
