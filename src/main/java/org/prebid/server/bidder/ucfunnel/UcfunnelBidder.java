@@ -35,6 +35,7 @@ import java.util.Objects;
  * Ucfunnel {@link Bidder} implementation.
  */
 public class UcfunnelBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpUcfunnel>> UCFUNNEL_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpUcfunnel>>() {
             };
