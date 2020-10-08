@@ -257,7 +257,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(httpClient, 503, "server unavailable");
 
         // when
-        currencyService = setExternalResource(URL, 1L, vertx, httpClient);
+        currencyService = setExternalResource(URL, 1L, httpClient);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
