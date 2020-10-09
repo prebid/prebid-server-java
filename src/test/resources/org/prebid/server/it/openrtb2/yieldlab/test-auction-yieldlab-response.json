@@ -89,6 +89,9 @@
         "ext": {
           "prebid": {
             "auctiontimestamp": 1000,
+            "channel": {
+              "name": "web"
+            },
             "cache": {
               "bids": {
               },
