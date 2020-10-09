@@ -166,7 +166,7 @@ public class BidResponseCreator {
         }
 
         final ExtRequestTargeting targeting = targeting(bidRequest);
-        return categoryMapper.createCategoryMapping(bidderResponses, bidRequest, targeting)
+        return categoryMapper.createCategoryMapping(bidderResponses, bidRequest, targeting, auctionContext.getTimeout())
                 .map(categoryMappingResult -> updateWithCategoryErrors(categoryMappingResult, auctionContext))
                 .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
                         categoryMappingResult.getBidderResponses(),

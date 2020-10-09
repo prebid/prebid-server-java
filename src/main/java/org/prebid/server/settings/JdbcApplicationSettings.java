@@ -14,6 +14,7 @@ import org.prebid.server.settings.mapper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
@@ -21,6 +22,7 @@ import org.prebid.server.vertx.jdbc.JdbcClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -132,7 +134,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<String> getCategory(String primaryAdServer, String publisher, String iabCat) {
+    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         throw new UnsupportedOperationException();
     }
 

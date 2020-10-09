@@ -184,9 +184,11 @@ public class SettingsConfiguration {
                 JacksonMapper mapper,
                 @Value("${settings.http.endpoint}") String endpoint,
                 @Value("${settings.http.amp-endpoint}") String ampEndpoint,
-                @Value("${settings.http.video-endpoint}") String videoEndpoint) {
+                @Value("${settings.http.video-endpoint}") String videoEndpoint,
+                @Value("${settings.http.category-endpoint}") String categoryEndpoint) {
 
-            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint);
+            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint,
+                    categoryEndpoint);
         }
     }
 
