@@ -1857,6 +1857,10 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
     }
 
+    private AuctionContext givenAuctionContext(BidRequest bidRequest) {
+        return givenAuctionContext(bidRequest, identity());
+    }
+
     private static List<AuctionParticipation> toAuctionParticipant(List<BidderResponse> bidderResponses) {
         return bidderResponses.stream()
                 .map(bidderResponse -> AuctionParticipation.builder()
@@ -1864,10 +1868,6 @@ public class BidResponseCreatorTest extends VertxTest {
                         .bidderResponse(bidderResponse)
                         .build())
                 .collect(Collectors.toList());
-    }
-
-    private AuctionContext givenAuctionContext(BidRequest bidRequest) {
-        return givenAuctionContext(bidRequest, identity());
     }
 
     private void givenCacheServiceResult(Map<Bid, CacheIdInfo> cacheBids) {
