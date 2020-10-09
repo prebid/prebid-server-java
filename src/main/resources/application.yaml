@@ -52,6 +52,8 @@ admin-endpoints:
     protected: true
 http-client:
   max-pool-size: 4000
+  idle-timeout-ms: 0
+  pool-cleaner-period-ms: 1000
   connect-timeout-ms: 2500
   use-compression: false
   max-redirects: 0
