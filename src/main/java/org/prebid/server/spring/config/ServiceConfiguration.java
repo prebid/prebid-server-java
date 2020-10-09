@@ -182,10 +182,9 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
-            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
-            @Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
@@ -197,13 +196,11 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
             PrivacyEnforcementService privacyEnforcementService,
+            IdGenerator idGenerator,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
         final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
-        final IdGenerator idGenerator = idGeneratorType == IdGeneratorType.uuid
-                ? new UUIDIdGenerator()
-                : new NoneIdGenerator();
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -228,10 +225,11 @@ public class ServiceConfiguration {
                 mapper);
     }
 
-    private static List<String> splitCommaSeparatedString(String listString) {
-        return Stream.of(listString.split(","))
-                .map(String::trim)
-                .collect(Collectors.toList());
+    @Bean
+    IdGenerator idGenerator(@Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType) {
+        return idGeneratorType == IdGeneratorType.uuid
+                ? new UUIDIdGenerator()
+                : new NoneIdGenerator();
     }
 
     @Bean
@@ -592,5 +590,11 @@ public class ServiceConfiguration {
     @Bean
     LoggerControlKnob loggerControlKnob(Vertx vertx) {
         return new LoggerControlKnob(vertx);
+    }
+
+    private static List<String> splitCommaSeparatedString(String listString) {
+        return Stream.of(listString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
     }
 }
