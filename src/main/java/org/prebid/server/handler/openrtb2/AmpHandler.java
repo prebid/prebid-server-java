@@ -130,6 +130,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
 
                 .compose(exchangeService::holdAuction)
+                // populate event with updated context
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
 

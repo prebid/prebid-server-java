@@ -85,6 +85,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
 
                 .compose(exchangeService::holdAuction)
+                // populate event with updated context
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
 
                 .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context))
