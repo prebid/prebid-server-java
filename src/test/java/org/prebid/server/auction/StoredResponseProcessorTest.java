@@ -439,6 +439,33 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
+    public void getStoredResponseResultShouldReturnFailedFutureWhenBidsAreEmptyInStoredSeatBid()
+            throws JsonProcessingException {
+        // given
+        final List<Imp> imps = singletonList(Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder().storedAuctionResponse(ExtStoredAuctionResponse.of("1")).build(),
+                        null)))
+                .build());
+
+        given(applicationSettings.getStoredResponses(any(), any()))
+                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(singletonMap("responseId",
+                        mapper.writeValueAsString(singletonList(SeatBid.builder()
+                                .seat("seat")
+                                .build()))),
+                        emptyList())));
+
+        // when
+        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
+                aliases, timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .hasMessage("There must be at least one bid in stored response seatBid");
+    }
+
+    @Test
     public void getStoredResponseResultShouldReturnFailedFutureSeatBidsCantBeParsed() {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId")
