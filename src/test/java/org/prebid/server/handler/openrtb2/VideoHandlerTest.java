@@ -101,21 +101,6 @@ public class VideoHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetRequestTypeMetricToAuctionContext() {
-        // given
-        given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
-
-        givenHoldAuction(BidResponse.builder().build());
-
-        // when
-        videoHandler.handle(routingContext);
-
-        // then
-        assertThat(captureAuctionContext().getRequestTypeMetric()).isNotNull();
-    }
-
-    @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
         final WithPodErrors<AuctionContext> auctionContext = givenAuctionContext(identity(), emptyList());

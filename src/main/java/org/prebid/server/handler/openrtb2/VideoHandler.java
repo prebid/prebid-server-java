@@ -70,11 +70,11 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         videoRequestFactory.fromRequest(routingContext, startTime)
-                .map(contextToErrors -> updateAuctionContextWithPodErrors(contextToErrors, videoEventBuilder))
+                .map(contextToErrors -> addToEvent(
+                        contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
 
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
                         .map(context -> WithPodErrors.of(context, contextToErrors.getPodErrors())))
-
                 // populate event with updated context
                 .map(contextToErrors ->
                         addToEvent(contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
