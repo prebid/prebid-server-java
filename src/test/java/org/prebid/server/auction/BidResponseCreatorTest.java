@@ -368,7 +368,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                null,  false).result();
+                        null, false).result();
 
         // then
         final BidResponse responseWithExpectedFields = BidResponse.builder()
@@ -411,7 +411,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                null,  false).result();
+                        null, false).result();
 
         // then
         assertThat(bidResponse).returns(0, BidResponse::getNbr);
@@ -432,7 +432,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO,  false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getNbr()).isNull();
@@ -454,7 +454,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO,  false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1);
@@ -487,7 +487,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -515,7 +516,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO,  false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).containsOnly(SeatBid.builder()
@@ -566,7 +567,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -614,7 +616,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO,  false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -670,7 +672,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -720,7 +723,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -749,7 +753,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 cacheInfo,  false).result();
+                        cacheInfo, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -778,7 +782,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 cacheInfo,  false).result();
+                        cacheInfo, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -800,7 +804,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO,  false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -830,7 +834,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -871,7 +875,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -905,7 +909,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -945,7 +949,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -980,7 +984,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -1024,7 +1028,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -1058,7 +1062,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 cacheInfo,  false).result();
+                        cacheInfo, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -1100,7 +1104,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -1131,7 +1135,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, cacheInfo, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -1167,7 +1172,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -1209,7 +1215,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -1248,7 +1255,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -1272,7 +1279,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -1298,7 +1306,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 CACHE_INFO, false).result();
+                        CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -1324,10 +1332,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         // when
-        // TODO toAuctionParticipant(bidderResponses), auctionContext,
-        //                targeting, CACHE_INFO, account, false, 0L, false, timeout
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -1361,7 +1368,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, false)
+                        .result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -1392,7 +1400,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 cacheInfo,  false).result();
+                        cacheInfo, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -1434,7 +1442,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 cacheInfo,  false).result();
+                        cacheInfo, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -1476,7 +1484,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 cacheInfo,  false).result();
+                        cacheInfo, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -1511,7 +1519,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 cacheInfo,  false).result();
+                        cacheInfo, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid).hasSize(2)
@@ -1550,7 +1558,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext,
-                 cacheInfo,  false).result();
+                        cacheInfo, false).result();
 
         // then
         final ExtBidResponse responseExt = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
@@ -1598,7 +1606,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final Future<BidResponse> result =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                auctionContext,  CACHE_INFO,  false);
+                        auctionContext, CACHE_INFO, false);
 
         // then
         verify(storedRequestProcessor).videoStoredDataResult(eq(singletonList(imp)), any(), eq(timeout));
@@ -1651,7 +1659,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final Future<BidResponse> result =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                auctionContext,  CACHE_INFO,  false);
+                        auctionContext, CACHE_INFO, false);
 
         // then
         verify(storedRequestProcessor).videoStoredDataResult(eq(Arrays.asList(imp1, imp3)), any(), eq(timeout));
@@ -1688,7 +1696,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final Future<BidResponse> result =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                auctionContext,  CACHE_INFO,  false);
+                        auctionContext, CACHE_INFO, false);
 
         // then
         verify(storedRequestProcessor).videoStoredDataResult(eq(singletonList(imp1)), any(), eq(timeout));
@@ -1719,7 +1727,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                auctionContext,  CACHE_INFO,  false).result();
+                        auctionContext, CACHE_INFO, false).result();
 
         // then
         assertThat(bidResponse.getExt()).isEqualTo(
@@ -1747,7 +1755,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final Future<BidResponse> result =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                auctionContext,  CACHE_INFO,  false);
+                        auctionContext, CACHE_INFO, false);
 
         // then
         assertThat(result.result().getExt()).isEqualTo(
@@ -1776,7 +1784,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                auctionContext,  cacheInfo,  true).result();
+                        auctionContext, cacheInfo, true).result();
 
         // then
         final ExtBidResponse responseExt = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
@@ -1823,7 +1831,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final Future<BidResponse> result =
-                bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, false);
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, cacheInfo, false);
 
         // then
         verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(),

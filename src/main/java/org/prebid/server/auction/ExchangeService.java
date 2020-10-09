@@ -32,6 +32,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -55,8 +56,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.StreamUtil;
-import org.prebid.server.validation.ResponseBidValidator;
-import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -151,24 +150,34 @@ public class ExchangeService {
         final boolean debugEnabled = isDebugEnabled(bidRequest);
         final Map<String, BigDecimal> bidAdjustments = bidAdjustments(requestExt);
         final Map<String, Map<String, BigDecimal>> currencyConversionRates = currencyRates(requestExt);
+        final Boolean usepbsrates = usepbsrates(requestExt);
 
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = context.toBuilder();
 
         final Future<List<AuctionParticipation>> withBidderResponses = preparedAuctionParticipations
-                .compose(auctionParticipations -> bidRequester.waitForBidResponses(auctionParticipations, timeout,
-                        doCaching, debugEnabled, aliases, bidAdjustments, currencyConversionRates))
-                .map(auctionParticipations -> updateMetricsFromResponses(auctionParticipations, publisherId))
-                .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(auctionParticipations,
-                        storedResponse, imps))
-                .map(auctionParticipations -> addTo(auctionParticipations,
-                        auctionContextBuilder::auctionParticipations));
+                .compose(auctionParticipations -> bidRequester.waitForBidResponses(
+                        auctionParticipations,
+                        timeout,
+                        doCaching,
+                        debugEnabled,
+                        aliases,
+                        bidAdjustments,
+                        currencyConversionRates,
+                        usepbsrates))
 
-        final boolean eventsAllowedByRequest = eventsAllowedByRequest(requestExt);
+                .map(auctionParticipations -> updateMetricsFromResponses(auctionParticipations, publisherId, aliases))
+                .map(auctionParticipations ->
+                        storedResponseProcessor.mergeWithBidderResponses(auctionParticipations, storedResponse, imps))
+                .map(auctionParticipations ->
+                        addTo(auctionParticipations, auctionContextBuilder::auctionParticipations));
+
         // produce response from bidder results
         final Future<BidResponse> constructedBidderResponse = withBidderResponses
-                .compose(auctionParticipations -> bidResponseCreator.create(auctionParticipations, context, targeting,
-                        cacheInfo, account, eventsAllowedByRequest, auctionTimestamp(requestExt), debugEnabled,
-                        timeout))
+                .compose(auctionParticipations -> bidResponseCreator.create(
+                        auctionParticipations,
+                        context,
+                        cacheInfo,
+                        debugEnabled))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest,
                         bidResponse, account))
                 .map(bidResponse -> addTo(bidResponse, auctionContextBuilder::bidResponse));
@@ -201,6 +210,15 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
         return currency != null ? currency.getRates() : null;
+    }
+
+    /**
+     * Extracts usepbsrates flag from {@link ExtRequest}.
+     */
+    private static Boolean usepbsrates(ExtRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
+        return currency != null ? currency.getUsepbsrates() : null;
     }
 
     /**

@@ -134,7 +134,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
 
                 .compose(this::prepareAmpResponse)
-                .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
+                .map(result -> addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result))
 
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
@@ -157,12 +157,13 @@ public class AmpHandler implements Handler<RoutingContext> {
         return context;
     }
 
-    private Future<AmpResponse> prepareAmpResponse(AuctionContext context) {
+    private Future<Tuple2<AmpResponse, AuctionContext>> prepareAmpResponse(AuctionContext context) {
         final BidRequest bidRequest = context.getBidRequest();
         final BidResponse bidResponse = context.getBidResponse();
         final AmpResponse ampResponse = toAmpResponse(bidRequest, bidResponse);
         final RoutingContext routingContext = context.getRoutingContext();
-        return ampResponsePostProcessor.postProcess(bidRequest, bidResponse, ampResponse, routingContext);
+        return ampResponsePostProcessor.postProcess(bidRequest, bidResponse, ampResponse, routingContext)
+                .map(resultAmpResponse -> Tuple2.of(resultAmpResponse, context));
     }
 
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
@@ -270,13 +271,12 @@ public class AmpHandler implements Handler<RoutingContext> {
         return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
 
-    private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,
+    private void handleResult(AsyncResult<Tuple2<AmpResponse, AuctionContext>> responseResult,
                               AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
 
         final boolean responseSucceeded = responseResult.succeeded();
-        final AuctionContext auctionContext = responseSucceeded ? responseResult.result().getMiddle() : null;
 
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
@@ -297,7 +297,9 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             status = HttpResponseStatus.OK.code();
             routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            body = mapper.encode(responseResult.result().getRight());
+
+            final AmpResponse ampResponse = responseResult.result().getLeft();
+            body = mapper.encode(ampResponse);
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
@@ -350,6 +352,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         final AmpEvent ampEvent = ampEventBuilder.status(status).errors(errorMessages).build();
         respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent);
 
+        final AuctionContext auctionContext = responseSucceeded ? responseResult.result().getRight() : null;
         httpInteractionLogger.maybeLogOpenrtb2Amp(auctionContext, routingContext, status, body);
     }
 

@@ -150,19 +150,21 @@ public class BidResponseCreator {
 
         if (isEmptyBidderResponses(bidderResponses)) {
             final BidRequest bidRequest = auctionContext.getBidRequest();
+            final ExtBidResponse extBidResponse = toExtBidResponse(
+                    bidderResponses,
+                    auctionContext,
+                    CacheServiceResult.empty(),
+                    VideoStoredDataResult.empty(),
+                    auctionTimestamp,
+                    debugEnabled,
+                    null);
+
             return Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
                     .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
-                    .ext(mapper.mapper().valueToTree(toExtBidResponse(
-                            bidderResponses,
-                            auctionContext,
-                            CacheServiceResult.empty(),
-                            VideoStoredDataResult.empty(),
-                            auctionTimestamp,
-                            debugEnabled,
-                            null)))
+                    .ext(mapper.mapper().valueToTree(extBidResponse))
                     .build());
         }
 

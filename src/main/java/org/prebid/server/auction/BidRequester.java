@@ -64,10 +64,12 @@ public class BidRequester {
             boolean debugEnabled,
             BidderAliases aliases,
             Map<String, BigDecimal> bidAdjustments,
-            Map<String, Map<String, BigDecimal>> currencyConversionRates) {
+            Map<String, Map<String, BigDecimal>> currencyConversionRates,
+            Boolean usepbsrates) {
+
         final List<Future> requestedBids = auctionParticipations.stream()
                 .map(bidderRequest -> requestBids(bidderRequest, timeout, doCaching, debugEnabled, aliases,
-                        bidAdjustments, currencyConversionRates))
+                        bidAdjustments, currencyConversionRates, usepbsrates))
                 .collect(Collectors.toList());
 
         // send all the requests to the bidders and gathers results
@@ -81,7 +83,8 @@ public class BidRequester {
                                                      boolean debugEnabled,
                                                      BidderAliases aliases,
                                                      Map<String, BigDecimal> bidAdjustments,
-                                                     Map<String, Map<String, BigDecimal>> currencyConversionRates) {
+                                                     Map<String, Map<String, BigDecimal>> currencyConversionRates,
+                                                     Boolean usepbsrates) {
         timeout = auctionTimeout(timeout, doCaching);
         if (auctionParticipation.isRequestBlocked()) {
             return Future.succeededFuture(auctionParticipation.insertBidderResponse(null));
@@ -98,7 +101,7 @@ public class BidRequester {
         return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabled)
                 .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, cur))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
-                        bidPriceAdjustmentFactor))
+                        bidPriceAdjustmentFactor, usepbsrates))
                 .map(result -> BidderResponse.of(bidderName, result, responseTime(startTime)))
                 .map(auctionParticipation::insertBidderResponse);
     }
@@ -140,12 +143,14 @@ public class BidRequester {
      * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
      * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      * <p>
-     * This method should always be invoked after {@link ExchangeService#validBidderSeatBid(BidderSeatBid, List)}
+     * This method should always be invoked after {@link BidRequester#validBidderSeatBid(BidderSeatBid, List)}
      * to make sure {@link Bid#getPrice()} is not empty.
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
                                                Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                               String adServerCurrency, BigDecimal priceAdjustmentFactor) {
+                                               String adServerCurrency,
+                                               BigDecimal priceAdjustmentFactor,
+                                               Boolean usepbsrates) {
         final List<BidderBid> bidderBids = bidderSeatBid.getBids();
         if (bidderBids.isEmpty()) {
             return bidderSeatBid;
@@ -159,8 +164,8 @@ public class BidRequester {
             final String bidCurrency = bidderBid.getBidCurrency();
             final BigDecimal price = bid.getPrice();
             try {
-                final BigDecimal finalPrice =
-                        currencyService.convertCurrency(price, requestCurrencyRates, adServerCurrency, bidCurrency);
+                final BigDecimal finalPrice = currencyService.convertCurrency(price, requestCurrencyRates,
+                        adServerCurrency, bidCurrency, usepbsrates);
 
                 final BigDecimal adjustedPrice = priceAdjustmentFactor != null
                         && priceAdjustmentFactor.compareTo(BigDecimal.ONE) != 0

@@ -66,6 +66,7 @@ public class BidderRequesterTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
@@ -77,11 +78,11 @@ public class BidderRequesterTest extends VertxTest {
     @Mock
     private Map<String, BigDecimal> bidAdjustment;
 
-    private final BidderAliases bidderAliases = BidderAliases.of(emptyMap(), emptyMap());
-
     private BidRequester target;
 
     private Clock clock;
+
+    private BidderAliases bidderAliases;
 
     private Timeout timeout;
 
@@ -89,13 +90,15 @@ public class BidderRequesterTest extends VertxTest {
     public void setUp() {
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
 
-        given(currencyService.convertCurrency(any(), any(), any(), any()))
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         given(bidAdjustment.get(any())).willReturn(BigDecimal.ONE);
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
+
+        bidderAliases = BidderAliases.of(emptyMap(), emptyMap(), bidderCatalog);
 
         target = new BidRequester(
                 100,
@@ -143,11 +146,12 @@ public class BidderRequesterTest extends VertxTest {
         final List<AuctionParticipation> participations = toParticipations(asList("bidder", "bidderAlias"),
                 asList(bidRequest1, bidRequest2));
 
-        final BidderAliases bidderAliases = BidderAliases.of(singletonMap("bidderAlias", "bidder"), emptyMap());
+        final BidderAliases bidderAliases = BidderAliases.of(singletonMap("bidderAlias", "bidder"), emptyMap(),
+                bidderCatalog);
 
         // when
         final List<AuctionParticipation> auctionParticipations = target.waitForBidResponses(participations, timeout,
-                false, false, bidderAliases, bidAdjustment, null).result();
+                false, false, bidderAliases, bidAdjustment, null, false).result();
 
         // then
         verify(httpBidderRequester, times(2)).requestBids(any(), any(), any(), anyBoolean());
@@ -173,11 +177,11 @@ public class BidderRequesterTest extends VertxTest {
         given(responseBidValidator.validate(any()))
                 .willReturn(ValidationResult.error("bid validation error"));
 
-        final BidderAliases bidderAliases = BidderAliases.of(emptyMap(), emptyMap());
+        final BidderAliases bidderAliases = BidderAliases.of(emptyMap(), emptyMap(), bidderCatalog);
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout,
-                false, false, bidderAliases, bidAdjustment, null).result();
+                false, false, bidderAliases, bidAdjustment, null, false).result();
 
         // then
         assertThat(result).hasSize(1)
@@ -196,7 +200,8 @@ public class BidderRequesterTest extends VertxTest {
                 singletonList(bidRequest));
 
         // when
-        target.waitForBidResponses(participations, timeout, false, false, bidderAliases, bidAdjustment, null).result();
+        target.waitForBidResponses(participations, timeout, false, false, bidderAliases, bidAdjustment, null, false)
+                .result();
 
         // then
         verify(httpBidderRequester).requestBids(any(), any(), same(timeout), anyBoolean());
@@ -213,7 +218,8 @@ public class BidderRequesterTest extends VertxTest {
                 singletonList(bidRequest));
 
         // when
-        target.waitForBidResponses(participations, timeout, true, false, bidderAliases, bidAdjustment, null).result();
+        target.waitForBidResponses(participations, timeout, true, false, bidderAliases, bidAdjustment, null, false)
+                .result();
 
         // then
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
@@ -234,11 +240,11 @@ public class BidderRequesterTest extends VertxTest {
                 singletonList(bidRequest));
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(5.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout, false, false,
-                bidderAliases, bidAdjustment, null).result();
+                bidderAliases, bidAdjustment, null, false).result();
 
         // then
         assertThat(result).hasSize(1)
@@ -260,12 +266,12 @@ public class BidderRequesterTest extends VertxTest {
                 singletonList(bidRequest));
 
         // returns the same price as in argument
-        given(currencyService.convertCurrency(any(), any(), any(), any()))
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout, false, false,
-                bidderAliases, bidAdjustment, null).result();
+                bidderAliases, bidAdjustment, null, false).result();
 
         // then
         assertThat(result).hasSize(1)
@@ -274,7 +280,6 @@ public class BidderRequesterTest extends VertxTest {
                 .containsExactly(BigDecimal.ONE);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldDropBidIfPrebidExceptionWasThrownDuringCurrencyConversion() {
         // given
@@ -286,12 +291,12 @@ public class BidderRequesterTest extends VertxTest {
         final List<AuctionParticipation> participations = toParticipations(singletonList("bidder1"),
                 singletonList(bidRequest));
 
-        given(currencyService.convertCurrency(any(), any(), any(), any()))
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
                 .willThrow(new PreBidException("no currency conversion available"));
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout, false, false,
-                bidderAliases, bidAdjustment, null).result();
+                bidderAliases, bidAdjustment, null, false).result();
 
         // then
         final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad"
@@ -302,7 +307,6 @@ public class BidderRequesterTest extends VertxTest {
                 .containsOnly(tuple(emptyList(), singletonList(expectedError)));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndPriceAdjustmentFactor() {
         // given
@@ -316,11 +320,11 @@ public class BidderRequesterTest extends VertxTest {
         final List<AuctionParticipation> participations = toParticipations(singletonList("bidder1"),
                 singletonList(bidRequest));
 
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.valueOf(10));
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(BigDecimal.valueOf(10));
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout, false, false,
-                bidderAliases, bidAdjustment, null).result();
+                bidderAliases, bidAdjustment, null, false).result();
 
         // then
         final BigDecimal updatedPrice = BigDecimal.valueOf(100);
@@ -330,7 +334,6 @@ public class BidderRequesterTest extends VertxTest {
                 .containsExactly(updatedPrice);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdatePriceForOneBidAndDropAnotherIfPrebidExceptionHappensForSecondBid() {
         // given
@@ -345,16 +348,16 @@ public class BidderRequesterTest extends VertxTest {
                 singletonList(bidRequest));
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice)
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice)
                 .willThrow(new PreBidException("no currency conversion available"));
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout, false, false,
-                bidderAliases, bidAdjustment, null).result();
+                bidderAliases, bidAdjustment, null, false).result();
 
         // then
-        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), any(), eq("CUR1"));
-        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), any(), eq("CUR2"));
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), any(), eq("CUR1"), eq(false));
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), any(), eq("CUR2"), eq(false));
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
         final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
@@ -367,7 +370,6 @@ public class BidderRequesterTest extends VertxTest {
                 .containsOnly(tuple(singletonList(expectedBidderBid), singletonList(expectedError)));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldRespondWithOneBidAndErrorWhenBidResponseContainsOneUnsupportedCurrency() {
         // given
@@ -385,17 +387,17 @@ public class BidderRequesterTest extends VertxTest {
                 Arrays.asList(bidRequest, bidRequest));
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(20);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
-        given(currencyService.convertCurrency(any(), any(), eq("BAD"), eq("CUR")))
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), eq("BAD"), eq("CUR"), any()))
                 .willThrow(new PreBidException("no currency conversion available"));
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout, false, false,
-                bidderAliases, bidAdjustment, null).result();
+                bidderAliases, bidAdjustment, null, false).result();
 
         // then
-        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), eq("BAD"), eq("USD"));
-        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), eq("BAD"), eq("CUR"));
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), eq("BAD"), eq("USD"), eq(false));
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), eq("BAD"), eq("CUR"), eq(false));
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
         final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD");
@@ -410,7 +412,6 @@ public class BidderRequesterTest extends VertxTest {
                         tuple(emptyList(), singletonList(expectedError)));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndAddErrorAboutMultipleCurrency() {
         // given
@@ -425,11 +426,11 @@ public class BidderRequesterTest extends VertxTest {
                 singletonList(bidRequest));
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout, false, false,
-                bidderAliases, bidAdjustment, null).result();
+                bidderAliases, bidAdjustment, null, false).result();
 
         // then
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
@@ -442,7 +443,6 @@ public class BidderRequesterTest extends VertxTest {
                 .containsOnly(tuple(singletonList(expectedBidderBid), singletonList(expectedError)));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionForMultipleBid() {
         // given
@@ -467,17 +467,17 @@ public class BidderRequesterTest extends VertxTest {
                 Arrays.asList(bidRequest, bidRequest, bidRequest));
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
-        given(currencyService.convertCurrency(any(), any(), any(), eq("USD"))).willReturn(bidder3Price);
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), any(), eq("USD"), any())).willReturn(bidder3Price);
 
         // when
         final List<AuctionParticipation> result = target.waitForBidResponses(participations, timeout, false, false,
-                bidderAliases, bidAdjustment, null).result();
+                bidderAliases, bidAdjustment, null, false).result();
 
         // then
-        verify(currencyService).convertCurrency(eq(bidder1Price), eq(null), eq("USD"), eq("EUR"));
-        verify(currencyService).convertCurrency(eq(bidder2Price), eq(null), eq("USD"), eq("GBP"));
-        verify(currencyService).convertCurrency(eq(bidder3Price), eq(null), eq("USD"), eq("USD"));
+        verify(currencyService).convertCurrency(eq(bidder1Price), eq(null), eq("USD"), eq("EUR"), eq(false));
+        verify(currencyService).convertCurrency(eq(bidder2Price), eq(null), eq("USD"), eq("GBP"), eq(false));
+        verify(currencyService).convertCurrency(eq(bidder3Price), eq(null), eq("USD"), eq("USD"), eq(false));
         verifyNoMoreInteractions(currencyService);
 
         assertThat(result).hasSize(3)

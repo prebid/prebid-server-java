@@ -115,8 +115,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
                               long startTime) {
         final boolean responseSucceeded = responseResult.succeeded();
 
+        final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
         final MetricName requestType = responseSucceeded
-                ? responseResult.result().getRequestTypeMetric()
+                ? auctionContext.getRequestTypeMetric()
                 : MetricName.openrtb2web;
 
         final MetricName metricRequestStatus;
