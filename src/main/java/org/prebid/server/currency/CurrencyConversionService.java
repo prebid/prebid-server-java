@@ -121,8 +121,24 @@ public class CurrencyConversionService implements Initializable {
         return Future.failedFuture(exception);
     }
 
+    public boolean isExternalRatesActive() {
+        return externalConversionProperties != null;
+    }
+
+    public String getCurrencyServerUrl() {
+        return currencyServerUrl;
+    }
+
+    public Long getRefreshPeriod() {
+        return externalConversionProperties != null ? externalConversionProperties.getRefreshPeriod() : null;
+    }
+
     public ZonedDateTime getLastUpdated() {
         return lastUpdated;
+    }
+
+    public Map<String, Map<String, BigDecimal>> getExternalCurrencyRates() {
+        return externalCurrencyRates;
     }
 
     /**

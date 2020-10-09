@@ -40,6 +40,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class NinthdecimalBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpNinthdecimal>> NINTHDECIMAL_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpNinthdecimal>>() {
             };

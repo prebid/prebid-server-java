@@ -122,9 +122,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         ampRequestFactory.fromRequest(routingContext, startTime)
-                .map(context -> context.toBuilder()
-                        .requestTypeMetric(REQUEST_TYPE_METRIC)
-                        .build())
 
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))

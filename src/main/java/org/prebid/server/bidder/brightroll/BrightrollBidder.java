@@ -299,13 +299,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Identifies {@link BidType} depends on {@link Imp} parameters.
      */
     private static BidType bidTypeFromImp(Imp imp) {
-        final BidType bidType;
-        if (imp.getVideo() != null) {
-            bidType = BidType.video;
-        } else {
-            bidType = BidType.banner;
-        }
-        return bidType;
+        return imp.getVideo() != null ? BidType.video : BidType.banner;
     }
 
     @Override

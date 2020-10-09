@@ -12,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.JsonMergeUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +40,8 @@ public class OrtbTypesResolver {
     private static final String BIDREQUEST = "bidrequest";
     private static final String TARGETING = "targeting";
     private static final String UNKNOWN_REFERER = "unknown referer";
+    private static final String DATA = "data";
+    private static final String EXT = "ext";
 
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_STANDARD_FIELDS;
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_REQUEST_FIELDS;
@@ -66,9 +69,11 @@ public class OrtbTypesResolver {
     }
 
     private final JacksonMapper jacksonMapper;
+    private final JsonMergeUtil jsonMergeUtil;
 
     public OrtbTypesResolver(JacksonMapper jacksonMapper) {
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
+        this.jsonMergeUtil = new JsonMergeUtil(jacksonMapper);
     }
 
     /**
@@ -172,6 +177,8 @@ public class OrtbTypesResolver {
                         .forEach(fieldName -> updateWithNormalizedField(containerObjectNode, fieldName,
                                 () -> toCommaSeparatedTextNode(containerObjectNode, fieldName, nodeName, nodePrefix,
                                         warnings)));
+
+                normalizeDataExtension(containerObjectNode, nodeName, nodePrefix, warnings);
             } else {
                 warnings.add(String.format("%s%s field ignored. Expected type is object, but was `%s`.",
                         nodePrefix, nodeName, containerNode.getNodeType().name()));
@@ -235,6 +242,38 @@ public class OrtbTypesResolver {
         } else {
             warnForExpectedStringArrayType(fieldName, containerName, warnings, nodePrefix, node.getNodeType());
             return null;
+        }
+    }
+
+    public void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
+                                       List<String> warnings) {
+        final JsonNode data = containerNode.get(DATA);
+        if (data == null || data.isNull()) {
+            return;
+        }
+        final JsonNode extData = containerNode.path(EXT).path(DATA);
+        final JsonNode ext = containerNode.get(EXT);
+        if (!extData.isNull() && !extData.isMissingNode()) {
+            final JsonNode resolvedExtData = jsonMergeUtil.merge(extData, data);
+            ((ObjectNode) ext).set(DATA, resolvedExtData);
+        } else {
+            copyDataToExtData(containerNode, containerName, nodePrefix, warnings, data);
+        }
+        containerNode.remove(DATA);
+    }
+
+    private void copyDataToExtData(ObjectNode containerNode, String containerName, String nodePrefix,
+                                   List<String> warnings, JsonNode data) {
+        final JsonNode ext = containerNode.get(EXT);
+        if (ext != null && ext.isObject()) {
+            ((ObjectNode) ext).set(DATA, data);
+        } else if (ext != null && !ext.isObject()) {
+            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is "
+                            + "object, but was %s. Replaced with object",
+                    nodePrefix, containerName, EXT, ext.getNodeType()));
+            containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
+        } else {
+            containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
         }
     }
 

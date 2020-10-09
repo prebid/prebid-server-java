@@ -2,6 +2,7 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
@@ -52,7 +53,7 @@ public class PrivacyServiceConfiguration {
     VendorListServiceV1 vendorListServiceV1(
             @Value("${gdpr.vendorlist.v1.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v1.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.v1.http-default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.vendorlist.v1.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.vendorlist.v1.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
@@ -82,7 +83,7 @@ public class PrivacyServiceConfiguration {
     VendorListServiceV2 vendorListServiceV2(
             @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.v2.http-default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.vendorlist.v2.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.vendorlist.v2.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
@@ -132,12 +133,20 @@ public class PrivacyServiceConfiguration {
             Tcf2Service tcf2Service,
             @Autowired(required = false) GeoLocationService geoLocationService,
             BidderCatalog bidderCatalog,
+            IpAddressHelper ipAddressHelper,
             Metrics metrics) {
 
         final Set<String> eeaCountries = new HashSet<>(Arrays.asList(eeaCountriesAsString.trim().split(",")));
 
         return new TcfDefinerService(
-                gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, bidderCatalog, metrics);
+                gdprConfig,
+                eeaCountries,
+                gdprService,
+                tcf2Service,
+                geoLocationService,
+                bidderCatalog,
+                ipAddressHelper,
+                metrics);
     }
 
     @Bean
