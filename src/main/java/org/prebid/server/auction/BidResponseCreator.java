@@ -146,9 +146,9 @@ public class BidResponseCreator {
                                boolean debugEnabled) {
 
         final long auctionTimestamp = auctionTimestamp(auctionContext);
+        final BidRequest bidRequest = auctionContext.getBidRequest();
 
         if (isEmptyBidderResponses(bidderResponses)) {
-            final BidRequest bidRequest = auctionContext.getBidRequest();
             return Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
@@ -165,22 +165,17 @@ public class BidResponseCreator {
                     .build());
         }
 
-        final ExtRequestTargeting targeting = targeting(auctionContext.getBidRequest());
-
-        final Future<CategoryMappingResult> categoryMappingResultFuture =
-                targeting != null && targeting.getIncludebrandcategory() != null
-                        ? categoryMapper.applyCategoryMapping(bidderResponses, targeting, auctionContext.getTimeout())
-                        : Future.succeededFuture(CategoryMappingResult.of(null, bidderResponses, null));
-
-        return categoryMappingResultFuture
+        final ExtRequestTargeting targeting = targeting(bidRequest);
+        return categoryMapper.createCategoryMapping(bidderResponses, bidRequest, targeting, auctionContext.getTimeout())
                 .map(categoryMappingResult -> updateWithCategoryErrors(categoryMappingResult, auctionContext))
                 .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
                         categoryMappingResult.getBidderResponses(),
                         auctionContext,
+                        categoryMappingResult.getBiddersToBidsCategories(),
                         cacheInfo,
                         auctionTimestamp,
                         targeting,
-                debugEnabled));
+                        debugEnabled));
     }
 
     private static CategoryMappingResult updateWithCategoryErrors(CategoryMappingResult categoryMappingResult,
@@ -208,6 +203,7 @@ public class BidResponseCreator {
 
     private Future<BidResponse> cacheBidsAndCreateResponse(List<BidderResponse> bidderResponses,
                                                            AuctionContext auctionContext,
+                                                           Map<String, Map<String, String>> biddersToBidsCategories,
                                                            BidRequestCacheInfo cacheInfo,
                                                            long auctionTimestamp,
                                                            ExtRequestTargeting targeting,
@@ -238,6 +234,7 @@ public class BidResponseCreator {
         return toBidsWithCacheIds(
                 bidderResponses,
                 bidsToCache,
+                biddersToBidsCategories,
                 auctionContext,
                 cacheInfo,
                 eventsContext)
@@ -413,6 +410,7 @@ public class BidResponseCreator {
      */
     private Future<CacheServiceResult> toBidsWithCacheIds(List<BidderResponse> bidderResponses,
                                                           Set<Bid> bidsToCache,
+                                                          Map<String, Map<String, String>> biddersToBidsCategories,
                                                           AuctionContext auctionContext,
                                                           BidRequestCacheInfo cacheInfo,
                                                           EventsContext eventsContext) {
@@ -444,6 +442,7 @@ public class BidResponseCreator {
                 .shouldCacheVideoBids(shouldCacheVideoBids)
                 .bidderToVideoBidIdsToModify(bidderToVideoBidIdsToModify)
                 .bidderToBidIds(bidderToBidIds)
+                .biddersToBidsCategories(biddersToBidsCategories)
                 .build();
 
         return cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, auctionContext, cacheContext, eventsContext)
@@ -812,17 +811,9 @@ public class BidResponseCreator {
         final Bid bid = bidderBid.getBid();
         final BidType bidType = bidderBid.getType();
 
-        final boolean isApp = bidRequest.getApp() != null;
-        if (isApp && bidType.equals(BidType.xNative)) {
-            try {
-                addNativeMarkup(bid, bidRequest.getImp());
-            } catch (PreBidException e) {
-                bidErrors.putIfAbsent(bidder, new ArrayList<>());
-                bidErrors.get(bidder)
-                        .add(ExtBidderError.of(BidderError.Type.bad_server_response.getCode(), e.getMessage()));
-                return null;
-            }
-        }
+        // preliminary variables are needed because bid is changing below, so we can lost it in winning bids sets
+        final boolean isWinningBid = winningBids.contains(bid);
+        final boolean isWinningBidByBidder = winningBidsByBidder.contains(bid);
 
         final CacheIdInfo cacheIdInfo = bidsWithCacheIds.get(bid);
         final String cacheId = cacheIdInfo != null ? cacheIdInfo.getCacheId() : null;
@@ -833,31 +824,39 @@ public class BidResponseCreator {
             bid.setAdm(null);
         }
 
+        final boolean isApp = bidRequest.getApp() != null;
+        if (isApp && bidType.equals(BidType.xNative) && bid.getAdm() != null) {
+            try {
+                addNativeMarkup(bid, bidRequest.getImp());
+            } catch (PreBidException e) {
+                bidErrors.putIfAbsent(bidder, new ArrayList<>());
+                bidErrors.get(bidder)
+                        .add(ExtBidderError.of(BidderError.Type.bad_server_response.getCode(), e.getMessage()));
+                return null;
+            }
+        }
+
         final Map<String, String> targetingKeywords;
-        final ExtResponseCache cache;
+        if (targeting != null && isWinningBidByBidder) {
+            final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(bidType, targeting, isApp,
+                    bidRequest, account);
 
-        if (targeting != null && winningBidsByBidder.contains(bid)) {
-            final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp, bidRequest, account);
-            final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
-                    keywordsCreatorByBidType(targeting, isApp, bidRequest, account);
-            final boolean isWinningBid = winningBids.contains(bid);
-            targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
-                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
-
-            final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
-            final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
-            cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
+            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
         } else {
             targetingKeywords = null;
-            cache = null;
         }
+
+        final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
+        final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
+        final ExtResponseCache cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
 
         final String generatedBidId = generateBidId ? UUID.randomUUID().toString() : null;
         final String eventBidId = ObjectUtils.defaultIfNull(generatedBidId, bid.getId());
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
         final Events events = createEvents(bidder, account, eventBidId, eventsContext);
         final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
-        final ExtBidPrebid prebidExt = ExtBidPrebid.builder()
+
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
                 .bidid(generatedBidId)
                 .type(bidType)
                 .targeting(targetingKeywords)
@@ -867,7 +866,7 @@ public class BidResponseCreator {
                 .video(extBidPrebidVideo)
                 .build();
 
-        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
+        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, bid.getExt());
         bid.setExt(mapper.mapper().valueToTree(bidExt));
 
         return bid;
@@ -956,11 +955,17 @@ public class BidResponseCreator {
     }
 
     private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
-        final AccountAnalyticsConfig analyticsConfig = auctionContext.getAccount().getAnalyticsConfig();
-        final Map<String, Boolean> channelConfig = analyticsConfig != null ? analyticsConfig.getAuctionEvents() : null;
+        final AccountAnalyticsConfig analyticsConfig = ObjectUtils.defaultIfNull(
+                auctionContext.getAccount().getAnalyticsConfig(), AccountAnalyticsConfig.fallback());
+        final Map<String, Boolean> channelConfig = analyticsConfig.getAuctionEvents();
 
-        return channelConfig != null
-                && BooleanUtils.toBoolean(channelConfig.get(channelFromRequest(auctionContext.getBidRequest())));
+        final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
+
+        return MapUtils.emptyIfNull(channelConfig).entrySet().stream()
+                .filter(entry -> StringUtils.equalsIgnoreCase(channelFromRequest, entry.getKey()))
+                .findFirst()
+                .map(entry -> BooleanUtils.isTrue(entry.getValue()))
+                .orElse(Boolean.FALSE);
     }
 
     private static String channelFromRequest(BidRequest bidRequest) {
@@ -976,6 +981,17 @@ public class BidResponseCreator {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
 
         return prebid != null && prebid.getEvents() != null;
+    }
+
+    private TargetingKeywordsCreator resolveKeywordsCreator(BidType bidType,
+                                                            ExtRequestTargeting targeting,
+                                                            boolean isApp,
+                                                            BidRequest bidRequest,
+                                                            Account account) {
+        final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
+                keywordsCreatorByBidType(targeting, isApp, bidRequest, account);
+
+        return keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator(targeting, isApp, bidRequest, account));
     }
 
     /**

@@ -10,7 +10,7 @@ import java.util.Map;
 @AllArgsConstructor(staticName = "of")
 public class CategoryMappingResult {
 
-    Map<String, Map<String, String>> bidderToBidCategory;
+    Map<String, Map<String, String>> biddersToBidsCategories;
 
     List<BidderResponse> bidderResponses;
 

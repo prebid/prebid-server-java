@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class AjaBidderTest extends VertxTest {
+
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     private AjaBidder ajaBidder;
