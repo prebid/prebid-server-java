@@ -22,7 +22,7 @@ admin-endpoints:
     protected: true
   currency-rates:
     enabled: false
-    path: /currency-rates
+    path: /currency/rates
     on-application-port: false
     protected: true
   storedrequest:
