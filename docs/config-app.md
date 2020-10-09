@@ -303,8 +303,8 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.special-features.sfN.enforce` - if equals to `true`, special feature will be enforced for purpose. Default `true`
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
+- `gdpr.vendorlist.default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
-- `gdpr.vendorlist.vN.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.vN.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
 - `gdpr.vendorlist.vN.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
 - `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
