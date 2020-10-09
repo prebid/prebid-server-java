@@ -21,6 +21,7 @@ import javax.validation.constraints.NotBlank;
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/valueimpression.yaml", factory = YamlPropertySourceFactory.class)
 public class ValueImpressionConfiguration {
+
     private static final String BIDDER_NAME = "valueimpression";
 
     @Autowired

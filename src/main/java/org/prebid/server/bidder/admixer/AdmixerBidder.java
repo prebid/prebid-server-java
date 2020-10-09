@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * AdmixerBidder {@link Bidder} implementation.
+ * Admixer {@link Bidder} implementation.
  */
 public class AdmixerBidder implements Bidder<BidRequest> {
 

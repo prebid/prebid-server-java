@@ -63,6 +63,7 @@ public class FacebookTest extends IntegrationTest {
                 "openrtb2/facebook/test-auction-facebook-response.json",
                 response, singletonList("audienceNetwork"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        final String actualStr = response.asString();
+        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 }
