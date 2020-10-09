@@ -16,7 +16,6 @@ import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import io.vertx.core.Vertx;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
@@ -604,20 +603,14 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void currencyRatesHandlerShouldRespondWithLastUpdateDate() {
-        // given
-        final Instant currentTime = Instant.now();
-
-        // ask endpoint after some time to ensure currency rates have already been fetched
-        Vertx.vertx().setTimer(1000L, ignored -> {
-            // when
-            final Response response = given(ADMIN_SPEC).get("/currency-rates");
-
-            // then
-            final String lastUpdateValue = response.jsonPath().getString("last_update");
-            final Instant lastUpdateTime = Instant.parse(lastUpdateValue);
-            assertThat(currentTime).isAfter(lastUpdateTime);
-        });
+    public void currencyRatesHandlerShouldReturnExpectedResponse() {
+        given(ADMIN_SPEC)
+                .when()
+                .get("/currency/rates")
+                .then()
+                .assertThat()
+                .body("active", Matchers.equalTo(true))
+                .statusCode(200);
     }
 
     @Test
