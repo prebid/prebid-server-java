@@ -228,7 +228,8 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
 
         // when
-        categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout);
+        categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
+                timeout);
 
         // then
         verify(applicationSettings).getCategories(eq("freewheel"), anyString(), any());
@@ -248,7 +249,8 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
 
         // when
-        categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout);
+        categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
+                timeout);
 
         // then
         verify(applicationSettings).getCategories(eq("dfp"), anyString(), any());

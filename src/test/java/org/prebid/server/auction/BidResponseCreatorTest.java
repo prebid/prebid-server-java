@@ -138,7 +138,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheService.getEndpointHost()).willReturn("testHost");
         given(cacheService.getEndpointPath()).willReturn("testPath");
         given(cacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
-        given(categoryMapper.createCategoryMapping(any(), any(), any())).willAnswer(invocationOnMock ->
+        given(categoryMapper.createCategoryMapping(any(), any(), any(), any())).willAnswer(invocationOnMock ->
                 Future.succeededFuture(CategoryMappingResult.of(null, invocationOnMock.getArgument(0), null))
         );
 
@@ -550,7 +550,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid1, banner, "USD"), BidderBid.of(bid2, banner, "USD")), 100));
 
-        given(categoryMapper.createCategoryMapping(any(), any(), any()))
+        given(categoryMapper.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(null,
                         singletonList(BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid1, banner, "USD")),
                                 100)),
@@ -581,7 +581,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid1, banner, "USD")), 100));
 
-        given(categoryMapper.createCategoryMapping(any(), any(), any()))
+        given(categoryMapper.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("category exception")));
 
         // when

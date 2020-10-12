@@ -6,6 +6,7 @@ import lombok.Value;
 @Value
 @AllArgsConstructor(staticName = "of")
 public class CategoryParams {
+
     String primaryAdServer;
     String publisher;
 }
