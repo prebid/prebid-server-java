@@ -23,6 +23,7 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `imps_native` - number of native impressions
 - `imps_audio` - number of audio impressions
 - `requests.(ok|badinput|err|networkerr|blacklisted_account|blacklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
+- `bidder-cardinality.<cardinality>.requests` - number of requests targeting `<cardinality>` of bidders
 - `connection_accept_errors` - number of errors occurred while establishing HTTP connection
 - `db_circuitbreaker_opened` - number of times database circuit breaker was opened (database is unavailable)
 - `db_circuitbreaker_closed` - number of times database circuit breaker was closed (database is available again)
