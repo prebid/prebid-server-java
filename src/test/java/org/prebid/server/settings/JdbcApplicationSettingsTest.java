@@ -25,6 +25,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -564,6 +565,18 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     singletonList("No stored responses were found for ids: 3,4")));
             async.complete();
         }));
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWithUnsupportedPrebidException() {
+        // given and when
+        final Future<Map<String, Category>> result = jdbcApplicationSettings.getCategories("adServer", "publisher",
+                timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Not supported");
     }
 
     private JdbcClient jdbcClient() {
