@@ -176,20 +176,6 @@ public class AjaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenResponseWithBadRequest() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(400, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = ajaBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput("Unexpected status code: 400"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(ajaBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }

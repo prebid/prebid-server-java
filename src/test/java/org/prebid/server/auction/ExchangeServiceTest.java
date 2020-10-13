@@ -89,6 +89,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -853,7 +854,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
-        final Bid bidId1 = Bid.builder().id("bidId1").build();
+        final Bid bidId1 = Bid.builder().id("bidId1").price(ONE).build();
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
                 singletonList(BidderBid.of(bidId1, banner, "USD")),
                 null,

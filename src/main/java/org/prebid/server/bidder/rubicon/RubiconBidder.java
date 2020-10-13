@@ -22,6 +22,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
@@ -199,8 +200,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
-        if (response.getStatusCode() == 204) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (response.getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.empty();
         }
 
         try {
@@ -1005,9 +1006,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cmpOverrideFromRequest, bidResponse))
-                .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
+                .filter(RubiconBidder::validatePrice)
                 .map(bid -> BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
+    }
+
+    private static boolean validatePrice(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        return bid.getDealid() != null ? price.compareTo(BigDecimal.ZERO) >= 0 : price.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private Bid updateBid(Bid bid, Imp imp, Float cmpOverrideFromRequest, BidResponse bidResponse) {

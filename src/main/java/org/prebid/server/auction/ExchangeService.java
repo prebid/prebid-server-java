@@ -123,11 +123,9 @@ public class ExchangeService {
      * response containing returned bids and additional information in extensions.
      */
     public Future<AuctionContext> holdAuction(AuctionContext context) {
-        final RoutingContext routingContext = context.getRoutingContext();
         final UidsCookie uidsCookie = context.getUidsCookie();
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
-        final MetricName requestTypeMetric = context.getRequestTypeMetric();
         final Account account = context.getAccount();
 
         final ExtRequest requestExt = bidRequest.getExt();
@@ -165,11 +163,12 @@ public class ExchangeService {
                         currencyConversionRates,
                         usepbsrates))
 
-                .map(auctionParticipations -> updateMetricsFromResponses(auctionParticipations, publisherId, aliases))
-                .map(auctionParticipations ->
-                        storedResponseProcessor.mergeWithBidderResponses(auctionParticipations, storedResponse, imps))
+                .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
+                        auctionParticipations, storedResponse, imps))
+                .map(bidderResponses -> validateAndAdjustBids(bidRequest, bidderResponses))
                 .map(auctionParticipations ->
                         addTo(auctionParticipations, auctionContextBuilder::auctionParticipations));
+                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId, aliases))
 
         // produce response from bidder results
         final Future<BidResponse> constructedBidderResponse = withBidderResponses
@@ -272,6 +271,11 @@ public class ExchangeService {
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
+    }
+
+    private static ExtRequestPrebid extRequestPrebid(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        return requestExt != null ? requestExt.getPrebid() : null;
     }
 
     /**
@@ -830,13 +834,10 @@ public class ExchangeService {
         return auctionParticipations;
     }
 
-    /**
-     * Extracts bidAdjustments from {@link ExtRequest}.
-     */
-    private static Map<String, BigDecimal> bidAdjustments(ExtRequest requestExt) {
+    private static BigDecimal bidAdjustmentForBidder(ExtRequest requestExt, String bidder) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
-        return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
+        return bidAdjustmentFactors != null ? bidAdjustmentFactors.get(bidder) : null;
     }
 
     /**
