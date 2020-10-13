@@ -320,7 +320,10 @@ public class VideoStoredRequestProcessor {
         final ExtIncludeBrandCategory extIncludeBrandCategory;
         if (includebrandcategory != null) {
             extIncludeBrandCategory = ExtIncludeBrandCategory.of(
-                    includebrandcategory.getPrimaryAdserver(), includebrandcategory.getPublisher(), true, null);
+                    includebrandcategory.getPrimaryAdserver(),
+                    includebrandcategory.getPublisher(),
+                    true,
+                    includebrandcategory.getTranslateCategories());
         } else {
             extIncludeBrandCategory = ExtIncludeBrandCategory.of(null, null, false, null);
         }
