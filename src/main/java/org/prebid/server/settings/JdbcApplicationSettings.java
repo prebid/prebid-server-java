@@ -135,7 +135,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     @Override
     public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
-        throw new UnsupportedOperationException();
+        return Future.failedFuture(new PreBidException("Not supported"));
     }
 
     /**

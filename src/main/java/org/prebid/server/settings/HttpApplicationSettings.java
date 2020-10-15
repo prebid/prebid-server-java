@@ -64,7 +64,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private static final String NOT_SUPPORTED = "Not supported";
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
-    private static final TypeReference<Map<String, Category>> CATEGORY_RESPONSE_REFERENCE_REFERENCE =
+    private static final TypeReference<Map<String, Category>> CATEGORY_RESPONSE_REFERENCE =
             new TypeReference<Map<String, Category>>() {
             };
 
@@ -163,7 +163,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
         final Map<String, Category> categories;
         try {
-            categories = mapper.decodeValue(body, CATEGORY_RESPONSE_REFERENCE_REFERENCE);
+            categories = mapper.decodeValue(body, CATEGORY_RESPONSE_REFERENCE);
         } catch (DecodeException e) {
             throw makeFailedCategoryFetchException(url, String.format("Failed to decode response body with error %s",
                     e.getMessage()));

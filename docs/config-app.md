@@ -221,6 +221,8 @@ For filesystem data source available next options:
 - `settings.filesystem.settings-filename` - location of file settings.
 - `settings.filesystem.stored-requests-dir` - directory with stored requests.
 - `settings.filesystem.stored-imps-dir` - directory with stored imps.
+- `settings.filesystem.stored-responses-dir` - directory with stored responses.
+- `settings.filesystem.categories-dir` - directory with categories.
 
 For database data source available next options:
 - `settings.database.type` - type of database to be used: `mysql` or `postgres`.
