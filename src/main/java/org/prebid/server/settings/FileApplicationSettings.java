@@ -129,15 +129,22 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         final String filename = StringUtils.isNotBlank(publisher)
                 ? String.format("%s_%s", primaryAdServer, publisher)
                 : primaryAdServer;
         final Map<String, Category> categoryToId = fileToCategories.get(filename);
         return categoryToId != null
-                ? Future.succeededFuture(categoryToId)
+                ? Future.succeededFuture(extractCategoriesIds(categoryToId))
                 : Future.failedFuture(new PreBidException(
                 String.format("Categories for filename %s were not found", filename)));
+    }
+
+    private static Map<String, String> extractCategoriesIds(Map<String, Category> categoryToId) {
+        return categoryToId.entrySet().stream()
+        .filter(catToCategory -> catToCategory.getValue() != null)
+        .collect(Collectors.toMap(Map.Entry::getKey,
+                catToCategory -> catToCategory.getValue().getId()));
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {

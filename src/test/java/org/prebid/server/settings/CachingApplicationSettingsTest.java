@@ -12,7 +12,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -215,16 +214,16 @@ public class CachingApplicationSettingsTest {
     public void getCategoriesShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
         given(applicationSettings.getCategories(eq("adServer"), eq("publisher"), same(timeout)))
-                .willReturn(Future.succeededFuture(singletonMap("iab", Category.of("id"))));
+                .willReturn(Future.succeededFuture(singletonMap("iab", "id")));
 
         // when
-        final Future<Map<String, Category>> future
+        final Future<Map<String, String>> future
                 = cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
         cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(singletonMap("iab", Category.of("id")));
+        assertThat(future.result()).isEqualTo(singletonMap("iab", "id"));
         verify(applicationSettings).getCategories(eq("adServer"), eq("publisher"), same(timeout));
         verifyNoMoreInteractions(applicationSettings);
     }
@@ -236,7 +235,7 @@ public class CachingApplicationSettingsTest {
                 .willReturn(Future.failedFuture(new PreBidException("error")));
 
         // when
-        final Future<Map<String, Category>> future =
+        final Future<Map<String, String>> future =
                 cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
 
         // then
@@ -256,7 +255,7 @@ public class CachingApplicationSettingsTest {
         cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
         cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
         cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
-        final Future<Map<String, Category>> lastFuture =
+        final Future<Map<String, String>> lastFuture =
                 cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
 
         // then
@@ -277,7 +276,7 @@ public class CachingApplicationSettingsTest {
 
         cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
         cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
-        final Future<Map<String, Category>> lastFuture =
+        final Future<Map<String, String>> lastFuture =
                 cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
 
         // then

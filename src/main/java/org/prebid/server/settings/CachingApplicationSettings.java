@@ -7,7 +7,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.model.TriFunction;
@@ -33,7 +32,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
     private final Map<String, String> accountToErrorCache;
     private final Map<String, String> adServerPublisherToErrorCache;
     private final Map<String, String> adUnitConfigCache;
-    private final Map<String, Map<String, Category>> categoryConfigCache;
+    private final Map<String, Map<String, String>> categoryConfigCache;
     private final SettingsCache cache;
     private final SettingsCache ampCache;
     private final SettingsCache videoCache;
@@ -101,7 +100,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         final String compoundKey = StringUtils.isNotBlank(publisher)
                 ? String.format("%s_%s", primaryAdServer, publisher)
                 : primaryAdServer;

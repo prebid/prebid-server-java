@@ -25,7 +25,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -570,7 +569,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getCategoriesShouldReturnFailedFutureWithUnsupportedPrebidException() {
         // given and when
-        final Future<Map<String, Category>> result = jdbcApplicationSettings.getCategories("adServer", "publisher",
+        final Future<Map<String, String>> result = jdbcApplicationSettings.getCategories("adServer", "publisher",
                 timeout);
 
         // then

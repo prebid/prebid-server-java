@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
@@ -37,7 +36,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.model.Category;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -102,9 +100,9 @@ public class CategoryMapper {
         final String publisher = translateCategories ? includeBrandCategory.getPublisher() : null;
         final List<RejectedBid> rejectedBids = new ArrayList<>();
 
-        return getBidderToBidCategory(bidderResponses, primaryAdServer, publisher, rejectedBids, timeout).future()
-                .map(bidIdToCategory -> resolveBidsCategories(bidderResponses, bidIdToCategory, bidRequest, targeting,
-                        withCategory, rejectedBids));
+        return makeBidderToBidCategory(bidderResponses, primaryAdServer, publisher, rejectedBids, timeout).future()
+                .map(bidIdToCategory -> resolveBidsCategoriesDurations(bidderResponses, bidIdToCategory, bidRequest,
+                        targeting, withCategory, rejectedBids));
     }
 
     /**
@@ -134,28 +132,28 @@ public class CategoryMapper {
      * Returns map with nested map, where external Map is relation between bidder to internal map,
      * which represents relation between bidId and category.
      */
-    private Promise<Map<String, Map<String, String>>> getBidderToBidCategory(List<BidderResponse> bidderResponses,
-                                                                             String primaryAdServer,
-                                                                             String publisher,
-                                                                             List<RejectedBid> rejectedBids,
-                                                                             Timeout timeout) {
-        final Promise<Map<String, Map<String, String>>> resultPromise = Promise.promise();
+    private Promise<Map<String, Map<String, String>>> makeBidderToBidCategory(List<BidderResponse> bidderResponses,
+                                                                              String primaryAdServer,
+                                                                              String publisher,
+                                                                              List<RejectedBid> rejectedBids,
+                                                                              Timeout timeout) {
+        final Promise<Map<String, Map<String, String>>> bidderToBidsCategoriesPromise = Promise.promise();
         final CompositeFuture compositeFuture = CompositeFuture.join(bidderResponses.stream()
                 .flatMap(bidderResponse -> makeFetchCategoryFutures(bidderResponse, primaryAdServer, publisher,
                         timeout))
                 .collect(Collectors.toList()));
-        compositeFuture
-                .setHandler(event -> collectCategoryFetchResults(compositeFuture, resultPromise, rejectedBids));
-        return resultPromise;
+        compositeFuture.setHandler(event -> collectCategoryFetchResults(compositeFuture, bidderToBidsCategoriesPromise,
+                rejectedBids));
+        return bidderToBidsCategoriesPromise;
     }
 
     /**
      * Creates stream of futures to query category for each bid in {@link BidderResponse}.
      */
-    private Stream<Future<Tuple3<String, String, String>>> makeFetchCategoryFutures(BidderResponse bidderResponse,
-                                                                                    String primaryAdServer,
-                                                                                    String publisher,
-                                                                                    Timeout timeout) {
+    private Stream<Future<CategoryBidContext>> makeFetchCategoryFutures(BidderResponse bidderResponse,
+                                                                        String primaryAdServer,
+                                                                        String publisher,
+                                                                        Timeout timeout) {
         final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
         final String bidder = bidderResponse.getBidder();
         return bidderBids.stream()
@@ -165,8 +163,8 @@ public class CategoryMapper {
     /**
      * Fetches category from external source or from bid.cat.
      */
-    private Future<Tuple3<String, String, String>> resolveCategory(String primaryAdServer, String publisher, Bid bid,
-                                                                   String bidder, Timeout timeout) {
+    private Future<CategoryBidContext> resolveCategory(String primaryAdServer, String publisher, Bid bid,
+                                                       String bidder, Timeout timeout) {
         final String bidId = bid.getId();
         final List<String> cat = ListUtils.emptyIfNull(bid.getCat());
         if (cat.size() > 1) {
@@ -178,55 +176,42 @@ public class CategoryMapper {
         final String firstCat = cat.get(0);
         return StringUtils.isNotBlank(primaryAdServer)
                 ? fetchCategory(primaryAdServer, publisher, bid.getId(), bidder, firstCat, timeout)
-                : Future.succeededFuture(Tuple3.of(bidId, bidder, firstCat));
+                : Future.succeededFuture(CategoryBidContext.builder().bidId(bidId).bidder(bidder).category(firstCat)
+                .build());
     }
 
     /**
-     * Queries external source for category.
+     * Queries external source for bid's category.
      */
-    private Future<Tuple3<String, String, String>> fetchCategory(String primaryAdServer,
-                                                                 String publisher,
-                                                                 String bidId,
-                                                                 String bidder,
-                                                                 String cat,
-                                                                 Timeout timeout) {
+    private Future<CategoryBidContext> fetchCategory(String primaryAdServer, String publisher, String bidId,
+                                                     String bidder, String cat, Timeout timeout) {
         return applicationSettings.getCategories(primaryAdServer, publisher, timeout)
                 .map(fetchedCategories -> findAndValidateCategory(fetchedCategories, cat, bidId, bidder,
                         primaryAdServer, publisher))
                 .recover(throwable -> wrapWithRejectedBidException(bidId, bidder, throwable))
-                .map(fetchedCategory -> Tuple3.of(bidId, bidder, fetchedCategory));
+                .map(fetchedCategory -> CategoryBidContext.builder().bidId(bidId).bidder(bidder)
+                        .category(fetchedCategory).build());
     }
 
     /**
      * Throws {@link RejectedBidException} when fetched category is null or empty.
      */
-    private static String findAndValidateCategory(Map<String, Category> fetchedCategories, String cat,
+    private static String findAndValidateCategory(Map<String, String> fetchedCategories, String cat,
                                                   String bidId, String bidder,
                                                   String primaryAdServer, String publisher) {
         if (MapUtils.isEmpty(fetchedCategories)) {
-            throw rejectNotFoundCategory(bidId, bidder, primaryAdServer, publisher);
+            throw new RejectedBidException(bidId, bidder,
+                    String.format("Category mapping data for primary ad server: '%s', publisher: '%s' not found",
+                            primaryAdServer, publisher));
         }
 
-        final Category category = fetchedCategories.get(cat);
-        if (category == null) {
-            throw rejectNotFoundCategory(bidId, bidder, primaryAdServer, publisher);
-        }
-
-        final String categoryId = category.getId();
-
+        final String categoryId = fetchedCategories.get(cat);
         if (StringUtils.isEmpty(categoryId)) {
-            throw rejectNotFoundCategory(bidId, bidder, primaryAdServer, publisher);
+            throw new RejectedBidException(bidId, bidder, String.format("Category mapping data for primary ad server:"
+                            + " '%s', publisher: '%s' does not contain category for cat = '%s'",
+                    primaryAdServer, publisher, cat));
         }
         return categoryId;
-    }
-
-    private static RejectedBidException rejectNotFoundCategory(String bidId,
-                                                               String bidder,
-                                                               String primaryAdServer,
-                                                               String publisher) {
-        return new RejectedBidException(bidId, bidder,
-                String.format("Category mapping storage for primary ad server: '%s', publisher: '%s' not found",
-                        primaryAdServer, publisher));
     }
 
     /**
@@ -255,11 +240,10 @@ public class CategoryMapper {
      */
     private static void addBidderBidCategory(Map<String, Map<String, String>> bidderToBidCategories,
                                              Object bidderToBidCategoryObject) {
-        @SuppressWarnings("unchecked") final Tuple3<String, String, String> bidderBidIdToCategory
-                = (Tuple3<String, String, String>) bidderToBidCategoryObject;
-        final String bidId = bidderBidIdToCategory.getLeft();
-        final String bidder = bidderBidIdToCategory.getMiddle();
-        final String category = bidderBidIdToCategory.getRight();
+        final CategoryBidContext categoryBidContext = (CategoryBidContext) bidderToBidCategoryObject;
+        final String bidId = categoryBidContext.getBidId();
+        final String bidder = categoryBidContext.getBidder();
+        final String category = categoryBidContext.getCategory();
         if (bidderToBidCategories.get(bidder) == null) {
             final Map<String, String> bidToCategory = new HashMap<>();
             bidToCategory.put(bidId, category);
@@ -278,14 +262,14 @@ public class CategoryMapper {
     }
 
     /**
-     * Creates duration categories and drops bids with duplicated categories.
+     * Creates duration dropping bids with duplicated categories.
      */
-    private CategoryMappingResult resolveBidsCategories(List<BidderResponse> bidderResponses,
-                                                        Map<String, Map<String, String>> bidderToBidCategory,
-                                                        BidRequest bidRequest,
-                                                        ExtRequestTargeting targeting,
-                                                        boolean withCategory,
-                                                        List<RejectedBid> rejectedBids) {
+    private CategoryMappingResult resolveBidsCategoriesDurations(List<BidderResponse> bidderResponses,
+                                                                 Map<String, Map<String, String>> bidderToBidCategory,
+                                                                 BidRequest bidRequest,
+                                                                 ExtRequestTargeting targeting,
+                                                                 boolean withCategory,
+                                                                 List<RejectedBid> rejectedBids) {
         final PriceGranularity priceGranularity = resolvePriceGranularity(targeting);
         final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec());
         Collections.sort(durations);
@@ -294,22 +278,25 @@ public class CategoryMapper {
                 ? extractDealTierPerImpAndBidder(bidRequest.getImp(), errors)
                 : Collections.emptyMap();
 
-        final Map<String, Set<CategoryBid>> categoryToDuplicatedCategoryBids = bidderResponses.stream()
+        final Map<String, Set<CategoryBidContext>> uniqueCatKeysToCategoryBids = bidderResponses.stream()
                 .flatMap(bidderResponse -> initiateCategoryBidsStream(bidderResponse, rejectedBids))
-                .map(categoryBid -> toCategoryBid(categoryBid, impIdToBiddersDealTear, durations,
-                        priceGranularity, bidderToBidCategory, withCategory, rejectedBids))
+                .map(categoryBidContext -> toCategoryBid(categoryBidContext, durations, priceGranularity, withCategory,
+                        impIdToBiddersDealTear, bidderToBidCategory, rejectedBids))
                 .filter(Objects::nonNull)
-                .collect(Collectors.groupingBy(CategoryBid::getCategoryUniqueKey,
+                .collect(Collectors.groupingBy(CategoryBidContext::getCategoryUniqueKey,
                         Collectors.mapping(Function.identity(), Collectors.toSet())));
 
-        rejectedBids.addAll(collectRejectedDuplicatedBids(categoryToDuplicatedCategoryBids));
+        rejectedBids.addAll(collectRejectedDuplicatedBids(uniqueCatKeysToCategoryBids));
         errors.addAll(rejectedBids.stream().map(RejectedBid::getErrorMessage).collect(Collectors.toList()));
         return CategoryMappingResult.of(
-                makeBidderToBidCategoryDuration(categoryToDuplicatedCategoryBids, rejectedBids),
+                makeBidderToBidCategoryDuration(uniqueCatKeysToCategoryBids, rejectedBids),
                 removeRejectedBids(bidderResponses, rejectedBids),
                 errors);
     }
 
+    /**
+     * Returns video price granularity if exists, otherwise common price granularity.
+     */
     private PriceGranularity resolvePriceGranularity(ExtRequestTargeting targeting) {
         final PriceGranularity videoPriceGranularity = parseVideoMediaTypePriceGranularity(targeting);
         return videoPriceGranularity != null
@@ -337,6 +324,9 @@ public class CategoryMapper {
         return extPriceGranularity != null ? PriceGranularity.createFromExtPriceGranularity(extPriceGranularity) : null;
     }
 
+    /**
+     * Determines if deals are supported for category durations.
+     */
     private boolean extractDealsSupported(BidRequest bidRequest) {
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
@@ -344,10 +334,16 @@ public class CategoryMapper {
                 && BooleanUtils.toBooleanDefaultIfNull(extRequestPrebid.getSupportdeals(), false);
     }
 
+    /**
+     * Extracts {@link DealTier}s from {@link List<Imp>} per imp per bidder.
+     */
     private Map<String, Map<String, DealTier>> extractDealTierPerImpAndBidder(List<Imp> imps, List<String> errors) {
         return imps.stream().collect(Collectors.toMap(Imp::getId, imp -> extractBidderToDealTiers(imp, errors)));
     }
 
+    /**
+     * Extracts {@link DealTier}ss from {@link Imp} per bidder.
+     */
     private Map<String, DealTier> extractBidderToDealTiers(Imp imp, List<String> errors) {
         final Map<String, ExtImpDealTier> biddersToImpExtDealTiers =
                 jacksonMapper.mapper().convertValue(imp.getExt(), EXT_IMP_DEAL_TIER_REFERENCE);
@@ -362,6 +358,9 @@ public class CategoryMapper {
                 .collect(Collectors.toMap(Tuple2::getLeft, tuple2 -> tuple2.getRight().getDealTier()));
     }
 
+    /**
+     * Normalizes {@link ExtImpDealTier} fields to correct format.
+     */
     private ExtImpDealTier normalizeExtDealTier(ExtImpDealTier extImpDealTier) {
         if (extImpDealTier == null) {
             return null;
@@ -377,10 +376,16 @@ public class CategoryMapper {
         return ExtImpDealTier.of(DealTier.of(normalizedPrefix, dealTier.getMinDealTier()));
     }
 
+    /**
+     * Returns true when bidder parameter is valid bidder name.
+     */
     private boolean isValidBidder(String bidder) {
         return ObjectUtils.notEqual(bidder, PREBID) && ObjectUtils.notEqual(bidder, CONTEXT);
     }
 
+    /**
+     * Returns true if {@link ExtImpDealTier} is not null and has valid {@link DealTier} fields.
+     */
     private boolean isValidExtDealTier(String bidder, ExtImpDealTier extImpDealTier, String impId,
                                        List<String> errors) {
         if (extImpDealTier == null || extImpDealTier.getDealTier() == null) {
@@ -419,16 +424,16 @@ public class CategoryMapper {
     }
 
     /**
-     * Creates {@link Stream} {@link CategoryBid} to fill it with
+     * Creates {@link Stream} {@link CategoryBidContext} to fill it with
      * initial data for further enriching and processing.
      */
-    private Stream<CategoryBid> initiateCategoryBidsStream(BidderResponse bidderResponse,
-                                                           List<RejectedBid> rejectedBids) {
+    private Stream<CategoryBidContext> initiateCategoryBidsStream(BidderResponse bidderResponse,
+                                                                  List<RejectedBid> rejectedBids) {
         final String bidder = bidderResponse.getBidder();
         final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
         return bidderBids.stream()
                 .filter(bidderBid -> isNotRejected(bidderBid.getBid().getId(), bidder, rejectedBids))
-                .map(bidderBid -> CategoryBid.builder().bidderBid(bidderBid)
+                .map(bidderBid -> CategoryBidContext.builder().bidderBid(bidderBid)
                         .bidId(bidderBid.getBid().getId()).bidder(bidder).build());
     }
 
@@ -443,27 +448,26 @@ public class CategoryMapper {
 
     /**
      * Resolves necessary information to resolve category duration and decide which bid should be dropped as duplicated
-     * and creates {@link CategoryBid} which is holder for bid category related information.
+     * and creates {@link CategoryBidContext} which is holder for bid category related information.
      */
-    private CategoryBid toCategoryBid(CategoryBid categoryBid,
-                                      Map<String, Map<String, DealTier>> impToBiddersDealTier,
-                                      List<Integer> durations,
-                                      PriceGranularity priceGranularity,
-                                      Map<String, Map<String, String>> bidderToBidCategory,
-                                      boolean withCategory,
-                                      List<RejectedBid> rejectedBids) {
-        final BidderBid bidderBid = categoryBid.getBidderBid();
-        final ExtBidPrebidVideo extBidPrebidVideo = bidderBid.getVideoInfo();
+    private CategoryBidContext toCategoryBid(CategoryBidContext categoryBidContext,
+                                             List<Integer> durations,
+                                             PriceGranularity priceGranularity,
+                                             boolean withCategory,
+                                             Map<String, Map<String, DealTier>> impToBiddersDealTier,
+                                             Map<String, Map<String, String>> bidderToBidCategory,
+                                             List<RejectedBid> rejectedBids) {
+        final BidderBid bidderBid = categoryBidContext.getBidderBid();
         final Bid bid = bidderBid.getBid();
-        final String bidder = categoryBid.getBidder();
-        final String bidId = bid.getId();
         final int duration;
+        final String bidder = categoryBidContext.getBidder();
         try {
-            duration = resolveDuration(durations, extBidPrebidVideo, bidId, bidder);
+            duration = resolveDuration(durations, bidderBid, bidder);
         } catch (RejectedBidException e) {
             rejectedBids.add(e.getBid());
             return null;
         }
+        final String bidId = bid.getId();
         final BigDecimal price = CpmRange.fromCpmAsNumber(bid.getPrice(), priceGranularity);
         final String rowPrice = CpmRange.format(price, priceGranularity.getPrecision());
         final String category = bidderToBidCategory.get(bidder).get(bidId);
@@ -475,7 +479,7 @@ public class CategoryMapper {
         final String categoryDuration = makeCategoryDuration(rowPrice, category, duration, dealPriority,
                 dealTier, withCategory);
 
-        return CategoryBid.builder()
+        return CategoryBidContext.builder()
                 .bidId(bidId)
                 .bidder(bidder)
                 .categoryDuration(categoryDuration)
@@ -487,8 +491,9 @@ public class CategoryMapper {
     /**
      * Resolves video duration for bid.
      */
-    private Integer resolveDuration(List<Integer> durations, ExtBidPrebidVideo extBidPrebidVideo,
-                                    String bidId, String bidder) {
+    private Integer resolveDuration(List<Integer> durations, BidderBid bidderBid, String bidder) {
+        final ExtBidPrebidVideo extBidPrebidVideo = bidderBid.getVideoInfo();
+        final String bidId = bidderBid.getBid().getId();
         final Integer extPrebidVideoDuration = extBidPrebidVideo != null
                 ? extBidPrebidVideo.getDuration()
                 : null;
@@ -536,11 +541,11 @@ public class CategoryMapper {
      * Collects all bids defined as duplicated to collection and creates {@link RejectedBid} with reason.
      */
     private Set<RejectedBid> collectRejectedDuplicatedBids(
-            Map<String, Set<CategoryBid>> categoryToDuplicatedCategoryBids) {
+            Map<String, Set<CategoryBidContext>> categoryToDuplicatedCategoryBids) {
         return categoryToDuplicatedCategoryBids.values().stream()
                 .filter(categoryBids -> categoryBids.size() > 1)
                 .flatMap(CategoryMapper::getDuplicatedForCategory)
-                .map(categoryBid -> RejectedBid.of(categoryBid.getBidId(), categoryBid.getBidder(),
+                .map(categoryBidContext -> RejectedBid.of(categoryBidContext.getBidId(), categoryBidContext.getBidder(),
                         "Bid was deduplicated"))
                 .collect(Collectors.toSet());
     }
@@ -549,13 +554,14 @@ public class CategoryMapper {
      * Creates mapping between bidder and its map of bidId to category duration.
      */
     private Map<String, Map<String, String>> makeBidderToBidCategoryDuration(
-            Map<String, Set<CategoryBid>> categoryToBidsWithBidder,
+            Map<String, Set<CategoryBidContext>> categoryToBidsWithBidder,
             List<RejectedBid> rejectedBids) {
         return categoryToBidsWithBidder.values().stream()
                 .flatMap(Collection::stream)
-                .filter(categoryBid -> isNotRejected(categoryBid.getBidId(), categoryBid.getBidder(), rejectedBids))
-                .collect(Collectors.groupingBy(CategoryBid::getBidder,
-                        Collectors.toMap(CategoryBid::getBidId, CategoryBid::getCategoryDuration)));
+                .filter(categoryBidContext -> isNotRejected(categoryBidContext.getBidId(),
+                        categoryBidContext.getBidder(), rejectedBids))
+                .collect(Collectors.groupingBy(CategoryBidContext::getBidder,
+                        Collectors.toMap(CategoryBidContext::getBidId, CategoryBidContext::getCategoryDuration)));
     }
 
     /**
@@ -591,13 +597,15 @@ public class CategoryMapper {
     }
 
     /**
-     * Creates {@link Stream<CategoryBid>} of duplicated bids, adding bids with price lower than bid with max price.
+     * Creates {@link Stream<CategoryBidContext>} of duplicated bids, adding bids with price lower than bid with max
+     * price.
      */
-    private static Stream<CategoryBid> getDuplicatedForCategory(Set<CategoryBid> categoryBids) {
-        final CategoryBid highestPriceBid = categoryBids.stream()
+    private static Stream<CategoryBidContext> getDuplicatedForCategory(Set<CategoryBidContext> categoryBidContexts) {
+        final CategoryBidContext highestPriceBid = categoryBidContexts.stream()
                 .reduce((bid1, bid2) -> bid1.getPrice().compareTo(bid2.getPrice()) > 0 ? bid1 : bid2)
                 .orElseThrow(() -> new PreBidException("Can't find bid with highest price."));
-        return categoryBids.stream().filter(categoryBid -> ObjectUtils.notEqual(highestPriceBid, categoryBid));
+        return categoryBidContexts.stream().filter(categoryBidContext -> ObjectUtils.notEqual(highestPriceBid,
+                categoryBidContext));
 
     }
 
@@ -644,10 +652,11 @@ public class CategoryMapper {
      */
     @Value
     @Builder(toBuilder = true)
-    private static class CategoryBid {
+    private static class CategoryBidContext {
         String bidder;
         String bidId;
         BidderBid bidderBid;
+        String category;
         String categoryDuration;
         String categoryUniqueKey;
         BigDecimal price;

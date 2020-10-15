@@ -29,7 +29,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.model.Category;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -88,11 +87,11 @@ public class CategoryMapperTest extends VertxTest {
                 asList(10, 15, 5), true, true);
         // first and third fetch will have conflict, so one bid should be filtered in result
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
-                Future.succeededFuture(singletonMap("cat2", Category.of("fetchedCat2"))),
+                Future.succeededFuture(singletonMap("cat1", "fetchedCatDup")),
+                Future.succeededFuture(singletonMap("cat2", "fetchedCat2")),
                 // id for cat 3 is the same as for cat1, that will cause duplication
-                Future.succeededFuture(singletonMap("cat3", Category.of("fetchedCat1"))),
-                Future.succeededFuture(singletonMap("cat4", Category.of("fetchedCat4"))));
+                Future.succeededFuture(singletonMap("cat3", "fetchedCatDup")),
+                Future.succeededFuture(singletonMap("cat4", "fetchedCat4")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -102,7 +101,7 @@ public class CategoryMapperTest extends VertxTest {
         assertThat(resultFuture.succeeded()).isTrue();
         final Map<String, Map<String, String>> expectedBidCategory = new HashMap<>();
         final Map<String, String> rubiconBidToCategory = new HashMap<>();
-        rubiconBidToCategory.put("1", "10.00_fetchedCat1_10s");
+        rubiconBidToCategory.put("1", "10.00_fetchedCatDup_10s");
         rubiconBidToCategory.put("2", "15.00_fetchedCat2_15s");
         expectedBidCategory.put("rubicon", rubiconBidToCategory);
         expectedBidCategory.put("otherBid", Collections.singletonMap("4", "15.00_fetchedCat4_5s"));
@@ -129,8 +128,8 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
-                Future.succeededFuture(singletonMap("cat2", Category.of("fetchedCat2"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
+                Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -225,7 +224,7 @@ public class CategoryMapperTest extends VertxTest {
                 asList(10, 15, 5), true, true);
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
@@ -246,7 +245,7 @@ public class CategoryMapperTest extends VertxTest {
                 asList(10, 15, 5), true, true);
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
@@ -268,7 +267,7 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
                 Future.failedFuture(new TimeoutException("Timeout")));
 
         // when
@@ -295,8 +294,8 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
-                Future.succeededFuture(singletonMap("cat2", Category.of("fetchedCat2"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
+                Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
@@ -322,8 +321,8 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
-                Future.succeededFuture(singletonMap("cat2", Category.of("fetchedCat2"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
+                Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
@@ -349,7 +348,7 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
                 Future.succeededFuture(null));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -360,8 +359,8 @@ public class CategoryMapperTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_fetchedCat1_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Category mapping storage"
-                        + " for primary ad server: 'freewheel', publisher: 'publisher' not found");
+                .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Category mapping data for"
+                        + " primary ad server: 'freewheel', publisher: 'publisher' not found");
     }
 
     @Test
@@ -380,7 +379,7 @@ public class CategoryMapperTest extends VertxTest {
                 .build();
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
@@ -403,8 +402,8 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
-                Future.succeededFuture(singletonMap("cat2", Category.of("fetchedCat2"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
+                Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
@@ -428,7 +427,7 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -452,8 +451,8 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
-                Future.succeededFuture(singletonMap("cat2", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
+                Future.succeededFuture(singletonMap("cat2", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -479,7 +478,7 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, false);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -505,8 +504,8 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), false, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))),
-                Future.succeededFuture(singletonMap("cat2", Category.of("fetchedCat2"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
+                Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -515,9 +514,9 @@ public class CategoryMapperTest extends VertxTest {
         // then
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories())
-                .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_10s")));
+                .isEqualTo(Collections.singletonMap("otherBid", Collections.singletonMap("2", "10.00_10s")));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated");
+                .containsOnly("Bid rejected [bidder: rubicon, bid ID: 1] with a reason: Bid was deduplicated");
     }
 
     @Test
@@ -529,7 +528,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -550,7 +549,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, false);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -571,7 +570,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -598,7 +597,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -629,7 +628,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -661,7 +660,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -693,7 +692,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -725,7 +724,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -761,7 +760,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -793,7 +792,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -828,7 +827,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -864,7 +863,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -898,7 +897,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
@@ -929,7 +928,7 @@ public class CategoryMapperTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", Category.of("fetchedCat1"))));
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,

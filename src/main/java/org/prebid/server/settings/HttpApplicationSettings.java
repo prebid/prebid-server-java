@@ -136,7 +136,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         final String url = StringUtils.isNotEmpty(publisher)
                 ? String.format("%s/%s/%s.json", categoryEndpoint, primaryAdServer, publisher)
                 : String.format("%s/%s.json", categoryEndpoint, primaryAdServer);
@@ -149,7 +149,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 .map(httpClientResponse -> processCategoryResponse(httpClientResponse, url));
     }
 
-    private Map<String, Category> processCategoryResponse(HttpClientResponse httpClientResponse, String url) {
+    private Map<String, String> processCategoryResponse(HttpClientResponse httpClientResponse, String url) {
         final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != 200) {
             throw makeFailedCategoryFetchException(url, String.format("Response status code is '%s'",
@@ -168,7 +168,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
             throw makeFailedCategoryFetchException(url, String.format("Failed to decode response body with error %s",
                     e.getMessage()));
         }
-        return categories;
+        return categories.entrySet().stream()
+                .filter(catToCategory -> catToCategory.getValue() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        catToCategory -> catToCategory.getValue().getId()));
     }
 
     private PreBidException makeFailedCategoryFetchException(String url, String reason) {

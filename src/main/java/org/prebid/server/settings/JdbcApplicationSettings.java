@@ -14,7 +14,6 @@ import org.prebid.server.settings.mapper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
@@ -134,7 +133,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         return Future.failedFuture(new PreBidException("Not supported"));
     }
 

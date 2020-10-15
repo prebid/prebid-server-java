@@ -3,7 +3,6 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -55,5 +54,5 @@ public interface ApplicationSettings {
     /**
      * Fetches video category
      */
-    Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout);
+    Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout);
 }

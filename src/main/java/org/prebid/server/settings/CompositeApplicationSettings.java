@@ -3,7 +3,6 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.model.TriFunction;
@@ -85,7 +84,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         return proxy.getCategories(primaryAdServer, publisher, timeout);
     }
 
@@ -133,7 +132,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         }
 
         @Override
-        public Future<Map<String, Category>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
             return applicationSettings.getCategories(primaryAdServer, publisher, timeout)
                     .recover(throwable -> next != null
                             ? next.getCategories(primaryAdServer, publisher, timeout)

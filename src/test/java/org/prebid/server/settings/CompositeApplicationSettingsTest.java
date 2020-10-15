@@ -10,7 +10,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -162,15 +161,15 @@ public class CompositeApplicationSettingsTest {
     public void getCategoriesShouldReturnResultFromFirstDelegateIfPresent() {
         // given
         given(delegate1.getCategories(anyString(), anyString(), any()))
-                .willReturn(Future.succeededFuture(singletonMap("iab", Category.of("id"))));
+                .willReturn(Future.succeededFuture(singletonMap("iab", "id")));
 
         // when
-        final Future<Map<String, Category>> future
+        final Future<Map<String, String>> future
                 = compositeApplicationSettings.getCategories("adServer", "publisher", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(singletonMap("iab", Category.of("id")));
+        assertThat(future.result()).isEqualTo(singletonMap("iab", "id"));
         verifyZeroInteractions(delegate2);
     }
 
@@ -181,15 +180,15 @@ public class CompositeApplicationSettingsTest {
                 .willReturn(Future.failedFuture(new PreBidException("error1")));
 
         given(delegate2.getCategories(anyString(), anyString(), any()))
-                .willReturn(Future.succeededFuture(singletonMap("iab", Category.of("id"))));
+                .willReturn(Future.succeededFuture(singletonMap("iab", "id")));
 
         // when
-        final Future<Map<String, Category>> future
+        final Future<Map<String, String>> future
                 = compositeApplicationSettings.getCategories("adServer", "publisher", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(singletonMap("iab", Category.of("id")));
+        assertThat(future.result()).isEqualTo(singletonMap("iab", "id"));
     }
 
     @Test
@@ -202,7 +201,7 @@ public class CompositeApplicationSettingsTest {
                 .willReturn(Future.failedFuture(new PreBidException("error2")));
 
         // when
-        final Future<Map<String, Category>> future
+        final Future<Map<String, String>> future
                 = compositeApplicationSettings.getCategories("adServer", "publisher", null);
 
         // then

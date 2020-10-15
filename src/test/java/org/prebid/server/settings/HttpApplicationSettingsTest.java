@@ -14,7 +14,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
@@ -371,7 +370,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}")));
 
         // when
-        final Future<Map<String, Category>> result
+        final Future<Map<String, String>> result
                 = httpApplicationSettings.getCategories("primaryAdServer", null, expiredTimeout);
 
         // then
@@ -388,7 +387,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, "{}")));
 
         // when
-        final Future<Map<String, Category>> result
+        final Future<Map<String, String>> result
                 = httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
 
         // then
@@ -405,7 +404,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
 
         // when
-        final Future<Map<String, Category>> result
+        final Future<Map<String, String>> result
                 = httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
 
         // then
@@ -422,7 +421,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{\"iab\": {\"id\": {}}}")));
 
         // when
-        final Future<Map<String, Category>> result
+        final Future<Map<String, String>> result
                 = httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
 
         // then
@@ -439,13 +438,13 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{\"iab\": {\"id\": \"id\"}}")));
 
         // when
-        final Future<Map<String, Category>> result
+        final Future<Map<String, String>> result
                 = httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
 
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).hasSize(1)
-                .containsEntry("iab", Category.of("id"));
+                .containsEntry("iab", "id");
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {

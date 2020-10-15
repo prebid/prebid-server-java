@@ -13,7 +13,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
-import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -260,11 +259,11 @@ public class FileApplicationSettingsTest extends VertxTest {
                 "ignore", "ignore", "ignore", jacksonMapper);
 
         // when
-        final Future<Map<String, Category>> result = applicationSettings.getCategories("iab", "1", null);
+        final Future<Map<String, String>> result = applicationSettings.getCategories("iab", "1", null);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(singletonMap("iab-1", Category.of("id")));
+        assertThat(result.result()).isEqualTo(singletonMap("iab-1", "id"));
     }
 
     @Test
@@ -285,11 +284,11 @@ public class FileApplicationSettingsTest extends VertxTest {
                 "ignore", "ignore", "ignore", jacksonMapper);
 
         // when
-        final Future<Map<String, Category>> result = applicationSettings.getCategories("iab", null, null);
+        final Future<Map<String, String>> result = applicationSettings.getCategories("iab", null, null);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(singletonMap("iab-1", Category.of("id")));
+        assertThat(result.result()).isEqualTo(singletonMap("iab-1", "id"));
     }
 
     @Test
@@ -310,7 +309,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                 "ignore", "ignore", "ignore", jacksonMapper);
 
         // when
-        final Future<Map<String, Category>> result = applicationSettings.getCategories("iab", "2", null);
+        final Future<Map<String, String>> result = applicationSettings.getCategories("iab", "2", null);
 
         // then
         assertThat(result.failed()).isTrue();
