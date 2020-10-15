@@ -24,6 +24,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
@@ -136,28 +137,34 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    Future<BidResponse> create(List<BidderResponse> bidderResponses,
+    Future<BidResponse> create(List<AuctionParticipation> auctionParticipations,
                                AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                boolean debugEnabled) {
 
         final long auctionTimestamp = auctionTimestamp(auctionContext);
+        final List<BidderResponse> bidderResponses = auctionParticipations.stream()
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .map(AuctionParticipation::getBidderResponse)
+                .collect(Collectors.toList());
 
         if (isEmptyBidderResponses(bidderResponses)) {
             final BidRequest bidRequest = auctionContext.getBidRequest();
+            final ExtBidResponse extBidResponse = toExtBidResponse(
+                    bidderResponses,
+                    auctionContext,
+                    CacheServiceResult.empty(),
+                    VideoStoredDataResult.empty(),
+                    auctionTimestamp,
+                    debugEnabled,
+                    null);
+
             return Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
                     .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
-                    .ext(mapper.mapper().valueToTree(toExtBidResponse(
-                            bidderResponses,
-                            auctionContext,
-                            CacheServiceResult.empty(),
-                            VideoStoredDataResult.empty(),
-                            auctionTimestamp,
-                            debugEnabled,
-                            null)))
+                    .ext(mapper.mapper().valueToTree(extBidResponse))
                     .build());
         }
 
