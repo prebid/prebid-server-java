@@ -246,6 +246,20 @@ For HTTP data source available next options:
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
 
+It is possible to specify default account configuration values that will be assumed if account config have them 
+unspecified or missing at all. Example:
+```yaml
+settings:  
+  default-account-config:
+    events-enabled: true
+    enforce-ccpa: true
+    gdpr: '{"enabled": true}'
+    analytics-sampling-factor: 1
+    default-integration: pbjs
+    analytics-config: '{"auction-events":{"amp":true}}'
+```
+See [application settings](application-settings.md) for full reference of available configuration parameters.
+
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
