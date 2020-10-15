@@ -1552,7 +1552,8 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(secondBid, CacheIdInfo.of("cacheId2", null)));
 
         // when
-        bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, false).result();
+        bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, cacheInfo, false)
+                .result();
 
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<List<Bid>> cacheBidArgumentCaptor
