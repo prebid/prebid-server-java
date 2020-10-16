@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -104,7 +105,8 @@ public class FileApplicationSettingsTest {
                         + "defaultIntegration: 'web',"
                         + "analyticsConfig: {"
                         + "auction-events: {amp: 'true'}"
-                        + "}"
+                        + "},"
+                        + "status: 'active'"
                         + "}"
                         + "]"));
 
@@ -140,6 +142,7 @@ public class FileApplicationSettingsTest {
                 .truncateTargetAttr(20)
                 .defaultIntegration("web")
                 .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
+                .status(AccountStatus.active)
                 .build());
     }
 

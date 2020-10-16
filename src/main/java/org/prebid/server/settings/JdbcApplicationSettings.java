@@ -14,6 +14,7 @@ import org.prebid.server.settings.mapper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
@@ -99,7 +100,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl,"
                         + " events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr,"
-                        + " default_integration, analytics_config FROM accounts_account where uuid = ? LIMIT 1",
+                        + " default_integration, analytics_config, status FROM accounts_account where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.builder()
                         .id(row.getString(0))
@@ -113,6 +114,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .truncateTargetAttr(row.getInteger(8))
                         .defaultIntegration(row.getString(9))
                         .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
+                        .status(toAccountStatus(row.getString(11)))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
@@ -157,6 +159,14 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         try {
             return source != null ? mapper.decodeValue(source, targetClass) : null;
         } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static AccountStatus toAccountStatus(String status) {
+        try {
+            return AccountStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }

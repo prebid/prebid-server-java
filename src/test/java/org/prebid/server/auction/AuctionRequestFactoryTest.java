@@ -26,7 +26,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
@@ -65,6 +64,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -91,6 +91,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
@@ -272,6 +273,32 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.cause())
                 .isInstanceOf(UnauthorizedAccountException.class)
                 .hasMessage("Unauthorized account id: absentId");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfAccountIsInactive() {
+        // given
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(Account.builder()
+                .id("accountId")
+                .status(AccountStatus.inactive)
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().id("accountId").build())
+                        .build())
+                .build();
+
+        givenBidRequest(bidRequest);
+
+        // when
+        final Future<AuctionContext> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isFailed();
+        assertThat(future.cause())
+                .isInstanceOf(UnauthorizedAccountException.class)
+                .hasMessage("Account accountId is inactive");
     }
 
     @Test
@@ -1624,7 +1651,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
         assertThat(auctionContextFuture.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
     }
 
@@ -1637,7 +1664,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
         assertThat(auctionContextFuture.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2app);
     }
 
@@ -1659,7 +1686,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
 
         final AuctionContext auctionContext = auctionContextFuture.result();
         assertThat(auctionContext.getBidRequest().getDevice()).isEqualTo(
