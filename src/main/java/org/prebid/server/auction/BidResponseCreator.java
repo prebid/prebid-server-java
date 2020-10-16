@@ -248,6 +248,7 @@ public class BidResponseCreator {
                                 cacheInfo,
                                 cacheResult,
                                 videoStoredDataResult,
+                                biddersToBidsCategories,
                                 eventsContext,
                                 auctionTimestamp,
                                 debugEnabled)));
@@ -677,6 +678,7 @@ public class BidResponseCreator {
                                       BidRequestCacheInfo cacheInfo,
                                       CacheServiceResult cacheResult,
                                       VideoStoredDataResult videoStoredDataResult,
+                                      Map<String, Map<String, String>> biddersToBidsCategories,
                                       EventsContext eventsContext,
                                       long auctionTimestamp,
                                       boolean debugEnabled) {
@@ -696,6 +698,7 @@ public class BidResponseCreator {
                         cacheInfo,
                         cacheResult.getCacheBids(),
                         videoStoredDataResult,
+                        biddersToBidsCategories,
                         account,
                         bidErrors,
                         eventsContext))
@@ -767,6 +770,7 @@ public class BidResponseCreator {
                               BidRequestCacheInfo cacheInfo,
                               Map<Bid, CacheIdInfo> cachedBids,
                               VideoStoredDataResult videoStoredDataResult,
+                              Map<String, Map<String, String>> biddersToBidsCategories,
                               Account account,
                               Map<String, List<ExtBidderError>> bidErrors,
                               EventsContext eventsContext) {
@@ -784,6 +788,7 @@ public class BidResponseCreator {
                         cacheInfo,
                         cachedBids,
                         videoStoredDataResult.getImpIdToStoredVideo(),
+                        getCategoryDurationFor(bidder, bidderBid, biddersToBidsCategories),
                         account,
                         eventsContext,
                         bidErrors))
@@ -795,6 +800,13 @@ public class BidResponseCreator {
                 .bid(bids)
                 .group(0) // prebid cannot support roadblocking
                 .build();
+    }
+
+    private String getCategoryDurationFor(String bidder, BidderBid bidderBid,
+                                          Map<String, Map<String, String>> biddersToBidsCategories) {
+        return MapUtils.isNotEmpty(biddersToBidsCategories)
+                ? biddersToBidsCategories.get(bidder).get(bidderBid.getBid().getId())
+                : null;
     }
 
     /**
@@ -809,6 +821,7 @@ public class BidResponseCreator {
                       BidRequestCacheInfo cacheInfo,
                       Map<Bid, CacheIdInfo> bidsWithCacheIds,
                       Map<String, Video> impIdToStoredVideo,
+                      String categoryDuration,
                       Account account,
                       EventsContext eventsContext,
                       Map<String, List<ExtBidderError>> bidErrors) {
@@ -846,7 +859,8 @@ public class BidResponseCreator {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(bidType, targeting, isApp,
                     bidRequest, account);
 
-            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
+            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId,
+                    categoryDuration);
         } else {
             targetingKeywords = null;
         }
