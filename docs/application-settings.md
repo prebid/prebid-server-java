@@ -23,6 +23,7 @@ There are two ways to configure application settings: database and file. This do
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `default-integration` - Default integration to assume.
 - `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
+- `status` - allows to mark account as `active` or `inactive`.
 
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
@@ -69,6 +70,7 @@ accounts:
     analytics-config:
       auction-events:
         amp: true
+    status: active
     gdpr:
       enabled: true
       integration-enabled:
@@ -311,7 +313,7 @@ where tcf_config column is json with next format
 
 Query used to get an account:
 ```
-SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config 
+SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, status 
 FROM accounts_account where uuid = ?
 LIMIT 1
 
