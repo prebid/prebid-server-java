@@ -642,7 +642,7 @@ public class SetuidHandlerTest extends VertxTest {
 
     private SetuidEvent captureSetuidEvent() {
         final ArgumentCaptor<SetuidEvent> setuidEventCaptor = ArgumentCaptor.forClass(SetuidEvent.class);
-        verify(analyticsReporter).processEvent(setuidEventCaptor.capture());
+        verify(analyticsReporter).processEvent(setuidEventCaptor.capture(), any());
         return setuidEventCaptor.getValue();
     }
 }

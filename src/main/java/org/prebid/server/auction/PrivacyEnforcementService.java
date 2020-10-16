@@ -61,6 +61,7 @@ public class PrivacyEnforcementService {
     private final TcfDefinerService tcfDefinerService;
     private final IpAddressHelper ipAddressHelper;
     private final Metrics metrics;
+    private final Integer gdprHostVendorId;
     private final boolean ccpaEnforce;
 
     public PrivacyEnforcementService(BidderCatalog bidderCatalog,
@@ -68,6 +69,7 @@ public class PrivacyEnforcementService {
                                      TcfDefinerService tcfDefinerService,
                                      IpAddressHelper ipAddressHelper,
                                      Metrics metrics,
+                                     Integer gdprHostVendorId,
                                      boolean ccpaEnforce) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -75,6 +77,7 @@ public class PrivacyEnforcementService {
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.metrics = Objects.requireNonNull(metrics);
+        this.gdprHostVendorId = gdprHostVendorId;
         this.ccpaEnforce = ccpaEnforce;
     }
 
@@ -89,12 +92,9 @@ public class PrivacyEnforcementService {
         final Geo geo = device != null ? device.getGeo() : null;
         final String country = geo != null ? geo.getCountry() : null;
 
-        if (isCoppaMaskingRequired(privacy)) {
-            return Future.succeededFuture(PrivacyContext.of(
-                    privacy, TcfContext.empty(), ipAddressHelper.maskIpv4(ipAddress)));
-        }
-
-        final String effectiveIpAddress = isLmtEnabled(device) ? ipAddressHelper.maskIpv4(ipAddress) : ipAddress;
+        final String effectiveIpAddress = isCoppaMaskingRequired(privacy) || isLmtEnabled(device)
+                ? ipAddressHelper.maskIpv4(ipAddress)
+                : ipAddress;
 
         return tcfDefinerService.resolveTcfContext(
                 privacy, country, effectiveIpAddress, account.getGdpr(), requestType, timeout)
@@ -165,6 +165,14 @@ public class PrivacyEnforcementService {
                 .map(gdprResult -> merge(ccpaResult, gdprResult));
     }
 
+    public Future<PrivacyEnforcementAction> resultForHostVendorId(TcfContext tcfContext) {
+        if (gdprHostVendorId == null) {
+            return Future.succeededFuture(PrivacyEnforcementAction.restrictAll());
+        }
+        return tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
+                .map(tcfResponse -> tcfResponse.getActions().get(gdprHostVendorId));
+    }
+
     private Map<String, BidderPrivacyResult> ccpaResult(BidRequest bidRequest,
                                                         Account account,
                                                         List<String> bidders,
@@ -186,8 +194,9 @@ public class PrivacyEnforcementService {
         return shouldEnforceCcpa && ccpa.isEnforced();
     }
 
-    private Map<String, BidderPrivacyResult> maskCcpa(
-            Set<String> biddersToMask, Device device, Map<String, User> bidderToUser) {
+    private Map<String, BidderPrivacyResult> maskCcpa(Set<String> biddersToMask,
+                                                      Device device,
+                                                      Map<String, User> bidderToUser) {
 
         return biddersToMask.stream()
                 .collect(Collectors.toMap(Function.identity(),
@@ -311,8 +320,8 @@ public class PrivacyEnforcementService {
         return ccpaEnforcedBidders;
     }
 
-    private Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(
-            TcfResponse<String> tcfResponse, Set<String> bidders) {
+    private Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(TcfResponse<String> tcfResponse,
+                                                                             Set<String> bidders) {
 
         final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getActions();
         return bidders.stream().collect(Collectors.toMap(Function.identity(), bidderNameToAction::get));

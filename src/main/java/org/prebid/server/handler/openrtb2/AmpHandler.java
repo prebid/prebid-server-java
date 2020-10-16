@@ -351,7 +351,8 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
 
         final AmpEvent ampEvent = ampEventBuilder.status(status).errors(errorMessages).build();
-        respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent);
+        final Boolean isBlockAnalytics = auctionContext != null ? auctionContext.getBlockAnalyticsReport() : null;
+        respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent, isBlockAnalytics);
 
         httpInteractionLogger.maybeLogOpenrtb2Amp(auctionContext, routingContext, status, body);
     }
@@ -370,7 +371,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, AmpEvent event) {
+                             MetricName metricRequestStatus, AmpEvent event, Boolean isBlockAnalytics) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -383,7 +384,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event);
+            analyticsReporter.processEvent(event, isBlockAnalytics);
         }
     }
 

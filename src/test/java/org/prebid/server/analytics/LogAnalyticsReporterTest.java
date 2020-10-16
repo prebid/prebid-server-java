@@ -14,10 +14,20 @@ public class LogAnalyticsReporterTest extends VertxTest {
     public void shouldLogEvent() {
         // dumb test to trigger coverage
         final LogAnalyticsReporter reporter = new LogAnalyticsReporter(jacksonMapper);
-        reporter.processEvent(AuctionEvent.builder().build());
-        reporter.processEvent(AmpEvent.builder().build());
-        reporter.processEvent(VideoEvent.builder().build());
-        reporter.processEvent(SetuidEvent.builder().build());
-        reporter.processEvent(CookieSyncEvent.builder().build());
+        reporter.processEvent(AuctionEvent.builder().build(), false);
+        reporter.processEvent(AmpEvent.builder().build(), false);
+        reporter.processEvent(VideoEvent.builder().build(), false);
+        reporter.processEvent(SetuidEvent.builder().build(), false);
+        reporter.processEvent(CookieSyncEvent.builder().build(), false);
+    }
+
+    @Test
+    public void shouldNotLogEvent() {
+        final LogAnalyticsReporter reporter = new LogAnalyticsReporter(jacksonMapper);
+        reporter.processEvent(AuctionEvent.builder().build(), true);
+        reporter.processEvent(AmpEvent.builder().build(), true);
+        reporter.processEvent(VideoEvent.builder().build(), true);
+        reporter.processEvent(SetuidEvent.builder().build(), true);
+        reporter.processEvent(CookieSyncEvent.builder().build(), true);
     }
 }

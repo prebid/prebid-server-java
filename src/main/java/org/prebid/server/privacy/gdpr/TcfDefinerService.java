@@ -73,13 +73,12 @@ public class TcfDefinerService {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public Future<TcfContext> resolveTcfContext(
-            Privacy privacy,
-            String country,
-            String ipAddress,
-            AccountGdprConfig accountGdprConfig,
-            MetricName requestType,
-            Timeout timeout) {
+    public Future<TcfContext> resolveTcfContext(Privacy privacy,
+                                                String country,
+                                                String ipAddress,
+                                                AccountGdprConfig accountGdprConfig,
+                                                MetricName requestType,
+                                                Timeout timeout) {
 
         if (!isGdprEnabled(accountGdprConfig, requestType)) {
             return Future.succeededFuture(TcfContext.empty());

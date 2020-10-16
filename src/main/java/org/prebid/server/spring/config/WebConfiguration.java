@@ -318,14 +318,13 @@ public class WebConfiguration {
             CoopSyncPriorities coopSyncPriorities,
             TcfDefinerService tcfDefinerService,
             PrivacyEnforcementService privacyEnforcementService,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService,
                 defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
     }
 

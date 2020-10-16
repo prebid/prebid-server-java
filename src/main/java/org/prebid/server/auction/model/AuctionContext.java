@@ -41,5 +41,7 @@ public class AuctionContext {
 
     PrivacyContext privacyContext;
 
+    Boolean blockAnalyticsReport;
+
     GeoInfo geoInfo;
 }

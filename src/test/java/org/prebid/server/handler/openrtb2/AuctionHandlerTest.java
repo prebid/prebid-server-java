@@ -682,7 +682,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     private AuctionEvent captureAuctionEvent() {
         final ArgumentCaptor<AuctionEvent> captor = ArgumentCaptor.forClass(AuctionEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture());
+        verify(analyticsReporter).processEvent(captor.capture(), any());
         return captor.getValue();
     }
 

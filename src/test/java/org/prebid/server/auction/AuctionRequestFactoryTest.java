@@ -45,6 +45,7 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -148,6 +149,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(PrivacyContext.of(
                         Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
                         TcfContext.empty())));
+        given(privacyEnforcementService.resultForHostVendorId(any()))
+                .willReturn(Future.succeededFuture(PrivacyEnforcementAction.allowAll()));
 
         factory = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -1668,6 +1671,21 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .geo(Geo.builder().country("ua").build())
                         .build());
         assertThat(auctionContext.getPrivacyContext()).isSameAs(privacyContext);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithRestrictedAnalytics() {
+        // given
+        givenValidBidRequest();
+
+        given(privacyEnforcementService.resultForHostVendorId(any()))
+                .willReturn(Future.succeededFuture(PrivacyEnforcementAction.restrictAll()));
+
+        // when
+        final AuctionContext auctionContext = factory.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(auctionContext.getBlockAnalyticsReport()).isTrue();
     }
 
     private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {

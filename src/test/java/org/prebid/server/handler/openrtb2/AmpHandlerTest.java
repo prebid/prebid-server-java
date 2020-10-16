@@ -784,7 +784,7 @@ public class AmpHandlerTest extends VertxTest {
 
     private AmpEvent captureAmpEvent() {
         final ArgumentCaptor<AmpEvent> captor = ArgumentCaptor.forClass(AmpEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture());
+        verify(analyticsReporter).processEvent(captor.capture(), any());
         return captor.getValue();
     }
 

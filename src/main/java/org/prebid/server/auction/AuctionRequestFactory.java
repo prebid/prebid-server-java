@@ -24,6 +24,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -83,8 +84,8 @@ public class AuctionRequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
-    public static final String WEB_CHANNEL = "web";
-    public static final String APP_CHANNEL = "app";
+    private static final String WEB_CHANNEL = "web";
+    private static final String APP_CHANNEL = "app";
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -201,17 +202,22 @@ public class AuctionRequestFactory {
         return accountFrom(bidRequest, timeout, routingContext)
                 .compose(account -> privacyEnforcementService.contextFromBidRequest(
                         bidRequest, account, requestTypeMetric, timeout)
-                        .map(privacyContext -> AuctionContext.builder()
+                        .compose(privacyContext -> privacyEnforcementService
+                                .resultForHostVendorId(privacyContext.getTcfContext())
+                                .map(hostPrivacyEnforcement -> Tuple2.of(hostPrivacyEnforcement, privacyContext)))
+
+                        .map(hostPrivacyToPrivacyContext -> AuctionContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
                                 .bidRequest(enrichBidRequestWithAccountAndPrivacyData(
-                                        bidRequest, account, privacyContext))
+                                        bidRequest, account, hostPrivacyToPrivacyContext.getRight()))
                                 .requestTypeMetric(requestTypeMetric)
                                 .timeout(timeout)
                                 .account(account)
                                 .prebidErrors(errors)
-                                .privacyContext(privacyContext)
-                                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                                .privacyContext(hostPrivacyToPrivacyContext.getRight())
+                                .blockAnalyticsReport(hostPrivacyToPrivacyContext.getLeft().isBlockAnalyticsReport())
+                                .geoInfo(hostPrivacyToPrivacyContext.getRight().getTcfContext().getGeoInfo())
                                 .build()));
     }
 

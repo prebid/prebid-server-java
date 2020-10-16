@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -40,12 +41,29 @@ public class CompositeAnalyticsReporterTest {
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
 
         // when
-        analyticsReporter.processEvent(event);
+        analyticsReporter.processEvent(event, false);
 
         // then
         verify(vertx, times(2)).runOnContext(any());
         assertThat(captureEvent(reporter1)).isSameAs(event);
         assertThat(captureEvent(reporter2)).isSameAs(event);
+    }
+
+    @Test
+    public void shouldNotPassEventToAllDelegatesWhenBlockAnalyticsIsTrue() {
+        // given
+        final String event = StringUtils.EMPTY;
+
+        final AnalyticsReporter reporter1 = mock(AnalyticsReporter.class);
+        final AnalyticsReporter reporter2 = mock(AnalyticsReporter.class);
+        final CompositeAnalyticsReporter analyticsReporter =
+                new CompositeAnalyticsReporter(asList(reporter1, reporter2), vertx);
+
+        // when
+        analyticsReporter.processEvent(event, true);
+
+        // then
+        verify(vertx, never()).runOnContext(any());
     }
 
     @SuppressWarnings("unchecked")
@@ -58,7 +76,7 @@ public class CompositeAnalyticsReporterTest {
 
     private static String captureEvent(AnalyticsReporter reporter) {
         final ArgumentCaptor<String> auctionEventCaptor = ArgumentCaptor.forClass(String.class);
-        verify(reporter).processEvent(auctionEventCaptor.capture());
+        verify(reporter).processEvent(auctionEventCaptor.capture(), any());
         return auctionEventCaptor.getValue();
     }
 }

@@ -181,13 +181,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
 
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status).errors(errorMessages).build();
-        respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent);
+        final Boolean isBlockAnalytics = auctionContext != null ? auctionContext.getBlockAnalyticsReport() : null;
+        respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent,
+                isBlockAnalytics);
 
         httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status, body);
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,
-                             MetricName metricRequestStatus, AuctionEvent event) {
+                             MetricName metricRequestStatus, AuctionEvent event, Boolean isBlockAnalytics) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -200,7 +202,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
-            analyticsReporter.processEvent(event);
+            analyticsReporter.processEvent(event, isBlockAnalytics);
         }
     }
 

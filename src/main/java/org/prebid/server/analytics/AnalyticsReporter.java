@@ -12,5 +12,5 @@ public interface AnalyticsReporter {
      * <p>
      * Implementation note: this method is executed on Vert.x event loop thread so it must never use blocking API.
      */
-    <T> void processEvent(T event);
+    <T> void processEvent(T event, Boolean isBlockAnalytics);
 }

@@ -65,7 +65,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final Set<String> activeBidders;
     private final TcfDefinerService tcfDefinerService;
     private final PrivacyEnforcementService privacyEnforcementService;
-    private final Integer gdprHostVendorId;
     private final boolean defaultCoopSync;
     private final List<Collection<String>> listOfCoopSyncBidders;
     private final AnalyticsReporter analyticsReporter;
@@ -80,7 +79,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                              BidderCatalog bidderCatalog,
                              TcfDefinerService tcfDefinerService,
                              PrivacyEnforcementService privacyEnforcementService,
-                             Integer gdprHostVendorId,
                              boolean defaultCoopSync,
                              List<Collection<String>> listOfCoopSyncBidders,
                              AnalyticsReporter analyticsReporter,
@@ -96,7 +94,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.activeBidders = activeBidders(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
-        this.gdprHostVendorId = gdprHostVendorId;
         this.defaultCoopSync = defaultCoopSync;
         this.listOfCoopSyncBidders = CollectionUtils.isNotEmpty(listOfCoopSyncBidders)
                 ? listOfCoopSyncBidders
@@ -120,7 +117,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
             final String message = "User has opted out";
             context.response().setStatusCode(status).setStatusMessage(message).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, message));
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, message), false);
             return;
         }
 
@@ -129,7 +126,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String message = "Request has no body";
             context.response().setStatusCode(status).setStatusMessage(message).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, message));
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, message), false);
             return;
         }
 
@@ -140,7 +137,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String message = "Request body cannot be parsed";
             context.response().setStatusCode(status).setStatusMessage(message).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, message));
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, message), false);
             logger.info(message, e);
             return;
         }
@@ -149,7 +146,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String message = "gdpr_consent is required if gdpr is 1";
             context.response().setStatusCode(status).setStatusMessage(message).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, message));
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, message), false);
             return;
         }
 
@@ -158,16 +155,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Set<String> biddersToSync = biddersToSync(cookieSyncRequest.getBidders(), coopSync, limit);
 
         final String requestAccount = cookieSyncRequest.getAccount();
-        final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
+        final CookieSyncEvent.CookieSyncEventBuilder cookieSyncEventBuilder = CookieSyncEvent.builder();
         accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
                         cookieSyncRequest, context.request(), account, timeout)
                         .map(privacyContext -> Tuple2.of(account, privacyContext)))
-                .map((Tuple2<Account, PrivacyContext> accountAndPrivacy) -> tcfDefinerService.resultForVendorIds(
-                        vendorIds, accountAndPrivacy.getRight().getTcfContext())
-                        .compose(this::handleVendorIdResult)
+                .compose((Tuple2<Account, PrivacyContext> accountAndPrivacy) -> privacyEnforcementService
+                        .resultForHostVendorId(accountAndPrivacy.getRight().getTcfContext())
+                        .compose(hostActions -> handleHostVendorIdResult(hostActions, cookieSyncEventBuilder))
                         .compose(ignored -> tcfDefinerService.resultForBidderNames(
                                 biddersToSync,
                                 accountAndPrivacy.getRight().getTcfContext(),
@@ -179,9 +176,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                 uidsCookie,
                                 biddersToSync,
                                 accountAndPrivacy.getRight().getPrivacy(),
+                                cookieSyncEventBuilder,
                                 limit))
                         .otherwise(ignored -> handleTcfError(
-                                context, uidsCookie, biddersToSync, accountAndPrivacy.getRight().getPrivacy(), limit)));
+                                context, uidsCookie, biddersToSync, accountAndPrivacy.getRight().getPrivacy(),
+                                cookieSyncEventBuilder, limit)));
     }
 
     private static boolean gdprParamsNotConsistent(CookieSyncRequest request) {
@@ -253,18 +252,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return bidderCatalog.isAlias(bidder) ? bidderCatalog.nameByAlias(bidder) : bidder;
     }
 
-    private Future<Void> handleVendorIdResult(TcfResponse<Integer> tcfResponse) {
+    private Future<Void> handleHostVendorIdResult(PrivacyEnforcementAction hostActions,
+                                                  CookieSyncEvent.CookieSyncEventBuilder cookieSyncEventBuilder) {
+        final boolean isBlockPixelSync = hostActions == null || hostActions.isBlockPixelSync();
+        final boolean isBlockAnalytics = hostActions == null || hostActions.isBlockAnalyticsReport();
 
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getActions();
-        final PrivacyEnforcementAction hostActions = vendorIdToAction != null
-                ? vendorIdToAction.get(gdprHostVendorId)
-                : null;
+        cookieSyncEventBuilder.blockAnalytics(isBlockAnalytics);
 
-        if (hostActions == null || hostActions.isBlockPixelSync()) {
-            return Future.failedFuture("host vendor should be allowed by TCF verification");
-        }
-
-        return Future.succeededFuture();
+        return isBlockPixelSync
+                ? Future.failedFuture("host vendor should be allowed by TCF verification")
+                : Future.succeededFuture();
     }
 
     /**
@@ -276,6 +273,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                          UidsCookie uidsCookie,
                                          Set<String> biddersToSync,
                                          Privacy privacy,
+                                         CookieSyncEvent.CookieSyncEventBuilder cookieSyncEventBuilder,
                                          Integer limit) {
 
         final Set<String> ccpaEnforcedBidders = extractCcpaEnforcedBidders(account, biddersToSync, privacy);
@@ -289,7 +287,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                 || bidderNameToAction.get(bidder).isBlockPixelSync())
                 .collect(Collectors.toSet());
 
-        respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByTcf, ccpaEnforcedBidders, limit);
+        respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByTcf, ccpaEnforcedBidders,
+                cookieSyncEventBuilder, limit);
 
         return null;
     }
@@ -298,9 +297,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                 UidsCookie uidsCookie,
                                 Set<String> biddersToSync,
                                 Privacy privacy,
+                                CookieSyncEvent.CookieSyncEventBuilder cookieSyncEventBuilder,
                                 Integer limit) {
 
-        respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, Collections.emptySet(), limit);
+        respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, Collections.emptySet(),
+                cookieSyncEventBuilder, limit);
 
         return null;
     }
@@ -314,6 +315,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                              Collection<String> bidders,
                              Set<String> biddersRejectedByTcf,
                              Set<String> biddersRejectedByCcpa,
+                             CookieSyncEvent.CookieSyncEventBuilder eventBuilder,
                              Integer limit) {
 
         updateCookieSyncTcfMetrics(bidders, biddersRejectedByTcf);
@@ -346,10 +348,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                 .end(body);
 
-        analyticsReporter.processEvent(CookieSyncEvent.builder()
+        final CookieSyncEvent cookieSyncEvent = eventBuilder
                 .status(HttpResponseStatus.OK.code())
                 .bidderStatus(updatedBidderStatuses)
-                .build());
+                .build();
+        final Boolean isBlockAnalytics = cookieSyncEvent.getBlockAnalytics();
+        analyticsReporter.processEvent(cookieSyncEvent, isBlockAnalytics);
     }
 
     private Set<String> extractCcpaEnforcedBidders(Account account, Collection<String> biddersToSync, Privacy privacy) {

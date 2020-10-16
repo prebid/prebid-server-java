@@ -28,7 +28,7 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     }
 
     @Override
-    public <T> void processEvent(T event) {
+    public <T> void processEvent(T event, Boolean isBlockAnalytics) {
         final String type;
         if (event instanceof AuctionEvent) {
             type = "/openrtb2/auction";

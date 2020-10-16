@@ -13,6 +13,7 @@ import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -135,11 +136,13 @@ public class VideoHandler implements Handler<RoutingContext> {
             }
         }
         final VideoEvent videoEvent = videoEventBuilder.status(status).errors(errorMessages).build();
-        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent);
+        final AuctionContext auctionContext = videoEvent.getAuctionContext();
+        final Boolean isBlockAnalytics = auctionContext != null ? auctionContext.getBlockAnalyticsReport() : null;
+        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent, isBlockAnalytics);
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, VideoEvent event) {
+                             MetricName metricRequestStatus, VideoEvent event, Boolean isBlockAnalytics) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -152,7 +155,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event);
+            analyticsReporter.processEvent(event, isBlockAnalytics);
         }
     }
 

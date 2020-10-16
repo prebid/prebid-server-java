@@ -129,7 +129,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         .integration(eventRequest.getIntegration())
                         .httpContext(HttpContext.from(context))
                         .build();
-                analyticsReporter.processEvent(notificationEvent);
+                analyticsReporter.processEvent(notificationEvent, false);
 
                 respondWithOkStatus(context, eventRequest.getFormat() == EventRequest.Format.image);
             } else {

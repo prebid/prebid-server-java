@@ -91,7 +91,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
             respondWith(context, status, null);
             metrics.updateUserSyncOptoutMetric();
-            analyticsReporter.processEvent(SetuidEvent.error(status));
+            analyticsReporter.processEvent(SetuidEvent.error(status), false);
             return;
         }
 
@@ -102,7 +102,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             final String body = "\"bidder\" query param is ";
             respondWith(context, status, body + (isCookieNameBlank ? "required" : "invalid"));
             metrics.updateUserSyncBadRequestMetric();
-            analyticsReporter.processEvent(SetuidEvent.error(status));
+            analyticsReporter.processEvent(SetuidEvent.error(status), false);
             return;
         }
 
@@ -125,30 +125,32 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .otherwise(Account.empty(accountId));
     }
 
-    private void handleResult(AsyncResult<TcfResponse<Integer>> asyncResult, RoutingContext context,
-                              UidsCookie uidsCookie, String bidder) {
-        if (asyncResult.failed()) {
-            respondWithError(context, bidder, asyncResult.cause());
+    private void handleResult(AsyncResult<TcfResponse<Integer>> hostVendorTcfResponse,
+                              RoutingContext context,
+                              UidsCookie uidsCookie,
+                              String bidder) {
+        if (hostVendorTcfResponse.failed()) {
+            respondWithError(context, bidder, hostVendorTcfResponse.cause());
         } else {
             // allow cookie only if user is not in GDPR scope or vendor passed GDPR check
-            final TcfResponse<Integer> tcfResponse = asyncResult.result();
+            final TcfResponse<Integer> tcfResponse = hostVendorTcfResponse.result();
 
             final boolean notInGdprScope = BooleanUtils.isFalse(tcfResponse.getUserInGdprScope());
 
             final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getActions();
-            final PrivacyEnforcementAction privacyEnforcementAction = vendorIdToAction != null
+            final PrivacyEnforcementAction hostPrivacyAction = vendorIdToAction != null
                     ? vendorIdToAction.get(gdprHostVendorId)
                     : null;
-            final boolean blockPixelSync = privacyEnforcementAction == null
-                    || privacyEnforcementAction.isBlockPixelSync();
+            final boolean blockPixelSync = hostPrivacyAction == null || hostPrivacyAction.isBlockPixelSync();
+            final boolean isBlockAnalytics = hostPrivacyAction == null || hostPrivacyAction.isBlockAnalyticsReport();
 
             final boolean allowedCookie = notInGdprScope || !blockPixelSync;
 
             if (allowedCookie) {
-                respondWithCookie(context, bidder, uidsCookie);
+                respondWithCookie(context, bidder, uidsCookie, isBlockAnalytics);
             } else {
                 respondWithoutCookie(context, HttpResponseStatus.OK.code(),
-                        "The gdpr_consent param prevents cookies from being saved", bidder);
+                        "The gdpr_consent param prevents cookies from being saved", bidder, isBlockAnalytics);
             }
         }
     }
@@ -166,16 +168,18 @@ public class SetuidHandler implements Handler<RoutingContext> {
             logger.warn(body, exception);
         }
 
-        respondWithoutCookie(context, status, body, bidder);
+        respondWithoutCookie(context, status, body, bidder, false);
     }
 
-    private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {
+    private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder,
+                                      Boolean isBlockAnalytics) {
         respondWith(context, status, body);
         metrics.updateUserSyncTcfBlockedMetric(bidder);
-        analyticsReporter.processEvent(SetuidEvent.error(status));
+        analyticsReporter.processEvent(SetuidEvent.error(status), isBlockAnalytics);
     }
 
-    private void respondWithCookie(RoutingContext context, String bidder, UidsCookie uidsCookie) {
+    private void respondWithCookie(RoutingContext context, String bidder, UidsCookie uidsCookie,
+                                   boolean isBlockAnalytics) {
         final String uid = context.request().getParam(UID_PARAM);
         final UidsCookie updatedUidsCookie;
         boolean successfullyUpdated = false;
@@ -210,7 +214,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .bidder(bidder)
                 .uid(uid)
                 .success(successfullyUpdated)
-                .build());
+                .build(), isBlockAnalytics);
     }
 
     private void addCookie(RoutingContext context, Cookie cookie) {

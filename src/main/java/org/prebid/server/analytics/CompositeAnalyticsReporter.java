@@ -1,6 +1,7 @@
 package org.prebid.server.analytics;
 
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.BooleanUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -19,9 +20,11 @@ public class CompositeAnalyticsReporter implements AnalyticsReporter {
     }
 
     @Override
-    public <T> void processEvent(T event) {
-        for (final AnalyticsReporter reporter : delegates) {
-            vertx.runOnContext(ignored -> reporter.processEvent(event));
+    public <T> void processEvent(T event, Boolean isBlockAnalytics) {
+        if (BooleanUtils.isNotTrue(isBlockAnalytics)) {
+            for (final AnalyticsReporter reporter : delegates) {
+                vertx.runOnContext(ignored -> reporter.processEvent(event, isBlockAnalytics));
+            }
         }
     }
 }
