@@ -6,9 +6,11 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -37,19 +39,18 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpKrushmedia>> KRUSHMEDIA_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpKrushmedia>>() {
             };
+    private static final String URI_ACCOUNT_ID_MACRO = "{{AccountID}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
     public KrushmediaBidder(String endpointUrl, JacksonMapper mapper) {
-
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-
         final List<BidderError> errors = new ArrayList<>();
 
         final ExtImpKrushmedia extImpKrushmedia;
@@ -58,12 +59,13 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
         try {
             extImpKrushmedia = parseImpExt(request.getImp().get(0));
             url = resolveEndpoint(extImpKrushmedia.getAccountId());
-        } catch (Exception e) {
+        } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
 
         final BidRequest outgoingRequest = request.toBuilder()
-                .imp(resolveUpdatedImpList(request.getImp())).build();
+                .imp(removeFirstImpExt(request.getImp()))
+                .build();
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -77,43 +79,41 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpKrushmedia parseImpExt(Imp imp) {
-
         try {
             return mapper.mapper().convertValue(imp.getExt(), KRUSHMEDIA_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Error while unmarshaling bidder extension");
+            throw new PreBidException("Error while unmarshalling bidder extension");
         }
     }
 
     private String resolveEndpoint(String accountId) {
-
-        return HttpUtil.validateUrl(endpointUrl.replace("{{AccountID}}", accountId));
+        return endpointUrl.replace(URI_ACCOUNT_ID_MACRO, accountId);
     }
 
-    private static List<Imp> resolveUpdatedImpList(List<Imp> imps) {
+    private static List<Imp> removeFirstImpExt(List<Imp> imps) {
         return IntStream.range(0, imps.size())
                 .mapToObj(impIndex -> impIndex == 0
-                        ? imps.get(impIndex).toBuilder().ext(null).build() : imps.get(impIndex))
+                        ? imps.get(impIndex).toBuilder().ext(null).build()
+                        : imps.get(impIndex))
                 .collect(Collectors.toList());
     }
 
     private MultiMap resolveHeaders(Device device) {
-
         final MultiMap headers = HttpUtil.headers();
         headers.add("X-Openrtb-Version", "2.5");
 
         if (device != null) {
-            if (StringUtils.isNotEmpty(device.getUa())) {
+            if (StringUtils.isNotBlank(device.getUa())) {
                 headers.add("User-Agent", device.getUa());
             }
-            if (StringUtils.isNotEmpty(device.getIp())) {
+            if (StringUtils.isNotBlank(device.getIp())) {
                 headers.add("X-Forwarded-For", device.getIp());
             }
-            if (StringUtils.isNotEmpty(device.getLanguage())) {
+            if (StringUtils.isNotBlank(device.getLanguage())) {
                 headers.add("Accept-Language", device.getLanguage());
             }
             if (device.getDnt() != null) {
-                headers.add("Accept-Language", device.getDnt().toString());
+                headers.add("Dnt", device.getDnt().toString());
             }
         }
 
@@ -122,7 +122,6 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.empty();
@@ -137,25 +136,22 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
 
-        return bidResponse.getSeatbid()
-                .get(0).getBid()
-                .stream()
+        return firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
     protected BidType getBidType(String impId, List<Imp> imps) {
-
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getVideo() != null) {

@@ -25,19 +25,24 @@ public class KrushmediaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromKrushmedia() throws IOException, JSONException {
         // given
-        // Logicad bid response for imp
+        // Krushmedia bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/krushmedia-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/krushmedia/test-logicad-bid-request.json")))
+                .withHeader("User-Agent", equalToIgnoreCase("test-user-agent"))
+                .withHeader("X-Forwarded-For", equalToIgnoreCase("123.123.123.123"))
+                .withHeader("Accept-Language", equalToIgnoreCase("en"))
+                .withHeader("Accept-Language", equalToIgnoreCase("en"))
+                .withHeader("Dnt", equalToIgnoreCase("0"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/krushmedia/test-krushmedia-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/krushmedia/test-logicad-bid-response.json"))));
+                        jsonFrom("openrtb2/krushmedia/test-krushmedia-bid-response.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/krushmedia/test-cache-logicad-request.json")))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/krushmedia/test-cache-krushmedia-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/krushmedia/test-cache-logicad-response.json"))));
+                        jsonFrom("openrtb2/krushmedia/test-cache-krushmedia-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -47,17 +52,14 @@ public class KrushmediaTest extends IntegrationTest {
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"krushmedia":"KM-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImtydXNobWVkaWEiOiJLTS1VSUQifX0=")
-                .body(jsonFrom("openrtb2/krushmedia/test-auction-logicad-request.json"))
+                .body(jsonFrom("openrtb2/krushmedia/test-auction-krushmedia-request.json"))
                 .post("/openrtb2/auction");
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/krushmedia/test-auction-logicad-response.json",
+                "openrtb2/krushmedia/test-auction-krushmedia-response.json",
                 response, singletonList("krushmedia"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
-
-
-

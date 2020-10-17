@@ -3,7 +3,6 @@ package org.prebid.server.bidder.krushmedia;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
@@ -22,6 +21,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.krushmedia.ExtImpKrushmedia;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -54,64 +54,45 @@ public class KrushmediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = krushmediaBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Error while unmarshaling bidder extension");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Error while unmarshalling bidder extension");
     }
 
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build()));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = krushmediaBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.com/prebid/bid&key=accountId");
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://test.com/prebid/bid&key=accountId");
     }
 
     @Test
-    public void makeHttpRequestsShouldNotNativeRequestIfAlreadyExists() {
+    public void shouldRemoveFirsImpExt() {
         // given
-        String nativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
-                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,"
-                + "\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\","
-                + "\"image/png\"]}},{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
-
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().build())
-                        .xNative(Native.builder().request(nativeRequest).build()));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = krushmediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        String expectedNativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
-                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":"
-                + "{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},"
-                + "{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getXNative)
-                .extracting(Native::getRequest)
-                .containsOnly(expectedNativeRequest);
+                .extracting(Imp::getExt)
+                .containsNull();
     }
 
     @Test
@@ -174,6 +155,38 @@ public class KrushmediaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyBidderBidsFromFirstSeatBid() throws JsonProcessingException {
+        // given
+        final SeatBid zeroSeatBid = SeatBid.builder()
+                .bid(singletonList(Bid.builder()
+                        .impid("123")
+                        .build()))
+                .build();
+
+        final SeatBid firstSeatBid = SeatBid.builder()
+                .bid(singletonList(Bid.builder()
+                        .impid("456")
+                        .build()))
+                .build();
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(Arrays.asList(zeroSeatBid, firstSeatBid))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = krushmediaBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
     }
 
     @Test

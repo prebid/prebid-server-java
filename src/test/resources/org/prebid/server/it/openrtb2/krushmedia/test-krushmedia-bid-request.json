@@ -1,19 +1,9 @@
 {
-  "id": "tid",
+  "id": "some-request-id",
   "imp": [
     {
       "id": "testimpid",
       "banner": {
-        "format": [
-          {
-            "w": 320,
-            "h": 250
-          },
-          {
-            "w": 320,
-            "h": 300
-          }
-        ],
         "w": 320,
         "h": 250
       },
@@ -31,18 +21,16 @@
     }
   },
   "device": {
-    "ua": "userAgent",
-    "dnt": 2,
-    "ip": "193.168.244.1",
-    "pxratio": 4.2,
+    "ua": "test-user-agent",
+    "ip": "123.123.123.123",
     "language": "en",
-    "ifa": "ifaId"
+    "dnt": 0
   },
   "user": {
     "buyeruid": "KM-UID"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": 1000,
   "cur": [
     "USD"
   ],
