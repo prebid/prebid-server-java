@@ -112,7 +112,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2");
     }
 
     @Test
@@ -130,7 +130,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.1");
+                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.2");
     }
 
     @Test
@@ -148,7 +148,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1&tp=http%3A%2F%2Fwww.example.com");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&tp=http%3A%2F%2Fwww.example.com");
     }
 
     @Test
@@ -169,7 +169,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1&size=300%C3%97500");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&sizes=300x500");
     }
 
     @Test
