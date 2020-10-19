@@ -118,12 +118,14 @@ public class AdgenerationBidder implements Bidder<Void> {
             uriBuilder.addParameter("sizes", adSize);
         }
 
-        if (site != null && StringUtils.isNotBlank(site.getPage())) {
-            uriBuilder.addParameter("tp", site.getPage());
+        final String page = site != null ? site.getPage() : null;
+        if (StringUtils.isNotBlank(page)) {
+            uriBuilder.addParameter("tp", page);
         }
 
-        if (source != null && StringUtils.isNotBlank(source.getTid())) {
-            uriBuilder.addParameter("transactionid", source.getTid());
+        final String transactionid = source != null ? source.getTid() : null;
+        if (StringUtils.isNotBlank(transactionid)) {
+            uriBuilder.addParameter("transactionid", transactionid);
         }
 
         return uriBuilder.toString();
@@ -155,8 +157,10 @@ public class AdgenerationBidder implements Bidder<Void> {
 
     private MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
-        if (device != null && StringUtils.isNotBlank(device.getUa())) {
-            headers.add("User-Agent", device.getUa());
+
+        final String userAgent = device != null ? device.getUa() : null;
+        if (StringUtils.isNotBlank(userAgent)) {
+            headers.add("User-Agent", userAgent);
         }
         return headers;
     }
