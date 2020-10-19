@@ -22,8 +22,8 @@
                 "hb_pb_smartyads": "0.00",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_smartyads": "{{ cache.host }}",
-                "hb_cache_path": "/cache",
-                "hb_cache_path_smartyads": "/cache"
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_smartyads": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {

@@ -14,6 +14,5 @@ public class ExtImpSmartyAds {
     @JsonProperty("sourceid")
     String sourceId;
 
-    @JsonProperty("host")
     String host;
 }

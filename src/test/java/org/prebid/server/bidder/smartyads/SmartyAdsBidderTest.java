@@ -3,7 +3,6 @@ package org.prebid.server.bidder.smartyads;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
@@ -22,6 +21,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smartyads.ExtImpSmartyAds;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -55,9 +56,8 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
 
@@ -69,11 +69,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build()));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder);
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
@@ -86,34 +82,26 @@ public class SmartyAdsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotNativeRequestIfAlreadyExists() {
+    public void shouldRemoveAllImpsExts() {
         // given
-        String nativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
-                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,"
-                + "\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\","
-                + "\"image/png\"]}},{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
+        final Imp firstImp = givenImp(impBuilder -> impBuilder.id("346"));
+        final Imp secondImp = givenImp(impBuilder -> impBuilder.id("789"));
 
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().build())
-                        .xNative(Native.builder().request(nativeRequest).build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(Arrays.asList(firstImp, secondImp)).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
 
         // then
-        String expectedNativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
-                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":"
-                + "{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},"
-                + "{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getXNative)
-                .extracting(Native::getRequest)
-                .containsOnly(expectedNativeRequest);
+                .containsOnly(updateImpExtWithNull(firstImp), updateImpExtWithNull(secondImp));
+    }
+
+    private Imp updateImpExtWithNull(Imp imp) {
+        return imp.toBuilder().ext(null).build();
     }
 
     @Test
@@ -176,6 +164,37 @@ public class SmartyAdsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldWorkWithOnlyFirstSeatBid() throws JsonProcessingException {
+        // given
+        final SeatBid firstSeat = SeatBid.builder()
+                .bid(Collections.singletonList(Bid.builder().impid("456").build()))
+                .build();
+
+        final SeatBid secondSeat = SeatBid.builder()
+                .bid(Collections.singletonList(Bid.builder().impid("789").build()))
+                .build();
+
+        final BidResponse bidResponse = BidResponse.builder()
+                .cur("USD")
+                .seatbid(Arrays.asList(firstSeat, secondSeat))
+                .build();
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("456").build(), banner, "USD"));
     }
 
     @Test
@@ -250,7 +269,8 @@ public class SmartyAdsBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                .banner(Banner.builder().id("banner_id").build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpSmartyAds.of("testAccountId", "testSourceId", "testHost")))))
                 .build();
     }
@@ -258,7 +278,8 @@ public class SmartyAdsBidderTest extends VertxTest {
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
     }
