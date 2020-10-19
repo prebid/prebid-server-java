@@ -1161,7 +1161,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .returnCreativeBids(false) // this will cause erasing of bid.adm
                 .build();
 
-        givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of("cacheId", null)));
+        givenCacheServiceResult(singletonMap(bid, CacheInfo.of("cacheId", null, null, null)));
 
         // when
         final BidResponse bidResponse =
@@ -1566,7 +1566,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(secondBid, banner, null)), 99));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
-        givenCacheServiceResult(singletonMap(secondBid, CacheIdInfo.of("cacheId2", null)));
+        givenCacheServiceResult(singletonMap(secondBid, CacheInfo.of("cacheId2", null, null, null)));
 
         // when
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, false).result();
