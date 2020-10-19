@@ -487,12 +487,10 @@ public class ServiceConfiguration {
             TcfDefinerService tcfDefinerService,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${ccpa.enforce}") boolean ccpaEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, hostVendorId,
-                ccpaEnforce);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce);
     }
 
     @Bean

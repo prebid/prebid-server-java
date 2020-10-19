@@ -1,8 +1,10 @@
 package org.prebid.server.analytics;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -10,10 +12,17 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
+import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -22,45 +31,84 @@ import static org.mockito.Mockito.verify;
 
 public class CompositeAnalyticsReporterTest {
 
+    private static final String EVENT = StringUtils.EMPTY;
+    private static final Integer FIRST_REPORTER_ID = 1;
+    private static final Integer SECOND_REPORTER_ID = 2;
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Vertx vertx;
+    @Mock
+    private PrivacyEnforcementService privacyEnforcementService;
+
+    private AnalyticsReporter firstReporter;
+
+    private AnalyticsReporter secondReporter;
+
+    private CompositeAnalyticsReporter target;
+
+    @Before
+    public void setUp() {
+        firstReporter = mock(AnalyticsReporter.class);
+        given(firstReporter.reporterVendorId()).willReturn(FIRST_REPORTER_ID);
+
+        secondReporter = mock(AnalyticsReporter.class);
+        given(secondReporter.reporterVendorId()).willReturn(SECOND_REPORTER_ID);
+
+        target = new CompositeAnalyticsReporter(asList(firstReporter, secondReporter), vertx,
+                privacyEnforcementService);
+    }
 
     @Test
     public void shouldPassEventToAllDelegates() {
         // given
-        final String event = StringUtils.EMPTY;
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
 
-        final AnalyticsReporter reporter1 = mock(AnalyticsReporter.class);
-        final AnalyticsReporter reporter2 = mock(AnalyticsReporter.class);
-        final CompositeAnalyticsReporter analyticsReporter =
-                new CompositeAnalyticsReporter(asList(reporter1, reporter2), vertx);
+        // when
+        target.processEvent(EVENT);
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+        assertThat(captureEvent(firstReporter)).isSameAs(EVENT);
+        assertThat(captureEvent(secondReporter)).isSameAs(EVENT);
+    }
+
+    @Test
+    public void shouldPassEventToAllowedDelegatesWhenSomeVendorIdWasAllowed() {
+        // given
+        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
+        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
+        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+
+        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+                .willReturn(Future.succeededFuture(enforcementActionMap));
 
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
 
         // when
-        analyticsReporter.processEvent(event, false);
+        target.processEvent(EVENT, TcfContext.empty());
 
         // then
-        verify(vertx, times(2)).runOnContext(any());
-        assertThat(captureEvent(reporter1)).isSameAs(event);
-        assertThat(captureEvent(reporter2)).isSameAs(event);
+        verify(vertx, times(1)).runOnContext(any());
+        assertThat(captureEvent(secondReporter)).isSameAs(EVENT);
     }
 
     @Test
-    public void shouldNotPassEventToAllDelegatesWhenBlockAnalyticsIsTrue() {
+    public void shouldNotPassEventToDelegatesWhenAllVendorIdsWasBlocked() {
         // given
-        final String event = StringUtils.EMPTY;
+        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
+        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
+        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
 
-        final AnalyticsReporter reporter1 = mock(AnalyticsReporter.class);
-        final AnalyticsReporter reporter2 = mock(AnalyticsReporter.class);
-        final CompositeAnalyticsReporter analyticsReporter =
-                new CompositeAnalyticsReporter(asList(reporter1, reporter2), vertx);
+        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+                .willReturn(Future.succeededFuture(enforcementActionMap));
+
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
 
         // when
-        analyticsReporter.processEvent(event, true);
+        target.processEvent(EVENT, TcfContext.empty());
 
         // then
         verify(vertx, never()).runOnContext(any());

@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
 import org.prebid.server.analytics.LogAnalyticsReporter;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.json.JacksonMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,9 +19,14 @@ public class AnalyticsConfiguration {
 
     @Bean
     CompositeAnalyticsReporter compositeAnalyticsReporter(
-            @Autowired(required = false) List<AnalyticsReporter> delegates, Vertx vertx) {
+            @Autowired(required = false) List<AnalyticsReporter> delegates,
+            Vertx vertx,
+            PrivacyEnforcementService privacyEnforcementService) {
 
-        return new CompositeAnalyticsReporter(delegates != null ? delegates : Collections.emptyList(), vertx);
+        return new CompositeAnalyticsReporter(
+                delegates != null ? delegates : Collections.emptyList(),
+                vertx,
+                privacyEnforcementService);
     }
 
     @Bean

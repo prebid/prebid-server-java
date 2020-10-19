@@ -82,7 +82,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private static final String BIDDER_NAME = "someBidder";
     private static final String BUYER_UID = "uidval";
-    private static final Integer GDPR_HOST_VENDOR_ID = 333;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -118,8 +117,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         privacyExtractor = new PrivacyExtractor();
 
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, GDPR_HOST_VENDOR_ID,
-                false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, false);
     }
 
     @Test
@@ -313,40 +311,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void resultForHostVendorIdShouldRestrictAllWhenGdprHostVendorIdIsNotConfigured() {
-        // given
-        privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, null, false);
-
-        // when
-        final Future<PrivacyEnforcementAction> result =
-                privacyEnforcementService.resultForHostVendorId(TcfContext.empty());
-
-        // then
-        FutureAssertion.assertThat(result).succeededWith(PrivacyEnforcementAction.restrictAll());
-
-        verifyZeroInteractions(tcfDefinerService);
-    }
-
-    @Test
-    public void resultForHostVendorIdShouldReturnReceivedPrivacyEnforcementService() {
-        // given
-        final Map<Integer, PrivacyEnforcementAction> tcfResultForVendorsActions =
-                singletonMap(GDPR_HOST_VENDOR_ID, PrivacyEnforcementAction.allowAll());
-        given(tcfDefinerService.resultForVendorIds(any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, tcfResultForVendorsActions, null)));
-
-        // when
-        final Future<PrivacyEnforcementAction> result =
-                privacyEnforcementService.resultForHostVendorId(TcfContext.empty());
-
-        // then
-        FutureAssertion.assertThat(result).succeededWith(PrivacyEnforcementAction.allowAll());
-
-        verify(tcfDefinerService).resultForVendorIds(singleton(GDPR_HOST_VENDOR_ID), TcfContext.empty());
-    }
-
-    @Test
     public void shouldMaskForCoppaWhenDeviceLmtIsOneAndRegsCoppaIsOneAndDoesNotCallTcfServices() {
         // given
         final User user = notMaskedUser(notMaskedExtUser());
@@ -382,9 +346,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaWhenUsPolicyIsValidAndCoppaIsZero() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics,
-                GDPR_HOST_VENDOR_ID,
-                true);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -993,8 +955,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaAndTcfWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics,
-                GDPR_HOST_VENDOR_ID, true);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true);
 
         final String bidder1Name = "bidder1Name";
         final String bidder2Name = "bidder2Name";
@@ -1064,8 +1025,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldNotMaskForCcpaWhenCatchAllWildcardIsPresentInNosaleList() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics,
-                GDPR_HOST_VENDOR_ID, true);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1119,8 +1079,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrueInConfigurationAndFalseInAccount() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, GDPR_HOST_VENDOR_ID,
-                true);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder().enforceCcpa(false).build();
@@ -1133,8 +1092,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrue() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics,
-                GDPR_HOST_VENDOR_ID, true);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true);
 
         final Ccpa ccpa = Ccpa.of("1YNY");
         final Account account = Account.builder().build();
@@ -1147,8 +1105,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnTrueWhenEnforcedPropertyIsTrueAndCcpaReturnsTrue() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics,
-                GDPR_HOST_VENDOR_ID, true);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder().build();

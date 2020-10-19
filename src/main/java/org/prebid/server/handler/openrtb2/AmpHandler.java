@@ -40,6 +40,8 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -351,8 +353,10 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
 
         final AmpEvent ampEvent = ampEventBuilder.status(status).errors(errorMessages).build();
-        final Boolean isBlockAnalytics = auctionContext != null ? auctionContext.getBlockAnalyticsReport() : null;
-        respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent, isBlockAnalytics);
+
+        final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
+        final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
+        respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent, tcfContext);
 
         httpInteractionLogger.maybeLogOpenrtb2Amp(auctionContext, routingContext, status, body);
     }
@@ -371,7 +375,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, AmpEvent event, Boolean isBlockAnalytics) {
+                             MetricName metricRequestStatus, AmpEvent event, TcfContext tcfContext) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -384,7 +388,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event, isBlockAnalytics);
+            analyticsReporter.processEvent(event, tcfContext);
         }
     }
 

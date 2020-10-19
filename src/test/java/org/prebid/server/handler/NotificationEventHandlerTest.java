@@ -414,7 +414,7 @@ public class NotificationEventHandlerTest extends VertxTest {
 
     private NotificationEvent captureAnalyticEvent() {
         final ArgumentCaptor<NotificationEvent> captor = ArgumentCaptor.forClass(NotificationEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture(), any());
+        verify(analyticsReporter).processEvent(captor.capture());
         return captor.getValue();
     }
 }

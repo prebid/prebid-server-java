@@ -61,7 +61,6 @@ public class PrivacyEnforcementService {
     private final TcfDefinerService tcfDefinerService;
     private final IpAddressHelper ipAddressHelper;
     private final Metrics metrics;
-    private final Integer gdprHostVendorId;
     private final boolean ccpaEnforce;
 
     public PrivacyEnforcementService(BidderCatalog bidderCatalog,
@@ -69,7 +68,6 @@ public class PrivacyEnforcementService {
                                      TcfDefinerService tcfDefinerService,
                                      IpAddressHelper ipAddressHelper,
                                      Metrics metrics,
-                                     Integer gdprHostVendorId,
                                      boolean ccpaEnforce) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -77,7 +75,6 @@ public class PrivacyEnforcementService {
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.metrics = Objects.requireNonNull(metrics);
-        this.gdprHostVendorId = gdprHostVendorId;
         this.ccpaEnforce = ccpaEnforce;
     }
 
@@ -165,12 +162,10 @@ public class PrivacyEnforcementService {
                 .map(gdprResult -> merge(ccpaResult, gdprResult));
     }
 
-    public Future<PrivacyEnforcementAction> resultForHostVendorId(TcfContext tcfContext) {
-        if (gdprHostVendorId == null) {
-            return Future.succeededFuture(PrivacyEnforcementAction.restrictAll());
-        }
-        return tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                .map(tcfResponse -> tcfResponse.getActions().get(gdprHostVendorId));
+    public Future<Map<Integer, PrivacyEnforcementAction>> resultForVendorIds(Set<Integer> vendorIds,
+                                                                             TcfContext tcfContext) {
+        return tcfDefinerService.resultForVendorIds(vendorIds, tcfContext)
+                .map(TcfResponse::getActions);
     }
 
     private Map<String, BidderPrivacyResult> ccpaResult(BidRequest bidRequest,

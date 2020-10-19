@@ -20,8 +20,6 @@ public class CookieSyncEvent {
 
     List<BidderUsersyncStatus> bidderStatus;
 
-    Boolean blockAnalytics;
-
     public static CookieSyncEvent error(int status, String message) {
         return builder().status(status).errors(Collections.singletonList(message)).build();
     }

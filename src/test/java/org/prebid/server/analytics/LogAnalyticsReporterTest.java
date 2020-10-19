@@ -7,6 +7,7 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
 
 public class LogAnalyticsReporterTest extends VertxTest {
 
@@ -14,20 +15,10 @@ public class LogAnalyticsReporterTest extends VertxTest {
     public void shouldLogEvent() {
         // dumb test to trigger coverage
         final LogAnalyticsReporter reporter = new LogAnalyticsReporter(jacksonMapper);
-        reporter.processEvent(AuctionEvent.builder().build(), false);
-        reporter.processEvent(AmpEvent.builder().build(), false);
-        reporter.processEvent(VideoEvent.builder().build(), false);
-        reporter.processEvent(SetuidEvent.builder().build(), false);
-        reporter.processEvent(CookieSyncEvent.builder().build(), false);
-    }
-
-    @Test
-    public void shouldNotLogEvent() {
-        final LogAnalyticsReporter reporter = new LogAnalyticsReporter(jacksonMapper);
-        reporter.processEvent(AuctionEvent.builder().build(), true);
-        reporter.processEvent(AmpEvent.builder().build(), true);
-        reporter.processEvent(VideoEvent.builder().build(), true);
-        reporter.processEvent(SetuidEvent.builder().build(), true);
-        reporter.processEvent(CookieSyncEvent.builder().build(), true);
+        reporter.processEvent(AuctionEvent.builder().build(), TcfContext.empty());
+        reporter.processEvent(AmpEvent.builder().build(), TcfContext.empty());
+        reporter.processEvent(VideoEvent.builder().build(), TcfContext.empty());
+        reporter.processEvent(SetuidEvent.builder().build(), TcfContext.empty());
+        reporter.processEvent(CookieSyncEvent.builder().build(), TcfContext.empty());
     }
 }

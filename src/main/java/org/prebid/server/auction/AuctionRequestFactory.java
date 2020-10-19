@@ -24,7 +24,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -202,22 +201,17 @@ public class AuctionRequestFactory {
         return accountFrom(bidRequest, timeout, routingContext)
                 .compose(account -> privacyEnforcementService.contextFromBidRequest(
                         bidRequest, account, requestTypeMetric, timeout)
-                        .compose(privacyContext -> privacyEnforcementService
-                                .resultForHostVendorId(privacyContext.getTcfContext())
-                                .map(hostPrivacyEnforcement -> Tuple2.of(hostPrivacyEnforcement, privacyContext)))
-
-                        .map(hostPrivacyToPrivacyContext -> AuctionContext.builder()
+                        .map(privacyContext -> AuctionContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
                                 .bidRequest(enrichBidRequestWithAccountAndPrivacyData(
-                                        bidRequest, account, hostPrivacyToPrivacyContext.getRight()))
+                                        bidRequest, account, privacyContext))
                                 .requestTypeMetric(requestTypeMetric)
                                 .timeout(timeout)
                                 .account(account)
                                 .prebidErrors(errors)
-                                .privacyContext(hostPrivacyToPrivacyContext.getRight())
-                                .blockAnalyticsReport(hostPrivacyToPrivacyContext.getLeft().isBlockAnalyticsReport())
-                                .geoInfo(hostPrivacyToPrivacyContext.getRight().getTcfContext().getGeoInfo())
+                                .privacyContext(privacyContext)
+                                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
                                 .build()));
     }
 

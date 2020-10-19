@@ -20,6 +20,8 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.util.HttpUtil;
 
@@ -137,12 +139,13 @@ public class VideoHandler implements Handler<RoutingContext> {
         }
         final VideoEvent videoEvent = videoEventBuilder.status(status).errors(errorMessages).build();
         final AuctionContext auctionContext = videoEvent.getAuctionContext();
-        final Boolean isBlockAnalytics = auctionContext != null ? auctionContext.getBlockAnalyticsReport() : null;
-        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent, isBlockAnalytics);
+        final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
+        final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
+        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, VideoEvent event, Boolean isBlockAnalytics) {
+                             MetricName metricRequestStatus, VideoEvent event, TcfContext tcfContext) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -155,7 +158,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event, isBlockAnalytics);
+            analyticsReporter.processEvent(event, tcfContext);
         }
     }
 

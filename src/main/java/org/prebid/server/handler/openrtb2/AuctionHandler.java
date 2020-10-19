@@ -27,6 +27,8 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -181,15 +183,16 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
 
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status).errors(errorMessages).build();
-        final Boolean isBlockAnalytics = auctionContext != null ? auctionContext.getBlockAnalyticsReport() : null;
+        final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
+        final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
         respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent,
-                isBlockAnalytics);
+                tcfContext);
 
         httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status, body);
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,
-                             MetricName metricRequestStatus, AuctionEvent event, Boolean isBlockAnalytics) {
+                             MetricName metricRequestStatus, AuctionEvent event, TcfContext tcfContext) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -202,7 +205,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
-            analyticsReporter.processEvent(event, isBlockAnalytics);
+            analyticsReporter.processEvent(event, tcfContext);
         }
     }
 

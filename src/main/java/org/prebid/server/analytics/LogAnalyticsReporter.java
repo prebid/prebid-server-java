@@ -11,6 +11,7 @@ import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
 
 import java.util.Objects;
 
@@ -28,7 +29,7 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     }
 
     @Override
-    public <T> void processEvent(T event, Boolean isBlockAnalytics) {
+    public <T> void processEvent(T event) {
         final String type;
         if (event instanceof AuctionEvent) {
             type = "/openrtb2/auction";
@@ -45,6 +46,11 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
         }
 
         logger.debug(mapper.encode(new LogEvent<>(type, event)));
+    }
+
+    @Override
+    public <T> void processEvent(T event, TcfContext tcfContext) {
+        processEvent(event);
     }
 
     @AllArgsConstructor
