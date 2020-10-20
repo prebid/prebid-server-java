@@ -8,9 +8,9 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class CacheIdInfo {
+public class CacheInfo {
 
-    private static final CacheIdInfo EMPTY = CacheIdInfo.of(null, null);
+    private static final CacheInfo EMPTY = CacheInfo.of(null, null, null, null);
 
     /**
      * Cache ID for whole bid
@@ -22,7 +22,17 @@ public class CacheIdInfo {
      */
     String videoCacheId;
 
-    public static CacheIdInfo empty() {
+    /**
+     * Cache TTL
+     */
+    Integer ttl;
+
+    /**
+     * Cache TTL for video
+     */
+    Integer videoTtl;
+
+    public static CacheInfo empty() {
         return EMPTY;
     }
 }
