@@ -9,7 +9,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
-import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -48,7 +48,7 @@ public class ResponseBidValidator {
     }
 
     public ValidationResult validate(
-            BidderBid bidderBid, BidderRequest bidderRequest, Account account, BidderAliases aliases) {
+            BidderBid bidderBid, String bidder, AuctionContext auctionContext, BidderAliases aliases) {
 
         final List<String> warnings = new ArrayList<>();
 
@@ -56,10 +56,10 @@ public class ResponseBidValidator {
             validateCommonFields(bidderBid.getBid());
 
             if (bidderBid.getType() == BidType.banner) {
-                warnings.addAll(validateBannerFields(bidderBid, bidderRequest, account, aliases));
+                warnings.addAll(validateBannerFields(bidderBid, bidder, auctionContext, aliases));
             }
 
-            warnings.addAll(validateSecureMarkup(bidderBid, bidderRequest, account, aliases));
+            warnings.addAll(validateSecureMarkup(bidderBid, bidder, auctionContext, aliases));
         } catch (ValidationException e) {
             return ValidationResult.error(warnings, e.getMessage());
         }
@@ -81,8 +81,16 @@ public class ResponseBidValidator {
         }
 
         final BigDecimal price = bid.getPrice();
-        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ValidationException("Bid \"%s\" does not contain a positive 'price'", bidId);
+        if (price == null) {
+            throw new ValidationException("Bid \"%s\" does not contain a 'price'", bidId);
+        }
+
+        if (price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException("Bid \"%s\" `price `has negative value", bidId);
+        }
+
+        if (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(bid.getDealid())) {
+            throw new ValidationException("Non deal bid \"%s\" has 0 price", bidId);
         }
 
         if (StringUtils.isEmpty(bid.getCrid())) {
@@ -91,18 +99,21 @@ public class ResponseBidValidator {
     }
 
     private List<String> validateBannerFields(BidderBid bidderBid,
-                                              BidderRequest bidderRequest,
-                                              Account account,
+                                              String bidder,
+                                              AuctionContext auctionContext,
                                               BidderAliases aliases) throws ValidationException {
 
         final Bid bid = bidderBid.getBid();
+        final Account account = auctionContext.getAccount();
 
         final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
-        if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip && bannerSizeIsNotValid(bid, bidderRequest)) {
+        if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip
+                && bannerSizeIsNotValid(bid, auctionContext.getBidRequest())) {
+
             return singleWarningOrValidationException(
                     bannerMaxSizeEnforcement,
                     metricName -> metrics.updateSizeValidationMetrics(
-                            aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), metricName),
+                            aliases.resolveBidder(bidder), account.getId(), metricName),
                     "Bid \"%s\" has 'w' and 'h' that are not valid. Bid dimensions: '%dx%d'",
                     bid.getId(), bid.getW(), bid.getH());
         }
@@ -118,8 +129,8 @@ public class ResponseBidValidator {
         return ObjectUtils.defaultIfNull(accountBannerMaxSizeEnforcement, bannerMaxSizeEnforcement);
     }
 
-    private static boolean bannerSizeIsNotValid(Bid bid, BidderRequest bidderRequest) throws ValidationException {
-        final Format maxSize = maxSizeForBanner(bid, bidderRequest);
+    private static boolean bannerSizeIsNotValid(Bid bid, BidRequest bidRequest) throws ValidationException {
+        final Format maxSize = maxSizeForBanner(bid, bidRequest);
         final Integer bidW = bid.getW();
         final Integer bidH = bid.getH();
 
@@ -127,10 +138,10 @@ public class ResponseBidValidator {
                 || bidH == null || bidH > maxSize.getH();
     }
 
-    private static Format maxSizeForBanner(Bid bid, BidderRequest bidderRequest) throws ValidationException {
+    private static Format maxSizeForBanner(Bid bid, BidRequest bidRequest) throws ValidationException {
         int maxW = 0;
         int maxH = 0;
-        for (final Format size : bannerFormats(bid, bidderRequest)) {
+        for (final Format size : bannerFormats(bid, bidRequest)) {
             maxW = Math.max(0, size.getW());
             maxH = Math.max(0, size.getH());
         }
@@ -138,16 +149,16 @@ public class ResponseBidValidator {
         return Format.builder().w(maxW).h(maxH).build();
     }
 
-    private static List<Format> bannerFormats(Bid bid, BidderRequest bidderRequest) throws ValidationException {
-        final Imp imp = findCorrespondingImp(bidderRequest.getBidRequest(), bid);
+    private static List<Format> bannerFormats(Bid bid, BidRequest bidRequest) throws ValidationException {
+        final Imp imp = findCorrespondingImp(bidRequest, bid);
         final Banner banner = imp.getBanner();
 
         return ListUtils.emptyIfNull(banner != null ? banner.getFormat() : null);
     }
 
     private List<String> validateSecureMarkup(BidderBid bidderBid,
-                                              BidderRequest bidderRequest,
-                                              Account account,
+                                              String bidder,
+                                              AuctionContext auctionContext,
                                               BidderAliases aliases) throws ValidationException {
 
         if (secureMarkupEnforcement == BidValidationEnforcement.skip) {
@@ -155,13 +166,13 @@ public class ResponseBidValidator {
         }
 
         final Bid bid = bidderBid.getBid();
-        final Imp imp = findCorrespondingImp(bidderRequest.getBidRequest(), bidderBid.getBid());
+        final Imp imp = findCorrespondingImp(auctionContext.getBidRequest(), bidderBid.getBid());
 
         if (isImpSecure(imp) && markupIsNotSecure(bid)) {
             return singleWarningOrValidationException(
                     secureMarkupEnforcement,
                     metricName -> metrics.updateSecureValidationMetrics(
-                            aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), metricName),
+                            aliases.resolveBidder(bidder), auctionContext.getAccount().getId(), metricName),
                     "Bid \"%s\" has insecure creative but should be in secure context",
                     bid.getId());
         }

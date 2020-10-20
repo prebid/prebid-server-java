@@ -13,7 +13,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
-import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -62,7 +62,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfMissingBid() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                BidderBid.of(null, null, null), givenBidderRequest(identity()), givenAccount(), bidderAliases);
+                BidderBid.of(null, null, null), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).containsOnly("Empty bid object submitted.");
@@ -72,7 +72,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBidHasNoId() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.id(null)), givenBidderRequest(identity()), givenAccount(), bidderAliases);
+                givenBid(builder -> builder.id(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid missing required field 'id'");
@@ -82,10 +82,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBidHasNoImpId() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.impid(null)),
-                givenBidderRequest(identity()),
-                givenAccount(),
-                bidderAliases);
+                givenBid(builder -> builder.impid(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" missing required field 'impid'");
@@ -95,13 +92,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBidHasNoPrice() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.price(null)),
-                givenBidderRequest(identity()),
-                givenAccount(),
-                bidderAliases);
+                givenBid(builder -> builder.price(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
-        assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("Bid \"bidId1\" does not contain a 'price'");
     }
 
     @Test
@@ -109,19 +103,42 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.price(BigDecimal.valueOf(-1))),
-                givenBidderRequest(identity()),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(),
                 bidderAliases);
 
         // then
-        assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("Bid \"bidId1\" `price `has negative value");
+    }
+
+    @Test
+    public void validateShouldFailedIfNonDealBidHasZeroPrice() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.price(BigDecimal.valueOf(0))),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Non deal bid \"bidId1\" has 0 price");
+    }
+
+    @Test
+    public void validateShouldSuccessForDealZeroPriceBid() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.price(BigDecimal.valueOf(0)).dealid("dealId")),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        assertThat(result.hasErrors()).isFalse();
     }
 
     @Test
     public void validateShouldFailIfBidHasNoCrid() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.crid(null)), givenBidderRequest(identity()), givenAccount(), bidderAliases);
+                givenBid(builder -> builder.crid(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" missing creative ID");
@@ -131,10 +148,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBannerBidHasNoWidthAndHeight() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(null).h(null)),
-                givenBidderRequest(identity()),
-                givenAccount(),
-                bidderAliases);
+                givenBid(builder -> builder.w(null).h(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors())
@@ -145,10 +159,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBannerBidWidthIsGreaterThanImposedByImp() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(150).h(150)),
-                givenBidderRequest(identity()),
-                givenAccount(),
-                bidderAliases);
+                givenBid(builder -> builder.w(150).h(150)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors())
@@ -159,10 +170,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBannerBidHeightIsGreaterThanImposedByImp() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(50).h(250)),
-                givenBidderRequest(identity()),
-                givenAccount(),
-                bidderAliases);
+                givenBid(builder -> builder.w(50).h(250)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors())
@@ -174,8 +182,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(BidType.video, builder -> builder.w(3).h(3)),
-                givenBidderRequest(identity()),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(),
                 bidderAliases);
 
         // then
@@ -187,9 +195,9 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.w(150).h(150)),
-                givenBidderRequest(identity()),
-                givenAccount(builder -> builder.bidValidations(
-                        AccountBidValidationConfig.of(skip))),
+                BIDDER_NAME,
+                givenAuctionContext(
+                        givenAccount(builder -> builder.bidValidations(AccountBidValidationConfig.of(skip)))),
                 bidderAliases);
 
         // then
@@ -201,8 +209,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.impid("nonExistentsImpid")),
-                givenBidderRequest(identity()),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(),
                 bidderAliases);
 
         // then
@@ -215,8 +223,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
-                givenBidderRequest(builder -> builder.secure(1)),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
 
         // then
@@ -229,8 +237,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http%3A//site.com/creative.jpg</tag>")),
-                givenBidderRequest(builder -> builder.secure(1)),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
 
         // then
@@ -243,8 +251,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>//site.com/creative.jpg</tag>")),
-                givenBidderRequest(builder -> builder.secure(1)),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
 
         // then
@@ -257,8 +265,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
-                givenBidderRequest(identity()),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(),
                 bidderAliases);
 
         // then
@@ -268,12 +276,11 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessfulResultForValidBid() {
         // when
-        final ValidationResult result =
-                responseBidValidator.validate(
-                        givenBid(identity()),
-                        givenBidderRequest(builder -> builder.secure(1)),
-                        givenAccount(),
-                        bidderAliases);
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(identity()),
+                BIDDER_NAME,
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -287,8 +294,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(identity()),
-                givenBidderRequest(identity()),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(),
                 bidderAliases);
 
         // then
@@ -303,8 +310,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.w(null).h(null)),
-                givenBidderRequest(identity()),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(),
                 bidderAliases);
 
         // then
@@ -321,8 +328,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
-                givenBidderRequest(builder -> builder.secure(1)),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
 
         // then
@@ -337,8 +344,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
-                givenBidderRequest(builder -> builder.secure(1)),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
 
         // then
@@ -352,8 +359,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         responseBidValidator.validate(
                 givenBid(builder -> builder.w(150).h(200)),
-                givenBidderRequest(identity()),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(),
                 bidderAliases);
 
         // then
@@ -368,8 +375,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         responseBidValidator.validate(
                 givenBid(builder -> builder.w(150).h(200)),
-                givenBidderRequest(identity()),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(),
                 bidderAliases);
 
         // then
@@ -381,8 +388,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
-                givenBidderRequest(builder -> builder.secure(1)),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
 
         // then
@@ -397,8 +404,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         // when
         responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
-                givenBidderRequest(builder -> builder.secure(1)),
-                givenAccount(),
+                BIDDER_NAME,
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
                 bidderAliases);
 
         // then
@@ -422,18 +429,35 @@ public class ResponseBidValidatorTest extends VertxTest {
         return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, null);
     }
 
-    private static BidderRequest givenBidderRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static AuctionContext givenAuctionContext(BidRequest bidRequest, Account account) {
+        return AuctionContext.builder()
+                .account(account)
+                .bidRequest(bidRequest)
+                .build();
+    }
+
+    private static AuctionContext givenAuctionContext(BidRequest bidRequest) {
+        return givenAuctionContext(bidRequest, givenAccount());
+    }
+
+    private static AuctionContext givenAuctionContext(Account account) {
+        return givenAuctionContext(givenBidRequest(identity()), account);
+    }
+
+    private static AuctionContext givenAuctionContext() {
+        return givenAuctionContext(givenBidRequest(identity()), givenAccount());
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id("impId1")
                 .banner(Banner.builder()
                         .format(singletonList(Format.builder().w(100).h(200).build()))
                         .build());
 
-        return BidderRequest.of(
-                BIDDER_NAME,
-                BidRequest.builder()
-                        .imp(singletonList(impCustomizer.apply(impBuilder).build()))
-                        .build());
+        return BidRequest.builder()
+                .imp(singletonList(impCustomizer.apply(impBuilder).build()))
+                .build();
     }
 
     private static Account givenAccount() {

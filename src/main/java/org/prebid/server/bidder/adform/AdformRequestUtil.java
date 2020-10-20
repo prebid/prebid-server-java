@@ -12,6 +12,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -62,13 +63,14 @@ class AdformRequestUtil {
      */
     String getEids(ExtUser extUser, JacksonMapper mapper) {
         final List<ExtUserEid> eids = extUser != null ? extUser.getEids() : null;
-        final Map<String, Map<String, Integer>> eidsMap = new HashMap<>();
+        final Map<String, Map<String, List<Integer>>> eidsMap = new HashMap<>();
         if (CollectionUtils.isNotEmpty(eids)) {
             for (ExtUserEid eid : eids) {
-                final Map<String, Integer> uidMap = eidsMap.computeIfAbsent(eid.getSource(),
+                final Map<String, List<Integer>> uidMap = eidsMap.computeIfAbsent(eid.getSource(),
                         ignored -> new HashMap<>());
                 for (ExtUserEidUid uid : eid.getUids()) {
-                    uidMap.put(uid.getId(), uid.getAtype());
+                    uidMap.putIfAbsent(uid.getId(), new ArrayList<Integer>());
+                    uidMap.get(uid.getId()).add(uid.getAtype());
                 }
             }
         }

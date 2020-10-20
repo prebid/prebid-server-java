@@ -1,0 +1,23 @@
+adapters:
+  logicad:
+    enabled: false
+    endpoint: https://pbs.ladsp.com/adrequest/prebidserver
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prebid@so-netmedia.jp
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 14
+    usersync:
+      url: https://cr-p31.ladsp.jp/cookiesender/31?r=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ru=
+      redirect-url: /setuid?bidder=logicad&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: logicad
+      type: redirect
+      support-cors: false

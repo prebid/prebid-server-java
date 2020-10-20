@@ -20,6 +20,7 @@ import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -1089,6 +1090,35 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldPopulateTargetingKeywordsIfBidWasCachedAndAdmWasRemoved() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.targeting(givenTargeting())));
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("impId").adm("adm").build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .returnCreativeBids(false) // this will cause erasing of bid.adm
+                .build();
+
+        givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of("cacheId", null)));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1)
+                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getTargeting())
+                .doesNotContainNull();
+    }
+
+    @Test
     public void shouldAddExtPrebidEventsIfEventsAreEnabledAndExtRequestPrebidEventPresent() {
         // given
         final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
@@ -1137,8 +1167,45 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 extBuilder -> extBuilder
-                        .events(mapper.createObjectNode())
                         .channel(ExtRequestPrebidChannel.of("web"))
+                        .integration("pbjs"));
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequest,
+                contextBuilder -> contextBuilder.account(account));
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .price(BigDecimal.valueOf(5.67))
+                .impid("i1")
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        final Events events = Events.of("http://event-type-win", "http://event-type-view");
+        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyLong(), anyString()))
+                .willReturn(events);
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(responseBid -> toExtPrebid(responseBid.getExt()).getPrebid().getEvents())
+                .containsOnly(events);
+
+        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldAddExtPrebidEventsIfEventsAreEnabledAndDefaultAccountAnalyticsConfig() {
+        // given
+        final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder
+                        .channel(ExtRequestPrebidChannel.of("amp"))
                         .integration("pbjs"));
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -1427,6 +1494,34 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("bidder2", "cacheId2", "cacheId2"));
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldNotCacheNonDealBidWithCpmIsZeroAndCacheDealBidWithZeroCpm() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
+
+        final Bid firstBid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.ZERO).build();
+        final Bid secondBid = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.ZERO).dealid("dealId2")
+                .build();
+
+        final List<BidderResponse> bidderResponses = asList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(firstBid, banner, null)), 99),
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(secondBid, banner, null)), 99));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
+        givenCacheServiceResult(singletonMap(secondBid, CacheIdInfo.of("cacheId2", null)));
+
+        // when
+        bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, false).result();
+
+        // then
+        @SuppressWarnings("unchecked") final ArgumentCaptor<List<Bid>> cacheBidArgumentCaptor
+                = ArgumentCaptor.forClass(List.class);
+        verify(cacheService).cacheBidsOpenrtb(cacheBidArgumentCaptor.capture(), any(), any(), any());
+        assertThat(cacheBidArgumentCaptor.getValue())
+                .extracting(Bid::getId)
+                .containsOnly("bidId2");
     }
 
     @Test

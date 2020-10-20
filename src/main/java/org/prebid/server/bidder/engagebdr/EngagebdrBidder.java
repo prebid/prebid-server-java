@@ -110,7 +110,7 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         try {

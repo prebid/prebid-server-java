@@ -72,10 +72,10 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -184,10 +184,9 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
-            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
-            @Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
@@ -199,13 +198,11 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
             PrivacyEnforcementService privacyEnforcementService,
+            IdGenerator idGenerator,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
-        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
-        final IdGenerator idGenerator = idGeneratorType == IdGeneratorType.uuid
-                ? new UUIDIdGenerator()
-                : new NoneIdGenerator();
+        final List<String> blacklistedApps = splitToList(blacklistedAppsString);
+        final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -230,10 +227,11 @@ public class ServiceConfiguration {
                 mapper);
     }
 
-    private static List<String> splitCommaSeparatedString(String listString) {
-        return Stream.of(listString.split(","))
-                .map(String::trim)
-                .collect(Collectors.toList());
+    @Bean
+    IdGenerator idGenerator(@Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType) {
+        return idGeneratorType == IdGeneratorType.uuid
+                ? new UUIDIdGenerator()
+                : new NoneIdGenerator();
     }
 
     @Bean
@@ -285,7 +283,7 @@ public class ServiceConfiguration {
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+        final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
         return new VideoStoredRequestProcessor(applicationSettings, new VideoRequestValidator(), enforceStoredRequest,
                 blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
@@ -318,11 +316,7 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "false",
             matchIfMissing = true)
     BasicHttpClient basicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
-
-        return createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
-                httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
-                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
+        return createBasicHttpClient(vertx, httpClientProperties);
     }
 
     @Bean
@@ -342,36 +336,35 @@ public class ServiceConfiguration {
             @Qualifier("httpClientCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
-        final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
-                httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
-                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
+        final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
+
         return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
                 circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(), clock);
     }
 
-    private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs,
-                                                         boolean useCompression, int maxRedirects, boolean ssl,
-                                                         String jksPath, String jksPassword) {
-
+    private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
         final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(maxPoolSize)
-                .setTryUseCompression(useCompression)
-                .setConnectTimeout(connectTimeoutMs)
+                .setMaxPoolSize(httpClientProperties.getMaxPoolSize())
+                .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
+                .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
+                .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
+                .setTryUseCompression(httpClientProperties.getUseCompression())
+                .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
-                .setMaxRedirects(maxRedirects + 1);
+                .setMaxRedirects(httpClientProperties.getMaxRedirects() + 1);
 
-        if (ssl) {
+        if (httpClientProperties.getSsl()) {
             final JksOptions jksOptions = new JksOptions()
-                    .setPath(jksPath)
-                    .setPassword(jksPassword);
+                    .setPath(httpClientProperties.getJksPath())
+                    .setPassword(httpClientProperties.getJksPassword());
 
             options
                     .setSsl(true)
                     .setKeyStoreOptions(jksOptions);
         }
+
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));
     }
 
@@ -601,6 +594,10 @@ public class ServiceConfiguration {
     }
 
     private static List<String> splitToList(String listAsString) {
-        return listAsString != null ? new ArrayList<>(Arrays.asList(listAsString.trim().split(","))) : null;
+        return listAsString != null
+                ? Stream.of(listAsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList())
+                : null;
     }
 }
