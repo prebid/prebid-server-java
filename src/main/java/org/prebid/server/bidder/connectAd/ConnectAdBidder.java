@@ -121,13 +121,12 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
             if (CollectionUtils.isEmpty(banner.getFormat())) {
                 throw new PreBidException("At least one size is required");
             }
+            final Format format = banner.getFormat().get(0);
+            final List<Format> slicedFormatList = banner.getFormat();
+
+            slicedFormatList.remove(0);
+            updatedImp.banner(banner.toBuilder().format(slicedFormatList).w(format.getW()).h(format.getH()).build());
         }
-
-        final Format format = banner.getFormat().get(0);
-        final List<Format> slicedFormatList = banner.getFormat();
-
-        slicedFormatList.remove(0);
-        updatedImp.banner(banner.toBuilder().format(slicedFormatList).w(format.getW()).h(format.getH()).build());
 
         return updatedImp.build();
     }
@@ -154,9 +153,8 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.empty();
         }
 
         try {
@@ -168,7 +166,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);

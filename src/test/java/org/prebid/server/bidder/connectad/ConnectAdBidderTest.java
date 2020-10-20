@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -173,11 +174,35 @@ public class ConnectAdBidderTest extends VertxTest {
                         BidderError.badInput("Error in preprocess of Imp")));
     }
 
+    @Test
+    public void impSecureShouldBeOneIfSitePageStartsFromHttps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConnectAd.of(12, 1, BigDecimal.ONE)))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = connectadBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .hasSize(1)
+                .extracting(imp -> imp.get(0).getSecure())
+                .hasSize(1)
+                .containsOnly(1);
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
+                .site(Site.builder().page("https://test.url.com/").build())
                 .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
@@ -189,7 +214,7 @@ public class ConnectAdBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                .banner(Banner.builder().id("banner_id").w(14).h(15).build()).ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpConnectAd.of(12, 12, BigDecimal.ONE)))))
                 .build();
     }

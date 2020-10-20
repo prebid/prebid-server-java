@@ -1,5 +1,7 @@
 package org.prebid.server.handler;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
@@ -9,10 +11,14 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles HTTP request for latest currency rates update information.
@@ -31,20 +37,40 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        final ZonedDateTime lastUpdated = currencyConversionService.getLastUpdated();
-        final String lastUpdatedString = lastUpdated != null ? lastUpdated.toString() : "no value";
         try {
-            context.response().end(mapper.mapper().writeValueAsString(Response.of(lastUpdatedString)));
+            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            context.response()
+                    .end(mapper.mapper().writeValueAsString(
+                            Response.of(
+                                    currencyConversionService.isExternalRatesActive(),
+                                    currencyConversionService.getCurrencyServerUrl(),
+                                    toNanos(currencyConversionService.getRefreshPeriod()),
+                                    currencyConversionService.getLastUpdated(),
+                                    currencyConversionService.getExternalCurrencyRates())));
         } catch (IOException e) {
             logger.error("Critical error when marshaling latest currency rates update response", e);
             context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
         }
     }
 
+    private static Long toNanos(Long refreshPeriod) {
+        return refreshPeriod != null ? TimeUnit.MILLISECONDS.toNanos(refreshPeriod) : null;
+    }
+
     @AllArgsConstructor(staticName = "of")
     @Value
     private static class Response {
 
-        String lastUpdate;
+        boolean active;
+
+        String source;
+
+        @JsonProperty("fetchingIntervalNs")
+        Long fetchingIntervalNs;
+
+        @JsonProperty("lastUpdated")
+        ZonedDateTime lastUpdated;
+
+        Map<String, Map<String, BigDecimal>> rates;
     }
 }
