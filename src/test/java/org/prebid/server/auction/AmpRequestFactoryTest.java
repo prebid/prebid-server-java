@@ -1425,7 +1425,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.toAuctionContext(any(), any(), eq(MetricName.amp), anyList(), anyLong(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         AuctionContext.builder()

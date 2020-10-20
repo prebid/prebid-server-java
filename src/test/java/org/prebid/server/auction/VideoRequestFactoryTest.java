@@ -209,7 +209,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(requestVideo)));
         given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any()))
                 .willReturn(Future.succeededFuture(mergedBidRequest));
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(auctionRequestFactory.validateRequest(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any()))
@@ -221,7 +221,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         // then
         verify(routingContext).getBody();
         verify(videoStoredRequestProcessor).processVideoRequest(null, emptySet(), requestVideo);
-        verify(auctionRequestFactory).validateRequest(bidRequest);
+        verify(auctionRequestFactory).validateRequest(eq(bidRequest), any());
         verify(auctionRequestFactory).fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
         verify(auctionRequestFactory).toAuctionContext(
                 routingContext, bidRequest, MetricName.video, new ArrayList<>(), 0, timeoutResolver);

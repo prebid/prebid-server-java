@@ -66,12 +66,13 @@ public class VideoRequestFactory {
         }
 
         final Set<String> podConfigIds = podConfigIds(incomingBidRequest);
-        return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds)
+        final List<String> errors = new ArrayList<>();
+        return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds, errors)
                 .compose(bidRequestToPodError -> auctionRequestFactory.toAuctionContext(
                         routingContext,
                         bidRequestToPodError.getData(),
                         MetricName.video,
-                        new ArrayList<>(),
+                        errors,
                         startTime,
                         timeoutResolver)
                         .map(auctionContext -> WithPodErrors.of(auctionContext, bidRequestToPodError.getPodErrors())));
@@ -136,14 +137,16 @@ public class VideoRequestFactory {
     private Future<WithPodErrors<BidRequest>> createBidRequest(RoutingContext routingContext,
                                                                BidRequestVideo bidRequestVideo,
                                                                String storedVideoId,
-                                                               Set<String> podConfigIds) {
+                                                               Set<String> podConfigIds,
+                                                               List<String> errors) {
         return storedRequestProcessor.processVideoRequest(storedVideoId, podConfigIds, bidRequestVideo)
                 .map(bidRequestToErrors -> fillImplicitParameters(routingContext, bidRequestToErrors))
-                .map(this::validateRequest);
+                .map(bidRequestToErrors -> validateRequest(bidRequestToErrors, errors));
     }
 
-    private WithPodErrors<BidRequest> validateRequest(WithPodErrors<BidRequest> requestToPodErrors) {
-        final BidRequest bidRequest = auctionRequestFactory.validateRequest(requestToPodErrors.getData());
+    private WithPodErrors<BidRequest> validateRequest(WithPodErrors<BidRequest> requestToPodErrors,
+                                                      List<String> errors) {
+        final BidRequest bidRequest = auctionRequestFactory.validateRequest(requestToPodErrors.getData(), errors);
         return WithPodErrors.of(bidRequest, requestToPodErrors.getPodErrors());
     }
 

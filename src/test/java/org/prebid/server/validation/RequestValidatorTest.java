@@ -56,12 +56,15 @@ import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,6 +75,7 @@ import static org.mockito.BDDMockito.given;
 public class RequestValidatorTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
+    private static final String OTHER_BIDDER = "other";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -87,6 +91,7 @@ public class RequestValidatorTest extends VertxTest {
     public void setUp() {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
+        given(bidderCatalog.isValidName(eq(OTHER_BIDDER))).willReturn(true);
 
         requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper);
     }
@@ -1160,26 +1165,32 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext must contain at least one bidder");
+        assertThat(result.getWarnings()).hasSize(1)
+                .containsOnly("WARNING: request.imp[0].ext must be defined");
     }
 
     @Test
-    public void validateShouldReturnValidationMessagesWhenImpExtBidderIsUnknown() {
+    public void validateShouldReturnWarningAndRemoveBidderFromImpWhenImpExtBidderIsUnknown() {
         // given
-        final BidRequest bidRequest = validBidRequestBuilder().build();
-        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(false);
+        final Map<String, Integer> bidders = new HashMap<>();
+        bidders.put("rubicon", 0);
+        bidders.put(OTHER_BIDDER, 0);
+        final BidRequest bidRequest = validBidRequestBuilder().imp(singletonList(validImpBuilder()
+                .ext(mapper.valueToTree(bidders)).build())).build();
+
+        given(bidderCatalog.isValidName(eq(OTHER_BIDDER))).willReturn(false);
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext contains unknown bidder: rubicon");
+        assertThat(result.getWarnings()).hasSize(1)
+                .containsOnly("WARNING: Bidder 'other' was ignored for request.imp[0] for a reason :"
+                        + " request.imp[0].ext contains unknown bidder: other");
     }
 
     @Test
-    public void validateShouldReturnEmptyValidationMessagesWhenOnlyPrebidImpExtExist() {
+    public void validateShouldReturnWarningMessageWhenThereIsNoValidBiddersInImp() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -1190,22 +1201,34 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings())
+                .hasSize(1)
+                .containsOnly("WARNING: request.imp[0].ext must contain at least one valid bidder");
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBidderExtIsInvalid() {
+    public void validateShouldReturnMessageInWarningsAndRemoveInvalidBidderFromImp() {
         // given
-        final BidRequest bidRequest = validBidRequestBuilder().build();
-        given(bidderParamValidator.validate(any(), any()))
+        final Map<String, Integer> bidders = new HashMap<>();
+        bidders.put("rubicon", 0);
+        bidders.put(OTHER_BIDDER, 0);
+        final BidRequest bidRequest = validBidRequestBuilder().imp(singletonList(validImpBuilder()
+                .ext(mapper.valueToTree(bidders)).build())).build();
+        given(bidderParamValidator.validate(eq(OTHER_BIDDER), any()))
                 .willReturn(new LinkedHashSet<>(asList("errorMessage1", "errorMessage2")));
+        given(bidderParamValidator.validate(eq("rubicon"), any()))
+                .willReturn(emptySet());
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
+        assertThat(result.getWarnings()).hasSize(1)
+                .containsOnly("WARNING: Bidder 'other' was ignored for request.imp[0] for a reason : "
+                        + "request.imp[0].ext.other failed validation.\nerrorMessage1\nerrorMessage2");
+        assertThat(bidRequest.getImp())
+                .extracting(Imp::getExt)
+                .containsOnly(mapper.valueToTree(singletonMap("rubicon", 0)));
     }
 
     @Test

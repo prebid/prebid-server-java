@@ -763,6 +763,16 @@
           "code": 2,
           "message": "Appnexus doesn't support audio Imps. Ignoring Imp ID=impId32"
         }
+      ],
+      "prebid": [
+        {
+          "code": 999,
+          "message": "WARNING: request.imp[5].ext must contain at least one valid bidder"
+        },
+        {
+          "code": 999,
+          "message": "WARNING: request.imp[6].ext must contain at least one valid bidder"
+        }
       ]
     },
     "responsetimemillis": {
