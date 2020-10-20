@@ -158,15 +158,15 @@ public class KrushmediaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyBidderBidsFromFirstSeatBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyBidderBidsFromSecondSeatBid() throws JsonProcessingException {
         // given
-        final SeatBid zeroSeatBid = SeatBid.builder()
+        final SeatBid firstSeatBId = SeatBid.builder()
                 .bid(singletonList(Bid.builder()
                         .impid("123")
                         .build()))
                 .build();
 
-        final SeatBid firstSeatBid = SeatBid.builder()
+        final SeatBid secondSeatBid = SeatBid.builder()
                 .bid(singletonList(Bid.builder()
                         .impid("456")
                         .build()))
@@ -177,7 +177,7 @@ public class KrushmediaBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
-                        .seatbid(Arrays.asList(zeroSeatBid, firstSeatBid))
+                        .seatbid(Arrays.asList(firstSeatBId, secondSeatBid))
                         .build()));
 
         // when

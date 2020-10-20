@@ -32,7 +32,6 @@ public class KrushmediaTest extends IntegrationTest {
                 .withHeader("User-Agent", equalToIgnoreCase("test-user-agent"))
                 .withHeader("X-Forwarded-For", equalToIgnoreCase("123.123.123.123"))
                 .withHeader("Accept-Language", equalToIgnoreCase("en"))
-                .withHeader("Accept-Language", equalToIgnoreCase("en"))
                 .withHeader("Dnt", equalToIgnoreCase("0"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/krushmedia/test-krushmedia-bid-request.json")))
                 .willReturn(aResponse().withBody(
