@@ -119,6 +119,28 @@ public class AdheseBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotModifyIncomingRequestIfTargetsNotPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder().consent("dummy").build())
+                        .build())
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of("demo",
+                                "_adhese_prebid_demo_", "leaderboard", mapper.convertValue(null, JsonNode.class)))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xtdummy");
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
