@@ -49,6 +49,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -153,6 +154,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Spy
     private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
     @Mock
+    private HttpInteractionLogger httpInteractionLogger;
+    @Mock
     private Metrics metrics;
     @Mock
     private UidsCookie uidsCookie;
@@ -214,6 +217,7 @@ public class ExchangeServiceTest extends VertxTest {
                 currencyService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper);
@@ -233,6 +237,7 @@ public class ExchangeServiceTest extends VertxTest {
                         currencyService,
                         bidResponseCreator,
                         bidResponsePostProcessor,
+                        httpInteractionLogger,
                         metrics,
                         clock,
                         jacksonMapper));
@@ -1761,6 +1766,7 @@ public class ExchangeServiceTest extends VertxTest {
                 currencyService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper);

@@ -5,7 +5,9 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.log.model.HttpLogSpec;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.settings.model.Account;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -55,9 +57,19 @@ public class HttpInteractionLogger {
         }
     }
 
-    public boolean interactionSatisfiesSpec(HttpLogSpec.Endpoint requestEndpoint,
-                                            int requestStatusCode,
-                                            AuctionContext auctionContext) {
+    public void maybeLogBidderRequest(AuctionContext context,
+                                      BidderRequest bidderRequest) {
+        final String bidder = bidderRequest.getBidder();
+        if (interactionSatisfiesSpec(context, bidder)) {
+            logger.info("Request body to {0}: \"{1}\"", bidder, bidderRequest.getBidRequest());
+
+            incLoggedInteractions();
+        }
+    }
+
+    private boolean interactionSatisfiesSpec(HttpLogSpec.Endpoint requestEndpoint,
+                                             int requestStatusCode,
+                                             AuctionContext auctionContext) {
 
         final SpecWithCounter specWithCounter = this.specWithCounter.get();
         if (specWithCounter == null) {
@@ -75,6 +87,39 @@ public class HttpInteractionLogger {
         return (endpoint == null || endpoint == requestEndpoint)
                 && (statusCode == null || statusCode == requestStatusCode)
                 && (account == null || account.equals(requestAccountId));
+    }
+
+    private boolean interactionSatisfiesSpec(AuctionContext auctionContext,
+                                             String requestBidder) {
+        final SpecWithCounter specWithCounter = this.specWithCounter.get();
+        if (specWithCounter == null) {
+            return false;
+        }
+
+        final HttpLogSpec.Endpoint requestEndpoint = parseHttpLogEndpoint(auctionContext.getRequestTypeMetric());
+        final Account requestAccount = auctionContext != null ? auctionContext.getAccount() : null;
+        final String requestAccountId = requestAccount != null ? requestAccount.getId() : null;
+
+        final HttpLogSpec spec = specWithCounter.getSpec();
+        final HttpLogSpec.Endpoint endpoint = spec.getEndpoint();
+        final String account = spec.getAccount();
+        final String bidder = spec.getBidder();
+
+        return (endpoint == null || endpoint == requestEndpoint)
+                && (account == null || account.equals(requestAccountId)
+                && (bidder != null && bidder.equals(requestBidder)));
+    }
+
+    private HttpLogSpec.Endpoint parseHttpLogEndpoint(MetricName requestTypeMetric) {
+        if (requestTypeMetric != null) {
+            if (requestTypeMetric == MetricName.amp) {
+                return HttpLogSpec.Endpoint.amp;
+            }
+            if (requestTypeMetric == MetricName.openrtb2app || requestTypeMetric == MetricName.openrtb2web) {
+                return HttpLogSpec.Endpoint.auction;
+            }
+        }
+        return null;
     }
 
     private void incLoggedInteractions() {

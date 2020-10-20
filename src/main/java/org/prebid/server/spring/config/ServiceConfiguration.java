@@ -441,6 +441,7 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
+            HttpInteractionLogger httpInteractionLogger,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -456,6 +457,7 @@ public class ServiceConfiguration {
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 mapper);

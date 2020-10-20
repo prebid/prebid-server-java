@@ -37,6 +37,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -97,6 +98,7 @@ public class ExchangeService {
     private final CurrencyConversionService currencyService;
     private final BidResponseCreator bidResponseCreator;
     private final BidResponsePostProcessor bidResponsePostProcessor;
+    private final HttpInteractionLogger httpInteractionLogger;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -111,6 +113,7 @@ public class ExchangeService {
                            CurrencyConversionService currencyService,
                            BidResponseCreator bidResponseCreator,
                            BidResponsePostProcessor bidResponsePostProcessor,
+                           HttpInteractionLogger httpInteractionLogger,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper) {
@@ -128,6 +131,7 @@ public class ExchangeService {
         this.currencyService = Objects.requireNonNull(currencyService);
         this.bidResponseCreator = Objects.requireNonNull(bidResponseCreator);
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
+        this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -160,7 +164,8 @@ public class ExchangeService {
                                 auctionTimeout(timeout, cacheInfo.isDoCaching()),
                                 debugEnabled,
                                 aliases))
-                        .collect(Collectors.toList())))
+                        .collect(Collectors.toList()))
+                        .map(compositeFuture -> maybeLogBidderInteraction(context, bidderRequests, compositeFuture)))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(
@@ -927,6 +932,13 @@ public class ExchangeService {
         // should be replaced by code which tracks the response time of recent cache calls and adjusts the time
         // dynamically.
         return shouldCacheBids ? timeout.minus(expectedCacheTime) : timeout;
+    }
+
+    private CompositeFuture maybeLogBidderInteraction(AuctionContext context,
+                                                      List<BidderRequest> bidderResponses,
+                                                      CompositeFuture compositeFuture) {
+        bidderResponses.forEach(bidderResponse -> httpInteractionLogger.maybeLogBidderRequest(context, bidderResponse));
+        return compositeFuture;
     }
 
     /**
