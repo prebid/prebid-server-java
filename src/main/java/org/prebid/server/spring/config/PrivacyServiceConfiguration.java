@@ -53,7 +53,7 @@ public class PrivacyServiceConfiguration {
     VendorListServiceV1 vendorListServiceV1(
             @Value("${gdpr.vendorlist.v1.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v1.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.v1.http-default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.vendorlist.v1.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.vendorlist.v1.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
@@ -83,7 +83,7 @@ public class PrivacyServiceConfiguration {
     VendorListServiceV2 vendorListServiceV2(
             @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.v2.http-default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.vendorlist.v2.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.vendorlist.v2.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,

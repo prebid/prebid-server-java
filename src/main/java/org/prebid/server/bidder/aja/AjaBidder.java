@@ -122,16 +122,9 @@ public class AjaBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode != HttpResponseStatus.OK.code()) {
-            if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-                return Result.of(Collections.emptyList(), Collections.emptyList());
-            } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-                return Result.emptyWithError(BidderError.badInput(
-                        String.format("Unexpected status code: %d", statusCode)));
-            } else {
-                return Result.emptyWithError(BidderError.badServerResponse(
-                        String.format("Unexpected status code: %d", statusCode)));
-            }
+
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.empty();
         }
 
         try {

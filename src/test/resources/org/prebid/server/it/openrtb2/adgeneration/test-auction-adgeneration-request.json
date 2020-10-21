@@ -20,6 +20,7 @@
   ],
   "device": {
     "pxratio": 4.2,
+    "ua": "some-agent",
     "dnt": 2,
     "language": "en",
     "ifa": "ifaId"
