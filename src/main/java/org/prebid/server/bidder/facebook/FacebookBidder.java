@@ -13,6 +13,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.codec.binary.Hex;
@@ -278,7 +279,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
         final int statusCode = response.getStatusCode();
-        if (statusCode != 200) {
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             final String message = response.getHeaders().get("x-fb-an-errors");
             return Result.emptyWithError(BidderError.badInput(
                     String.format("Unexpected status code %d with error message '%s'", statusCode, message)));

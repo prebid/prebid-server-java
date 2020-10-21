@@ -406,6 +406,23 @@ public class VendorListServiceV1Test extends VertxTest {
         assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
     }
 
+    @Test
+    public void shouldReturnFallbackIfServerUnavailable() {
+        // given
+        givenHttpClientReturnsResponse(503, StringUtils.EMPTY);
+
+        // when
+
+        // first call triggers http request that results in 503
+        final Future<Map<Integer, VendorV1>> future1 = vendorListService.forVersion(1);
+        // second call yields fallback vendor list
+        final Future<Map<Integer, VendorV1>> future2 = vendorListService.forVersion(1);
+
+        // then
+        assertThat(future1).isFailed();
+        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+    }
+
     // Metrics tests
 
     @Test
