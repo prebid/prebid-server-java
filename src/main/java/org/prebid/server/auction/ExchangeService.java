@@ -45,7 +45,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -187,18 +186,6 @@ public class ExchangeService {
     private static ExtRequestTargeting targeting(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         return prebid != null ? prebid.getTargeting() : null;
-    }
-
-    private static Map<String, Map<String, BigDecimal>> currencyRates(BidRequest bidRequest) {
-        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
-        return currency != null ? currency.getRates() : null;
-    }
-
-    private static Boolean usepbsrates(BidRequest bidRequest) {
-        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
-        return currency != null ? currency.getUsepbsrates() : null;
     }
 
     /**
@@ -885,15 +872,14 @@ public class ExchangeService {
 
         final String adServerCurrency = bidRequest.getCur().get(0);
         final BigDecimal priceAdjustmentFactor = bidAdjustmentForBidder(bidRequest, bidderResponse.getBidder());
-        final Boolean usepbsrates = usepbsrates(bidRequest);
 
         for (final BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
             final String bidCurrency = bidderBid.getBidCurrency();
             final BigDecimal price = bid.getPrice();
             try {
-                final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                        price, currencyRates(bidRequest), adServerCurrency, bidCurrency, usepbsrates);
+                final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(price, bidRequest,
+                        adServerCurrency, bidCurrency);
 
                 final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
 
