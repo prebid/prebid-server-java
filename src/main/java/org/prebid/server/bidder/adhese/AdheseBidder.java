@@ -231,7 +231,6 @@ public class AdheseBidder implements Bidder<Void> {
     private Bid convertAdheseBid(AdheseBid adheseBid, AdheseResponseExt adheseResponseExt,
                                  AdheseOriginData adheseOriginData) {
         return Bid.builder()
-                .id("1")
                 .dealid(adheseResponseExt.getOrderId())
                 .crid(adheseResponseExt.getId())
                 .adm(getAdMarkup(adheseBid, adheseResponseExt))
