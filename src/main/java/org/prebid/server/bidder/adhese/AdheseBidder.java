@@ -258,16 +258,14 @@ public class AdheseBidder implements Bidder<Void> {
     private Bid convertAdheseOpenRtbBid(AdheseBid adheseBid) {
         final BidResponse originData = adheseBid.getOriginData();
         final List<SeatBid> seatBids = originData != null ? originData.getSeatbid() : null;
-        if (CollectionUtils.isEmpty(seatBids)) {
-            return null;
-        }
 
-        final List<Bid> bids = seatBids.get(0).getBid();
-        if (CollectionUtils.isEmpty(bids)) {
-            return null;
-        }
-
-        return bids.get(0).toBuilder().adm(adheseBid.getBody()).build();
+        return CollectionUtils.emptyIfNull(seatBids).stream()
+                .filter(Objects::nonNull)
+                .flatMap(seatBid -> seatBid.getBid().stream())
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(bid -> bid.toBuilder().adm(adheseBid.getBody()).build())
+                .orElse(null);
     }
 
     private static BigDecimal getPrice(AdheseBid adheseBid) {
