@@ -37,15 +37,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "AP-UID",
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
-    }
+    "buyeruid": "AP-UID"
   },
   "at": 1,
   "tmax": 5000,

@@ -75,16 +75,6 @@
       "auctiontimestamp": 1000
     }
   },
-  "user": {
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0
