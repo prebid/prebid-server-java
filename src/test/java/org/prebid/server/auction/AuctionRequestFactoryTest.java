@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -488,20 +489,24 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsSecureAndImpSecurityIsZero() {
         // given
-        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().secure(0).build())).build());
+        final List<Imp> imps = singletonList(Imp.builder().secure(0).build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getImp()).extracting(Imp::getSecure).containsOnly(0);
+        assertThat(request.getImp()).isSameAs(imps);
     }
 
     @Test
     public void shouldUpdateImpsOnlyWithNotDefinedSecurityWithSecurityOneIfRequestIsSecure() {
         // given
-        givenBidRequest(BidRequest.builder().imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
+        givenBidRequest(BidRequest.builder()
+                .imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
                 .build());
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
@@ -515,14 +520,103 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined() {
         // given
-        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
+        final List<Imp> imps = singletonList(Imp.builder().build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getImp()).extracting(Imp::getSecure).containsNull();
+        assertThat(request.getImp()).isSameAs(imps);
+    }
+
+    @Test
+    public void shouldMoveBidderParametersToImpExtPrebidBidderAndOverwriteExisting() {
+        // given
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                .<ObjectNode>set("bidder2", mapper.createObjectNode().put("param2", "value2"))
+                                .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
+                                .set("prebid", mapper.createObjectNode()
+                                        .<ObjectNode>set("bidder", mapper.createObjectNode()
+                                                .set("bidder2", mapper.createObjectNode().put("param22", "value22")))
+                                        .set("storedrequest", mapper.createObjectNode().put("id", "storedreq1"))))
+                        .build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getImp()).containsOnly(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
+                                .set("prebid", mapper.createObjectNode()
+                                        .<ObjectNode>set("bidder", mapper.createObjectNode()
+                                                .<ObjectNode>set(
+                                                        "bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                                .<ObjectNode>set(
+                                                        "bidder2", mapper.createObjectNode().put("param2", "value2")))
+                                        .set("storedrequest", mapper.createObjectNode().put("id", "storedreq1"))))
+                        .build());
+    }
+
+    @Test
+    public void shouldMoveBidderParametersToImpExtPrebidBidderWhenImpExtPrebidAbsent() {
+        // given
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                .set("bidder2", mapper.createObjectNode().put("param2", "value2")))
+                        .build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getImp()).containsOnly(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("bidder", mapper.createObjectNode()
+                                                .<ObjectNode>set(
+                                                        "bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                                .<ObjectNode>set(
+                                                        "bidder2", mapper.createObjectNode().put("param2", "value2")))))
+                        .build());
+    }
+
+    @Test
+    public void shouldNotChangeImpExtWhenBidderParametersAreAtImpExtPrebidBidderOnly() {
+        // given
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("bidder", mapper.createObjectNode()
+                                                .<ObjectNode>set(
+                                                        "bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                                .<ObjectNode>set(
+                                                        "bidder2", mapper.createObjectNode().put("param2", "value2")))))
+                        .build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getImp()).isSameAs(imps);
     }
 
     @Test

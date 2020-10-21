@@ -55,11 +55,13 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -71,8 +73,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Used in OpenRTB request processing.
@@ -85,6 +85,12 @@ public class AuctionRequestFactory {
 
     public static final String WEB_CHANNEL = "web";
     public static final String APP_CHANNEL = "app";
+
+    private static final String PREBID_EXT = "prebid";
+    private static final String BIDDER_EXT = "bidder";
+
+    private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS = Collections.unmodifiableSet(new HashSet<>(
+            Arrays.asList(PREBID_EXT, "context")));
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -483,18 +489,86 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Updates imps with security 1, when secured request was received and imp security was not defined.
+     * - Updates imps with security 1, when secured request was received and imp security was not defined.
+     * - Moves bidder parameters from imp.ext._bidder_ to imp.ext.prebid.bidder._bidder_
      */
     private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
-        List<Imp> result = null;
-
-        if (Objects.equals(paramsExtractor.secureFrom(request), 1)
-                && imps.stream().map(Imp::getSecure).anyMatch(Objects::isNull)) {
-            result = imps.stream()
-                    .map(imp -> imp.getSecure() == null ? imp.toBuilder().secure(1).build() : imp)
-                    .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(imps)) {
+            return null;
         }
-        return result;
+
+        final Integer secureFromRequest = paramsExtractor.secureFrom(request);
+
+        if (!shouldModifyImps(imps, secureFromRequest)) {
+            return imps;
+        }
+
+        return imps.stream()
+                .map(imp -> populateImp(imp, secureFromRequest))
+                .collect(Collectors.toList());
+    }
+
+    private boolean shouldModifyImps(List<Imp> imps, Integer secureFromRequest) {
+        return imps.stream()
+                .anyMatch(imp -> shouldSetImpSecure(imp, secureFromRequest) || shouldMoveBidderParams(imp));
+    }
+
+    private boolean shouldSetImpSecure(Imp imp, Integer secureFromRequest) {
+        return imp.getSecure() == null && Objects.equals(secureFromRequest, 1);
+    }
+
+    private boolean shouldMoveBidderParams(Imp imp) {
+        return imp.getExt() != null
+                && StreamUtil.asStream(imp.getExt().fieldNames()).anyMatch(this::isImpExtBidderField);
+    }
+
+    private boolean isImpExtBidderField(String field) {
+        return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
+    }
+
+    private Imp populateImp(Imp imp, Integer secureFromRequest) {
+        final boolean shouldSetSecure = shouldSetImpSecure(imp, secureFromRequest);
+        final boolean shouldMoveBidderParams = shouldMoveBidderParams(imp);
+
+        if (shouldSetSecure || shouldMoveBidderParams) {
+            final ObjectNode impExt = imp.getExt();
+
+            return imp.toBuilder()
+                    .secure(shouldSetSecure ? Integer.valueOf(1) : imp.getSecure())
+                    .ext(shouldMoveBidderParams ? populateImpExt(impExt) : impExt)
+                    .build();
+        }
+
+        return imp;
+    }
+
+    private ObjectNode populateImpExt(ObjectNode impExt) {
+        final ObjectNode modifiedExt = impExt.deepCopy();
+
+        final ObjectNode modifiedExtPrebid = getOrCreateChildObjectNode(modifiedExt, PREBID_EXT);
+        modifiedExt.replace(PREBID_EXT, modifiedExtPrebid);
+        final ObjectNode modifiedExtPrebidBidder = getOrCreateChildObjectNode(modifiedExtPrebid, BIDDER_EXT);
+        modifiedExtPrebid.replace(BIDDER_EXT, modifiedExtPrebidBidder);
+
+        final Set<String> bidderFields = StreamUtil.asStream(modifiedExt.fieldNames())
+                .filter(this::isImpExtBidderField)
+                .collect(Collectors.toSet());
+
+        for (final String currentBidderField : bidderFields) {
+            modifiedExtPrebidBidder.replace(currentBidderField, modifiedExt.remove(currentBidderField));
+        }
+
+        return modifiedExt;
+    }
+
+    private static ObjectNode getOrCreateChildObjectNode(ObjectNode parentNode, String fieldName) {
+        final JsonNode childNode = parentNode.get(fieldName);
+
+        return isObjectNode(childNode) ? (ObjectNode) childNode : parentNode.objectNode();
+    }
+
+    private static boolean isObjectNode(JsonNode node) {
+        return node != null && node.isObject();
     }
 
     /**
@@ -669,7 +743,7 @@ public class AuctionRequestFactory {
         final Map<String, String> resolvedAliases = imps.stream()
                 .filter(Objects::nonNull)
                 .filter(imp -> imp.getExt() != null) // request validator is not called yet
-                .flatMap(imp -> asStream(imp.getExt().fieldNames())
+                .flatMap(imp -> StreamUtil.asStream(biddersFromImp(imp))
                         .filter(bidder -> !aliases.containsKey(bidder))
                         .filter(bidderCatalog::isAlias))
                 .distinct()
@@ -683,6 +757,13 @@ public class AuctionRequestFactory {
             result.putAll(resolvedAliases);
         }
         return result;
+    }
+
+    private Iterator<String> biddersFromImp(Imp imp) {
+        final JsonNode extPrebid = imp.getExt().get(PREBID_EXT);
+        final JsonNode extPrebidBidder = isObjectNode(extPrebid) ? extPrebid.get(BIDDER_EXT) : null;
+
+        return isObjectNode(extPrebidBidder) ? extPrebidBidder.fieldNames() : Collections.emptyIterator();
     }
 
     /**
@@ -746,11 +827,6 @@ public class AuctionRequestFactory {
     private static Long resolveTmax(Long requestTimeout, TimeoutResolver timeoutResolver) {
         final long timeout = timeoutResolver.resolve(requestTimeout);
         return !Objects.equals(requestTimeout, timeout) ? timeout : null;
-    }
-
-    private static <T> Stream<T> asStream(Iterator<T> iterator) {
-        final Iterable<T> iterable = () -> iterator;
-        return StreamSupport.stream(iterable.spliterator(), false);
     }
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
