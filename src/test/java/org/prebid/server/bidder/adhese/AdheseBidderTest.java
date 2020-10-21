@@ -1,11 +1,12 @@
 package org.prebid.server.bidder.adhese;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -111,7 +112,6 @@ public class AdheseBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
 
         // then
-
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/ag55/cigent;brussels"
@@ -141,25 +141,53 @@ public class AdheseBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
+        // given
+        final HttpCall<Void> httpCall = HttpCall
+                .success(null, HttpResponse.of(204, null, null), null);
+
+        // when
+        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
+        final HttpCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unrecognized token 'invalid'");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
+    public void makeBidsShouldReturnErrorIfResponseBodyIsUnexpected() {
         // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
+        final HttpCall<Void> httpCall = givenHttpCall("{}");
+
+        // when
+        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected response body");
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyResultWhenResponseIsEmptyArray() {
+        // given
+        final HttpCall<Void> httpCall = givenHttpCall("[]");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -193,13 +221,15 @@ public class AdheseBidderTest extends VertxTest {
 
         final JsonNode mergedResponseBid = JsonMergePatch.fromJson(adheseBidNode).apply(adheseResponseExtNode);
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(mergedResponse));
+
+        final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Response resulted in an empty seatBid array.");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Response resulted in an empty seatBid array");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
     }
 
@@ -234,7 +264,8 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponseBid = JsonMergePatch.fromJson(adheseBidNode).apply(adheseResponseExtNode);
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(mergedResponse));
+        final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -255,7 +286,7 @@ public class AdheseBidderTest extends VertxTest {
                                 "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
                         .build(),
                 BidType.banner, "USD");
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);
     }
@@ -280,8 +311,8 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         final AdheseResponseExt adheseResponseExt = AdheseResponseExt.of("60613369", "888", "https://hosts-demo."
-                + "adhese.com/rtb_gateway/handlers/client/track/?id=a2f39296-6dd0-4b3c-be85-7baa22e7ff4a", "tag",
-                "js");
+                        + "adhese.com/rtb_gateway/handlers/client/track/?id=a2f39296-6dd0-4b3c-be85-7baa22e7ff4a",
+                "tag", "js");
         final AdheseOriginData adheseOriginData = AdheseOriginData.of("priority", "orderProperty", "adFormat",
                 "adType", "adspaceId", "libId", "slotID", "viewableImpressionCounter");
 
@@ -292,7 +323,8 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponseBid = JsonMergePatch.fromJson(adheseBidNode).apply(adheseResponseExtNode);
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(mergedResponse));
+        final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -313,7 +345,7 @@ public class AdheseBidderTest extends VertxTest {
                                 "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
                         .build(),
                 BidType.video, "USD");
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);
     }
@@ -349,7 +381,8 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponseBid = JsonMergePatch.fromJson(adheseBidNode).apply(adheseResponseExtNode);
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(mergedResponse));
+        final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -370,7 +403,7 @@ public class AdheseBidderTest extends VertxTest {
                                 "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
                         .build(),
                 BidType.banner, "USD");
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);
     }
@@ -380,9 +413,9 @@ public class AdheseBidderTest extends VertxTest {
         assertThat(adheseBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
-    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody) {
+    private static HttpCall<Void> givenHttpCall(String responseBody) {
         return HttpCall.success(
-                HttpRequest.<Void>builder().body(requestBody).build(),
+                HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, responseBody), null);
     }
 }
