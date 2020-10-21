@@ -65,9 +65,6 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput(
-                        "Invalid MediaType. Conversant supports only Banner and Video. Ignoring ImpID=123"));
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -82,8 +79,9 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .containsOnly(BidderError.badInput("Impression[0] missing ext.bidder object"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -102,7 +100,7 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Missing site id"));
+                .containsOnly(BidderError.badInput("Impression[0] requires ext.bidder.site_id"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -168,26 +166,6 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSiteMobileFromImpExtIfPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.site(Site.builder().build()),
-                identity(),
-                extBuilder -> extBuilder.mobile(1));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getMobile)
-                .containsOnly(1);
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetImpDisplaymanagerAndDisplaymanagerver() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -201,7 +179,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
-                .containsOnly(tuple("prebid-s2s", "1.0.1"));
+                .containsOnly(tuple("prebid-s2s", "2.0.0"));
     }
 
     @Test
@@ -486,7 +464,9 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .containsOnly(BidderError.badServerResponse("Empty bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -500,7 +480,9 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .containsOnly(BidderError.badServerResponse("Empty bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -584,6 +566,7 @@ public class ConversantBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

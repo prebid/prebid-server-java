@@ -2,17 +2,15 @@ package org.prebid.server.bidder.conversant;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -30,7 +28,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -57,9 +54,8 @@ public class ConversantBidder implements Bidder<BidRequest> {
     // Position of the ad as a relative measure of visibility or prominence
     private static final Set<Integer> AD_POSITIONS = IntStream.range(0, 8).boxed().collect(Collectors.toSet());
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String DISPLAY_MANAGER = "prebid-s2s";
-    private static final String DISPLAY_MANAGER_VER = "1.0.1";
+    private static final String DISPLAY_MANAGER_VER = "2.0.0";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -71,15 +67,12 @@ public class ConversantBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
         final BidRequest outgoingRequest;
         try {
-            outgoingRequest = createBidRequest(bidRequest, errors);
+            outgoingRequest = createOutgoingRequest(bidRequest);
         } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
-
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
@@ -90,77 +83,51 @@ public class ConversantBidder implements Bidder<BidRequest> {
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
                         .build()),
-                errors);
+                Collections.emptyList());
     }
 
-    private BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
+    private BidRequest createOutgoingRequest(BidRequest bidRequest) {
+        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         final List<Imp> modifiedImps = new ArrayList<>();
-        Integer extMobile = null;
-        String extSiteId = null;
 
-        for (Imp imp : bidRequest.getImp()) {
+        for (int i = 0; i < bidRequest.getImp().size(); i++) {
+            final Imp imp = bidRequest.getImp().get(i);
+            final ExtImpConversant impExt;
             try {
-                validateImp(imp);
-                final ExtImpConversant impExt = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, impExt));
-                if (StringUtils.isNotEmpty(impExt.getSiteId())) {
-                    extSiteId = impExt.getSiteId();
-                }
-                if (impExt.getMobile() != null) {
-                    extMobile = impExt.getMobile();
-                }
+                impExt = parseImpExt(imp);
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                throw new PreBidException(String.format(e.getMessage(), i));
             }
-        }
-        if (modifiedImps.isEmpty()) {
-            throw new PreBidException("No valid impressions");
-        }
-
-        final Site site = bidRequest.getSite();
-        final App app = bidRequest.getApp();
-        validateSiteAppId(extSiteId, site, app);
-
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder()
-                .imp(modifiedImps);
-
-        if (site != null) {
-            if (StringUtils.isEmpty(site.getId()) || extMobile != null) {
-                final String siteId = ObjectUtils.defaultIfNull(site.getId(), extSiteId);
-                requestBuilder.site(site.toBuilder().id(siteId).mobile(extMobile).build());
+            if (i == 0) {
+                updateRequestWithSiteId(requestBuilder, bidRequest, impExt);
             }
-        } else if (app != null) {
-            if (StringUtils.isEmpty(app.getId())) {
-                requestBuilder.app(app.toBuilder().id(extSiteId).build());
-            }
+            modifiedImps.add(modifyImp(imp, impExt));
         }
-
+        requestBuilder.imp(modifiedImps);
         return requestBuilder.build();
     }
 
-    private void validateSiteAppId(String extSiteId, Site site, App app) {
-        if (site != null && StringUtils.isEmpty(site.getId()) && StringUtils.isEmpty(extSiteId)) {
-            throw new PreBidException("Missing site id");
-        }
-
-        if (app != null && StringUtils.isEmpty(app.getId()) && StringUtils.isEmpty(extSiteId)) {
-            throw new PreBidException("Missing app id");
-        }
-    }
-
-    private static void validateImp(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("Invalid MediaType. Conversant supports only Banner and Video. "
-                    + "Ignoring ImpID=%s", imp.getId()));
+    private void updateRequestWithSiteId(BidRequest.BidRequestBuilder requestBuilder,
+                                         BidRequest bidRequest, ExtImpConversant impExt) {
+        if (bidRequest.getSite() != null) {
+            requestBuilder.site(bidRequest.getSite().toBuilder().id(impExt.getSiteId()).build());
+        } else if (bidRequest.getApp() != null) {
+            requestBuilder.app(bidRequest.getApp().toBuilder().id(impExt.getSiteId()).build());
         }
     }
 
     private ExtImpConversant parseImpExt(Imp imp) {
+        final ExtImpConversant extImp;
         try {
-            return mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
+            extImp = mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException("Impression[%d] missing ext.bidder object");
         }
+
+        if (StringUtils.isBlank(extImp.getSiteId())) {
+            throw new PreBidException("Impression[%d] requires ext.bidder.site_id");
+        }
+        return extImp;
     }
 
     private static Imp modifyImp(Imp imp, ExtImpConversant impExt) {
@@ -175,7 +142,9 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
 
         if (impBanner != null && extPosition != null) {
-            impBuilder.banner(impBanner.toBuilder().pos(extPosition).build());
+            impBuilder.banner(impBanner.toBuilder()
+                    .pos(AD_POSITIONS.contains(extPosition) ? extPosition : null)
+                    .build());
         }
 
         return impBuilder
@@ -225,6 +194,10 @@ public class ConversantBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final int statusCode = httpCall.getResponse().getStatusCode();
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.of(Collections.emptyList(), Collections.emptyList());
+        }
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
@@ -234,18 +207,17 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
-                ? Collections.emptyList()
-                : bidsFromResponse(bidRequest, bidResponse);
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            throw new PreBidException("Empty bid request");
+        }
+        return bidsFromResponse(bidRequest, bidResponse);
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        return firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
