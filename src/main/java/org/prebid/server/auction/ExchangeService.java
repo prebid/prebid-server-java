@@ -739,7 +739,7 @@ public class ExchangeService {
      * Removes all bidders except the given bidder from bidrequest.ext.prebid.bidders to hide list of allowed bidders
      * from initial request.
      * <p>
-     * Also masks bidrequest.ext.prebid.schains.
+     * Also masks bidrequest.ext.prebid.schains and bidrequest.ext.prebid.bidderconfig
      */
     private ExtRequest prepareExt(String bidder,
                                   Map<String, JsonNode> bidderToPrebidBidders,

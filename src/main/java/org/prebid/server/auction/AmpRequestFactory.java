@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -273,8 +274,11 @@ public class AmpRequestFactory {
         final ObjectNode targetingNode = readTargeting(requestTargeting);
         ortbTypesResolver.normalizeTargeting(targetingNode, errors, implicitParametersExtractor.refererFrom(request));
         final Targeting targeting = parseTargeting(targetingNode);
-
-        final Site updatedSite = overrideSite(bidRequest.getSite(), request);
+        final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
+        // App update is unreachable code, but was implemented from PBS-GO pull request
+        // https://github.com/prebid/prebid-server/pull/1439 for the case if app!=null check will be removed in future
+        final App updatedApp = overrideApp(bidRequest.getApp(), accountId);
+        final Site updatedSite = overrideSite(bidRequest.getSite(), accountId, request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request, targetingNode);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
         final User updatedUser = overrideUser(bidRequest.getUser(), gdprConsent);
@@ -282,9 +286,10 @@ public class AmpRequestFactory {
         final ExtRequest updatedExtBidRequest = overrideExtBidRequest(bidRequest.getExt(), targeting);
 
         final BidRequest result;
-        if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null
-                || updatedRegs != null || updatedExtBidRequest != null) {
+        if (updatedSite != null || updatedApp != null || updatedImp != null || updatedTimeout != null
+                || updatedUser != null || updatedRegs != null || updatedExtBidRequest != null) {
             result = bidRequest.toBuilder()
+                    .app(updatedApp != null ? updatedApp : bidRequest.getApp())
                     .site(updatedSite != null ? updatedSite : bidRequest.getSite())
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
                     .tmax(updatedTimeout != null ? updatedTimeout : bidRequest.getTmax())
@@ -329,9 +334,19 @@ public class AmpRequestFactory {
         }
     }
 
-    private Site overrideSite(Site site, HttpServerRequest request) {
+    private App overrideApp(App app, String accountId) {
+        if (app != null) {
+            final Publisher appPublisher = app.getPublisher();
+            final Publisher resolvedPublisher = appPublisher == null
+                    ? Publisher.builder().id(accountId).build()
+                    : app.getPublisher().toBuilder().id(accountId).build();
+            return app.toBuilder().publisher(resolvedPublisher).build();
+        }
+        return null;
+    }
+
+    private Site overrideSite(Site site, String accountId, HttpServerRequest request) {
         final String canonicalUrl = canonicalUrl(request);
-        final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
 
         final boolean hasSite = site != null;
         final ExtSite siteExt = hasSite ? site.getExt() : null;
