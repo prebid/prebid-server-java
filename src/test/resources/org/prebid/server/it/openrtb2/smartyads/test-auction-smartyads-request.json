@@ -2,25 +2,34 @@
   "id": "tid",
   "imp": [
     {
-      "id": "58278",
+      "id": "testimpid",
       "banner": {
         "format": [
           {
-            "w": 300,
+            "w": 320,
             "h": 250
+          },
+          {
+            "w": 320,
+            "h": 300
           }
-        ]
+        ],
+        "w": 320,
+        "h": 250
       },
       "ext": {
-        "adgeneration": {
-          "id": "58278"
+        "smartyads": {
+          "accountid": "testAccountid",
+          "sourceid": "testSourceid",
+          "host": "testHost"
         }
-      }
+      },
+      "tagid": "impId021"
     }
   ],
   "device": {
+    "ua" : "userAgent",
     "pxratio": 4.2,
-    "ua": "some-agent",
     "dnt": 2,
     "language": "en",
     "ifa": "ifaId"
@@ -28,9 +37,6 @@
   "site": {
     "publisher": {
       "id": "publisherId"
-    },
-    "site": {
-      "page": "http://example.com/test.html"
     }
   },
   "at": 1,
@@ -44,16 +50,6 @@
   },
   "ext": {
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -66,22 +62,9 @@
         }
       },
       "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
+        "bids": {}
       },
       "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
     }
   },
   "regs": {

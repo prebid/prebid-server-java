@@ -32,7 +32,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheContext;
-import org.prebid.server.cache.model.CacheIdInfo;
+import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.events.EventsContext;
@@ -457,25 +457,25 @@ public class BidResponseCreator {
     /**
      * Creates a map with {@link Bid} as a key and null as a value.
      */
-    private static Map<Bid, CacheIdInfo> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
+    private static Map<Bid, CacheInfo> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
         return bids.stream()
-                .collect(Collectors.toMap(Function.identity(), ignored -> CacheIdInfo.empty()));
+                .collect(Collectors.toMap(Function.identity(), ignored -> CacheInfo.empty()));
     }
 
     /**
      * Adds bids with no cache id info.
      */
     private static CacheServiceResult addNotCachedBids(CacheServiceResult cacheResult, Set<Bid> bids) {
-        final Map<Bid, CacheIdInfo> bidToCacheIdInfo = cacheResult.getCacheBids();
+        final Map<Bid, CacheInfo> bidToCacheId = cacheResult.getCacheBids();
 
-        if (bids.size() > bidToCacheIdInfo.size()) {
-            final Map<Bid, CacheIdInfo> updatedBidToCacheIdInfo = new HashMap<>(bidToCacheIdInfo);
+        if (bids.size() > bidToCacheId.size()) {
+            final Map<Bid, CacheInfo> updatedBidToCacheInfo = new HashMap<>(bidToCacheId);
             for (Bid bid : bids) {
-                if (!updatedBidToCacheIdInfo.containsKey(bid)) {
-                    updatedBidToCacheIdInfo.put(bid, CacheIdInfo.empty());
+                if (!updatedBidToCacheInfo.containsKey(bid)) {
+                    updatedBidToCacheInfo.put(bid, CacheInfo.empty());
                 }
             }
-            return CacheServiceResult.of(cacheResult.getHttpCall(), cacheResult.getError(), updatedBidToCacheIdInfo);
+            return CacheServiceResult.of(cacheResult.getHttpCall(), cacheResult.getError(), updatedBidToCacheInfo);
         }
         return cacheResult;
     }
@@ -656,7 +656,7 @@ public class BidResponseCreator {
                                       ExtRequestTargeting targeting,
                                       Set<Bid> winningBids,
                                       Set<Bid> winningBidsByBidder,
-                                      BidRequestCacheInfo cacheInfo,
+                                      BidRequestCacheInfo requestCacheInfo,
                                       CacheServiceResult cacheResult,
                                       VideoStoredDataResult videoStoredDataResult,
                                       EventsContext eventsContext,
@@ -675,7 +675,7 @@ public class BidResponseCreator {
                         bidRequest,
                         winningBids,
                         winningBidsByBidder,
-                        cacheInfo,
+                        requestCacheInfo,
                         cacheResult.getCacheBids(),
                         videoStoredDataResult,
                         account,
@@ -746,8 +746,8 @@ public class BidResponseCreator {
                               BidRequest bidRequest,
                               Set<Bid> winningBids,
                               Set<Bid> winningBidsByBidder,
-                              BidRequestCacheInfo cacheInfo,
-                              Map<Bid, CacheIdInfo> cachedBids,
+                              BidRequestCacheInfo requestCacheInfo,
+                              Map<Bid, CacheInfo> bidToCacheInfo,
                               VideoStoredDataResult videoStoredDataResult,
                               Account account,
                               Map<String, List<ExtBidderError>> bidErrors,
@@ -763,8 +763,8 @@ public class BidResponseCreator {
                         bidRequest,
                         winningBids,
                         winningBidsByBidder,
-                        cacheInfo,
-                        cachedBids,
+                        requestCacheInfo,
+                        bidToCacheInfo,
                         videoStoredDataResult.getImpIdToStoredVideo(),
                         account,
                         eventsContext,
@@ -788,8 +788,8 @@ public class BidResponseCreator {
                       BidRequest bidRequest,
                       Set<Bid> winningBids,
                       Set<Bid> winningBidsByBidder,
-                      BidRequestCacheInfo cacheInfo,
-                      Map<Bid, CacheIdInfo> bidsWithCacheIds,
+                      BidRequestCacheInfo requestCacheInfo,
+                      Map<Bid, CacheInfo> bidsWithCacheIds,
                       Map<String, Video> impIdToStoredVideo,
                       Account account,
                       EventsContext eventsContext,
@@ -802,12 +802,12 @@ public class BidResponseCreator {
         final boolean isWinningBid = winningBids.contains(bid);
         final boolean isWinningBidByBidder = winningBidsByBidder.contains(bid);
 
-        final CacheIdInfo cacheIdInfo = bidsWithCacheIds.get(bid);
-        final String cacheId = cacheIdInfo != null ? cacheIdInfo.getCacheId() : null;
-        final String videoCacheId = cacheIdInfo != null ? cacheIdInfo.getVideoCacheId() : null;
+        final CacheInfo cacheInfo = bidsWithCacheIds.get(bid);
+        final String cacheId = cacheInfo != null ? cacheInfo.getCacheId() : null;
+        final String videoCacheId = cacheInfo != null ? cacheInfo.getVideoCacheId() : null;
 
-        if ((videoCacheId != null && !cacheInfo.isReturnCreativeVideoBids())
-                || (cacheId != null && !cacheInfo.isReturnCreativeBids())) {
+        if ((videoCacheId != null && !requestCacheInfo.isReturnCreativeVideoBids())
+                || (cacheId != null && !requestCacheInfo.isReturnCreativeBids())) {
             bid.setAdm(null);
         }
 
@@ -855,6 +855,9 @@ public class BidResponseCreator {
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, bid.getExt());
         bid.setExt(mapper.mapper().valueToTree(bidExt));
+
+        final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
+        bid.setExp(ttl);
 
         return bid;
     }

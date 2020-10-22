@@ -104,7 +104,8 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     private String getTargetParameters(ExtImpAdhese extImpAdhese) {
-        if (extImpAdhese.getKeywords().isNull()) {
+        final JsonNode keywords = extImpAdhese.getKeywords();
+        if (keywords == null || keywords.isNull()) {
             return "";
         }
 

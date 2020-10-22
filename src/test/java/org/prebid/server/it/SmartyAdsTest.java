@@ -20,30 +20,28 @@ import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class TelariaTest extends IntegrationTest {
+public class SmartyAdsTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromTelaria() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromSmartyAds() throws IOException, JSONException {
         // given
-        // ValueImpression bid response
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/telaria-exchange/"))
+        // SmartyAds bid response for imp
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartyads-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
-                .withHeader("x-openrtb-version", equalTo("2.5"))
-                .withHeader("Accept-Encoding", equalTo("gzip"))
                 .withHeader("Accept-Language", equalTo("en"))
-                .withHeader("Content-Length", equalTo("677"))
-                .withHeader("DNT", equalTo("2"))
-                .withHeader("Host", equalTo("localhost:8090"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/telaria/test-telaria-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/telaria/test-telaria-bid-response-1.json"))));
+                .withHeader("Dnt", equalTo("2"))
+                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/smartyads/test-smartyads-bid-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/smartyads/test-smartyads-bid-response.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/telaria/test-cache-telaria-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/telaria/test-cache-telaria-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/smartyads/test-cache-smartyads-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/smartyads/test-cache-smartyads-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -51,13 +49,15 @@ public class TelariaTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids", "eyJ1aWRzIjp7InRlbGFyaWEiOiJUTC1VSUQifX0=")
-                .body(jsonFrom("openrtb2/telaria/test-auction-telaria-request.json"))
+                // this uids cookie value stands for {"uids":{"smartyads":"SA-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InNtYXJ0eWFkcyI6IlNBLVVJRCJ9fQ==")
+                .body(jsonFrom("openrtb2/smartyads/test-auction-smartyads-request.json"))
                 .post("/openrtb2/auction");
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/telaria/test-auction-telaria-response.json", response, singletonList("telaria"));
+                "openrtb2/smartyads/test-auction-smartyads-response.json",
+                response, singletonList("smartyads"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

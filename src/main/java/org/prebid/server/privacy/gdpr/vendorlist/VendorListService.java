@@ -326,9 +326,7 @@ public abstract class VendorListService<T, V> {
                     tcf, version, exception.getMessage());
         }
 
-        if (exception instanceof MissingVendorListException) {
-            startUsingFallbackForVersion(version);
-        }
+        startUsingFallbackForVersion(version);
 
         return null;
     }
