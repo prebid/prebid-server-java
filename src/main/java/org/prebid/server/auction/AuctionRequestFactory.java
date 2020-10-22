@@ -555,7 +555,14 @@ public class AuctionRequestFactory {
                 .collect(Collectors.toSet());
 
         for (final String currentBidderField : bidderFields) {
-            modifiedExtPrebidBidder.replace(currentBidderField, modifiedExt.remove(currentBidderField));
+            final ObjectNode modifiedExtPrebidBidderCurrentBidder =
+                    getOrCreateChildObjectNode(modifiedExtPrebidBidder, currentBidderField);
+            modifiedExtPrebidBidder.replace(currentBidderField, modifiedExtPrebidBidderCurrentBidder);
+
+            final JsonNode extCurrentBidder = modifiedExt.remove(currentBidderField);
+            if (isObjectNode(extCurrentBidder)) {
+                modifiedExtPrebidBidderCurrentBidder.setAll((ObjectNode) extCurrentBidder);
+            }
         }
 
         return modifiedExt;

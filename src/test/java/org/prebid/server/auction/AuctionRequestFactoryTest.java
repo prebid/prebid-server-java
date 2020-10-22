@@ -534,7 +534,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldMoveBidderParametersToImpExtPrebidBidderAndOverwriteExisting() {
+    public void shouldMoveBidderParametersToImpExtPrebidBidderAndMergeWithExisting() {
         // given
         final List<Imp> imps = singletonList(
                 Imp.builder()
@@ -563,7 +563,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
                                                 .<ObjectNode>set(
                                                         "bidder1", mapper.createObjectNode().put("param1", "value1"))
                                                 .<ObjectNode>set(
-                                                        "bidder2", mapper.createObjectNode().put("param2", "value2")))
+                                                        "bidder2", mapper.createObjectNode()
+                                                                .put("param2", "value2")
+                                                                .put("param22", "value22")))
                                         .set("storedrequest", mapper.createObjectNode().put("id", "storedreq1"))))
                         .build());
     }
