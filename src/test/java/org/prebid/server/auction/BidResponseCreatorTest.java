@@ -1618,7 +1618,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         ExtBidderError.of(3, "Failed to decode: Cannot deserialize instance of `com.iab."
                                 + "openrtb.response.Response` out of START_ARRAY token\n at [Source: (String)\"[]\"; "
                                 + "line: 1, column: 1]"))),
-                entry("prebid", singletonList(ExtBidderError.of(999, "cacheError"))));
+                entry("cache", singletonList(ExtBidderError.of(999, "cacheError"))));
 
         assertThat(responseExt.getResponsetimemillis()).hasSize(2)
                 .containsOnly(entry("bidder1", 100), entry("cache", 666));
