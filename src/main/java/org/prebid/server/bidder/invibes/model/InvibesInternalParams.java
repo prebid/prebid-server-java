@@ -1,17 +1,17 @@
 package org.prebid.server.bidder.invibes.model;
 
-import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Builder(toBuilder = true)
-@Value
+@Data
+@NoArgsConstructor
 public class InvibesInternalParams {
 
     InvibesBidParams bidParams;
 
-    Integer domainID;
+    Integer domainId;
 
-    Boolean isAMP;
+    Boolean isAmp;
 
     Boolean gdpr;
 

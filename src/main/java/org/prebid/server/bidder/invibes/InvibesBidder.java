@@ -35,6 +35,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.invibes.ExtImpInvibes;
+import org.prebid.server.proto.openrtb.ext.request.invibes.model.InvibesDebug;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -70,25 +71,20 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         final String consentString = resolveConsentString(request.getUser());
         final Boolean gdprApplies = resolveGDPRApplies(request.getRegs());
 
-        InvibesInternalParams invibesInternalParams =
-                InvibesInternalParams.builder()
-                        .bidParams(InvibesBidParams.builder()
-                                .properties(new HashMap<String, InvibesPlacementProperty>())
-                                .bidVersion(INVIBES_BID_VERSION)
-                                .build())
-                        .build();
+        InvibesInternalParams invibesInternalParams = new InvibesInternalParams();
+        invibesInternalParams.setBidParams(InvibesBidParams.builder()
+                .properties(new HashMap<>())
+                .placementIds(new ArrayList<>())
+                .bidVersion(INVIBES_BID_VERSION)
+                .build());
 
-        for (final Imp imp : request.getImp()) {
+        for (Imp imp : request.getImp()) {
             final ExtImpInvibes extImpInvibes;
             try {
-                extImpInvibes = mapper.mapper().convertValue(imp.getExt(), INVIBES_EXT_TYPE_REFERENCE).getBidder();
-            } catch (IllegalArgumentException e) {
-                errors.add(BidderError.badInput("Error parsing invibesExt parameters"));
-                continue;
-            }
-            final Banner banner = imp.getBanner();
-            if (banner == null) {
-                errors.add(BidderError.badInput("Banner not specified"));
+                extImpInvibes = parseImpExt(imp);
+                validateImp(imp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
 
@@ -96,15 +92,18 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         }
         //TODO add AMP parameter to invibesInternalParams, after reqInfo will be implemented
 
-        if (invibesInternalParams.getBidParams()
-                .getPlacementIDs() == null
-                || invibesInternalParams.getBidParams().getPlacementIDs().size() == 0) {
+        final List<String> placementIds = invibesInternalParams.getBidParams().getPlacementIds();
+        if (CollectionUtils.isEmpty(placementIds)) {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        invibesInternalParams = updateWithGDPRParams(invibesInternalParams, consentString, gdprApplies);
+        invibesInternalParams.setGdpr(gdprApplies);
+        invibesInternalParams.setGdprConsent(consentString);
 
         try {
+            if (request.getSite() == null) {
+                throw new PreBidException("Site not specified");
+            }
             final HttpRequest<InvibesBidRequest> httpRequest = makeRequest(invibesInternalParams, request);
             return Result.of(Collections.singletonList(httpRequest), errors);
         } catch (PreBidException e) {
@@ -112,13 +111,23 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         }
     }
 
+    private ExtImpInvibes parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), INVIBES_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Error parsing invibesExt parameters");
+        }
+    }
+
+    private void validateImp(Imp imp) {
+        if (imp.getBanner() == null) {
+            throw new PreBidException("Banner not specified");
+        }
+    }
+
     private String resolveConsentString(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
-        if (extUser != null) {
-            return extUser.getConsent();
-        }
-
-        return StringUtils.EMPTY;
+        return extUser != null ? extUser.getConsent() : StringUtils.EMPTY;
     }
 
     private Boolean resolveGDPRApplies(Regs regs) {
@@ -128,42 +137,67 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         return gdpr != null ? gdpr == 1 : Boolean.TRUE;
     }
 
-    private InvibesInternalParams updateInvibesInternalParams(
-            InvibesInternalParams invibesInternalParams, ExtImpInvibes invibesExt,
-            Imp imp) {
-        final String placementId = invibesExt.getPlacementId();
-        final List<String> updatedPlacementIds = getUpdatedPlacementIds(
-                placementId, invibesInternalParams.getBidParams().getPlacementIDs());
+    private InvibesInternalParams updateInvibesInternalParams(InvibesInternalParams invibesInternalParams,
+                                                              ExtImpInvibes invibesExt,
+                                                              Imp imp) {
+        final String impExtPlacementId = invibesExt.getPlacementId();
+        final InvibesBidParams bidParams = invibesInternalParams.getBidParams();
+        final List<String> updatedPlacementIds = bidParams.getPlacementIds();
 
-        final Map<String, InvibesPlacementProperty> updatedProperties
-                = getUpdatedProperties(invibesInternalParams.getBidParams().getProperties(),
-                placementId, imp.getId(), resolveAdFormats(imp.getBanner()));
+        if (StringUtils.isNotBlank(impExtPlacementId)) {
+            updatedPlacementIds.add(impExtPlacementId.trim());
+        }
+        final Banner banner = imp.getBanner();
+        final List<Format> adFormats = resolveAdFormats(banner);
 
-        final InvibesBidParams updatedBidParams = invibesInternalParams.getBidParams().toBuilder()
-                .placementIDs(updatedPlacementIds)
-                .properties(updatedProperties)
+        bidParams.getProperties()
+                .put(impExtPlacementId, InvibesPlacementProperty.builder()
+                        .impId(imp.getId())
+                        .formats(adFormats)
+                        .build());
+
+        final InvibesBidParams updatedBidParams = bidParams.toBuilder()
+                .placementIds(updatedPlacementIds)
+                .properties(bidParams.getProperties())
                 .build();
 
-        final InvibesInternalParams.InvibesInternalParamsBuilder internalParamsBuilder
-                = invibesInternalParams.toBuilder()
-                .domainID(invibesExt.getDomainId())
-                .bidParams(updatedBidParams);
+        invibesInternalParams.setDomainId(invibesExt.getDomainId());
+        invibesInternalParams.setBidParams(updatedBidParams);
 
-        if (invibesExt.getDebug() != null) {
-            if (!invibesExt.getDebug().getTestBvid().equals(StringUtils.EMPTY)) {
-                internalParamsBuilder.testBvid(invibesExt.getDebug().getTestBvid());
-            }
-            internalParamsBuilder.testLog(invibesExt.getDebug().getTestLog());
+        final InvibesDebug invibesDebug = invibesExt.getDebug();
+        final String invibesDebugTestBvid = invibesDebug != null ? invibesDebug.getTestBvid() : null;
+        if (StringUtils.isNotBlank(invibesDebugTestBvid)) {
+            invibesInternalParams.setTestBvid(invibesDebugTestBvid);
         }
 
-        return internalParamsBuilder.build();
+        if (invibesDebug != null) {
+            invibesInternalParams.setTestLog(invibesDebug.getTestLog());
+        }
+
+        return invibesInternalParams;
     }
 
-    private HttpRequest<InvibesBidRequest> makeRequest(InvibesInternalParams invibesParams, BidRequest request) {
-        final String url = makeUrl(invibesParams.getDomainID());
+    private List<Format> resolveAdFormats(Banner currentBanner) {
+        if (currentBanner.getFormat() != null) {
+            return currentBanner.getFormat();
+        } else {
+            final Integer formatW = currentBanner.getW();
+            final Integer formatH = currentBanner.getH();
+            return formatW != null && formatH != null
+                    ? Collections.singletonList(Format.builder().w(formatW).h(formatH).build())
+                    : Collections.emptyList();
+        }
+    }
+
+    private HttpRequest<InvibesBidRequest> makeRequest(InvibesInternalParams invibesParams,
+                                                       BidRequest request) {
+        final String host = resolveHost(invibesParams.getDomainId());
+        final String url = endpointUrl.replace(URL_HOST_MACRO, host);
         final InvibesBidRequest parameter = resolveParameter(invibesParams, request);
 
-        final MultiMap headers = resolveHeaders(request.getDevice(), request.getSite());
+        final Device device = request.getDevice();
+        final Site site = request.getSite();
+        final MultiMap headers = resolveHeaders(device, site);
 
         final String body = mapper.encode(parameter);
 
@@ -174,75 +208,48 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
                 .payload(parameter)
                 .body(body)
                 .build();
-
-    }
-
-    private MultiMap resolveHeaders(Device device, Site site) {
-        final MultiMap headers = HttpUtil.headers();
-        if (device != null) {
-            if (StringUtils.isNotEmpty(device.getIp())) {
-                headers.add("X-Forwarded-For", device.getIp());
-            } else if (StringUtils.isNotEmpty(device.getIpv6())) {
-                headers.add("X-Forwarded-For", device.getIpv6());
-            }
-        }
-        if (site != null) {
-            headers.add("Referer", site.getPage());
-        }
-        headers.add("Aver", ADAPTER_VERSION);
-        return headers;
     }
 
     private InvibesBidRequest resolveParameter(InvibesInternalParams invibesParams, BidRequest request) {
-        final String buyeruid = request.getUser() != null ? request.getUser().getBuyeruid() : null;
-        final String lid = StringUtils.isNotBlank(buyeruid) ? request.getUser().getBuyeruid() : StringUtils.EMPTY;
+        final User user = request.getUser();
+        final String buyeruid = user != null ? user.getBuyeruid() : null;
+        final String lid = StringUtils.isNotBlank(buyeruid) ? buyeruid : StringUtils.EMPTY;
 
-        if (request.getSite() == null) {
-            throw new PreBidException("Site not specified");
-        }
+        return createRequest(invibesParams, lid, request.getDevice(), request.getSite());
+    }
+
+    private InvibesBidRequest createRequest(InvibesInternalParams invibesParams, String lid,
+                                            Device device, Site site) {
+        final String testBvid = invibesParams.getTestBvid();
+        final Boolean testLog = invibesParams.getTestLog();
 
         return InvibesBidRequest.builder()
-                .isTestBid(invibesParams.getTestBvid() != null
-                        && !invibesParams.getTestBvid().equals(StringUtils.EMPTY))
+                .isTestBid(StringUtils.isNotBlank(testBvid))
                 .bidParamsJson(mapper.encode(invibesParams.getBidParams()))
-                .location(request.getSite().getPage())
+                .location(site.getPage())
                 .lid(lid)
-                .kw(request.getSite().getKeywords())
-                .isAMP(invibesParams.getIsAMP())
-                .width(resolveWidth(request.getDevice()))
-                .height(resolveHeight(request.getDevice()))
+                .kw(site.getKeywords())
+                .isAmp(invibesParams.getIsAmp())
+                .width(resolveWidth(device))
+                .height(resolveHeight(device))
                 .gdprConsent(invibesParams.getGdprConsent())
                 .gdpr(invibesParams.getGdpr())
-                .bvid(invibesParams.getTestBvid())
-                .invibBVLog(invibesParams.getTestLog())
-                .videoAdDebug(invibesParams.getTestLog())
+                .bvid(testBvid)
+                .invibBVLog(testLog)
+                .videoAdDebug(testLog)
                 .build();
     }
 
-    private String resolveHeight(Device device) {
+    private static String resolveHeight(Device device) {
         final Integer height = device != null ? device.getH() : null;
 
-        return height != null && height > NumberUtils.INTEGER_ZERO
-                ? height.toString() : null;
+        return height != null && height > NumberUtils.INTEGER_ZERO ? height.toString() : null;
     }
 
-    private String resolveWidth(Device device) {
+    private static String resolveWidth(Device device) {
         final Integer width = device != null ? device.getW() : null;
 
-        return width != null && width > NumberUtils.INTEGER_ZERO
-                ? width.toString() : null;
-    }
-
-    private String makeUrl(Integer domainId) {
-        final String host = resolveHost(domainId);
-        final String url = endpointUrl.replace(URL_HOST_MACRO, host);
-        try {
-            HttpUtil.validateUrl(Objects.requireNonNull(url));
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-
-        return url;
+        return width != null && width > NumberUtils.INTEGER_ZERO ? width.toString() : null;
     }
 
     private String resolveHost(Integer domainId) {
@@ -259,45 +266,20 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         }
     }
 
-    private InvibesInternalParams updateWithGDPRParams(InvibesInternalParams internalParams,
-                                                       String consentString, Boolean gdprApplies) {
-        return internalParams.toBuilder()
-                .gdpr(gdprApplies)
-                .gdprConsent(consentString)
-                .build();
-    }
-
-    private List<String> getUpdatedPlacementIds(String placementId, List<String> placementIds) {
-        final List<String> updatedPlacementIds = placementIds != null
-                ? placementIds : new ArrayList<>();
-        if (StringUtils.isNotEmpty(placementId)) {
-            updatedPlacementIds.add(placementId.trim());
+    private MultiMap resolveHeaders(Device device, Site site) {
+        final MultiMap headers = HttpUtil.headers();
+        if (device != null) {
+            if (StringUtils.isNotBlank(device.getIp())) {
+                headers.add("X-Forwarded-For", device.getIp());
+            } else if (StringUtils.isNotBlank(device.getIpv6())) {
+                headers.add("X-Forwarded-For", device.getIpv6());
+            }
         }
-        return updatedPlacementIds;
-    }
-
-    private Map<String, InvibesPlacementProperty> getUpdatedProperties(
-            Map<String, InvibesPlacementProperty> properties, String placementId,
-            String impId, List<Format> adFormats) {
-        properties.put(placementId, InvibesPlacementProperty.builder()
-                .impId(impId)
-                .formats(adFormats)
-                .build());
-
-        return properties;
-    }
-
-    private List<Format> resolveAdFormats(Banner currentBanner) {
-        if (currentBanner.getFormat() != null) {
-            return currentBanner.getFormat();
-        } else if (currentBanner.getW() != null && currentBanner.getH() != null) {
-            return Collections.singletonList(Format.builder()
-                    .w(currentBanner.getW())
-                    .h(currentBanner.getH())
-                    .build());
+        if (site != null) {
+            headers.add("Referer", site.getPage());
         }
-
-        return Collections.emptyList();
+        headers.add("Aver", ADAPTER_VERSION);
+        return headers;
     }
 
     @Override
@@ -310,25 +292,23 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         try {
             final InvibesBidderResponse bidResponse =
                     mapper.decodeValue(httpCall.getResponse().getBody(), InvibesBidderResponse.class);
-            if (bidResponse != null && StringUtils.isNotEmpty(bidResponse.getError())) {
+            if (bidResponse != null && StringUtils.isNotBlank(bidResponse.getError())) {
                 return Result.emptyWithError(
                         BidderError.badServerResponse(String.format("Server error: %s.", bidResponse.getError())));
             }
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(InvibesBidRequest bidRequest, InvibesBidderResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getTypedBids())) {
-            return Collections.emptyList();
-        }
-
-        return bidsFromResponse(bidRequest, bidResponse);
+    private List<BidderBid> extractBids(InvibesBidderResponse bidResponse) {
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getTypedBids())
+                ? Collections.emptyList()
+                : bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(InvibesBidRequest bidRequest, InvibesBidderResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(InvibesBidderResponse bidResponse) {
         return bidResponse.getTypedBids().stream()
                 .filter(Objects::nonNull)
                 .map(InvibesTypedBid::getBid)

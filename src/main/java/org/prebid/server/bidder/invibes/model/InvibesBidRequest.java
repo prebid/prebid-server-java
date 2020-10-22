@@ -24,7 +24,7 @@ public class InvibesBidRequest {
     String kw;
 
     @JsonProperty("IsAMP")
-    Boolean isAMP;
+    Boolean isAmp;
 
     @JsonProperty("Width")
     String width;

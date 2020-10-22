@@ -9,8 +9,6 @@ adapters:
     aliases:
     meta-info:
       maintainer-email: system_operations@invibes.com
-      app-media-types:
-        - banner
       site-media-types:
         - banner
       supported-vendors:

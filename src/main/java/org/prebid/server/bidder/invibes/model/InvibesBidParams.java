@@ -12,7 +12,7 @@ import java.util.Map;
 public class InvibesBidParams {
 
     @JsonProperty("PlacementIds")
-    List<String> placementIDs;
+    List<String> placementIds;
 
     @JsonProperty("BidVersion")
     String bidVersion;
