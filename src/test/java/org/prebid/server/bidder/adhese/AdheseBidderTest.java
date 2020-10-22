@@ -198,6 +198,21 @@ public class AdheseBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnEmptyResultWhenResponseIsArrayWithEmptyObject() {
+        // given
+        final HttpCall<Void> httpCall = givenHttpCall("[{}]");
+
+        // when
+        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Response resulted in an empty seatBid array");
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfSeatbidIsEmpty() throws JsonProcessingException, JsonPatchException {
         // given
         final AdheseBid adheseBid = AdheseBid.builder()
@@ -229,8 +244,10 @@ public class AdheseBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
 
         // then
+        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Response resulted in an empty seatBid array");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -288,7 +305,7 @@ public class AdheseBidderTest extends VertxTest {
                 BidType.banner, "USD");
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);
+        assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
     }
 
     @Test
@@ -347,7 +364,7 @@ public class AdheseBidderTest extends VertxTest {
                 BidType.video, "USD");
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);
+        assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
     }
 
     @Test
@@ -405,7 +422,7 @@ public class AdheseBidderTest extends VertxTest {
                 BidType.banner, "USD");
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);
+        assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
     }
 
     @Test
