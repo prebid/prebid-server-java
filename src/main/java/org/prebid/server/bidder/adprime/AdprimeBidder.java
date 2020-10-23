@@ -7,7 +7,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.adprime.ExtImpAdprime;
 
 /**
- * AdprimeBidder {@link Bidder} implementation.
+ * Adprime {@link Bidder} implementation.
  */
 public class AdprimeBidder extends OpenrtbBidder<ExtImpAdprime> {
 
