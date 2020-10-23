@@ -11,6 +11,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.TargetingKeywordsCreator;
 import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
@@ -27,10 +28,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
-import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
@@ -46,7 +45,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -72,10 +70,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final HttpAdapterConnector httpAdapterConnector;
     private final Clock clock;
     private final TcfDefinerService tcfDefinerService;
-    private final PrivacyExtractor privacyExtractor;
+    private final PrivacyEnforcementService privacyEnforcementService;
     private final JacksonMapper mapper;
     private final Integer gdprHostVendorId;
-    private final boolean useGeoLocation;
 
     public AuctionHandler(ApplicationSettings applicationSettings,
                           BidderCatalog bidderCatalog,
@@ -85,9 +82,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
                           HttpAdapterConnector httpAdapterConnector,
                           Clock clock,
                           TcfDefinerService tcfDefinerService,
-                          PrivacyExtractor privacyExtractor, JacksonMapper mapper,
-                          Integer gdprHostVendorId,
-                          boolean useGeoLocation) {
+                          PrivacyEnforcementService privacyEnforcementService,
+                          JacksonMapper mapper,
+                          Integer gdprHostVendorId) {
 
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -97,10 +94,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.httpAdapterConnector = Objects.requireNonNull(httpAdapterConnector);
         this.clock = Objects.requireNonNull(clock);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
-        this.privacyExtractor = Objects.requireNonNull(privacyExtractor);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.mapper = Objects.requireNonNull(mapper);
         this.gdprHostVendorId = gdprHostVendorId;
-        this.useGeoLocation = useGeoLocation;
     }
 
     /**
@@ -138,7 +134,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                         composePreBidResponse(result.getLeft(), result.getRight(), vendorsToGdpr))))
 
                 .compose((Tuple3<PreBidRequestContext, Account, PreBidResponse> result) ->
-                        processCacheMarkup(result.getLeft(), result.getRight())
+                        processCacheMarkup(result.getLeft(), result.getRight(), result.getMiddle().getId())
                                 .recover(exception -> failWith(
                                         String.format("Prebid cache failed: %s", exception.getMessage()), exception))
                                 .map(response -> Tuple3.of(result.getLeft(), result.getMiddle(), response)))
@@ -246,18 +242,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
             vendorIds.add(gdprHostVendorId);
         }
 
-        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser(),
-                new ArrayList<>());
-        final String ip = useGeoLocation ? preBidRequestContext.getIp() : null;
-
-        return tcfDefinerService.resultForVendorIds(
-                vendorIds,
-                privacy.getGdpr(),
-                privacy.getConsent(),
-                ip,
-                account.getGdpr(),
-                preBidRequestContext.getTimeout())
+        return privacyEnforcementService.contextFromLegacyRequest(preBidRequestContext, account)
+                .compose(privacyContext -> tcfDefinerService.resultForVendorIds(
+                        vendorIds, privacyContext.getTcfContext()))
                 .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getActions(), hostVendorIdIsMissing));
     }
 
@@ -368,15 +355,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private Future<PreBidResponse> processCacheMarkup(PreBidRequestContext preBidRequestContext,
-                                                      PreBidResponse preBidResponse) {
+                                                      PreBidResponse preBidResponse,
+                                                      String accountId) {
+
         final Future<PreBidResponse> result;
 
         final Integer cacheMarkup = preBidRequestContext.getPreBidRequest().getCacheMarkup();
         final List<Bid> bids = preBidResponse.getBids();
         if (!bids.isEmpty() && cacheMarkup != null && (cacheMarkup == 1 || cacheMarkup == 2)) {
             result = (cacheMarkup == 1
-                    ? cacheService.cacheBids(bids, preBidRequestContext.getTimeout())
-                    : cacheService.cacheBidsVideoOnly(bids, preBidRequestContext.getTimeout()))
+                    ? cacheService.cacheBids(bids, preBidRequestContext.getTimeout(), accountId)
+                    : cacheService.cacheBidsVideoOnly(bids, preBidRequestContext.getTimeout(), accountId))
                     .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults));
         } else {
             result = Future.succeededFuture(preBidResponse);

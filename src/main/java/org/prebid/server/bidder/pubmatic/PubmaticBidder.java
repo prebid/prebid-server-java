@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.pubmatic;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -9,6 +9,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -22,7 +23,9 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.pubmatic.proto.PubmaticBidExt;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
+import org.prebid.server.bidder.pubmatic.proto.VideoCreativeInfo;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -31,6 +34,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
@@ -47,7 +52,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final Logger logger = LoggerFactory.getLogger(PubmaticBidder.class);
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String BID_TYPE_EXT_KEY = "BidType";
+    private static final String PREBID = "prebid";
     private static final TypeReference<ExtPrebid<?, ExtImpPubmatic>> PUBMATIC_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubmatic>>() {
             };
@@ -255,27 +260,53 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getExt()), DEFAULT_BID_CURRENCY))
+                .map(this::bidderBid)
                 .collect(Collectors.toList());
     }
 
-    protected static BidType getBidType(ObjectNode bidExt) {
-        if (bidExt != null) {
-            final JsonNode bidTypeVal = bidExt.get(BID_TYPE_EXT_KEY);
+    private BidderBid bidderBid(Bid bid) {
+        final List<String> bidCat = bid.getCat();
+        final boolean updateBidCat = bidCat != null && bidCat.size() > 1;
+        final List<String> singleElementCat = updateBidCat
+                ? Collections.singletonList(bidCat.get(0))
+                : bidCat;
+        final PubmaticBidExt pubmaticBidExt = extractBidExt(bid.getExt());
+        final Integer duration = getDuration(pubmaticBidExt);
+        final Bid updatedBid = updateBidCat || duration != null
+                ? bid.toBuilder()
+                .cat(singleElementCat)
+                .ext(duration != null ? updateBidExtWithExtPrebid(duration, bid.getExt()) : bid.getExt())
+                .build()
+                : bid;
+
+        return BidderBid.of(updatedBid, getBidType(pubmaticBidExt), DEFAULT_BID_CURRENCY);
+    }
+
+    private PubmaticBidExt extractBidExt(ObjectNode bidExt) {
+        try {
+            return bidExt != null ? mapper.mapper().treeToValue(bidExt, PubmaticBidExt.class) : null;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error parsing pubmatic bid.ext %s", e.getMessage()));
+        }
+    }
+
+    private static BidType getBidType(PubmaticBidExt pubmaticBidExt) {
+        if (pubmaticBidExt != null) {
+            final Integer bidTypeVal = pubmaticBidExt.getBidType();
             if (bidTypeVal != null) {
-                switch (bidTypeVal.asInt()) {
+                switch (bidTypeVal) {
                     case 1:
                         return BidType.video;
                     case 2:
@@ -286,6 +317,16 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
+    }
+
+    private static Integer getDuration(PubmaticBidExt pubmaticBidExt) {
+        final VideoCreativeInfo video = pubmaticBidExt != null ? pubmaticBidExt.getVideo() : null;
+        return video != null ? video.getDuration() : null;
+    }
+
+    private ObjectNode updateBidExtWithExtPrebid(Integer duration, ObjectNode extBid) {
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(duration, null)).build();
+        return extBid.set(PREBID, mapper.mapper().valueToTree(extBidPrebid));
     }
 
     @Override

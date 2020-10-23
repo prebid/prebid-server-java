@@ -11,5 +11,8 @@ public class OpenxRequestExt {
     @JsonProperty("delDomain")
     String delDomain;
 
+    @JsonProperty("platform")
+    String platform;
+
     String bc;
 }

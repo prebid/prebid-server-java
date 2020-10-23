@@ -31,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,15 +51,16 @@ public class BrightrollBidderTest extends VertxTest {
     private static final List<Integer> BLOCKED_CREATIVETYPES = Arrays.asList(1, 2, 3, 6, 9, 10);
     private static final List<String> BLOCKED_CATEGORIES = Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30");
     private static final List<String> BLOCKED_ADVERTISERS = Arrays.asList("adv1", "adv2", "adv3");
+    private static final BigDecimal BID_FLOOR = new BigDecimal("0.30");
 
     private BrightrollBidder brightrollBidder;
 
     @Before
     public void setUp() {
         Map<String, PublisherOverride> testPublisher = singletonMap("testPublisher",
-                PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
+                PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES, BID_FLOOR));
         Map<String, PublisherOverride> publisher = singletonMap("publisher",
-                PublisherOverride.of(null, null, null));
+                PublisherOverride.of(null, null, null, null));
         Map<String, PublisherOverride> publisherIdToOverride = new HashMap<>();
         publisherIdToOverride.putAll(testPublisher);
         publisherIdToOverride.putAll(publisher);
@@ -99,6 +101,7 @@ public class BrightrollBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
+                                .bidfloor(BID_FLOOR)
                                 .banner(Banner.builder().battr(BLOCKED_CREATIVETYPES).build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("testPublisher"))))
                                 .build()))

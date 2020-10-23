@@ -79,6 +79,7 @@
           "crid": "crid00",
           "w": 300,
           "h": 250,
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
@@ -119,6 +120,7 @@
           "crid": "crid00",
           "w": 300,
           "h": 250,
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",

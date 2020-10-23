@@ -59,6 +59,7 @@ import java.util.stream.Collectors;
  */
 public class HttpApplicationSettings implements ApplicationSettings {
 
+    private static final String NOT_SUPPORTED = "Not supported";
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
 
     private String endpoint;
@@ -106,7 +107,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        return Future.failedFuture(new PreBidException("Not supported"));
+        return Future.failedFuture(new PreBidException(NOT_SUPPORTED));
     }
 
     /**

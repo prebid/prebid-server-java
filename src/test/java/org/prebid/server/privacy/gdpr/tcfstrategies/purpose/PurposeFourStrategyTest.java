@@ -321,14 +321,13 @@ public class PurposeFourStrategyTest {
     }
 
     private static PrivacyEnforcementAction allowPurpose() {
-        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setMaskDeviceInfo(false);
-        return privacyEnforcementAction;
+        return PrivacyEnforcementAction.restrictAll();
     }
 
     private static PrivacyEnforcementAction allowNatural() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
         privacyEnforcementAction.setRemoveUserIds(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
         return privacyEnforcementAction;
     }
 }
