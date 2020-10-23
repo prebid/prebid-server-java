@@ -80,6 +80,7 @@ public class ExchangeService {
     private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
 
     private static final String PREBID_EXT = "prebid";
+    private static final String BIDDER_EXT = "bidder";
     private static final String CONTEXT_EXT = "context";
     private static final String DATA = "data";
     private static final String ALL_BIDDERS_CONFIG = "*";
@@ -279,9 +280,9 @@ public class ExchangeService {
      * i.e. the bidders will not see any other extension fields. If Imp extension name is alias, which is also defined
      * in bidRequest.ext.prebid.aliases and valid, separate {@link BidRequest} will be created for this alias and sent
      * to appropriate bidder.
-     * For example suppose {@link BidRequest} has two {@link Imp}s. First one with imp.ext[].rubicon and
-     * imp.ext[].rubiconAlias and second with imp.ext[].appnexus and imp.ext[].rubicon. Three {@link BidRequest}s will
-     * be created:
+     * For example suppose {@link BidRequest} has two {@link Imp}s. First one with imp.ext.prebid.bidder.rubicon and
+     * imp.ext.prebid.bidder.rubiconAlias and second with imp.ext.prebid.bidder.appnexus and
+     * imp.ext.prebid.bidder.rubicon. Three {@link BidRequest}s will be created:
      * 1. {@link BidRequest} with one {@link Imp}, where bidder extension points to rubiconAlias extension and will be
      * sent to Rubicon bidder.
      * 2. {@link BidRequest} with two {@link Imp}s, where bidder extension points to appropriate rubicon extension from
@@ -301,20 +302,23 @@ public class ExchangeService {
     private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context,
                                                               List<Imp> requestedImps,
                                                               BidderAliases aliases) {
-        // sanity check: discard imps without extension
+
         final List<Imp> imps = requestedImps.stream()
-                .filter(imp -> imp.getExt() != null)
+                .filter(imp -> bidderParamsFromImpExt(imp.getExt()) != null)
                 .collect(Collectors.toList());
 
         // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
-                .flatMap(imp -> StreamUtil.asStream(imp.getExt().fieldNames())
-                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT))
+                .flatMap(imp -> StreamUtil.asStream(bidderParamsFromImpExt(imp.getExt()).fieldNames())
                         .filter(bidder -> isValidBidder(bidder, aliases)))
                 .distinct()
                 .collect(Collectors.toList());
 
         return makeBidderRequests(bidders, context, aliases, imps);
+    }
+
+    private static JsonNode bidderParamsFromImpExt(ObjectNode ext) {
+        return ext.get(PREBID_EXT).get(BIDDER_EXT);
     }
 
     /**
@@ -622,7 +626,7 @@ public class ExchangeService {
      */
     private List<Imp> prepareImps(String bidder, List<Imp> imps, boolean useFirstPartyData) {
         return imps.stream()
-                .filter(imp -> imp.getExt().hasNonNull(bidder))
+                .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> imp.toBuilder()
                         .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
                         .build())
@@ -634,33 +638,31 @@ public class ExchangeService {
      * <ul>
      * <li>"prebid" field populated with an imp.ext.prebid field value, may be null</li>
      * <li>"context" field populated with an imp.ext.context field value, may be null</li>
-     * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
+     * <li>"bidder" field populated with an imp.ext.prebid.bidder.{bidder} field value, not null</li>
      * </ul>
      */
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
-        final JsonNode impExtPrebid = prepareImpExtPrebid(bidder, impExt.get(PREBID_EXT));
-        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExt.get(bidder)));
+        final JsonNode impExtPrebid = cleanBidderParamsFromImpExtPrebid(impExt.get(PREBID_EXT));
+        final JsonNode impExtBidder = bidderParamsFromImpExt(impExt).get(bidder);
 
-        final JsonNode contextNode = impExt.get(CONTEXT_EXT);
-        final boolean isContextNodePresent = contextNode != null && !contextNode.isNull();
-        if (isContextNodePresent) {
-            final JsonNode contextNodeCopy = contextNode.deepCopy();
+        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExtBidder));
+
+        if (impExt.hasNonNull(CONTEXT_EXT)) {
+            final JsonNode contextNodeCopy = impExt.get(CONTEXT_EXT).deepCopy();
             if (!useFirstPartyData && contextNodeCopy.isObject()) {
                 ((ObjectNode) contextNodeCopy).remove(DATA);
             }
             result.set(CONTEXT_EXT, contextNodeCopy);
         }
+
         return result;
     }
 
-    private JsonNode prepareImpExtPrebid(String bidder, JsonNode extImpPrebidNode) {
-        if (extImpPrebidNode != null && extImpPrebidNode.hasNonNull(bidder)) {
-            final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode).toBuilder()
-                    .bidder((ObjectNode) extImpPrebidNode.get(bidder)) // leave appropriate bidder related data
-                    .build();
-            return mapper.mapper().valueToTree(extImpPrebid);
-        }
-        return extImpPrebidNode;
+    private JsonNode cleanBidderParamsFromImpExtPrebid(JsonNode extImpPrebidNode) {
+        return mapper.mapper().valueToTree(
+                extImpPrebid(extImpPrebidNode).toBuilder()
+                        .bidder(null)
+                        .build());
     }
 
     /**
