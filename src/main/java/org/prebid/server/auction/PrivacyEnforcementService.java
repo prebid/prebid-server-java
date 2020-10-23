@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
@@ -150,10 +151,13 @@ public class PrivacyEnforcementService {
     }
 
     private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
-        final String refUrl = Objects.equals(requestType, MetricName.openrtb2web)
-                ? bidRequest.getSite().getRef()
-                : null;
-        return RequestLogInfo.of(requestType, refUrl, accountId);
+        if (Objects.equals(requestType, MetricName.openrtb2web)) {
+            final Site site = bidRequest.getSite();
+            final String refUrl = site != null ? site.getRef() : null;
+            return RequestLogInfo.of(requestType, refUrl, accountId);
+        }
+
+        return RequestLogInfo.of(requestType, null, accountId);
     }
 
     Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
