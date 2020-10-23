@@ -54,6 +54,7 @@ public abstract class VendorListService<T, V> {
 
     private final String cacheDir;
     private final String endpointTemplate;
+    private final boolean deprecated;
     private final int defaultTimeoutMs;
     private final long refreshMissingListPeriodMs;
     private final Vertx vertx;
@@ -75,6 +76,7 @@ public abstract class VendorListService<T, V> {
 
     public VendorListService(String cacheDir,
                              String endpointTemplate,
+                             boolean deprecated,
                              int defaultTimeoutMs,
                              long refreshMissingListPeriodMs,
                              Integer gdprHostVendorId,
@@ -89,6 +91,7 @@ public abstract class VendorListService<T, V> {
         this.cacheDir = Objects.requireNonNull(cacheDir);
         this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
         this.defaultTimeoutMs = defaultTimeoutMs;
+        this.deprecated = deprecated;
         this.refreshMissingListPeriodMs = refreshMissingListPeriodMs;
         this.vertx = Objects.requireNonNull(vertx);
         this.fileSystem = Objects.requireNonNull(fileSystem);
@@ -102,7 +105,8 @@ public abstract class VendorListService<T, V> {
         cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
 
         fallbackVendorList = readFallbackVendorList(fallbackVendorListPath);
-        versionsToFallback = fallbackVendorList != null ? ConcurrentHashMap.newKeySet() : null;
+        versionsToFallback = fallbackVendorList != null
+                ? ConcurrentHashMap.newKeySet() : null;
     }
 
     /**
@@ -125,6 +129,15 @@ public abstract class VendorListService<T, V> {
             metrics.updatePrivacyTcfVendorListFallbackMetric(tcf);
 
             return Future.succeededFuture(fallbackVendorList);
+        }
+
+        if (deprecated) {
+            if (versionsToFallback != null) {
+                versionsToFallback.add(version);
+                return Future.succeededFuture(fallbackVendorList);
+            }
+            return Future.failedFuture(
+                    String.format("TCF %d vendor list for version %d not found.", tcf, version));
         }
 
         metrics.updatePrivacyTcfVendorListMissingMetric(tcf);

@@ -53,6 +53,7 @@ public class PrivacyServiceConfiguration {
     VendorListServiceV1 vendorListServiceV1(
             @Value("${gdpr.vendorlist.v1.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v1.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.v1.deprecated:#{false}}") boolean deprecated,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.vendorlist.v1.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
@@ -67,6 +68,7 @@ public class PrivacyServiceConfiguration {
         return new VendorListServiceV1(
                 cacheDir,
                 endpointTemplate,
+                deprecated,
                 defaultTimeoutMs,
                 refreshMissingListPeriodMs,
                 hostVendorId,
@@ -83,6 +85,7 @@ public class PrivacyServiceConfiguration {
     VendorListServiceV2 vendorListServiceV2(
             @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.v2.deprecated:#{false}}") boolean deprecated,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.vendorlist.v2.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
@@ -97,6 +100,7 @@ public class PrivacyServiceConfiguration {
         return new VendorListServiceV2(
                 cacheDir,
                 endpointTemplate,
+                deprecated,
                 defaultTimeoutMs,
                 refreshMissingListPeriodMs,
                 hostVendorId,

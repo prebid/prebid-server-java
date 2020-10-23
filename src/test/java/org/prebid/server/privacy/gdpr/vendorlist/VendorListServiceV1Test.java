@@ -76,6 +76,7 @@ public class VendorListServiceV1Test extends VertxTest {
         vendorListService = new VendorListServiceV1(
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
+                false,
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
                 null,
@@ -100,6 +101,7 @@ public class VendorListServiceV1Test extends VertxTest {
                 () -> new VendorListServiceV1(
                         CACHE_DIR,
                         "http://vendorlist/%s",
+                        false,
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         null,
@@ -114,6 +116,56 @@ public class VendorListServiceV1Test extends VertxTest {
     }
 
     @Test
+    public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
+        // given
+        vendorListService = new VendorListServiceV1(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                true,
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                null,
+                FALLBACK_VENDOR_LIST_PATH,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper);
+
+        // when
+        final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
+
+        // then
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+    }
+
+    @Test
+    public void shouldReturnFailFutureForDeprecatedVersionsWithNoFallbackPresent() throws JsonProcessingException {
+        // given
+        vendorListService = new VendorListServiceV1(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                true,
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                null,
+                null,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper);
+
+        // when
+        final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
+
+        // then
+        assertThat(future).isFailed().hasMessage("TCF 1 vendor list for version 1 not found.");
+    }
+
+    @Test
     public void creationShouldFailIfCannotReadFiles() {
         // given
         given(fileSystem.readDirBlocking(anyString())).willThrow(new RuntimeException("read error"));
@@ -123,6 +175,7 @@ public class VendorListServiceV1Test extends VertxTest {
                 () -> new VendorListServiceV1(
                         CACHE_DIR,
                         "http://vendorlist/%s",
+                        false,
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         null,
@@ -148,6 +201,7 @@ public class VendorListServiceV1Test extends VertxTest {
                 () -> new VendorListServiceV1(
                         CACHE_DIR,
                         "http://vendorlist/%s",
+                        false,
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         null,
@@ -173,6 +227,7 @@ public class VendorListServiceV1Test extends VertxTest {
                 () -> new VendorListServiceV1(
                         CACHE_DIR,
                         "http://vendorlist/%s",
+                        false,
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         null,
