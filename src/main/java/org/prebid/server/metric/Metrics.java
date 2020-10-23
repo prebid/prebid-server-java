@@ -28,15 +28,20 @@ public class Metrics extends UpdatableMetrics {
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
+    private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
+    private final Function<String, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterMetrics> adapterMetrics;
+    private final Map<Integer, BidderCardinalityMetrics> bidderCardinailtyMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
     private final PrivacyMetrics privacyMetrics;
+    private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
+    private final CacheMetrics cacheMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -48,16 +53,26 @@ public class Metrics extends UpdatableMetrics {
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
+        bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
+                metricRegistry, counterType, cardinality);
+        circuitBreakerMetricsCreator = id -> new CircuitBreakerMetrics(metricRegistry, counterType, id);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
+        bidderCardinailtyMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
         privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
+        circuitBreakerMetrics = new HashMap<>();
+        cacheMetrics = new CacheMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
         return requestMetrics.computeIfAbsent(requestType, requestMetricsCreator);
+    }
+
+    BidderCardinalityMetrics forBidderCardinality(int cardinality) {
+        return bidderCardinailtyMetrics.computeIfAbsent(cardinality, bidderCardinalityMetricsCreator);
     }
 
     AccountMetrics forAccount(String account) {
@@ -78,6 +93,14 @@ public class Metrics extends UpdatableMetrics {
 
     PrivacyMetrics privacy() {
         return privacyMetrics;
+    }
+
+    CircuitBreakerMetrics forCircuitBreaker(String id) {
+        return circuitBreakerMetrics.computeIfAbsent(id, circuitBreakerMetricsCreator);
+    }
+
+    CacheMetrics cache() {
+        return cacheMetrics;
     }
 
     public void updateSafariRequestsMetric(boolean isSafari) {
@@ -158,6 +181,10 @@ public class Metrics extends UpdatableMetrics {
         forRequestType(requestType).incCounter(requestStatus);
     }
 
+    public void updateRequestBidderCardinalityMetric(int bidderCardinality) {
+        forBidderCardinality(bidderCardinality).incCounter(MetricName.requests);
+    }
+
     public void updateAccountRequestMetrics(String accountId, MetricName requestType) {
         final AccountMetricsVerbosityLevel verbosityLevel = accountMetricsVerbosity.forAccount(accountId);
         if (verbosityLevel.isAtLeast(AccountMetricsVerbosityLevel.basic)) {
@@ -183,14 +210,6 @@ public class Metrics extends UpdatableMetrics {
         if (noCookie) {
             adapterMetrics.incCounter(MetricName.no_cookie_requests);
         }
-    }
-
-    private String resolveMetricsBidderName(String bidder) {
-        if (bidderCatalog.isValidName(bidder)) {
-            return bidder;
-        }
-        final String nameByAlias = bidderCatalog.nameByAlias(bidder);
-        return nameByAlias != null ? nameByAlias : METRICS_UNKNOWN_BIDDER;
     }
 
     public void updateAdapterResponseTime(String bidder, String accountId, int responseTime) {
@@ -278,7 +297,7 @@ public class Metrics extends UpdatableMetrics {
                                         boolean requestBlocked,
                                         boolean analyticsBlocked) {
 
-        final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
+        final TcfMetrics tcf = forAdapter(resolveMetricsBidderName(bidder)).requestType(requestType).tcf();
 
         if (useridRemoved) {
             tcf.incCounter(MetricName.userid_removed);
@@ -311,22 +330,44 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void updatePrivacyTcfMissingMetric() {
+        privacy().tcf().incCounter(MetricName.missing);
+    }
+
     public void updatePrivacyTcfInvalidMetric() {
         privacy().tcf().incCounter(MetricName.invalid);
     }
 
     public void updatePrivacyTcfGeoMetric(int version, Boolean inEea) {
-        final UpdatableMetrics versionMetrics;
-        if (version == 2) {
-            versionMetrics = privacy().tcf().v2();
-        } else {
-            versionMetrics = privacy().tcf().v1();
-        }
+        final UpdatableMetrics versionMetrics = version == 2 ? privacy().tcf().v2() : privacy().tcf().v1();
 
         final MetricName metricName = inEea == null
                 ? MetricName.unknown_geo
                 : inEea ? MetricName.in_geo : MetricName.out_geo;
+
         versionMetrics.incCounter(metricName);
+    }
+
+    public void updatePrivacyTcfVendorListMissingMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.missing);
+    }
+
+    public void updatePrivacyTcfVendorListOkMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.ok);
+    }
+
+    public void updatePrivacyTcfVendorListErrorMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.err);
+    }
+
+    public void updatePrivacyTcfVendorListFallbackMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.fallback);
+    }
+
+    private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
+        final TcfMetrics tcfMetrics = privacy().tcf();
+        final TcfMetrics.TcfVersionMetrics tcfVersionMetrics = version == 2 ? tcfMetrics.v2() : tcfMetrics.v1();
+        tcfVersionMetrics.vendorList().incCounter(metricName);
     }
 
     public void updateConnectionAcceptErrors() {
@@ -345,11 +386,11 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateHttpClientCircuitBreakerMetric(boolean opened) {
+    public void updateHttpClientCircuitBreakerMetric(String id, boolean opened) {
         if (opened) {
-            incCounter(MetricName.httpclient_circuitbreaker_opened);
+            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_opened);
         } else {
-            incCounter(MetricName.httpclient_circuitbreaker_closed);
+            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_closed);
         }
     }
 
@@ -386,11 +427,22 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateCacheRequestSuccessTime(long timeElapsed) {
-        updateTimer(MetricName.prebid_cache_request_success_time, timeElapsed);
+    public void updateCacheRequestSuccessTime(String accountId, long timeElapsed) {
+        cache().requests().updateTimer(MetricName.ok, timeElapsed);
+        forAccount(accountId).cache().requests().updateTimer(MetricName.ok, timeElapsed);
     }
 
-    public void updateCacheRequestFailedTime(long timeElapsed) {
-        updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
+    public void updateCacheRequestFailedTime(String accountId, long timeElapsed) {
+        cache().requests().updateTimer(MetricName.err, timeElapsed);
+        forAccount(accountId).cache().requests().updateTimer(MetricName.err, timeElapsed);
+    }
+
+    public void updateCacheCreativeSize(String accountId, int creativeSize) {
+        cache().updateHistogram(MetricName.creative_size, creativeSize);
+        forAccount(accountId).cache().updateHistogram(MetricName.creative_size, creativeSize);
+    }
+
+    private String resolveMetricsBidderName(String bidder) {
+        return bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER;
     }
 }

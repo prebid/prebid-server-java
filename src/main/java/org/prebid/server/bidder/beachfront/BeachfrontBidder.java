@@ -13,6 +13,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -55,7 +56,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String NURL_VIDEO_TYPE = "nurl";
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.8.0";
+    private static final String BEACHFRONT_VERSION = "0.9.0";
     private static final String NURL_VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
     private static final String TEST_IP = "192.168.255.255";
 
@@ -225,12 +226,12 @@ public class BeachfrontBidder implements Bidder<Void> {
         final ExtImpBeachfrontAppIds appIds = extImpBeachfront.getAppIds();
         final String bannerAppId = appIds != null ? appIds.getBanner() : null;
         if (isBanner && StringUtils.isNotBlank(bannerAppId)) {
-            return appIds.getBanner();
+            return bannerAppId;
         }
 
         final String videoAppId = appIds != null ? appIds.getVideo() : null;
         if (StringUtils.isNotBlank(videoAppId)) {
-            return appIds.getVideo();
+            return videoAppId;
         }
         throw new PreBidException("unable to determine the appId(s) from the supplied extension");
     }
@@ -390,8 +391,9 @@ public class BeachfrontBidder implements Bidder<Void> {
             return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
         }
 
-        if (httpCall.getResponse().getStatusCode() == 204 || bodyString.length() <= 2) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()
+                || bodyString.length() <= 2) {
+            return Result.empty();
         }
 
         try {

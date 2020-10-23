@@ -1,14 +1,17 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 
 /**
  * ExtRegs defines the contract for bidrequest.regs.ext
  */
-@AllArgsConstructor(staticName = "of")
-@Value
-public class ExtRegs {
+@Value(staticConstructor = "of")
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class ExtRegs extends FlexibleExtension {
 
     /**
      * GDPR should be "1" if the caller believes the user is subject to GDPR laws, "0" if not, and undefined

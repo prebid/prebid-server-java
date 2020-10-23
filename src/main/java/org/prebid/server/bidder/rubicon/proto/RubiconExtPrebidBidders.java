@@ -9,4 +9,3 @@ public class RubiconExtPrebidBidders {
 
     RubiconExtPrebidBiddersBidder bidder;
 }
-

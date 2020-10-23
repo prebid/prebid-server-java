@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.User;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.ObjectUtils;
@@ -51,7 +52,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.requestUtil = new AdformRequestUtil(mapper);
+        this.requestUtil = new AdformRequestUtil();
         this.httpUtil = new AdformHttpUtil(mapper);
     }
 
@@ -65,7 +66,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 .map(this::toAdformParams)
                 .collect(Collectors.toList());
 
-        final ExtUser extUser = requestUtil.getExtUser(preBidRequestContext.getPreBidRequest().getUser());
+        final User user = preBidRequestContext.getPreBidRequest().getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
 
         return Collections.singletonList(AdapterHttpRequest.of(
                 HttpMethod.GET,
@@ -126,6 +128,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .keyValues(getKeyValues(adformParams))
                         .keyWords(getKeyWords(adformParams))
                         .priceTypes(getPriceTypes(adformParams))
+                        .cdims(getCdims(adformParams))
+                        .minPrices(getMinPrices(adformParams))
                         .endpointUrl(endpointUrl)
                         .tid(ObjectUtils.defaultIfNull(preBidRequestContext.getPreBidRequest().getTid(), ""))
                         .ip(ObjectUtils.defaultIfNull(preBidRequestContext.getIp(), ""))
@@ -134,6 +138,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .gdprApplies(requestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest().getRegs()))
                         .consent(requestUtil.getConsent(extUser))
                         .currency(DEFAULT_CURRENCY)
+                        .url(getUrlFromParams(adformParams))
                         .build());
     }
 
@@ -163,6 +168,31 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
      */
     private List<String> getPriceTypes(List<AdformParams> adformParams) {
         return adformParams.stream().map(AdformParams::getPriceType).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link AdformParams} {@link List} to cdims {@link List}.
+     */
+    private List<String> getCdims(List<AdformParams> adformParams) {
+        return adformParams.stream().map(AdformParams::getCdims).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link AdformParams} {@link List} to minPrices {@link List}.
+     */
+    private List<Double> getMinPrices(List<AdformParams> adformParams) {
+        return adformParams.stream().map(AdformParams::getMinPrice).collect(Collectors.toList());
+    }
+
+    /**
+     * Finds not blank url from {@link AdformParams}.
+     */
+    private String getUrlFromParams(List<AdformParams> adformParams) {
+        return adformParams.stream()
+                .map(AdformParams::getUrl)
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .orElse("");
     }
 
     /**

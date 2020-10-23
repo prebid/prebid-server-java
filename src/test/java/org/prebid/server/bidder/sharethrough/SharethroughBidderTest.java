@@ -24,6 +24,7 @@ import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroug
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
@@ -32,11 +33,15 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -50,10 +55,14 @@ public class SharethroughBidderTest extends VertxTest {
 
     private static final long TIMEOUT = 2000L;
 
-    private static final Date TEST_TIME = new Date(1604455678999L);
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+    private static final ZonedDateTime TEST_TIME =
+            ZonedDateTime.ofInstant(Instant.ofEpochMilli(1604455678999L), ZoneId.systemDefault());
+    private static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
+            .appendPattern("yyyy-MM-dd'T'HH:mm:ssXXX")
+            .toFormatter();
     private static final String URLENCODED_TEST_FORMATTED_TIME = HttpUtil.encodeUrl(DATE_FORMAT.format(TEST_TIME));
-    private static final String DEADLINE_FORMATTED_TIME = DATE_FORMAT.format(TEST_TIME.getTime() + TIMEOUT);
+    private static final String DEADLINE_FORMATTED_TIME =
+            DATE_FORMAT.format(TEST_TIME.plusNanos(TimeUnit.MILLISECONDS.toNanos(TIMEOUT)));
 
     private SharethroughBidder sharethroughBidder;
 
@@ -122,7 +131,7 @@ public class SharethroughBidderTest extends VertxTest {
                                 ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20), BigDecimal.ONE))))
                         .banner(Banner.builder().w(40).h(30).build())
                         .build()))
-                .app(App.builder().ext(mapper.createObjectNode()).build())
+                .app(App.builder().ext(ExtApp.of(null, null)).build())
                 .site(Site.builder().page(pageString).build())
                 .device(Device.builder().ua("Android Chrome/60.0.3112").ip("127.0.0.1").build())
                 .badv(singletonList("testBlocked"))
@@ -136,8 +145,8 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string="
-                + "&instant_play_capable=true&stayInIframe=false&height=10&width=20"
-                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=7";
+                + "&us_privacy=&instant_play_capable=true&stayInIframe=false&height=10&width=20"
+                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=8";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 2000L,
                 DEADLINE_FORMATTED_TIME, true, BigDecimal.ONE);
 
@@ -164,8 +173,8 @@ public class SharethroughBidderTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final List<ExtUserEidUid> uids = Arrays.asList(
-                ExtUserEidUid.of("first", null),
-                ExtUserEidUid.of("second", null));
+                ExtUserEidUid.of("first", null, null),
+                ExtUserEidUid.of("second", null, null));
         final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids, null);
         final ExtUser extUser = ExtUser.builder()
                 .consent("consent")
@@ -178,7 +187,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
-                .user(User.builder().buyeruid("buyer").ext(mapper.valueToTree(extUser)).build())
+                .user(User.builder().buyeruid("buyer").ext(extUser).build())
                 .test(1)
                 .tmax(TIMEOUT)
                 .build();
@@ -189,9 +198,9 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent"
-                + "&instant_play_capable=false&stayInIframe=false&height=1&width=1"
+                + "&us_privacy=&instant_play_capable=false&stayInIframe=false&height=1&width=1"
                 + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME
-                + "&supplyId=FGMrCMMc&strVersion=7&ttduid=first&stxuid=buyer";
+                + "&supplyId=FGMrCMMc&strVersion=8&ttduid=first&stxuid=buyer";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 2000L,
                 DEADLINE_FORMATTED_TIME, true, null);
 

@@ -16,7 +16,6 @@ import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import io.vertx.core.Vertx;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
@@ -276,7 +275,7 @@ public class ApplicationTest extends IntegrationTest {
                         + "&slot=overwrite-tagId"
                         + "&curl=https%3A%2F%2Fgoogle.com"
                         + "&account=accountId"
-                        + "&us_privacy=1YNN");
+                        + "&consent_string=1YNN");
 
         // then
         JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),
@@ -346,8 +345,13 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null,
-                        null))
+                .body(CookieSyncRequest.builder()
+                        .bidders(asList(RUBICON, APPNEXUS, ADFORM))
+                        .gdpr(1)
+                        .gdprConsent(gdprConsent)
+                        .usPrivacy("1YNN")
+                        .coopSync(false)
+                        .build())
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -363,7 +367,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .bidder(RUBICON)
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
-                                        "http://localhost:8000/setuid?bidder=rubicon"
+                                        "http://localhost:8080/setuid?bidder=rubicon"
                                                 + "&gdpr=1&gdpr_consent=" + gdprConsent
                                                 + "&us_privacy=1YNN"
                                                 + "&uid=host-cookie-uid",
@@ -373,7 +377,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .bidder(APPNEXUS)
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
-                                        "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder"
+                                        "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                                 + "%26us_privacy%3D1YNN"
                                                 + "%26uid%3D%24UID",
@@ -581,29 +585,32 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void adminHandlerShouldRespondWithOk() {
+    public void loggingHttpInteractionShouldRespondWithOk() {
         given(ADMIN_SPEC)
-                .get("/admin?logging=error&records=1200")
+                .get("/logging/httpinteraction?limit=100")
                 .then()
                 .assertThat()
                 .statusCode(200);
     }
 
     @Test
-    public void currencyRatesHandlerShouldRespondWithLastUpdateDate() {
-        // given
-        final Instant currentTime = Instant.now();
+    public void loggingChangeLevekShouldRespondWithOk() {
+        given(ADMIN_SPEC)
+                .get("/logging/changelevel?level=info&duration=1")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
 
-        // ask endpoint after some time to ensure currency rates have already been fetched
-        Vertx.vertx().setTimer(1000L, ignored -> {
-            // when
-            final Response response = given(ADMIN_SPEC).get("/currency-rates");
-
-            // then
-            final String lastUpdateValue = response.jsonPath().getString("last_update");
-            final Instant lastUpdateTime = Instant.parse(lastUpdateValue);
-            assertThat(currentTime).isAfter(lastUpdateTime);
-        });
+    @Test
+    public void currencyRatesHandlerShouldReturnExpectedResponse() {
+        given(ADMIN_SPEC)
+                .when()
+                .get("/currency/rates")
+                .then()
+                .assertThat()
+                .body("active", Matchers.equalTo(true))
+                .statusCode(200);
     }
 
     @Test

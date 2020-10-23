@@ -145,8 +145,8 @@ public class SovrnBidderTest extends VertxTest {
                                         .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
                                 .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .regs(Regs.of(null, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -169,9 +169,9 @@ public class SovrnBidderTest extends VertxTest {
                                 .bidfloor(null)
                                 .build()))
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
+                        .regs(Regs.of(null, ExtRegs.of(1, null)))
                         .build());
     }
 
@@ -310,6 +310,7 @@ public class SovrnBidderTest extends VertxTest {
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -337,7 +338,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, "EUR"));
     }
 
     @Test

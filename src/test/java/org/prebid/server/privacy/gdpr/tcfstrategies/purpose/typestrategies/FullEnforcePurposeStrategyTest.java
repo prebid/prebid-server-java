@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class FullEnforcePurposeStrategyTest {
+
     private static final int PURPOSE_ID = 1;
 
     @Rule

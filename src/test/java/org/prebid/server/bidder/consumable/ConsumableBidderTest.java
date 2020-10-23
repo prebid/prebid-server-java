@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -14,6 +15,7 @@ import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.consumable.model.ConsumableBidGdpr;
 import org.prebid.server.bidder.consumable.model.ConsumableBidRequest;
 import org.prebid.server.bidder.consumable.model.ConsumableBidResponse;
 import org.prebid.server.bidder.consumable.model.ConsumableContents;
@@ -27,17 +29,17 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -225,6 +227,21 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnHttpRequestWithCorrectGdprParameters() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), ConsumableBidRequest.class))
+                .flatExtracting(ConsumableBidRequest::getGdpr)
+                .containsOnly(ConsumableBidGdpr.builder().applies(true).consent("consent").build());
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<ConsumableBidRequest> httpCall = HttpCall.success(null,
@@ -269,30 +286,11 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldSkipDecisionsWithAbsentImpIdAndAddError() throws JsonProcessingException {
-        // given
-        final Map<String, ConsumableDecision> decisionMap = new HashMap<>();
-        decisionMap.put("firstImp", ConsumableDecision.builder().pricing(ConsumablePricing.of(10.5)).build());
-        decisionMap.put("missing_Imp", ConsumableDecision.builder().pricing(ConsumablePricing.of(1.1)).build());
-
-        final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(() -> ConsumableBidResponse.of(decisionMap));
-
-        // when
-        final Result<List<BidderBid>> result = consumableBidder.makeBids(httpCall,
-                givenBidRequestWithTwoImpsAndTwoFormats());
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("ignoring bid id=request_id, request doesn't contain any "
-                        + "impression with id=missing_Imp"));
-        assertThat(result.getValue()).hasSize(1);
-    }
-
-    @Test
     public void makeBidsShouldReturnBannerBidWithExpectedFields() throws JsonProcessingException {
         // given
         final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
                 decision -> decision.pricing(ConsumablePricing.of(11.1)).adId(123L)
+                        .width(300).height(250)
                         .contents(singletonList(ConsumableContents.of("contents_body"))));
 
         // when
@@ -305,7 +303,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .contains(BidderBid.of(
                         Bid.builder()
                                 .id("request_id").impid("firstImp").price(BigDecimal.valueOf(11.1))
-                                .adm("contents_body").w(120).h(90).exp(30).crid("123").build(),
+                                .adm("contents_body").w(300).h(250).exp(30).crid("123").build(),
                         BidType.banner, null));
     }
 
@@ -327,6 +325,9 @@ public class ConsumableBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                                         ExtImpConsumable.of(123, 234, 345, "unit"))))
                                 .build()))
+                .user(User.builder()
+                        .ext(ExtUser.builder().consent("consent").build())
+                        .build())
                 .build();
     }
 
@@ -335,7 +336,11 @@ public class ConsumableBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                .imp(singletonList(givenImp(impCustomizer)))
+                .regs(Regs.of(null, ExtRegs.of(1, null)))
+                .user(User.builder()
+                        .ext(ExtUser.builder().consent("consent").build())
+                        .build()))
                 .build();
     }
 
@@ -374,15 +379,6 @@ public class ConsumableBidderTest extends VertxTest {
         return HttpCall.success(
                 HttpRequest.<ConsumableBidRequest>builder().build(),
                 HttpResponse.of(200, null, body),
-                null);
-    }
-
-    private static HttpCall<ConsumableBidRequest> givenHttpCall(Supplier<ConsumableBidResponse> bidResponseSupplier)
-            throws JsonProcessingException {
-
-        return HttpCall.success(
-                HttpRequest.<ConsumableBidRequest>builder().build(),
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponseSupplier.get())),
                 null);
     }
 }

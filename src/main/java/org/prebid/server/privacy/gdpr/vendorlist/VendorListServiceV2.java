@@ -1,5 +1,6 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -7,6 +8,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV2;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 import org.prebid.server.vertx.http.HttpClient;
@@ -20,15 +22,33 @@ public class VendorListServiceV2 extends VendorListService<VendorListV2, VendorV
 
     private static final Logger logger = LoggerFactory.getLogger(VendorListServiceV2.class);
 
+    private static final int TCF_VERSION = 2;
+
     public VendorListServiceV2(String cacheDir,
                                String endpointTemplate,
                                int defaultTimeoutMs,
+                               long refreshMissingListPeriodMs,
                                Integer gdprHostVendorId,
+                               String fallbackVendorListPath,
                                BidderCatalog bidderCatalog,
+                               Vertx vertx,
                                FileSystem fileSystem,
                                HttpClient httpClient,
+                               Metrics metrics,
                                JacksonMapper mapper) {
-        super(cacheDir, endpointTemplate, defaultTimeoutMs, gdprHostVendorId, bidderCatalog, fileSystem, httpClient,
+
+        super(
+                cacheDir,
+                endpointTemplate,
+                defaultTimeoutMs,
+                refreshMissingListPeriodMs,
+                gdprHostVendorId,
+                fallbackVendorListPath,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
                 mapper);
     }
 
@@ -55,6 +75,11 @@ public class VendorListServiceV2 extends VendorListService<VendorListV2, VendorV
                 && isValidVendors(vendorList.getVendors().values());
     }
 
+    @Override
+    protected int getTcfVersion() {
+        return TCF_VERSION;
+    }
+
     private static boolean isValidVendors(Collection<VendorV2> vendors) {
         return vendors.stream()
                 .allMatch(vendor -> vendor != null
@@ -67,4 +92,3 @@ public class VendorListServiceV2 extends VendorListService<VendorListV2, VendorV
                         && vendor.getSpecialFeatures() != null);
     }
 }
-

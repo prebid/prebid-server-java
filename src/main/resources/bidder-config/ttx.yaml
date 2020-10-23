@@ -1,13 +1,14 @@
 adapters:
   ttx:
     enabled: false
-    endpoint: http://ssc.33across.com/api/v1/hb
+    endpoint: https://ssc.33across.com/api/v1/s2s
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases:
+    aliases: 33across
     meta-info:
-      maintainer-email: dev@33across.com
+      maintainer-email: headerbidding@33across.com
       app-media-types:
         - banner
       site-media-types:

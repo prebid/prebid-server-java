@@ -8,7 +8,13 @@
       "type": "string",
       "description": "An id used to identify Advangelists publisher.",
       "minLength": 8
+    },
+    "placement": {
+      "type": "string",
+      "description": "An id used to identify placements."
     }
   },
-  "required": ["pubid"]
+  "required": [
+    "pubid"
+  ]
 }

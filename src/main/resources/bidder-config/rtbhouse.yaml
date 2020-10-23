@@ -3,18 +3,19 @@ adapters:
     enabled: false
     endpoint: http://prebidserver-s2s-ams.creativecdn.com/bidder/prebidserver/bids
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: inventory.devel@rtbhouse.com
+      maintainer-email: prebid@rtbhouse.com
       app-media-types:
       site-media-types:
         - banner
       supported-vendors:
       vendor-id: 16
     usersync:
-      url:
+      url: https://creativecdn.com/cm-notify?pi=rp-pbserv
       redirect-url:
       cookie-family-name: rtbhouse
       type: redirect

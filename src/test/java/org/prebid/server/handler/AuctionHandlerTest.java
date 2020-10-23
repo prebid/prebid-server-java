@@ -19,6 +19,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.AdapterResponse;
@@ -35,10 +36,10 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
@@ -75,6 +76,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
@@ -115,7 +117,8 @@ public class AuctionHandlerTest extends VertxTest {
     private Clock clock;
     @Mock
     private TcfDefinerService tcfDefinerService;
-    private PrivacyExtractor privacyExtractor;
+    @Mock
+    private PrivacyEnforcementService privacyEnforcementService;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -134,13 +137,13 @@ public class AuctionHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
         willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
-        given(bidderCatalog.bidderInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15, false));
+        given(bidderCatalog.bidderInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15));
 
         given(bidderCatalog.isValidAdapterName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isActive(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
-        given(bidderCatalog.bidderInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20, true));
+        given(bidderCatalog.bidderInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -153,10 +156,10 @@ public class AuctionHandlerTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.contextFromLegacyRequest(any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(null, null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
-
-        privacyExtractor = new PrivacyExtractor(jacksonMapper);
 
         auctionHandler = new AuctionHandler(
                 applicationSettings,
@@ -167,10 +170,9 @@ public class AuctionHandlerTest extends VertxTest {
                 httpAdapterConnector,
                 clock,
                 tcfDefinerService,
-                privacyExtractor,
+                privacyEnforcementService,
                 jacksonMapper,
-                null,
-                false);
+                null);
     }
 
     @Test
@@ -257,9 +259,12 @@ public class AuctionHandlerTest extends VertxTest {
                         .timeout(timeout)
                         .adapterRequests(singletonList(AdapterRequest.of(RUBICON, singletonList(null)))));
 
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().id("accountId").build()));
+
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.cacheBids(anyList(), any())).willReturn(Future.succeededFuture(singletonList(
+        given(cacheService.cacheBids(anyList(), any(), anyString())).willReturn(Future.succeededFuture(singletonList(
                 BidCacheResult.of("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315", "cached_asset_url"))));
         given(cacheService.getCachedAssetURLTemplate()).willReturn("cached_asset_url");
 
@@ -267,7 +272,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(cacheService).cacheBids(anyList(), same(timeout));
+        verify(cacheService).cacheBids(anyList(), same(timeout), eq("accountId"));
 
         final PreBidResponse preBidResponse = capturePreBidResponse();
         assertThat(preBidResponse.getBids()).extracting(Bid::getAdm).containsNull();
@@ -316,7 +321,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.cacheBids(anyList(), any())).willReturn(Future.failedFuture("http exception"));
+        given(cacheService.cacheBids(anyList(), any(), any())).willReturn(Future.failedFuture("http exception"));
 
         // when
         auctionHandler.handle(routingContext);
@@ -694,7 +699,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.cacheBids(anyList(), any())).willReturn(Future.failedFuture("http exception"));
+        given(cacheService.cacheBids(anyList(), any(), anyString())).willReturn(Future.failedFuture("http exception"));
 
         // when
         auctionHandler.handle(routingContext);
@@ -759,7 +764,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(1, actionWithUserSync(true)), null)));
 
@@ -790,7 +795,7 @@ public class AuctionHandlerTest extends VertxTest {
         vendorToAction.put(1, actionWithUserSync(false)); // host vendor id from app config
         vendorToAction.put(15, actionWithUserSync(false)); // Rubicon bidder
         vendorToAction.put(20, actionWithUserSync(true)); // Appnexus bidder
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorToAction, null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
@@ -819,7 +824,7 @@ public class AuctionHandlerTest extends VertxTest {
         final Map<Integer, PrivacyEnforcementAction> vendorToAction = new HashMap<>();
         vendorToAction.put(1, actionWithUserSync(false)); // host vendor id from app config
         vendorToAction.put(15, actionWithUserSync(false)); // Rubicon bidder
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorToAction, null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
@@ -837,10 +842,9 @@ public class AuctionHandlerTest extends VertxTest {
                 httpAdapterConnector,
                 clock,
                 tcfDefinerService,
-                privacyExtractor,
+                privacyEnforcementService,
                 jacksonMapper,
-                1,
-                false);
+                1);
 
         // when
         auctionHandler.handle(routingContext);
@@ -919,9 +923,9 @@ public class AuctionHandlerTest extends VertxTest {
         return mapper.readValue(preBidResponseCaptor.getValue(), PreBidResponse.class);
     }
 
-    private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
+    private static BidderInfo givenBidderInfo(int gdprVendorId) {
         return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr), false);
+                new BidderInfo.GdprInfo(gdprVendorId, true), true, false);
     }
 
     private static PrivacyEnforcementAction actionWithUserSync(boolean blockPixelSync) {

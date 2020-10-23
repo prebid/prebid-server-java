@@ -9,6 +9,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import java.util.List;
 
 public class VrtcalBidder extends OpenrtbBidder<ExtImpVrtcal> {
+
     public VrtcalBidder(String endpointUrl, JacksonMapper mapper) {
         super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpVrtcal.class, mapper);
     }

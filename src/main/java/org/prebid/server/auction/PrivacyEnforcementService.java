@@ -1,21 +1,18 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import org.apache.commons.lang3.StringUtils;
+import io.vertx.core.http.HttpServerRequest;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
-import org.prebid.server.auction.model.RequestType;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -23,125 +20,201 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.VendorIdResolver;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
-import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.util.HttpUtil;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Service provides masking for OpenRTB user sensitive information.
  */
 public class PrivacyEnforcementService {
 
+    private static final String CATCH_ALL_BIDDERS = "*";
     private static final DecimalFormat ROUND_TWO_DECIMALS =
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     private static final User EMPTY_USER = User.builder().build();
     private static final ExtUser EMPTY_USER_EXT = ExtUser.builder().build();
 
-    private final boolean useGeoLocation;
     private final BidderCatalog bidderCatalog;
+    private final PrivacyExtractor privacyExtractor;
     private final TcfDefinerService tcfDefinerService;
+    private final IpAddressHelper ipAddressHelper;
     private final Metrics metrics;
-    private final JacksonMapper mapper;
     private final boolean ccpaEnforce;
 
-    private final PrivacyExtractor privacyExtractor;
-
     public PrivacyEnforcementService(BidderCatalog bidderCatalog,
+                                     PrivacyExtractor privacyExtractor,
                                      TcfDefinerService tcfDefinerService,
+                                     IpAddressHelper ipAddressHelper,
                                      Metrics metrics,
-                                     JacksonMapper mapper,
-                                     boolean useGeoLocation,
                                      boolean ccpaEnforce) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.privacyExtractor = Objects.requireNonNull(privacyExtractor);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
+        this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.metrics = Objects.requireNonNull(metrics);
-        this.mapper = Objects.requireNonNull(mapper);
-        this.useGeoLocation = useGeoLocation;
         this.ccpaEnforce = ccpaEnforce;
+    }
 
-        privacyExtractor = new PrivacyExtractor(mapper);
+    Future<PrivacyContext> contextFromBidRequest(
+            BidRequest bidRequest, Account account, MetricName requestType, Timeout timeout) {
+
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest);
+
+        final Device device = bidRequest.getDevice();
+        final String ipAddress = device != null ? device.getIp() : null;
+
+        final Geo geo = device != null ? device.getGeo() : null;
+        final String country = geo != null ? geo.getCountry() : null;
+
+        if (isCoppaMaskingRequired(privacy)) {
+            return Future.succeededFuture(PrivacyContext.of(
+                    privacy, TcfContext.empty(), ipAddressHelper.maskIpv4(ipAddress)));
+        }
+
+        final String effectiveIpAddress = isLmtEnabled(device) ? ipAddressHelper.maskIpv4(ipAddress) : ipAddress;
+
+        return tcfDefinerService.resolveTcfContext(
+                privacy, country, effectiveIpAddress, account.getGdpr(), requestType, timeout)
+                .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
+    }
+
+    public Future<PrivacyContext> contextFromLegacyRequest(PreBidRequestContext preBidRequestContext, Account account) {
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequestContext.getPreBidRequest());
+
+        return tcfDefinerService.resolveTcfContext(
+                privacy,
+                preBidRequestContext.getIp(),
+                account.getGdpr(),
+                preBidRequestContext.getTimeout())
+                .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
+    }
+
+    public Future<PrivacyContext> contextFromSetuidRequest(
+            HttpServerRequest httpRequest, Account account, Timeout timeout) {
+
+        final Privacy privacy = privacyExtractor.validPrivacyFromSetuidRequest(httpRequest);
+        final String ipAddress = HttpUtil.ipFrom(httpRequest);
+
+        return tcfDefinerService.resolveTcfContext(privacy, ipAddress, account.getGdpr(), timeout)
+                .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
+    }
+
+    public Future<PrivacyContext> contextFromCookieSyncRequest(
+            CookieSyncRequest cookieSyncRequest, HttpServerRequest httpRequest, Account account, Timeout timeout) {
+
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(cookieSyncRequest);
+        final String ipAddress = HttpUtil.ipFrom(httpRequest);
+
+        return tcfDefinerService.resolveTcfContext(privacy, ipAddress, account.getGdpr(), timeout)
+                .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
     Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
                                            Map<String, User> bidderToUser,
-                                           ExtUser extUser,
                                            List<String> bidders,
                                            BidderAliases aliases) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Regs regs = bidRequest.getRegs();
+        final Account account = auctionContext.getAccount();
+        final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Device device = bidRequest.getDevice();
+        final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
 
-        // For now, COPPA and CCPA masking all values, so we can omit GDPR masking.
-        if (isCoppaMaskingRequired(regs)) {
+        final Privacy privacy = privacyContext.getPrivacy();
+
+        // For now, COPPA masking all values, so we can omit GDPR masking.
+        if (isCoppaMaskingRequired(privacy)) {
             return Future.succeededFuture(maskCoppa(bidderToUser, device));
         }
 
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, bidRequest.getUser());
-        final Ccpa ccpa = privacy.getCcpa();
-        updateCcpaMetrics(ccpa);
-        if (isCcpaEnforced(ccpa)) {
-            return maskCcpa(bidderToUser, device);
+        updateCcpaMetrics(privacy.getCcpa());
+        final Map<String, BidderPrivacyResult> ccpaResult =
+                ccpaResult(bidRequest, account, bidders, aliases, device, bidderToUser, privacy);
+
+        final Set<String> biddersToApplyTcf = new HashSet<>(bidders);
+        biddersToApplyTcf.removeAll(ccpaResult.keySet());
+
+        return getBidderToEnforcementAction(privacyContext.getTcfContext(), biddersToApplyTcf, aliases, account)
+                .map(bidderToEnforcement -> updatePrivacyMetrics(
+                        bidderToEnforcement, aliases, requestType, device))
+                .map(bidderToEnforcement -> getBidderToPrivacyResult(
+                        biddersToApplyTcf, bidderToUser, device, bidderToEnforcement))
+                .map(gdprResult -> merge(ccpaResult, gdprResult));
+    }
+
+    private Map<String, BidderPrivacyResult> ccpaResult(BidRequest bidRequest,
+                                                        Account account,
+                                                        List<String> bidders,
+                                                        BidderAliases aliases,
+                                                        Device device,
+                                                        Map<String, User> bidderToUser,
+                                                        Privacy privacy) {
+
+        if (isCcpaEnforced(privacy.getCcpa(), account)) {
+            return maskCcpa(extractCcpaEnforcedBidders(bidders, bidRequest, aliases), device, bidderToUser);
         }
 
-        final Account account = auctionContext.getAccount();
-        final AccountGdprConfig accountConfig = account.getGdpr();
-        final RequestLogInfo requestLogInfo = requestLogInfo(auctionContext.getRequestType(), bidRequest,
-                account.getId());
-        final Timeout timeout = auctionContext.getTimeout();
-        final MetricName requestType = auctionContext.getRequestTypeMetric();
-        return getBidderToEnforcementAction(device, bidders, aliases, extUser, regs, requestLogInfo, accountConfig,
-                timeout)
-                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType, device))
-                .map(bidderToEnforcement -> getBidderToPrivacyResult(bidderToUser, device, bidderToEnforcement));
+        return Collections.emptyMap();
     }
 
-    public boolean isCcpaEnforced(Ccpa ccpa) {
-        return ccpaEnforce && ccpa.isCCPAEnforced();
+    public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
+        final boolean shouldEnforceCcpa = BooleanUtils.toBooleanDefaultIfNull(account.getEnforceCcpa(), ccpaEnforce);
+
+        return shouldEnforceCcpa && ccpa.isEnforced();
     }
 
-    private Future<List<BidderPrivacyResult>> maskCcpa(Map<String, User> bidderToUser, Device device) {
-        return Future.succeededFuture(bidderToUser.entrySet().stream()
-                .map(bidderAndUser -> BidderPrivacyResult.builder()
-                        .requestBidder(bidderAndUser.getKey())
-                        .user(maskCcpaUser(bidderAndUser.getValue()))
-                        .device(maskCcpaDevice(device))
-                        .build())
-                .collect(Collectors.toList()));
+    private Map<String, BidderPrivacyResult> maskCcpa(
+            Set<String> biddersToMask, Device device, Map<String, User> bidderToUser) {
+
+        return biddersToMask.stream()
+                .collect(Collectors.toMap(Function.identity(),
+                        bidder -> BidderPrivacyResult.builder()
+                                .requestBidder(bidder)
+                                .user(maskCcpaUser(bidderToUser.get(bidder)))
+                                .device(maskCcpaDevice(device))
+                                .build()));
     }
 
-    private static User maskCcpaUser(User user) {
+    private User maskCcpaUser(User user) {
         if (user != null) {
             return nullIfEmpty(user.toBuilder()
+                    .id(null)
                     .buyeruid(null)
                     .geo(maskGeoDefault(user.getGeo()))
+                    .ext(maskUserExt(user.getExt()))
                     .build());
         }
         return null;
     }
 
-    private static Device maskCcpaDevice(Device device) {
+    private Device maskCcpaDevice(Device device) {
         return device != null
                 ? device.toBuilder()
-                .ip(maskIpv4(device.getIp()))
-                .ipv6(maskIpv6(device.getIpv6(), 1))
+                .ip(ipAddressHelper.maskIpv4(device.getIp()))
+                .ipv6(ipAddressHelper.anonymizeIpv6(device.getIpv6()))
                 .geo(maskGeoDefault(device.getGeo()))
                 .ifa(null)
                 .macsha1(null).macmd5(null)
@@ -151,11 +224,8 @@ public class PrivacyEnforcementService {
                 : null;
     }
 
-    /**
-     * Determines if COPPA is required.
-     */
-    private static boolean isCoppaMaskingRequired(Regs regs) {
-        return regs != null && Objects.equals(regs.getCoppa(), 1);
+    private static boolean isCoppaMaskingRequired(Privacy privacy) {
+        return privacy.getCoppa() == 1;
     }
 
     private List<BidderPrivacyResult> maskCoppa(Map<String, User> bidderToUser, Device device) {
@@ -170,7 +240,7 @@ public class PrivacyEnforcementService {
                 .collect(Collectors.toList());
     }
 
-    private static User maskCoppaUser(User user) {
+    private User maskCoppaUser(User user) {
         if (user != null) {
             return nullIfEmpty(user.toBuilder()
                     .id(null)
@@ -178,16 +248,17 @@ public class PrivacyEnforcementService {
                     .gender(null)
                     .buyeruid(null)
                     .geo(maskGeoForCoppa(user.getGeo()))
+                    .ext(maskUserExt(user.getExt()))
                     .build());
         }
         return null;
     }
 
-    private static Device maskCoppaDevice(Device device) {
+    private Device maskCoppaDevice(Device device) {
         return device != null
                 ? device.toBuilder()
-                .ip(maskIpv4(device.getIp()))
-                .ipv6(maskIpv6(device.getIpv6(), 2))
+                .ip(ipAddressHelper.maskIpv4(device.getIp()))
+                .ipv6(ipAddressHelper.anonymizeIpv6(device.getIpv6()))
                 .geo(maskGeoForCoppa(device.getGeo()))
                 .ifa(null)
                 .macsha1(null).macmd5(null)
@@ -217,66 +288,53 @@ public class PrivacyEnforcementService {
      * where bidder names mapped to actions for GDPR masking for pbs server.
      */
     private Future<Map<String, PrivacyEnforcementAction>> getBidderToEnforcementAction(
-            Device device,
-            List<String> bidders,
-            BidderAliases aliases,
-            ExtUser extUser,
-            Regs regs,
-            RequestLogInfo requestLogInfo,
-            AccountGdprConfig accountConfig,
-            Timeout timeout) {
-
-        final ExtRegs extRegs = extRegs(regs);
-        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
-        final String gdprAsString = gdpr != null ? gdpr.toString() : null;
-        final String gdprConsent = extUser != null ? extUser.getConsent() : null;
-        final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
-
-        final VendorIdResolver vendorIdResolver = VendorIdResolver.of(bidderCatalog, aliases);
+            TcfContext tcfContext, Set<String> bidders, BidderAliases aliases, Account account) {
 
         return tcfDefinerService.resultForBidderNames(
-                new HashSet<>(bidders),
-                vendorIdResolver,
-                gdprAsString,
-                gdprConsent,
-                ipAddress,
-                accountConfig,
-                requestLogInfo,
-                timeout)
+                new HashSet<>(bidders), VendorIdResolver.of(aliases), tcfContext, account.getGdpr())
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 
-    /**
-     * Extracts {@link ExtRegs} from {@link Regs}.
-     */
-    private ExtRegs extRegs(Regs regs) {
-        final ObjectNode regsExt = regs != null ? regs.getExt() : null;
-        if (regsExt != null) {
-            try {
-                return mapper.mapper().treeToValue(regsExt, ExtRegs.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
-            }
+    private Set<String> extractCcpaEnforcedBidders(List<String> bidders, BidRequest bidRequest, BidderAliases aliases) {
+        final Set<String> ccpaEnforcedBidders = new HashSet<>(bidders);
+
+        final ExtRequest extBidRequest = bidRequest.getExt();
+        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+        final List<String> nosaleBidders = extRequestPrebid != null
+                ? ListUtils.emptyIfNull(extRequestPrebid.getNosale())
+                : Collections.emptyList();
+
+        if (nosaleBidders.size() == 1 && nosaleBidders.contains(CATCH_ALL_BIDDERS)) {
+            ccpaEnforcedBidders.clear();
+        } else {
+            ccpaEnforcedBidders.removeAll(nosaleBidders);
         }
-        return null;
+
+        ccpaEnforcedBidders.removeIf(bidder ->
+                !bidderCatalog.bidderInfoByName(aliases.resolveBidder(bidder)).isCcpaEnforced());
+
+        return ccpaEnforcedBidders;
     }
 
     private Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(
-            TcfResponse<String> tcfResponse, List<String> bidders) {
+            TcfResponse<String> tcfResponse, Set<String> bidders) {
 
         final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getActions();
         return bidders.stream().collect(Collectors.toMap(Function.identity(), bidderNameToAction::get));
     }
 
     private void updateCcpaMetrics(Ccpa ccpa) {
-        metrics.updatePrivacyCcpaMetrics(ccpa.isNotEmpty(), ccpa.isCCPAEnforced());
+        metrics.updatePrivacyCcpaMetrics(ccpa.isNotEmpty(), ccpa.isEnforced());
     }
 
     private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(
-            Map<String, PrivacyEnforcementAction> bidderToEnforcement, MetricName requestType, Device device) {
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement,
+            BidderAliases aliases,
+            MetricName requestType,
+            Device device) {
 
         for (final Map.Entry<String, PrivacyEnforcementAction> bidderEnforcement : bidderToEnforcement.entrySet()) {
-            final String bidder = bidderEnforcement.getKey();
+            final String bidder = aliases.resolveBidder(bidderEnforcement.getKey());
             final PrivacyEnforcementAction enforcement = bidderEnforcement.getValue();
 
             metrics.updateAuctionTcfMetrics(
@@ -300,12 +358,20 @@ public class PrivacyEnforcementService {
      * {@link BidderPrivacyResult}. Masking depends on GDPR and COPPA.
      */
     private List<BidderPrivacyResult> getBidderToPrivacyResult(
-            Map<String, User> bidderToUser, Device device, Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
+            Set<String> bidders,
+            Map<String, User> bidderToUser,
+            Device device,
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
 
         final boolean isLmtEnabled = isLmtEnabled(device);
         return bidderToUser.entrySet().stream()
-                .map(bidderUserEntry -> createBidderPrivacyResult(bidderUserEntry.getValue(), device,
-                        bidderUserEntry.getKey(), isLmtEnabled, bidderToEnforcement))
+                .filter(entry -> bidders.contains(entry.getKey()))
+                .map(bidderUserEntry -> createBidderPrivacyResult(
+                        bidderUserEntry.getValue(),
+                        device,
+                        bidderUserEntry.getKey(),
+                        isLmtEnabled,
+                        bidderToEnforcement))
                 .collect(Collectors.toList());
     }
 
@@ -371,13 +437,13 @@ public class PrivacyEnforcementService {
     /**
      * Returns masked device accordingly for each flag.
      */
-    private static Device maskTcfDevice(Device device, boolean maskIp, boolean maskGeo, boolean maskInfo) {
+    private Device maskTcfDevice(Device device, boolean maskIp, boolean maskGeo, boolean maskInfo) {
         if (device != null) {
             final Device.DeviceBuilder deviceBuilder = device.toBuilder();
             if (maskIp) {
                 deviceBuilder
-                        .ip(maskIpv4(device.getIp()))
-                        .ipv6(maskIpv6(device.getIpv6(), 1));
+                        .ip(ipAddressHelper.maskIpv4(device.getIp()))
+                        .ipv6(ipAddressHelper.anonymizeIpv6(device.getIpv6()));
             }
 
             if (maskGeo) {
@@ -418,16 +484,10 @@ public class PrivacyEnforcementService {
     /**
      * Returns masked digitrust and eids of user ext.
      */
-    private ObjectNode maskUserExt(ObjectNode userExt) {
-        try {
-            final ExtUser extUser = userExt != null ? mapper.mapper().treeToValue(userExt, ExtUser.class) : null;
-            final ExtUser maskedExtUser = extUser != null
-                    ? nullIfEmpty(extUser.toBuilder().eids(null).digitrust(null).build())
-                    : null;
-            return maskedExtUser != null ? mapper.mapper().valueToTree(maskedExtUser) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
+    private ExtUser maskUserExt(ExtUser userExt) {
+        return userExt != null
+                ? nullIfEmpty(userExt.toBuilder().eids(null).digitrust(null).build())
+                : null;
     }
 
     /**
@@ -444,37 +504,15 @@ public class PrivacyEnforcementService {
         return Objects.equals(user, EMPTY_USER) ? null : user;
     }
 
-    /**
-     * Masks ip v4 address by replacing last group with zero.
-     */
-    private static String maskIpv4(String ip) {
-        return maskIp(ip, ".", 1);
-    }
-
-    /**
-     * Masks ip v6 address by replacing last number of groups .
-     */
-    private static String maskIpv6(String ip, Integer groupsNumber) {
-        return maskIp(ip, ":", groupsNumber);
-    }
-
-    /**
-     * Masks ip address by replacing bits after last separator with zero.
-     */
-    private static String maskIp(String ip, String delimiter, int groups) {
-        if (StringUtils.isBlank(ip)) {
-            return ip;
-        }
-        String maskedIp = ip;
-        for (int i = 0; i < groups; i++) {
-            maskedIp = maskedIp.substring(0, maskedIp.lastIndexOf(delimiter));
-        }
-        return String.format("%s%s", maskedIp,
-                IntStream.range(0, groups).mapToObj(ignored -> "0")
-                        .collect(Collectors.joining(delimiter, delimiter, "")));
-    }
-
     private static boolean isLmtEnabled(Device device) {
         return device != null && Objects.equals(device.getLmt(), 1);
+    }
+
+    private static List<BidderPrivacyResult> merge(
+            Map<String, BidderPrivacyResult> ccpaResult, List<BidderPrivacyResult> gdprResult) {
+
+        final List<BidderPrivacyResult> result = new ArrayList<>(ccpaResult.values());
+        result.addAll(gdprResult);
+        return result;
     }
 }

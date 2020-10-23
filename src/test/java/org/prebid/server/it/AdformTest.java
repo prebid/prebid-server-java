@@ -11,6 +11,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
@@ -38,18 +39,19 @@ public class AdformTest extends IntegrationTest {
                 .withQueryParam("adid", equalTo("ifaId"))
                 .withQueryParam("gdpr", equalTo("0"))
                 .withQueryParam("gdpr_consent", equalTo("consentValue"))
-                // bWlkPTE1JnJjdXI9VVNE is Base64 encoded "mid=15&rcur=USD"
-                .withQueryParam("bWlkPTE1JnJjdXI9VVNE", equalTo(""))
+                .withQueryParam("url", equalTo("https://adform.com?a=b"))
+                // bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
+                // "mid=15&rcur=USD&mkv=color:red&mkw=red&cdims=300X600&minp=2.50"
+                .withQueryParam("bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA",
+                        equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.3"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
-                .withHeader("Cookie", equalTo(
-                        "uid=AF-UID;DigiTrust.v1.identity="
-                                // Base 64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":false}}
-                                + "eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6ZmFsc2V9fQ"))
-                .withRequestBody(equalTo(""))
+                .withHeader("Cookie", equalTo("uid=AF-UID;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2l"
+                        + "vbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6ZmFsc2V9fQ"))
+                .withRequestBody(absent())
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adform/test-adform-bid-response-1.json"))));
 
         // pre-bid cache
@@ -100,7 +102,7 @@ public class AdformTest extends IntegrationTest {
                 .withHeader("Cookie", equalTo("uid=AF-UID;DigiTrust.v1.identity"
                         //{"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
                         + "=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"))
-                .withRequestBody(equalTo(""))
+                .withRequestBody(absent())
                 .willReturn(aResponse().withBody(jsonFrom("auction/adform/test-adform-bid-response-1.json"))));
 
         // pre-bid cache

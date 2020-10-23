@@ -18,17 +18,20 @@ public class BidderInfo {
 
     GdprInfo gdpr;
 
+    boolean ccpaEnforced;
+
     boolean modifyingVastXmlAllowed;
 
     public static BidderInfo create(boolean enabled, String maintainerEmail, List<String> appMediaTypes,
                                     List<String> siteMediaTypes, List<String> supportedVendors, int vendorId,
-                                    boolean enforceGdpr, boolean modifyingVastXmlAllowed) {
+                                    boolean enforceGdpr, boolean ccpaEnforced, boolean modifyingVastXmlAllowed) {
         final MaintainerInfo maintainer = new MaintainerInfo(maintainerEmail);
         final CapabilitiesInfo capabilities = new CapabilitiesInfo(platformInfo(appMediaTypes),
                 platformInfo(siteMediaTypes));
         final GdprInfo gdpr = new GdprInfo(vendorId, enforceGdpr);
 
-        return new BidderInfo(enabled, maintainer, capabilities, supportedVendors, gdpr, modifyingVastXmlAllowed);
+        return new BidderInfo(
+                enabled, maintainer, capabilities, supportedVendors, gdpr, ccpaEnforced, modifyingVastXmlAllowed);
     }
 
     private static PlatformInfo platformInfo(List<String> mediaTypes) {

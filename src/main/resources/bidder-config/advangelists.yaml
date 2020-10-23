@@ -3,11 +3,12 @@ adapters:
     enabled: false
     endpoint: http://nep.advangelists.com/xp/get?pubid=
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: lokesh@advangelists.com
+      maintainer-email: prebid@advangelists.com
       app-media-types:
         - banner
         - video
@@ -15,10 +16,10 @@ adapters:
         - banner
         - video
       supported-vendors:
-      vendor-id: 61
+      vendor-id: 0
     usersync:
       url: https://nep.advangelists.com/xp/user-sync?acctid={aid}&&redirect=
       redirect-url: /setuid?bidder=advangelists&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: advangelists
-      type: redirect
+      type: iframe
       support-cors: false

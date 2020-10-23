@@ -39,11 +39,11 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.manager.AdminManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -99,7 +99,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private Clock clock;
     @Mock
-    private AdminManager adminManager;
+    private HttpInteractionLogger httpInteractionLogger;
 
     private AmpHandler ampHandler;
     @Mock
@@ -141,22 +141,9 @@ public class AmpHandlerTest extends VertxTest {
                 bidderCatalog,
                 singleton("bidder1"),
                 new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
-                adminManager, jacksonMapper
+                httpInteractionLogger,
+                jacksonMapper
         );
-    }
-
-    @Test
-    public void shouldSetRequestTypeMetricToAuctionContext() {
-        // given
-        given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
-
-        // when
-        ampHandler.handle(routingContext);
-
-        // then
-        final AuctionContext auctionContext = captureAuctionContext();
-        assertThat(auctionContext.getRequestTypeMetric()).isNotNull();
     }
 
     @Test
@@ -206,7 +193,10 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+
+        // TODO adminManager: enable when admin endpoints can be bound on application port
+        //verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
@@ -259,7 +249,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided 1", "1")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", null)));
 
         // when
         ampHandler.handle(routingContext);
@@ -272,7 +262,7 @@ public class AmpHandlerTest extends VertxTest {
                 .containsOnly(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
-        verify(httpResponse).end(eq("Unauthorized: Account id is not provided 1"));
+        verify(httpResponse).end(eq("Account id is not provided"));
     }
 
     @Test
@@ -346,8 +336,8 @@ public class AmpHandlerTest extends VertxTest {
         targeting.put("key1", "value1");
         targeting.put("hb_cache_id_bidder1", "value2");
         given(exchangeService.holdAuction(any()))
-                .willReturn(givenBidResponse(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(
-                        null, targeting, null, null, null, null), null))));
+                .willReturn(givenBidResponse(mapper.valueToTree(ExtPrebid.of(
+                        ExtBidPrebid.builder().targeting(targeting).build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -377,7 +367,8 @@ public class AmpHandlerTest extends VertxTest {
                                 .seat("bidder1")
                                 .bid(singletonList(Bid.builder()
                                         .ext(mapper.valueToTree(
-                                                ExtPrebid.of(ExtBidPrebid.of(null, targeting, null, null, null, null),
+                                                ExtPrebid.of(
+                                                        ExtBidPrebid.builder().targeting(targeting).build(),
                                                         mapper.createObjectNode())))
                                         .build()))
                                 .build()))
@@ -431,7 +422,7 @@ public class AmpHandlerTest extends VertxTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(builder -> builder
                 .id("reqId1")
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().debug(1).build()))));
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(1).build())));
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
 
@@ -457,7 +448,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -474,7 +465,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -491,7 +482,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
@@ -514,7 +505,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -533,7 +524,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -617,7 +608,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // simulate calling exception handler that is supposed to update networkerr timer value
         given(httpResponse.exceptionHandler(any())).willAnswer(inv -> {
@@ -640,7 +631,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -657,7 +648,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         given(routingContext.response().closed()).willReturn(true);
 
@@ -724,8 +715,8 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, singletonMap("hb_cache_id_bidder1", "value1"), null, null,
-                                null, null),
+                        ExtPrebid.of(
+                                ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1")).build(),
                                 null))));
 
         // when
@@ -743,8 +734,8 @@ public class AmpHandlerTest extends VertxTest {
                 .bidResponse(BidResponse.builder().seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .ext(mapper.valueToTree(ExtPrebid.of(
-                                        ExtBidPrebid.of(null, singletonMap("hb_cache_id_bidder1", "value1"), null,
-                                                null, null, null),
+                                        ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1"))
+                                                .build(),
                                         null)))
                                 .build()))
                         .build()))
@@ -764,6 +755,7 @@ public class AmpHandlerTest extends VertxTest {
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
+                .requestTypeMetric(MetricName.amp)
                 .timeout(timeout)
                 .build();
     }

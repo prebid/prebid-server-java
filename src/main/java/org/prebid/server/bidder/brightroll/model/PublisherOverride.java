@@ -3,11 +3,13 @@ package org.prebid.server.bidder.brightroll.model;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Value
 @AllArgsConstructor(staticName = "of")
 public class PublisherOverride {
+
     /**
      * Blocked advertisers.
      */
@@ -22,4 +24,9 @@ public class PublisherOverride {
      * Blocked IAB categories.
      */
     private List<Integer> impBattr;
+
+    /**
+     * Request Bid floor.
+     */
+    private BigDecimal bidFloor;
 }

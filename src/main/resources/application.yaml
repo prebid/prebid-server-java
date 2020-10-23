@@ -14,15 +14,53 @@ http:
   jks-password:
 admin:
   port: 8060
+admin-endpoints:
+  version:
+    enabled: false
+    path: /version
+    on-application-port: false
+    protected: true
+  currency-rates:
+    enabled: false
+    path: /currency/rates
+    on-application-port: false
+    protected: true
+  storedrequest:
+    enabled: false
+    path: /storedrequests/openrtb2
+    on-application-port: false
+    protected: true
+  storedrequest-amp:
+    enabled: false
+    path: /storedrequests/amp
+    on-application-port: false
+    protected: true
+  cache-invalidation:
+    enabled: false
+    path: /cache/invalidate
+    on-application-port: false
+    protected: true
+  logging-httpinteraction:
+    enabled: false
+    path: /logging/httpinteraction
+    on-application-port: false
+    protected: true
+  logging-changelevel:
+    enabled: false
+    path: /logging/changelevel
+    on-application-port: false
+    protected: true
 http-client:
   max-pool-size: 4000
+  idle-timeout-ms: 0
+  pool-cleaner-period-ms: 1000
   connect-timeout-ms: 2500
   use-compression: false
   max-redirects: 0
   ssl: false
   jks-path:
   jks-password:
-external-url: http://localhost:8000
+external-url: http://localhost:8080
 host-id: localhost
 datacenter-region: local
 vendor: local
@@ -30,6 +68,7 @@ default-timeout-ms: 900
 max-timeout-ms: 5000
 timeout-adjustment-ms: 30
 auction:
+  ad-server-currency: USD
   blacklisted-accounts:
   blacklisted-apps:
   default-timeout-ms: 900
@@ -37,6 +76,8 @@ auction:
   timeout-adjustment-ms: 30
   stored-requests-timeout-ms: 50
   max-request-size: 262144
+  id-generator-type: uuid
+  generate-bid-id: false
   cache:
     expected-request-time-ms: 10
     only-winning-bids: false
@@ -55,8 +96,11 @@ cookie-sync:
   coop-sync:
     default: true
   default-timeout-ms: 2000
-logger-level-modifier:
-  enabled: false
+logging:
+  http-interaction:
+    max-limit: 10000
+  change-level:
+    max-duration-ms: 60000
 currency-converter:
   external-rates:
     enabled: true
@@ -76,6 +120,8 @@ settings:
     ttl-seconds: 360
     notification-endpoints-enabled: false
     account-invalidation-enabled: true
+  targeting:
+    truncate-attr-chars: 20
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:
@@ -88,12 +134,13 @@ gdpr:
   default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
+    default-timeout-ms: 2000
     v1:
       http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
-      http-default-timeout-ms: 2000
+      refresh-missing-list-period-ms: 3600000
     v2:
       http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
-      http-default-timeout-ms: 2000
+      refresh-missing-list-period-ms: 3600000
   purposes:
     p1:
       enforce-purpose: full
@@ -134,7 +181,7 @@ gdpr:
 ccpa:
   enforce: true
 geolocation:
-  enabled: true
+  enabled: false
   type: maxmind
   maxmind:
     remote-file-syncer:
@@ -153,3 +200,7 @@ health-check:
     enabled: false
   geolocation:
     enabled: false
+ipv6:
+  always-mask-right: 64
+  anon-left-mask-bits: 56
+  private-networks: ::1/128, 2001:db8::/32, fc00::/7, fe80::/10, ff00::/8

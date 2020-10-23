@@ -1,8 +1,9 @@
 adapters:
   kubient:
     enabled: false
-    endpoint: http://kbntx.ch/prebid
+    endpoint: https://kssp.kbntx.ch/prebid
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:

@@ -23,8 +23,11 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
+import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -220,7 +223,9 @@ public class OpenxBidderTest extends VertxTest {
                                 .id("impId3")
                                 .video(Video.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null,
+                                        ExtPrebid.of(
+                                                ExtImpPrebid.builder()
+                                                        .isRewardedInventory(1).build(),
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo3", "bar3"))
@@ -234,12 +239,12 @@ public class OpenxBidderTest extends VertxTest {
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo4", "bar4"))
-                                                        .delDomain("se-demo-d.openx.net")
+                                                        .platform("PLATFORM")
                                                         .unit("unitId").build()))).build(),
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
-                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .regs(Regs.of(0, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -280,19 +285,23 @@ public class OpenxBidderTest extends VertxTest {
                                                                         givenCustomParams("foo2", "bar2"))
                                                                 .build()))
                                                 .build()))
-                                .ext(mapper.valueToTree(OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(),
+                                        OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
                                 .user(User.builder()
-                                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                        .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                                .regs(Regs.of(0, ExtRegs.of(1, null)))
                                 .build(),
-                        // check if each of video imps is a part of separate bidRequest
+                        // check if each of video imps is a part of separate bidRequest and impId3 is rewarded video
                         BidRequest.builder()
                                 .id("bidRequestId")
                                 .imp(singletonList(
                                         Imp.builder()
                                                 .id("impId3")
-                                                .video(Video.builder().build())
+                                                .video(Video.builder()
+                                                        .ext(mapper.valueToTree(OpenxVideoExt.of(1)))
+                                                        .build())
                                                 .tagid("unitId")
                                                 // check if each of video imps is a part of separate bidRequest
                                                 .bidfloor(BigDecimal.valueOf(0.1))
@@ -303,11 +312,13 @@ public class OpenxBidderTest extends VertxTest {
                                                                 .build()))
                                                 .build()))
 
-                                .ext(mapper.valueToTree(OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(),
+                                        OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
                                 .user(User.builder()
-                                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                        .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                                .regs(Regs.of(0, ExtRegs.of(1, null)))
                                 .build(),
                         // check if each of video imps is a part of separate bidRequest
                         BidRequest.builder()
@@ -324,11 +335,12 @@ public class OpenxBidderTest extends VertxTest {
                                                                         givenCustomParams("foo4", "bar4"))
                                                                 .build()))
                                                 .build()))
-                                .ext(mapper.valueToTree(OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(), OpenxRequestExt.of(null, "PLATFORM", "hb_pbs_1.0.0")))
                                 .user(User.builder()
-                                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                        .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                                .regs(Regs.of(0, ExtRegs.of(1, null)))
                                 .build());
     }
 
@@ -361,6 +373,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .build()))
                         .build()))
+                .cur("UAH")
                 .build()));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -386,7 +399,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, "UAH"));
     }
 
     @Test
@@ -430,7 +443,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, "USD"));
     }
 
     @Test

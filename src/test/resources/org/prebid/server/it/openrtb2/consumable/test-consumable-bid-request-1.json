@@ -18,5 +18,10 @@
   "includePricingData": true,
   "url": "http://www.example.com",
   "enableBotFiltering": true,
-  "parallel": true
+  "parallel": true,
+  "gdpr": {
+    "applies": false,
+    "consent": "consentValue"
+  },
+  "us_privacy": "1YNN"
 }
