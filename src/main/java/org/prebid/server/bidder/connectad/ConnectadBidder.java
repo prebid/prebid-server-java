@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.connectAd;
+package org.prebid.server.bidder.connectad;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
 /**
  * ConnectAd {@link Bidder} implementation.
  */
-public class ConnectAdBidder implements Bidder<BidRequest> {
+public class ConnectadBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpConnectAd>> CONNECTAD_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpConnectAd>>() {
@@ -51,15 +52,14 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public ConnectAdBidder(String endpointUrl, JacksonMapper mapper) {
+    public ConnectadBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final String page = request.getSite() != null ? request.getSite().getPage() : null;
-        final int secure = StringUtils.isNotBlank(page) && page.contains(HTTPS_PREFIX) ? 1 : 0;
+        final int secure = secureFrom(request.getSite());
 
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> processedImps = new ArrayList<>();
@@ -67,7 +67,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpConnectAd impExt = parseImpExt(imp);
-                final Imp updatedImp = updateImp(imp, secure, impExt);
+                final Imp updatedImp = updateImp(imp, secure, impExt.getSiteId(), impExt.getBidfloor());
                 processedImps.add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -92,6 +92,11 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
                 errors);
     }
 
+    private int secureFrom(Site site) {
+        final String page = site != null ? site.getPage() : null;
+        return StringUtils.isNotBlank(page) && page.startsWith(HTTPS_PREFIX) ? 1 : 0;
+    }
+
     private ExtImpConnectAd parseImpExt(Imp imp) {
         final ExtImpConnectAd extImpConnectAd;
         try {
@@ -100,16 +105,17 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
         }
 
-        if (extImpConnectAd.getSiteId().equals(NumberUtils.INTEGER_ZERO)) {
+        if (Objects.equals(extImpConnectAd.getSiteId(), NumberUtils.INTEGER_ZERO)) {
             throw new PreBidException(String.format("Impression id=%s, has no siteId present", imp.getId()));
         }
         return extImpConnectAd;
     }
 
-    private Imp updateImp(Imp imp, Integer secure, ExtImpConnectAd extImp) {
-        final Imp.ImpBuilder updatedImp = imp.toBuilder().tagid(extImp.getSiteId().toString()).secure(secure);
-        if (extImp.getBidfloor().compareTo(BigDecimal.ZERO) != NumberUtils.INTEGER_ZERO) {
-            updatedImp.bidfloor(extImp.getBidfloor()).bidfloorcur("USD");
+    private Imp updateImp(Imp imp, Integer secure, Integer siteId, BigDecimal bidFloor) {
+        final Imp.ImpBuilder updatedImp = imp.toBuilder().tagid(siteId.toString()).secure(secure);
+
+        if (bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) != NumberUtils.INTEGER_ZERO) {
+            updatedImp.bidfloor(bidFloor).bidfloorcur("USD");
         }
 
         final Banner banner = imp.getBanner();
@@ -122,7 +128,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
                 throw new PreBidException("At least one size is required");
             }
             final Format format = banner.getFormat().get(0);
-            final List<Format> slicedFormatList = banner.getFormat();
+            final List<Format> slicedFormatList = new ArrayList<>(banner.getFormat());
 
             slicedFormatList.remove(0);
             updatedImp.banner(banner.toBuilder().format(slicedFormatList).w(format.getW()).h(format.getH()).build());
@@ -135,14 +141,10 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         final MultiMap headers = HttpUtil.headers();
 
         if (device != null) {
-            headers.add("User-Agent", device.getUa());
-            headers.add("Accept-Language", device.getLanguage());
-            if (StringUtils.isNotEmpty(device.getIp())) {
-                headers.add("X-Forwarded-For", device.getIp());
-            }
-            if (StringUtils.isNotEmpty(device.getIpv6())) {
-                headers.add("X-Forwarded-For", device.getIpv6());
-            }
+            updateHeadersWithStringValue(headers, "User-Agent", device.getUa());
+            updateHeadersWithStringValue(headers, "Accept-Language", device.getLanguage());
+            updateHeadersWithStringValue(headers, "X-Forwarded-For", device.getIp());
+            updateHeadersWithStringValue(headers, "X-Forwarded-For", device.getIpv6());
             if (device.getDnt() != null) {
                 headers.add("DNT", device.getDnt().toString());
             } else {
@@ -150,6 +152,12 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
             }
         }
         return headers;
+    }
+
+    private void updateHeadersWithStringValue(MultiMap headers, String header, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            headers.add(header, value);
+        }
     }
 
     @Override

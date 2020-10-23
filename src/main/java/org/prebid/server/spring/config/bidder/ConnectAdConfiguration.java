@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.connectAd.ConnectAdBidder;
+import org.prebid.server.bidder.connectad.ConnectadBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
@@ -50,7 +50,7 @@ public class ConnectAdConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new ConnectAdBidder(configProperties.getEndpoint(), mapper))
+                .bidderCreator(() -> new ConnectadBidder(configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

@@ -13,7 +13,6 @@ import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.connectAd.ConnectAdBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -34,21 +33,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
-public class ConnectAdBidderTest extends VertxTest {
+public class ConnectadBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private ConnectAdBidder connectadBidder;
+    private ConnectadBidder connectadBidder;
 
     @Before
     public void setUp() {
-        connectadBidder = new ConnectAdBidder(ENDPOINT_URL, jacksonMapper);
+        connectadBidder = new ConnectadBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         Assertions.assertThatIllegalArgumentException().isThrownBy(() ->
-                new ConnectAdBidder("invalid_url", jacksonMapper));
+                new ConnectadBidder("invalid_url", jacksonMapper));
     }
 
     @Test
