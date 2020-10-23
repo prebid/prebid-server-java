@@ -38,11 +38,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * ConnectAd {@link Bidder} implementation.
+ */
 public class ConnectAdBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpConnectAd>> CONNECTAD_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpConnectAd>>() {
             };
+    private static final String HTTPS_PREFIX = "https";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -55,7 +59,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final String page = request.getSite() != null ? request.getSite().getPage() : null;
-        final int secure = StringUtils.isNotBlank(page) && page.contains("https") ? 1 : 0;
+        final int secure = StringUtils.isNotBlank(page) && page.contains(HTTPS_PREFIX) ? 1 : 0;
 
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> processedImps = new ArrayList<>();
@@ -77,14 +81,11 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
 
         final String body = mapper.encode(outgoingRequest);
 
-        final MultiMap headers = HttpUtil.headers();
-        updateHeadersDueToRequest(headers, request);
-
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .headers(headers)
+                        .headers(resolveHeaders(request.getDevice()))
                         .payload(outgoingRequest)
                         .body(body)
                         .build()),
@@ -106,7 +107,6 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp, Integer secure, ExtImpConnectAd extImp) {
-
         final Imp.ImpBuilder updatedImp = imp.toBuilder().tagid(extImp.getSiteId().toString()).secure(secure);
         if (extImp.getBidfloor().compareTo(BigDecimal.ZERO) != NumberUtils.INTEGER_ZERO) {
             updatedImp.bidfloor(extImp.getBidfloor()).bidfloorcur("USD");
@@ -131,8 +131,8 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         return updatedImp.build();
     }
 
-    private void updateHeadersDueToRequest(MultiMap headers, BidRequest request) {
-        final Device device = request.getDevice();
+    final MultiMap resolveHeaders(Device device) {
+        final MultiMap headers = HttpUtil.headers();
 
         if (device != null) {
             headers.add("User-Agent", device.getUa());
@@ -149,6 +149,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
                 headers.add("DNT", "0");
             }
         }
+        return headers;
     }
 
     @Override
