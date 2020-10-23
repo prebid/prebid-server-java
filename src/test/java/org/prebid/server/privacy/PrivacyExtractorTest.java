@@ -142,7 +142,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final Ccpa ccpa =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build(), new ArrayList<>()).getCcpa();
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build(), errors).getCcpa();
 
         // then
         assertThat(ccpa).isEqualTo(Ccpa.EMPTY);
