@@ -130,7 +130,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
-                bidRequest, Account.empty("account"), null, null);
+                bidRequest, Account.empty("account"), null, null, new ArrayList<>());
 
         // then
         FutureAssertion.assertThat(privacyContext).succeededWith(
@@ -159,7 +159,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
-                bidRequest, Account.empty("account"), MetricName.openrtb2web, null);
+                bidRequest, Account.empty("account"), MetricName.openrtb2web, null, new ArrayList<>());
 
         // then
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
@@ -200,7 +200,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
-                bidRequest, Account.empty("account"), MetricName.openrtb2web, null);
+                bidRequest, Account.empty("account"), MetricName.openrtb2web, null, new ArrayList<>());
 
         // then
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
@@ -372,37 +372,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .device(deviceTcfMasked())
                 .build();
         assertThat(result).isEqualTo(singletonList(expected));
-    }
-
-    @Test
-    public void shouldAddErrorWhenWhenUsPolicyIsInvalid() {
-        // given
-        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
-
-        given(bidderCatalog.bidderInfoByName(BIDDER_NAME)).willReturn(givenBidderInfo(1, false));
-
-        final ExtUser extUser = notMaskedExtUser();
-        final User user = notMaskedUser(extUser);
-        final Regs regs = Regs.of(0, ExtRegs.of(1, "invalid"));
-        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
-                bidRequestBuilder -> bidRequestBuilder
-                        .user(user)
-                        .regs(regs));
-
-        final AuctionContext context = auctionContext(bidRequest);
-
-        // when
-        privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
-                .result();
-
-        // then
-        assertThat(context.getPrebidErrors())
-                .containsOnly("CCPA consent invalid has invalid format: us_privacy must contain 4 characters");
     }
 
     @Test

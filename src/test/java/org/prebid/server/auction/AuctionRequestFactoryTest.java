@@ -144,7 +144,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
-        given(privacyEnforcementService.contextFromBidRequest(any(), any(), any(), any()))
+        given(privacyEnforcementService.contextFromBidRequest(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(
                         Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
                         TcfContext.empty())));
@@ -1652,7 +1652,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
                         .build(),
                 "ip");
-        given(privacyEnforcementService.contextFromBidRequest(any(), any(), any(), any()))
+        given(privacyEnforcementService.contextFromBidRequest(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(privacyContext));
 
         // when

@@ -12,10 +12,10 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-
-import java.util.List;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.request.PreBidRequest;
+
+import java.util.List;
 
 /**
  * GDPR-aware utilities
@@ -42,12 +42,13 @@ public class PrivacyExtractor {
      * </ul><p>
      * And construct {@link Privacy} from them. Use default values in case of invalid value.
      */
-    public Privacy validPrivacyFrom(BidRequest bidRequest) {
-        return extractPrivacy(bidRequest.getRegs(), bidRequest.getUser());
+    public Privacy validPrivacyFrom(BidRequest bidRequest, List<String> errors) {
+        return extractPrivacy(bidRequest.getRegs(), bidRequest.getUser(), errors);
     }
 
+    @Deprecated
     public Privacy validPrivacyFrom(PreBidRequest preBidRequest) {
-        return extractPrivacy(preBidRequest.getRegs(), preBidRequest.getUser());
+        return extractPrivacy(preBidRequest.getRegs(), preBidRequest.getUser(), null);
     }
 
     public Privacy validPrivacyFrom(CookieSyncRequest request) {
@@ -56,14 +57,14 @@ public class PrivacyExtractor {
         final String gdprConsent = request.getGdprConsent();
         final String usPrivacy = request.getUsPrivacy();
 
-        return toValidPrivacy(gdpr, gdprConsent, usPrivacy, null);
+        return toValidPrivacy(gdpr, gdprConsent, usPrivacy, null, null);
     }
 
     public Privacy validPrivacyFromSetuidRequest(HttpServerRequest request) {
         final String gdpr = request.getParam(SETUID_GDPR_PARAM);
         final String gdprConsent = request.getParam(SETUID_GDPR_CONSENT_PARAM);
 
-        return toValidPrivacy(gdpr, gdprConsent, null, null);
+        return toValidPrivacy(gdpr, gdprConsent, null, null, null);
     }
 
     private Privacy extractPrivacy(Regs regs, User user, List<String> errors) {
@@ -79,7 +80,11 @@ public class PrivacyExtractor {
         return toValidPrivacy(gdpr, consent, usPrivacy, coppa, errors);
     }
 
-    private static Privacy toValidPrivacy(String gdpr, String consent, String usPrivacy, Integer coppa, List<String> errors) {
+    private static Privacy toValidPrivacy(String gdpr,
+                                          String consent,
+                                          String usPrivacy,
+                                          Integer coppa,
+                                          List<String> errors) {
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;
@@ -97,7 +102,9 @@ public class PrivacyExtractor {
         } catch (PreBidException e) {
             final String message = String.format("CCPA consent %s has invalid format: %s", usPrivacy, e.getMessage());
             logger.debug(message);
-            errors.add(message);
+            if (errors != null) {
+                errors.add(message);
+            }
             return DEFAULT_CCPA_VALUE;
         }
     }
