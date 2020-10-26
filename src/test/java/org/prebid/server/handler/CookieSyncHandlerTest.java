@@ -1242,7 +1242,6 @@ public class CookieSyncHandlerTest extends VertxTest {
         return cookieSyncEventCaptor.getValue();
     }
 
-
     @SuppressWarnings("SameParameterValue")
     private static <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {
         final Map<K, V> map = new HashMap<>();

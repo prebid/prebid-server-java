@@ -7,7 +7,6 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
-import org.prebid.server.privacy.gdpr.model.TcfContext;
 
 public class LogAnalyticsReporterTest extends VertxTest {
 
