@@ -11,7 +11,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-import javax.annotation.PostConstruct;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
@@ -63,6 +62,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
