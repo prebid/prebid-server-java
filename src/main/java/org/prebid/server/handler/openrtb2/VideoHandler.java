@@ -7,7 +7,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
@@ -41,18 +41,18 @@ public class VideoHandler implements Handler<RoutingContext> {
     private final VideoRequestFactory videoRequestFactory;
     private final VideoResponseFactory videoResponseFactory;
     private final ExchangeService exchangeService;
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
 
     public VideoHandler(VideoRequestFactory videoRequestFactory, VideoResponseFactory videoResponseFactory,
-                        ExchangeService exchangeService, AnalyticsReporter analyticsReporter, Metrics metrics,
+                        ExchangeService exchangeService, AnalyticsReporterDelegator analyticsDelegator, Metrics metrics,
                         Clock clock, JacksonMapper mapper) {
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -158,7 +158,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event, tcfContext);
+            analyticsDelegator.processEvent(event, tcfContext);
         }
     }
 

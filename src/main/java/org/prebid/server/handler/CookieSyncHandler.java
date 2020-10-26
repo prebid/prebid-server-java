@@ -11,7 +11,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.CookieSyncContext;
@@ -68,7 +68,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final Integer gdprHostVendorId;
     private final boolean defaultCoopSync;
     private final List<Collection<String>> listOfCoopSyncBidders;
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
     private final JacksonMapper mapper;
@@ -83,7 +83,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                              Integer gdprHostVendorId,
                              boolean defaultCoopSync,
                              List<Collection<String>> listOfCoopSyncBidders,
-                             AnalyticsReporter analyticsReporter,
+                             AnalyticsReporterDelegator analyticsDelegator,
                              Metrics metrics,
                              TimeoutFactory timeoutFactory,
                              JacksonMapper mapper) {
@@ -101,7 +101,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.listOfCoopSyncBidders = CollectionUtils.isNotEmpty(listOfCoopSyncBidders)
                 ? listOfCoopSyncBidders
                 : Collections.singletonList(activeBidders);
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.mapper = Objects.requireNonNull(mapper);
@@ -120,7 +120,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
             final String message = "User has opted out";
             routingContext.response().setStatusCode(status).setStatusMessage(message).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, message), TcfContext.empty());
+            analyticsDelegator.processEvent(CookieSyncEvent.error(status, message), TcfContext.empty());
             return;
         }
 
@@ -129,7 +129,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String message = "Request has no body";
             routingContext.response().setStatusCode(status).setStatusMessage(message).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, message), TcfContext.empty());
+            analyticsDelegator.processEvent(CookieSyncEvent.error(status, message));
             return;
         }
 
@@ -140,7 +140,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String message = "Request body cannot be parsed";
             routingContext.response().setStatusCode(status).setStatusMessage(message).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, message), TcfContext.empty());
+            analyticsDelegator.processEvent(CookieSyncEvent.error(status, message));
             logger.info(message, e);
             return;
         }
@@ -149,7 +149,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String message = "gdpr_consent is required if gdpr is 1";
             routingContext.response().setStatusCode(status).setStatusMessage(message).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, message), TcfContext.empty());
+            analyticsDelegator.processEvent(CookieSyncEvent.error(status, message));
             return;
         }
 
@@ -359,7 +359,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .end(body);
 
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-        analyticsReporter.processEvent(CookieSyncEvent.builder()
+        analyticsDelegator.processEvent(CookieSyncEvent.builder()
                 .status(HttpResponseStatus.OK.code())
                 .bidderStatus(updatedBidderStatuses)
                 .build(), tcfContext);

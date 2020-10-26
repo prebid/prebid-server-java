@@ -24,5 +24,7 @@ public class SetuidContext {
 
     Account account;
 
+    String cookieName;
+
     PrivacyContext privacyContext;
 }

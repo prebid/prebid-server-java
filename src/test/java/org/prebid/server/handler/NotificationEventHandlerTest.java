@@ -16,7 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.auction.model.Tuple2;
@@ -46,7 +46,7 @@ public class NotificationEventHandlerTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private TimeoutFactory timeoutFactory;
     @Mock
@@ -71,7 +71,8 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        notificationHandler = new NotificationEventHandler(analyticsReporter, timeoutFactory, applicationSettings);
+        notificationHandler = new NotificationEventHandler(analyticsReporterDelegator, timeoutFactory,
+                applicationSettings);
     }
 
     @Test
@@ -83,7 +84,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -98,7 +99,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -113,7 +114,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -131,7 +132,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -147,7 +148,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
     }
@@ -165,7 +166,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -184,7 +185,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -204,7 +205,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -224,7 +225,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
         assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
@@ -245,7 +246,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
         assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
@@ -299,7 +300,7 @@ public class NotificationEventHandlerTest extends VertxTest {
 
         // then
         verifyZeroInteractions(applicationSettings);
-        verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(analyticsReporterDelegator);
     }
 
     @Test
@@ -414,7 +415,7 @@ public class NotificationEventHandlerTest extends VertxTest {
 
     private NotificationEvent captureAnalyticEvent() {
         final ArgumentCaptor<NotificationEvent> captor = ArgumentCaptor.forClass(NotificationEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture());
+        verify(analyticsReporterDelegator).processEvent(captor.capture());
         return captor.getValue();
     }
 }

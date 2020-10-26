@@ -11,7 +11,6 @@ import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.privacy.gdpr.model.TcfContext;
 
 import java.util.Objects;
 
@@ -49,8 +48,8 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     }
 
     @Override
-    public <T> void processEvent(T event, TcfContext tcfContext) {
-        processEvent(event);
+    public int reporterVendorId() {
+        return 0;
     }
 
     @AllArgsConstructor

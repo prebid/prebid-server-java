@@ -19,7 +19,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
@@ -77,7 +77,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
     private final BidderCatalog bidderCatalog;
@@ -88,7 +88,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
                       ExchangeService exchangeService,
-                      AnalyticsReporter analyticsReporter,
+                      AnalyticsReporterDelegator analyticsDelegator,
                       Metrics metrics,
                       Clock clock,
                       BidderCatalog bidderCatalog,
@@ -99,7 +99,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -388,7 +388,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event, tcfContext);
+            analyticsDelegator.processEvent(event, tcfContext);
         }
     }
 

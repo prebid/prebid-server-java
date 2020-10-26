@@ -29,7 +29,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class CompositeAnalyticsReporterTest {
+public class AnalyticsReporterDelegatorTest {
 
     private static final String EVENT = StringUtils.EMPTY;
     private static final Integer FIRST_REPORTER_ID = 1;
@@ -47,7 +47,7 @@ public class CompositeAnalyticsReporterTest {
 
     private AnalyticsReporter secondReporter;
 
-    private CompositeAnalyticsReporter target;
+    private AnalyticsReporterDelegator target;
 
     @Before
     public void setUp() {
@@ -57,7 +57,7 @@ public class CompositeAnalyticsReporterTest {
         secondReporter = mock(AnalyticsReporter.class);
         given(secondReporter.reporterVendorId()).willReturn(SECOND_REPORTER_ID);
 
-        target = new CompositeAnalyticsReporter(asList(firstReporter, secondReporter), vertx,
+        target = new AnalyticsReporterDelegator(asList(firstReporter, secondReporter), vertx,
                 privacyEnforcementService);
     }
 
@@ -124,7 +124,7 @@ public class CompositeAnalyticsReporterTest {
 
     private static String captureEvent(AnalyticsReporter reporter) {
         final ArgumentCaptor<String> auctionEventCaptor = ArgumentCaptor.forClass(String.class);
-        verify(reporter).processEvent(auctionEventCaptor.capture(), any());
+        verify(reporter).processEvent(auctionEventCaptor.capture());
         return auctionEventCaptor.getValue();
     }
 }

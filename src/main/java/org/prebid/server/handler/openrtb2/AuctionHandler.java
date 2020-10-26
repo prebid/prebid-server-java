@@ -10,7 +10,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -45,7 +45,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private final AuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
     private final HttpInteractionLogger httpInteractionLogger;
@@ -53,7 +53,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     public AuctionHandler(AuctionRequestFactory auctionRequestFactory,
                           ExchangeService exchangeService,
-                          AnalyticsReporter analyticsReporter,
+                          AnalyticsReporterDelegator analyticsDelegator,
                           Metrics metrics,
                           Clock clock,
                           HttpInteractionLogger httpInteractionLogger,
@@ -61,7 +61,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
@@ -205,7 +205,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
-            analyticsReporter.processEvent(event, tcfContext);
+            analyticsDelegator.processEvent(event, tcfContext);
         }
     }
 

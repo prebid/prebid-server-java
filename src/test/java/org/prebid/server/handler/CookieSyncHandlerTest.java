@@ -14,7 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
@@ -99,7 +99,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
 
@@ -137,7 +137,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 1,
                 false,
                 emptyList(),
-                analyticsReporter,
+                analyticsReporterDelegator,
                 metrics,
                 timeoutFactory,
                 jacksonMapper);
@@ -336,7 +336,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).coopSync(true).build()));
@@ -372,7 +372,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, coopBidders,
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).coopSync(true).build()));
@@ -408,7 +408,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, true, priorityBidders,
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).limit(2).build()));
@@ -447,7 +447,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
@@ -686,7 +686,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, null, false, emptyList(),
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -1084,7 +1084,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
         assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(401, "User has opted out"));
     }
 
@@ -1143,7 +1143,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
         assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.builder()
                 .status(200)
                 .bidderStatus(singletonList(BidderUsersyncStatus.builder()
@@ -1230,11 +1230,18 @@ public class CookieSyncHandlerTest extends VertxTest {
         return mapper.readValue(cookieSyncResponseCaptor.getValue(), CookieSyncResponse.class);
     }
 
-    private CookieSyncEvent captureCookieSyncEvent() {
+    private CookieSyncEvent captureCookieSyncTcfEvent() {
         final ArgumentCaptor<CookieSyncEvent> cookieSyncEventCaptor = ArgumentCaptor.forClass(CookieSyncEvent.class);
-        verify(analyticsReporter).processEvent(cookieSyncEventCaptor.capture(), any());
+        verify(analyticsReporterDelegator).processEvent(cookieSyncEventCaptor.capture(), any());
         return cookieSyncEventCaptor.getValue();
     }
+
+    private CookieSyncEvent captureCookieSyncEvent() {
+        final ArgumentCaptor<CookieSyncEvent> cookieSyncEventCaptor = ArgumentCaptor.forClass(CookieSyncEvent.class);
+        verify(analyticsReporterDelegator).processEvent(cookieSyncEventCaptor.capture());
+        return cookieSyncEventCaptor.getValue();
+    }
+
 
     @SuppressWarnings("SameParameterValue")
     private static <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {

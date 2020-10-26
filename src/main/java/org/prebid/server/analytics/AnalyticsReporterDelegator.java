@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 /**
  * Implementation of the Composite design pattern that dispatches event processing to all enabled reporters.
  */
-public class CompositeAnalyticsReporter implements AnalyticsReporter {
+public class AnalyticsReporterDelegator {
 
-    private static final Logger logger = LoggerFactory.getLogger(CompositeAnalyticsReporter.class);
+    private static final Logger logger = LoggerFactory.getLogger(AnalyticsReporterDelegator.class);
 
     private final List<AnalyticsReporter> delegates;
     private final Vertx vertx;
@@ -28,7 +28,7 @@ public class CompositeAnalyticsReporter implements AnalyticsReporter {
 
     private final Set<Integer> reporterVendorIds;
 
-    public CompositeAnalyticsReporter(List<AnalyticsReporter> delegates,
+    public AnalyticsReporterDelegator(List<AnalyticsReporter> delegates,
                                       Vertx vertx,
                                       PrivacyEnforcementService privacyEnforcementService) {
         this.delegates = Objects.requireNonNull(delegates);
@@ -38,14 +38,12 @@ public class CompositeAnalyticsReporter implements AnalyticsReporter {
         reporterVendorIds = delegates.stream().map(AnalyticsReporter::reporterVendorId).collect(Collectors.toSet());
     }
 
-    @Override
     public <T> void processEvent(T event) {
         for (AnalyticsReporter analyticsReporter : delegates) {
-            vertx.runOnContext(ignored -> analyticsReporter.processEvent(event, TcfContext.empty()));
+            vertx.runOnContext(ignored -> analyticsReporter.processEvent(event));
         }
     }
 
-    @Override
     public <T> void processEvent(T event, TcfContext tcfContext) {
         privacyEnforcementService.resultForVendorIds(reporterVendorIds, tcfContext)
                 .setHandler(privacyEnforcementMap -> delegateEvent(event, tcfContext, privacyEnforcementMap));
@@ -64,7 +62,7 @@ public class CompositeAnalyticsReporter implements AnalyticsReporter {
                 final PrivacyEnforcementAction reporterPrivacyAction = privacyEnforcementActionMap
                         .getOrDefault(reporterVendorId, PrivacyEnforcementAction.restrictAll());
                 if (BooleanUtils.isNotTrue(reporterPrivacyAction.isBlockAnalyticsReport())) {
-                    vertx.runOnContext(ignored -> analyticsReporter.processEvent(event, tcfContext));
+                    vertx.runOnContext(ignored -> analyticsReporter.processEvent(event));
                 }
             }
 

@@ -19,7 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -81,7 +81,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
     @Mock
@@ -119,7 +119,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler = new AuctionHandler(
                 auctionRequestFactory,
                 exchangeService,
-                analyticsReporter,
+                analyticsReporterDelegator,
                 metrics,
                 clock,
                 httpInteractionLogger,
@@ -682,7 +682,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     private AuctionEvent captureAuctionEvent() {
         final ArgumentCaptor<AuctionEvent> captor = ArgumentCaptor.forClass(AuctionEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture(), any());
+        verify(analyticsReporterDelegator).processEvent(captor.capture(), any());
         return captor.getValue();
     }
 
