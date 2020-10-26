@@ -53,7 +53,6 @@ public class BetweenBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-
         final List<BidderError> errors = new ArrayList<>();
         final Map<Imp, ExtImpBetween> validImpsWithExts = new HashMap<>();
 
@@ -79,8 +78,20 @@ public class BetweenBidder implements Bidder<BidRequest> {
         return Result.of(madeRequests, errors);
     }
 
-    private HttpRequest<BidRequest> makeSingleRequest(ExtImpBetween extImpBetween, BidRequest request, Imp imp) {
+    private ExtImpBetween parseImpExt(Imp imp) {
+        final ExtImpBetween extImpBetween;
+        try {
+            extImpBetween = mapper.mapper().convertValue(imp.getExt(), BETWEEN_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
+        }
+        if (StringUtils.isBlank(extImpBetween.getHost())) {
+            throw new PreBidException(String.format("Invalid/Missing Host in impression with id: %s", imp.getId()));
+        }
+        return extImpBetween;
+    }
 
+    private HttpRequest<BidRequest> makeSingleRequest(ExtImpBetween extImpBetween, BidRequest request, Imp imp) {
         final String url = endpointUrl.replace(URL_HOST_MACRO, extImpBetween.getHost());
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
@@ -92,19 +103,6 @@ public class BetweenBidder implements Bidder<BidRequest> {
                         .payload(outgoingRequest)
                         .body(mapper.encode(outgoingRequest))
                         .build();
-    }
-
-    private ExtImpBetween parseImpExt(Imp imp) {
-        final ExtImpBetween extImpBetween;
-        try {
-            extImpBetween = mapper.mapper().convertValue(imp.getExt(), BETWEEN_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Missing bidder ext: %s", e.getMessage()));
-        }
-        if (StringUtils.isEmpty(extImpBetween.getHost())) {
-            throw new PreBidException("Invalid/Missing Host");
-        }
-        return extImpBetween;
     }
 
     @Override

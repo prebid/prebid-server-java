@@ -53,6 +53,7 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyHostParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
+                .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null)))));
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("hostVal")))));
@@ -66,13 +67,14 @@ public class BetweenBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid/Missing Host");
+        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("Invalid/Missing Host in impression with id: 123");
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainNullHostParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
+                .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null)))));
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("hostVal")))));
@@ -86,7 +88,7 @@ public class BetweenBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid/Missing Host");
+        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("Invalid/Missing Host in impression with id: 123");
     }
 
     @Test
