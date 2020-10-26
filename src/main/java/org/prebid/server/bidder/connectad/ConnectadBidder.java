@@ -15,7 +15,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -92,9 +91,9 @@ public class ConnectadBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private int secureFrom(Site site) {
+    private static int secureFrom(Site site) {
         final String page = site != null ? site.getPage() : null;
-        return StringUtils.isNotBlank(page) && page.startsWith(HTTPS_PREFIX) ? 1 : 0;
+        return page != null && page.startsWith(HTTPS_PREFIX) ? 1 : 0;
     }
 
     private ExtImpConnectAd parseImpExt(Imp imp) {
@@ -104,8 +103,8 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
         }
-
-        if (Objects.equals(extImpConnectAd.getSiteId(), NumberUtils.INTEGER_ZERO)) {
+        final Integer siteId = extImpConnectAd.getSiteId();
+        if (siteId == null || siteId.equals(0)) {
             throw new PreBidException(String.format("Impression id=%s, has no siteId present", imp.getId()));
         }
         return extImpConnectAd;
@@ -114,7 +113,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
     private Imp updateImp(Imp imp, Integer secure, Integer siteId, BigDecimal bidFloor) {
         final Imp.ImpBuilder updatedImp = imp.toBuilder().tagid(siteId.toString()).secure(secure);
 
-        if (bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) != NumberUtils.INTEGER_ZERO) {
+        if (bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) != 0) {
             updatedImp.bidfloor(bidFloor).bidfloorcur("USD");
         }
 
@@ -137,14 +136,14 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         return updatedImp.build();
     }
 
-    final MultiMap resolveHeaders(Device device) {
+    private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
 
         if (device != null) {
-            updateHeadersWithStringValue(headers, "User-Agent", device.getUa());
-            updateHeadersWithStringValue(headers, "Accept-Language", device.getLanguage());
-            updateHeadersWithStringValue(headers, "X-Forwarded-For", device.getIp());
-            updateHeadersWithStringValue(headers, "X-Forwarded-For", device.getIpv6());
+            addHeader(headers, "User-Agent", device.getUa());
+            addHeader(headers, "Accept-Language", device.getLanguage());
+            addHeader(headers, "X-Forwarded-For", device.getIp());
+            addHeader(headers, "X-Forwarded-For", device.getIpv6());
             if (device.getDnt() != null) {
                 headers.add("DNT", device.getDnt().toString());
             } else {
@@ -154,7 +153,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         return headers;
     }
 
-    private void updateHeadersWithStringValue(MultiMap headers, String header, String value) {
+    private static void addHeader(MultiMap headers, String header, String value) {
         if (StringUtils.isNotBlank(value)) {
             headers.add(header, value);
         }

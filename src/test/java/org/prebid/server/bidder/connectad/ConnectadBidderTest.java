@@ -158,7 +158,7 @@ public class ConnectadBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of(12, 0, BigDecimal.ONE)))));
+                                ExtImpConnectAd.of(12, null, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = connectadBidder.makeHttpRequests(bidRequest);
 
