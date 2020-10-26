@@ -87,7 +87,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String accountId) {
-        return endpointUrl.replace(URI_ACCOUNT_ID_MACRO, accountId);
+        return endpointUrl.replace(URI_ACCOUNT_ID_MACRO, StringUtils.stripToEmpty(accountId));
     }
 
     private static List<Imp> removeFirstImpExt(List<Imp> imps) {
@@ -103,21 +103,21 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
         headers.add("X-Openrtb-Version", "2.5");
 
         if (device != null) {
-            if (StringUtils.isNotBlank(device.getUa())) {
-                headers.add("User-Agent", device.getUa());
-            }
-            if (StringUtils.isNotBlank(device.getIp())) {
-                headers.add("X-Forwarded-For", device.getIp());
-            }
-            if (StringUtils.isNotBlank(device.getLanguage())) {
-                headers.add("Accept-Language", device.getLanguage());
-            }
+            addHeader(headers, "User-Agent", device.getUa());
+            addHeader(headers, "X-Forwarded-For", device.getIp());
+            addHeader(headers, "Accept-Language", device.getLanguage());
             if (device.getDnt() != null) {
-                headers.add("Dnt", device.getDnt().toString());
+                headers.add("DNT", device.getDnt().toString());
             }
         }
 
         return headers;
+    }
+
+    private static void addHeader(MultiMap headers, String header, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            headers.add(header, value);
+        }
     }
 
     @Override
