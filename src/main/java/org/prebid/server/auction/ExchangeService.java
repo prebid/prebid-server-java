@@ -780,9 +780,13 @@ public class ExchangeService {
     /**
      * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}.
      */
-    private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
-                                                    BidderAliases aliases, String publisherId,
+    private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests,
+                                                    UidsCookie uidsCookie,
+                                                    BidderAliases aliases,
+                                                    String publisherId,
                                                     MetricName requestTypeMetric) {
+
+        metrics.updateRequestBidderCardinalityMetric(bidderRequests.size());
         metrics.updateAccountRequestMetrics(publisherId, requestTypeMetric);
 
         for (BidderRequest bidderRequest : bidderRequests) {
@@ -793,6 +797,7 @@ public class ExchangeService {
 
             metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestTypeMetric, !isApp && noBuyerId);
         }
+
         return bidderRequests;
     }
 
