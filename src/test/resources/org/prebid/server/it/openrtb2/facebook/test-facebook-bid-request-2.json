@@ -14,14 +14,9 @@
       "tagid": "pub2_placement2"
     }
   ],
-  "site": {
-    "domain": "example.com",
-    "page": "http://www.example.com",
+  "app": {
     "publisher": {
       "id": "pub2"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "device": {

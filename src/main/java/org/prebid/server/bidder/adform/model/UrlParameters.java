@@ -17,6 +17,10 @@ public class UrlParameters {
 
     List<String> priceTypes;
 
+    List<String> cdims;
+
+    List<Double> minPrices;
+
     String endpointUrl;
 
     String tid;
@@ -32,4 +36,8 @@ public class UrlParameters {
     String consent;
 
     String currency;
+
+    String eids;
+
+    String url;
 }

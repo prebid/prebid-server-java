@@ -22,6 +22,8 @@ public class EventRequest {
 
     Format format;
 
+    String integration;
+
     Analytics analytics;
 
     public enum Type {

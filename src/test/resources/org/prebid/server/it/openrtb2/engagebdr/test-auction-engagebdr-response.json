@@ -17,6 +17,7 @@
           "crid": "abcde-12345",
           "w": 300,
           "h": 250,
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",

@@ -1,0 +1,25 @@
+adapters:
+  aja:
+    enabled: false
+    endpoint: https://ad.as.amanad.adtdp.com/v1/bid/4
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: dev@aja-kk.co.jp
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://ad.as.amanad.adtdp.com/v1/sync/ssp?ssp=4&gdpr={{gdpr}}&us_privacy={{us_privacy}}&redir="+url.QueryEscape(externalURL)+"%2Fsetuid%3Fbidder%3Daja%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}%26uid%3D%25s
+      redirect-url:
+      cookie-family-name: aja
+      type: redirect
+      support-cors: false

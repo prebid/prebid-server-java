@@ -20,7 +20,10 @@
       "ext": {
         "telaria": {
           "adCode": "my-adcode",
-          "seatCode": "my-seatcode"
+          "seatCode": "my-seatcode",
+          "extra": {
+            "custom": "1234"
+          }
         }
       }
     }

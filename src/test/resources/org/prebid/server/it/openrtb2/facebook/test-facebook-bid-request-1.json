@@ -4,20 +4,15 @@
     {
       "id": "impId001",
       "banner": {
-        "w": 0,
+        "w": -1,
         "h": 50
       },
       "tagid": "pub1_place1"
     }
   ],
-  "site": {
-    "domain": "example.com",
-    "page": "http://www.example.com",
+  "app": {
     "publisher": {
       "id": "pub1"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "device": {

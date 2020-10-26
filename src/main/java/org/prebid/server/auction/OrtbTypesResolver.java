@@ -12,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.JsonMergeUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +40,8 @@ public class OrtbTypesResolver {
     private static final String BIDREQUEST = "bidrequest";
     private static final String TARGETING = "targeting";
     private static final String UNKNOWN_REFERER = "unknown referer";
+    private static final String DATA = "data";
+    private static final String EXT = "ext";
 
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_STANDARD_FIELDS;
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_REQUEST_FIELDS;
@@ -66,9 +69,11 @@ public class OrtbTypesResolver {
     }
 
     private final JacksonMapper jacksonMapper;
+    private final JsonMergeUtil jsonMergeUtil;
 
     public OrtbTypesResolver(JacksonMapper jacksonMapper) {
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
+        this.jsonMergeUtil = new JsonMergeUtil(jacksonMapper);
     }
 
     /**
@@ -172,8 +177,10 @@ public class OrtbTypesResolver {
                         .forEach(fieldName -> updateWithNormalizedField(containerObjectNode, fieldName,
                                 () -> toCommaSeparatedTextNode(containerObjectNode, fieldName, nodeName, nodePrefix,
                                         warnings)));
+
+                normalizeDataExtension(containerObjectNode, nodeName, nodePrefix, warnings);
             } else {
-                warnings.add(String.format("FDP warning: %s%s field ignored. Expected type is object, but was `%s`.",
+                warnings.add(String.format("%s%s field ignored. Expected type is object, but was `%s`.",
                         nodePrefix, nodeName, containerNode.getNodeType().name()));
                 return null;
             }
@@ -238,6 +245,38 @@ public class OrtbTypesResolver {
         }
     }
 
+    public void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
+                                       List<String> warnings) {
+        final JsonNode data = containerNode.get(DATA);
+        if (data == null || data.isNull()) {
+            return;
+        }
+        final JsonNode extData = containerNode.path(EXT).path(DATA);
+        final JsonNode ext = containerNode.get(EXT);
+        if (!extData.isNull() && !extData.isMissingNode()) {
+            final JsonNode resolvedExtData = jsonMergeUtil.merge(extData, data);
+            ((ObjectNode) ext).set(DATA, resolvedExtData);
+        } else {
+            copyDataToExtData(containerNode, containerName, nodePrefix, warnings, data);
+        }
+        containerNode.remove(DATA);
+    }
+
+    private void copyDataToExtData(ObjectNode containerNode, String containerName, String nodePrefix,
+                                   List<String> warnings, JsonNode data) {
+        final JsonNode ext = containerNode.get(EXT);
+        if (ext != null && ext.isObject()) {
+            ((ObjectNode) ext).set(DATA, data);
+        } else if (ext != null && !ext.isObject()) {
+            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is "
+                            + "object, but was %s. Replaced with object",
+                    nodePrefix, containerName, EXT, ext.getNodeType()));
+            containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
+        } else {
+            containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
+        }
+    }
+
     private void warnForExpectedStringArrayType(String fieldName, String containerName, List<String> warnings,
                                                 String nodePrefix, JsonNodeType nodeType) {
         warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected strings, but"
@@ -252,14 +291,18 @@ public class OrtbTypesResolver {
     private void processWarnings(List<String> resolverWarning, List<String> warnings, String containerValue,
                                  String referer, String containerName) {
         if (CollectionUtils.isNotEmpty(resolverWarning)) {
-            warnings.addAll(resolverWarning);
+            warnings.addAll(updateWithWarningPrefix(resolverWarning));
             // log only 1% of cases
             if (System.currentTimeMillis() % 100 == 0) {
-                logger.info(String.format("%s. \n Referer = %s and %s = %s",
+                logger.info(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
                         String.join("\n", resolverWarning),
                         StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
                         containerName, containerValue));
             }
         }
+    }
+
+    private List<String> updateWithWarningPrefix(List<String> resolverWarning) {
+        return resolverWarning.stream().map(warning -> "WARNING: " + warning).collect(Collectors.toList());
     }
 }
