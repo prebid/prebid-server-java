@@ -27,9 +27,9 @@ public class VendorListServiceV1 extends VendorListService<VendorListV1, VendorV
 
     public VendorListServiceV1(String cacheDir,
                                String endpointTemplate,
-                               boolean deprecated,
                                int defaultTimeoutMs,
                                long refreshMissingListPeriodMs,
+                               boolean deprecated,
                                Integer gdprHostVendorId,
                                String fallbackVendorListPath,
                                BidderCatalog bidderCatalog,
@@ -42,9 +42,9 @@ public class VendorListServiceV1 extends VendorListService<VendorListV1, VendorV
         super(
                 cacheDir,
                 endpointTemplate,
-                deprecated,
                 defaultTimeoutMs,
                 refreshMissingListPeriodMs,
+                deprecated,
                 gdprHostVendorId,
                 fallbackVendorListPath,
                 bidderCatalog,

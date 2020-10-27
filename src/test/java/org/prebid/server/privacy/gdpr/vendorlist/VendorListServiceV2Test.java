@@ -35,6 +35,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -77,9 +78,9 @@ public class VendorListServiceV2Test extends VertxTest {
         vendorListService = new VendorListServiceV2(
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
-                false,
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
+                false,
                 null,
                 FALLBACK_VENDOR_LIST_PATH,
                 bidderCatalog,
@@ -102,9 +103,9 @@ public class VendorListServiceV2Test extends VertxTest {
                 () -> new VendorListServiceV2(
                         CACHE_DIR,
                         "http://vendorlist/%s",
-                        false,
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -122,9 +123,9 @@ public class VendorListServiceV2Test extends VertxTest {
         vendorListService = new VendorListServiceV2(
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
-                true,
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
                 null,
                 FALLBACK_VENDOR_LIST_PATH,
                 bidderCatalog,
@@ -138,6 +139,7 @@ public class VendorListServiceV2Test extends VertxTest {
         final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
 
         // then
+        verify(httpClient, never()).get(anyString(), anyInt());
         assertThat(future).succeededWith(singletonMap(
                 52, VendorV2.builder()
                         .id(52)
@@ -151,14 +153,14 @@ public class VendorListServiceV2Test extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailFutureForDeprecatedVersionsWithNoFallbackPresent() throws JsonProcessingException {
-        // given
-        vendorListService = new VendorListServiceV2(
+    public void shouldThorowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() throws JsonProcessingException {
+        // then
+        assertThatThrownBy(() -> new VendorListServiceV2(
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
-                true,
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
                 null,
                 null,
                 bidderCatalog,
@@ -166,13 +168,9 @@ public class VendorListServiceV2Test extends VertxTest {
                 fileSystem,
                 httpClient,
                 metrics,
-                jacksonMapper);
-
-        // when
-        final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
-
-        // then
-        assertThat(future).isFailed().hasMessage("TCF 2 vendor list for version 1 not found.");
+                jacksonMapper))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("No fallback vendorList for deprecated version present");
     }
 
     @Test
@@ -185,9 +183,9 @@ public class VendorListServiceV2Test extends VertxTest {
                 () -> new VendorListServiceV2(
                         CACHE_DIR,
                         "http://vendorlist/%s",
-                        false,
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -211,9 +209,9 @@ public class VendorListServiceV2Test extends VertxTest {
                 () -> new VendorListServiceV2(
                         CACHE_DIR,
                         "http://vendorlist/%s",
-                        false,
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -237,9 +235,9 @@ public class VendorListServiceV2Test extends VertxTest {
                 () -> new VendorListServiceV2(
                         CACHE_DIR,
                         "http://vendorlist/%s",
-                        false,
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog, vertx,

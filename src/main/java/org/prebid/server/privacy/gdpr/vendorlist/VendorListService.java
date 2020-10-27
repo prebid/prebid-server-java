@@ -54,9 +54,9 @@ public abstract class VendorListService<T, V> {
 
     private final String cacheDir;
     private final String endpointTemplate;
-    private final boolean deprecated;
     private final int defaultTimeoutMs;
     private final long refreshMissingListPeriodMs;
+    private final boolean deprecated;
     private final Vertx vertx;
     private final FileSystem fileSystem;
     private final HttpClient httpClient;
@@ -76,9 +76,9 @@ public abstract class VendorListService<T, V> {
 
     public VendorListService(String cacheDir,
                              String endpointTemplate,
-                             boolean deprecated,
                              int defaultTimeoutMs,
                              long refreshMissingListPeriodMs,
+                             boolean deprecated,
                              Integer gdprHostVendorId,
                              String fallbackVendorListPath,
                              BidderCatalog bidderCatalog,
@@ -91,8 +91,8 @@ public abstract class VendorListService<T, V> {
         this.cacheDir = Objects.requireNonNull(cacheDir);
         this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
         this.defaultTimeoutMs = defaultTimeoutMs;
-        this.deprecated = deprecated;
         this.refreshMissingListPeriodMs = refreshMissingListPeriodMs;
+        this.deprecated = deprecated;
         this.vertx = Objects.requireNonNull(vertx);
         this.fileSystem = Objects.requireNonNull(fileSystem);
         this.httpClient = Objects.requireNonNull(httpClient);
@@ -104,9 +104,19 @@ public abstract class VendorListService<T, V> {
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
         cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
 
-        fallbackVendorList = readFallbackVendorList(fallbackVendorListPath);
+        fallbackVendorList = StringUtils.isNotBlank(fallbackVendorListPath)
+                ? readFallbackVendorList(fallbackVendorListPath) : null;
+        if (deprecated) {
+            validateFallbackVendorListIfDeprecatedVersion(fallbackVendorList);
+        }
         versionsToFallback = fallbackVendorList != null
                 ? ConcurrentHashMap.newKeySet() : null;
+    }
+
+    private void validateFallbackVendorListIfDeprecatedVersion(Map<Integer, V> fallbackVendorList) {
+        if (Objects.isNull(fallbackVendorList)) {
+            throw new PreBidException("No fallback vendorList for deprecated version present");
+        }
     }
 
     /**
@@ -129,15 +139,6 @@ public abstract class VendorListService<T, V> {
             metrics.updatePrivacyTcfVendorListFallbackMetric(tcf);
 
             return Future.succeededFuture(fallbackVendorList);
-        }
-
-        if (deprecated) {
-            if (versionsToFallback != null) {
-                versionsToFallback.add(version);
-                return Future.succeededFuture(fallbackVendorList);
-            }
-            return Future.failedFuture(
-                    String.format("TCF %d vendor list for version %d not found.", tcf, version));
         }
 
         metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
@@ -228,10 +229,6 @@ public abstract class VendorListService<T, V> {
     }
 
     private Map<Integer, V> readFallbackVendorList(String fallbackVendorListPath) {
-        if (StringUtils.isBlank(fallbackVendorListPath)) {
-            return null;
-        }
-
         final String vendorListContent = fileSystem.readFileBlocking(fallbackVendorListPath).toString();
         final T vendorList = toVendorList(vendorListContent);
         if (!isValid(vendorList)) {
@@ -243,7 +240,7 @@ public abstract class VendorListService<T, V> {
     }
 
     private boolean shouldFallback(int version) {
-        return versionsToFallback != null && versionsToFallback.contains(version);
+        return deprecated || (versionsToFallback != null && versionsToFallback.contains(version));
     }
 
     /**
