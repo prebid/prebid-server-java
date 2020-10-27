@@ -12,8 +12,12 @@
         ]
       },
       "ext": {
-        "adman": {
-          "TagID": "first-tagid"
+        "prebid": {
+          "bidder": {
+            "adman": {
+              "TagID": "first-tagid"
+            }
+          }
         }
       }
     },
@@ -27,8 +31,12 @@
         "h": 480
       },
       "ext": {
-        "adman": {
-          "TagID": "second-tagid"
+        "prebid": {
+          "bidder": {
+            "adman": {
+              "TagID": "second-tagid"
+            }
+          }
         }
       }
     }

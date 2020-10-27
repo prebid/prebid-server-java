@@ -84,11 +84,15 @@
               "h": 400
             },
             "ext": {
-              "smartadserver": {
-                "siteId": 1,
-                "pageId": 2,
-                "formatId": 3,
-                "networkId": 73
+              "prebid": {
+                "bidder": {
+                  "smartadserver": {
+                    "siteId": 1,
+                    "pageId": 2,
+                    "formatId": 3,
+                    "networkId": 73
+                  }
+                }
               }
             }
           }

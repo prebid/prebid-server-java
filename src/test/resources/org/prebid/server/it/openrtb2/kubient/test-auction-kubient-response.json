@@ -84,8 +84,12 @@
               "h": 400
             },
             "ext": {
-              "kubient": {
-                "zoneid":"9042"
+              "prebid": {
+                "bidder": {
+                  "kubient": {
+                    "zoneid": "9042"
+                  }
+                }
               }
             }
           }

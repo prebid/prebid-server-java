@@ -12,8 +12,12 @@
         ]
       },
       "ext": {
-        "emx_digital": {
-          "tagid": "25251"
+        "prebid": {
+          "bidder": {
+            "emx_digital": {
+              "tagid": "25251"
+            }
+          }
         }
       }
     }
@@ -24,7 +28,7 @@
     "language": "en",
     "ifa": "ifaId",
     "ua": "Android Chrome/60",
-    "ip" : "127.0.0.1"
+    "ip": "127.0.0.1"
   },
   "site": {
     "page": "http://www.example.com",

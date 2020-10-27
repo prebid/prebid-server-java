@@ -12,15 +12,19 @@
         ]
       },
       "ext": {
-        "yieldlab": {
-          "adslotId": "12345",
-          "supplyId": "123456789",
-          "adSize": "400x300",
-          "targeting": {
-            "key1": "value1",
-            "key2": "value2"
-          },
-          "extId": "abc"
+        "prebid": {
+          "bidder": {
+            "yieldlab": {
+              "adslotId": "12345",
+              "supplyId": "123456789",
+              "adSize": "400x300",
+              "targeting": {
+                "key1": "value1",
+                "key2": "value2"
+              },
+              "extId": "abc"
+            }
+          }
         }
       }
     }
