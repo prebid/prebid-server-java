@@ -659,10 +659,14 @@ public class ExchangeService {
     }
 
     private JsonNode cleanBidderParamsFromImpExtPrebid(JsonNode extImpPrebidNode) {
-        return mapper.mapper().valueToTree(
-                extImpPrebid(extImpPrebidNode).toBuilder()
-                        .bidder(null)
-                        .build());
+        if (extImpPrebidNode.size() > 1) {
+            return mapper.mapper().valueToTree(
+                    extImpPrebid(extImpPrebidNode).toBuilder()
+                            .bidder(null)
+                            .build());
+        }
+
+        return null;
     }
 
     /**
