@@ -222,7 +222,7 @@ public class BidResponseCreator {
                 auctionContext,
                 cacheInfo,
                 eventsContext)
-                .compose(cacheResult -> videoStoredDataResult(bidRequest.getImp(), auctionContext.getTimeout())
+                .compose(cacheResult -> videoStoredDataResult(auctionContext)
                         .map(videoStoredDataResult -> toBidResponse(
                                 bidderResponses,
                                 auctionContext,
@@ -698,9 +698,14 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private Future<VideoStoredDataResult> videoStoredDataResult(List<Imp> imps, Timeout timeout) {
+    private Future<VideoStoredDataResult> videoStoredDataResult(AuctionContext auctionContext) {
+        final List<Imp> imps = auctionContext.getBidRequest().getImp();
+        final String accountId = auctionContext.getAccount().getId();
+        final Timeout timeout = auctionContext.getTimeout();
+
         final List<String> errors = new ArrayList<>();
         final List<Imp> storedVideoInjectableImps = new ArrayList<>();
+
         for (Imp imp : imps) {
             try {
                 if (checkEchoVideoAttrs(imp)) {
@@ -711,7 +716,7 @@ public class BidResponseCreator {
             }
         }
 
-        return storedRequestProcessor.videoStoredDataResult(storedVideoInjectableImps, errors, timeout)
+        return storedRequestProcessor.videoStoredDataResult(accountId, storedVideoInjectableImps, errors, timeout)
                 .otherwise(throwable -> VideoStoredDataResult.of(Collections.emptyMap(),
                         Collections.singletonList(throwable.getMessage())));
     }
