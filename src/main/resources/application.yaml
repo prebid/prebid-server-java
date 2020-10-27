@@ -138,9 +138,11 @@ gdpr:
     v1:
       http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
       refresh-missing-list-period-ms: 3600000
+      deprecated: false
     v2:
       http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
+      deprecated: false
   purposes:
     p1:
       enforce-purpose: full

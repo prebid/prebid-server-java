@@ -56,6 +56,7 @@ public abstract class VendorListService<T, V> {
     private final String endpointTemplate;
     private final int defaultTimeoutMs;
     private final long refreshMissingListPeriodMs;
+    private final boolean deprecated;
     private final Vertx vertx;
     private final FileSystem fileSystem;
     private final HttpClient httpClient;
@@ -77,6 +78,7 @@ public abstract class VendorListService<T, V> {
                              String endpointTemplate,
                              int defaultTimeoutMs,
                              long refreshMissingListPeriodMs,
+                             boolean deprecated,
                              Integer gdprHostVendorId,
                              String fallbackVendorListPath,
                              BidderCatalog bidderCatalog,
@@ -90,6 +92,7 @@ public abstract class VendorListService<T, V> {
         this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.refreshMissingListPeriodMs = refreshMissingListPeriodMs;
+        this.deprecated = deprecated;
         this.vertx = Objects.requireNonNull(vertx);
         this.fileSystem = Objects.requireNonNull(fileSystem);
         this.httpClient = Objects.requireNonNull(httpClient);
@@ -101,8 +104,19 @@ public abstract class VendorListService<T, V> {
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
         cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
 
-        fallbackVendorList = readFallbackVendorList(fallbackVendorListPath);
-        versionsToFallback = fallbackVendorList != null ? ConcurrentHashMap.newKeySet() : null;
+        fallbackVendorList = StringUtils.isNotBlank(fallbackVendorListPath)
+                ? readFallbackVendorList(fallbackVendorListPath) : null;
+        if (deprecated) {
+            validateFallbackVendorListIfDeprecatedVersion();
+        }
+        versionsToFallback = fallbackVendorList != null
+                ? ConcurrentHashMap.newKeySet() : null;
+    }
+
+    private void validateFallbackVendorListIfDeprecatedVersion() {
+        if (Objects.isNull(fallbackVendorList)) {
+            throw new PreBidException("No fallback vendorList for deprecated version present");
+        }
     }
 
     /**
@@ -215,10 +229,6 @@ public abstract class VendorListService<T, V> {
     }
 
     private Map<Integer, V> readFallbackVendorList(String fallbackVendorListPath) {
-        if (StringUtils.isBlank(fallbackVendorListPath)) {
-            return null;
-        }
-
         final String vendorListContent = fileSystem.readFileBlocking(fallbackVendorListPath).toString();
         final T vendorList = toVendorList(vendorListContent);
         if (!isValid(vendorList)) {
@@ -230,7 +240,7 @@ public abstract class VendorListService<T, V> {
     }
 
     private boolean shouldFallback(int version) {
-        return versionsToFallback != null && versionsToFallback.contains(version);
+        return deprecated || (versionsToFallback != null && versionsToFallback.contains(version));
     }
 
     /**

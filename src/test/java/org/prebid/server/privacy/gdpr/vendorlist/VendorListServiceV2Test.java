@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class VendorListServiceV2Test extends VertxTest {
@@ -79,6 +80,7 @@ public class VendorListServiceV2Test extends VertxTest {
                 "http://vendorlist/{VERSION}",
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
+                false,
                 null,
                 FALLBACK_VENDOR_LIST_PATH,
                 bidderCatalog,
@@ -103,6 +105,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -112,6 +115,62 @@ public class VendorListServiceV2Test extends VertxTest {
                         metrics,
                         jacksonMapper))
                 .hasMessage("dir creation error");
+    }
+
+    @Test
+    public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
+        // given
+        vendorListService = new VendorListServiceV2(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                FALLBACK_VENDOR_LIST_PATH,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper);
+
+        // when
+        final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
+
+        // then
+        verifyZeroInteractions(httpClient);
+        assertThat(future).succeededWith(singletonMap(
+                52, VendorV2.builder()
+                        .id(52)
+                        .purposes(singleton(1))
+                        .legIntPurposes(singleton(2))
+                        .flexiblePurposes(emptySet())
+                        .specialPurposes(emptySet())
+                        .features(emptySet())
+                        .specialFeatures(emptySet())
+                        .build()));
+    }
+
+    @Test
+    public void shouldThorowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() throws JsonProcessingException {
+        // then
+        assertThatThrownBy(() -> new VendorListServiceV2(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                null,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("No fallback vendorList for deprecated version present");
     }
 
     @Test
@@ -126,6 +185,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -151,6 +211,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -176,6 +237,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog, vertx,
