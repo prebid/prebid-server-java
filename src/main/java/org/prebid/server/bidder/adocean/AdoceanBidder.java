@@ -47,6 +47,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+/**
+ * Adocean {@link Bidder} implementation.
+ */
 public class AdoceanBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdocean>> ADOCEAN_EXT_TYPE_REFERENCE =
@@ -72,10 +75,6 @@ public class AdoceanBidder implements Bidder<Void> {
 
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
-        }
-
         final User user = request.getUser();
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
@@ -111,7 +110,7 @@ public class AdoceanBidder implements Bidder<Void> {
     private boolean addRequestAndCheckIfDuplicates(List<HttpRequest<Void>> httpRequests, ExtImpAdocean extImpAdocean,
                                                    String impid, Map<String, String> slaveSizes, Integer test) {
         for (HttpRequest<Void> request : httpRequests) {
-            List<NameValuePair> params = null;
+            final List<NameValuePair> params = null;
             try {
                 final URIBuilder uriBuilder = new URIBuilder(request.getUri());
                 final List<NameValuePair> queryParams = uriBuilder.getQueryParams();
@@ -232,22 +231,21 @@ public class AdoceanBidder implements Bidder<Void> {
     private static MultiMap getHeaders(BidRequest request) {
         final MultiMap headers = HttpUtil.headers();
         if (request.getDevice() != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(),
-                    request.getDevice().getUa());
-
-            if (StringUtils.isNotBlank(request.getDevice().getIp())) {
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
-                        request.getDevice().getIp());
-            } else if (StringUtils.isNotBlank(request.getDevice().getIpv6())) {
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
-                        request.getDevice().getIpv6());
-            }
+            addHeader(headers, "User-Agent", request.getDevice().getUa());
+            addHeader(headers, "X-Forwarded-For", request.getDevice().getIp());
+            addHeader(headers, "X-Forwarded-For", request.getDevice().getIpv6());
         }
 
         if (request.getSite() != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, request.getSite().getPage());
+            addHeader(headers, "Referer", request.getSite().getPage());
         }
         return headers;
+    }
+
+    private static void addHeader(MultiMap headers, String header, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            headers.add(header, value);
+        }
     }
 
     @Override
@@ -257,7 +255,7 @@ public class AdoceanBidder implements Bidder<Void> {
             return Result.empty();
         }
 
-        List<NameValuePair> params;
+        final List<NameValuePair> params;
         try {
             params = URLEncodedUtils.parse(new URI(httpCall.getRequest().getUri()), StandardCharsets.UTF_8);
         } catch (URISyntaxException e) {
@@ -269,7 +267,7 @@ public class AdoceanBidder implements Bidder<Void> {
                 .map(param -> param.getValue().split(":"))
                 .collect(Collectors.toMap(name -> name[0], value -> value[1])) : null;
 
-        List<AdoceanResponseAdUnit> adoceanResponses;
+        final List<AdoceanResponseAdUnit> adoceanResponses;
         try {
             adoceanResponses = getAdoceanResponseAdUnitList(httpCall.getResponse().getBody());
         } catch (PreBidException e) {

@@ -33,13 +33,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyList;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static java.util.Arrays.asList;
 
 public class AdoceanBidderTest extends VertxTest {
 
@@ -57,21 +56,6 @@ public class AdoceanBidderTest extends VertxTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new SmartrtbBidder("invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No impression in the bid request"));
     }
 
     @Test
@@ -131,7 +115,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .id("ao-test")
                         .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
                                 .id("banner_id").build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl",
                                         "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
                                         "adoceanmyaozpniqismex"))))
@@ -222,17 +206,17 @@ public class AdoceanBidderTest extends VertxTest {
                         .build()))
                 .build();
         final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(AdoceanResponseAdUnit.builder()
-                .id("ad")
-                .price("1")
-                .winUrl("https://win-url.com")
-                .statsUrl("https://stats-url.com")
-                .code(" <!-- code 1 --> ")
-                .currency("EUR")
-                .width("300")
-                .height("250")
-                .crid("0af345b42983cc4bc0")
-                .error("false")
-                .build(),
+                        .id("ad")
+                        .price("1")
+                        .winUrl("https://win-url.com")
+                        .statsUrl("https://stats-url.com")
+                        .code(" <!-- code 1 --> ")
+                        .currency("EUR")
+                        .width("300")
+                        .height("250")
+                        .crid("0af345b42983cc4bc0")
+                        .error("false")
+                        .build(),
                 AdoceanResponseAdUnit.builder()
                         .id("adoceanmyaozpniqis")
                         .price("1")
