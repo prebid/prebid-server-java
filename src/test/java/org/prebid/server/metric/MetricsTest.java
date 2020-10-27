@@ -450,6 +450,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void uupdateRequestBidderCardinalityMetricShouldIncrementMetrics() {
+        // when
+        metrics.updateRequestBidderCardinalityMetric(3);
+
+        // then
+        assertThat(metricRegistry.counter("bidder-cardinality.3.requests").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void updateAccountRequestMetricsShouldIncrementMetrics() {
         // when
         metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);

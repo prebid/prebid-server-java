@@ -14,6 +14,7 @@
           "crid": "crid002",
           "w": 300,
           "h": 250,
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
