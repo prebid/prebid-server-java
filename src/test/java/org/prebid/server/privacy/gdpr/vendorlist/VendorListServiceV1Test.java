@@ -34,13 +34,13 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class VendorListServiceV1Test extends VertxTest {
@@ -138,7 +138,7 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
 
         // then
-        verify(httpClient, never()).get(anyString(), anyInt());
+        verifyZeroInteractions(httpClient);
         assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
     }
 

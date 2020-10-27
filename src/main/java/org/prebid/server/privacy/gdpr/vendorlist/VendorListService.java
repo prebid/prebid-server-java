@@ -107,13 +107,13 @@ public abstract class VendorListService<T, V> {
         fallbackVendorList = StringUtils.isNotBlank(fallbackVendorListPath)
                 ? readFallbackVendorList(fallbackVendorListPath) : null;
         if (deprecated) {
-            validateFallbackVendorListIfDeprecatedVersion(fallbackVendorList);
+            validateFallbackVendorListIfDeprecatedVersion();
         }
         versionsToFallback = fallbackVendorList != null
                 ? ConcurrentHashMap.newKeySet() : null;
     }
 
-    private void validateFallbackVendorListIfDeprecatedVersion(Map<Integer, V> fallbackVendorList) {
+    private void validateFallbackVendorListIfDeprecatedVersion() {
         if (Objects.isNull(fallbackVendorList)) {
             throw new PreBidException("No fallback vendorList for deprecated version present");
         }
