@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 436
     usersync:
-      url: https://u2.videostep.com/User/getLid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
-      redirect-url: /setuid?bidder=invibes&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      url:
+      redirect-url:
       cookie-family-name: invibes
       type: redirect
       support-cors: false

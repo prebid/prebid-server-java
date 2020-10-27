@@ -15,7 +15,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.invibes.model.InvibesBidParams;
 import org.prebid.server.bidder.invibes.model.InvibesBidRequest;
@@ -115,26 +114,27 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), INVIBES_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Error parsing invibesExt parameters");
+            throw new PreBidException(
+                    String.format("Error parsing invibesExt parameters in impression with id: %s", imp.getId()));
         }
     }
 
     private void validateImp(Imp imp) {
         if (imp.getBanner() == null) {
-            throw new PreBidException("Banner not specified");
+            throw new PreBidException(String.format("Banner not specified in impression with id: %s", imp.getId()));
         }
     }
 
     private String resolveConsentString(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
-        return extUser != null ? extUser.getConsent() : StringUtils.EMPTY;
+        return extUser != null ? extUser.getConsent() : "";
     }
 
     private Boolean resolveGDPRApplies(Regs regs) {
         final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
 
-        return gdpr != null ? gdpr == 1 : Boolean.TRUE;
+        return gdpr == null || gdpr == 1;
     }
 
     private InvibesInternalParams updateInvibesInternalParams(InvibesInternalParams invibesInternalParams,
@@ -213,7 +213,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     private InvibesBidRequest resolveParameter(InvibesInternalParams invibesParams, BidRequest request) {
         final User user = request.getUser();
         final String buyeruid = user != null ? user.getBuyeruid() : null;
-        final String lid = StringUtils.isNotBlank(buyeruid) ? buyeruid : StringUtils.EMPTY;
+        final String lid = StringUtils.isNotBlank(buyeruid) ? buyeruid : "";
 
         return createRequest(invibesParams, lid, request.getDevice(), request.getSite());
     }
@@ -243,16 +243,16 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     private static String resolveHeight(Device device) {
         final Integer height = device != null ? device.getH() : null;
 
-        return height != null && height > NumberUtils.INTEGER_ZERO ? height.toString() : null;
+        return height != null && height > 0 ? height.toString() : null;
     }
 
     private static String resolveWidth(Device device) {
         final Integer width = device != null ? device.getW() : null;
 
-        return width != null && width > NumberUtils.INTEGER_ZERO ? width.toString() : null;
+        return width != null && width > 0 ? width.toString() : null;
     }
 
-    private String resolveHost(Integer domainId) {
+    private static String resolveHost(Integer domainId) {
         if (domainId == null) {
             return "bid.videostep.com";
         } else if (domainId >= 1002) {
@@ -266,20 +266,24 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         }
     }
 
-    private MultiMap resolveHeaders(Device device, Site site) {
+    private static MultiMap resolveHeaders(Device device, Site site) {
         final MultiMap headers = HttpUtil.headers();
         if (device != null) {
-            if (StringUtils.isNotBlank(device.getIp())) {
-                headers.add("X-Forwarded-For", device.getIp());
-            } else if (StringUtils.isNotBlank(device.getIpv6())) {
-                headers.add("X-Forwarded-For", device.getIpv6());
-            }
+            addHeader(headers, "X-Forwarded-For", device.getIp());
+            addHeader(headers, "X-Forwarded-For", device.getIpv6());
         }
         if (site != null) {
             headers.add("Referer", site.getPage());
+            addHeader(headers, "Referer", site.getPage());
         }
-        headers.add("Aver", ADAPTER_VERSION);
+        addHeader(headers, "Aver", ADAPTER_VERSION);
         return headers;
+    }
+
+    private static void addHeader(MultiMap headers, String header, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            headers.add(header, value);
+        }
     }
 
     @Override

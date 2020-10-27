@@ -99,7 +99,7 @@ public class InvibesBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.site(Site.builder().page("www.awesome-page.com").build()),
-                impBuilder -> impBuilder.banner(null));
+                impBuilder -> impBuilder.id("123").banner(null));
 
         // when
         final Result<List<HttpRequest<InvibesBidRequest>>> result =
@@ -107,7 +107,7 @@ public class InvibesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Banner not specified"));
+                .containsOnly(BidderError.badInput("Banner not specified in impression with id: 123"));
         assertThat(result.getValue()).isEmpty();
     }
 
