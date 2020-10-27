@@ -24,6 +24,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -105,9 +106,13 @@ public class AmpRequestFactory {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
         }
         return createBidRequest(routingContext, tagId)
-                .compose(bidRequestWithErrors ->
-                        auctionRequestFactory.toAuctionContext(routingContext, bidRequestWithErrors.getLeft(),
-                                bidRequestWithErrors.getRight(), startTime, timeoutResolver));
+                .compose(bidRequestWithErrors -> auctionRequestFactory.toAuctionContext(
+                        routingContext,
+                        bidRequestWithErrors.getLeft(),
+                        MetricName.amp,
+                        bidRequestWithErrors.getRight(),
+                        startTime,
+                        timeoutResolver));
     }
 
     /**
@@ -253,7 +258,7 @@ public class AmpRequestFactory {
         String gdprConsent = null;
         String ccpaConsent = null;
         if (StringUtils.isNotBlank(consentString)) {
-            gdprConsent = TcfDefinerService.isGdprConsentValid(consentString) ? consentString : null;
+            gdprConsent = TcfDefinerService.isConsentStringValid(consentString) ? consentString : null;
             ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
 
             if (StringUtils.isAllBlank(gdprConsent, ccpaConsent)) {

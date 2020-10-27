@@ -59,6 +59,7 @@ import java.util.stream.Collectors;
  */
 public class HttpApplicationSettings implements ApplicationSettings {
 
+    private static final String NOT_SUPPORTED = "Not supported";
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
 
     private String endpoint;

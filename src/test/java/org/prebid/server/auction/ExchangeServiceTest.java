@@ -96,6 +96,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -172,7 +173,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
 
-        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any()))
                 .willAnswer(inv ->
                         Future.succeededFuture(((Map<String, User>) inv.getArgument(1)).entrySet().stream()
                                 .map(bidderAndUser -> BidderPrivacyResult.builder()
@@ -181,7 +182,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build())
                                 .collect(Collectors.toList())));
 
-        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any(), any()))
                 .willReturn(Future.succeededFuture(emptyList()));
 
         given(fpdResolver.resolveUser(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
@@ -583,7 +584,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
-        given(privacyEnforcementService.mask(any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("Error when retrieving allowed purpose ids"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
@@ -608,7 +609,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .requestBidder("bidderAlias")
                 .blockedRequestByTcf(true)
                 .build();
-        given(privacyEnforcementService.mask(any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonList(restrictedPrivacy)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
@@ -1030,9 +1031,14 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
-                .willReturn(singletonList(BidderResponse.of("someBidder",
-                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bidId1").build(),
-                                BidType.banner, "USD")), null, emptyList()), 100)));
+                .willReturn(singletonList(BidderResponse.of(
+                        "someBidder",
+                        BidderSeatBid.of(
+                                singletonList(BidderBid.of(
+                                        Bid.builder().id("bidId1").price(ONE).build(), BidType.banner, "USD")),
+                                null,
+                                emptyList()),
+                        100)));
 
         givenBidResponseCreator(singletonList(Bid.builder().id("bidId1").build()));
 
@@ -2101,6 +2107,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
+        verify(metrics).updateRequestBidderCardinalityMetric(1);
         verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.openrtb2web));
         verify(metrics)
                 .updateAdapterRequestTypeAndNoCookieMetrics(eq("someBidder"), eq(MetricName.openrtb2web), eq(true));
@@ -2333,7 +2340,7 @@ public class ExchangeServiceTest extends VertxTest {
         return bidBuilder.apply(Bid.builder()
                 .id("bidId")
                 .price(BigDecimal.ONE)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))))
+                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
                 .build();
     }
 

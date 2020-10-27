@@ -25,6 +25,7 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -42,8 +43,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -1205,7 +1206,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<List<String>> errorsCaptor = ArgumentCaptor.forClass(
                 List.class);
-        verify(auctionRequestFactory).toAuctionContext(any(), any(), errorsCaptor.capture(), anyLong(), any());
+        verify(auctionRequestFactory).toAuctionContext(any(), any(), any(), errorsCaptor.capture(), anyLong(), any());
         assertThat(errorsCaptor.getValue()).contains("Amp request parameter consent_string or gdpr_consent have"
                 + " invalid format: consent-value");
     }
@@ -1427,7 +1428,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.toAuctionContext(any(), any(), anyList(), anyLong(), any()))
+        given(auctionRequestFactory.toAuctionContext(any(), any(), eq(MetricName.amp), anyList(), anyLong(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         AuctionContext.builder()
                                 .bidRequest((BidRequest) invocationOnMock.getArguments()[1])

@@ -1,0 +1,23 @@
+adapters:
+  inmobi:
+    enabled: false
+    endpoint: https://api.w.inmobi.com/showad/openrtb/bidder/prebid
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prebid-support@inmobi.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+      supported-vendors:
+      vendor-id: 333
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: inmobi
+      type: redirect
+      support-cors: false

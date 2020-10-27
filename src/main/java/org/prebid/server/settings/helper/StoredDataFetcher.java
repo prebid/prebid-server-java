@@ -13,5 +13,6 @@ import org.prebid.server.settings.model.StoredDataResult;
  */
 @FunctionalInterface
 public interface StoredDataFetcher<ACC, REQS, IMPS, T, R> {
+
     R apply(ACC account, REQS reqIds, IMPS impIds, T timeout);
 }
