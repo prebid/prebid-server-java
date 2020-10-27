@@ -135,11 +135,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String FPD_KEYWORDS_FIELD = "keywords";
 
-    private static final String PPUID_STYPE = "ppuid";
-    private static final String SHA256EMAIL_STYPE = "sha256email";
-    private static final String DMP_STYPE = "dmp";
-    private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
-            DMP_STYPE));
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
             };
@@ -695,16 +690,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<ExtUserTpIdRubicon> userExtTpIds = sourceToUserEidExt != null
                 ? extractExtUserTpIds(sourceToUserEidExt)
                 : null;
-        final boolean hasStypeToRemove = hasStypeToRemove(extUserEids);
-        final List<ExtUserEid> resolvedExtUserEids = hasStypeToRemove
-                ? prepareExtUserEids(extUserEids)
-                : extUserEids;
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
         final String liverampId = extractLiverampId(sourceToUserEidExt);
 
         if (userExtRp == null && userExtTpIds == null && userExtData == null && liverampId == null
-                && resolvedId == null && !hasStypeToRemove) {
+                && resolvedId == null) {
             return user;
         }
 
@@ -712,7 +703,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ? ExtUser.builder()
                 .consent(extUser.getConsent())
                 .digitrust(extUser.getDigitrust())
-                .eids(resolvedExtUserEids)
+                .eids(extUserEids)
                 .build()
                 : ExtUser.builder().build();
 
@@ -746,27 +737,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private String getIdFromFirstUuidWithStypePpuid(List<ExtUserEidUid> extUserEidUids) {
         return CollectionUtils.emptyIfNull(extUserEidUids).stream()
                 .filter(Objects::nonNull)
-                .filter(extUserEidUid -> Objects.equals(PPUID_STYPE, getUserEidUidStype(extUserEidUid)))
                 .map(ExtUserEidUid::getId)
                 .findFirst()
                 .orElse(null);
-    }
-
-    private String getUserEidUidStype(ExtUserEidUid extUserEidUid) {
-        final ExtUserEidUidExt extUserEidUidExt = extUserEidUid.getExt();
-        return extUserEidUidExt != null ? extUserEidUidExt.getStype() : null;
-    }
-
-    private boolean hasStypeToRemove(List<ExtUserEid> extUserEids) {
-        return CollectionUtils.emptyIfNull(extUserEids).stream()
-                .filter(Objects::nonNull)
-                .map(ExtUserEid::getUids)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(ExtUserEidUid::getExt)
-                .filter(Objects::nonNull)
-                .map(ExtUserEidUidExt::getStype)
-                .anyMatch(STYPE_TO_REMOVE::contains);
     }
 
     private List<ExtUserEid> prepareExtUserEids(List<ExtUserEid> extUserEids) {
@@ -786,7 +759,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static ExtUserEidUid cleanExtUserEidUidStype(ExtUserEidUid extUserEidUid) {
         final ExtUserEidUidExt extUserEidUidExt = extUserEidUid.getExt();
-        return extUserEidUidExt == null || !STYPE_TO_REMOVE.contains(extUserEidUidExt.getStype())
+        return extUserEidUidExt == null
                 ? extUserEidUid
                 : ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
                 ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
