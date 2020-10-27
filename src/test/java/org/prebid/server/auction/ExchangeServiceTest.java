@@ -56,7 +56,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
