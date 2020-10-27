@@ -21,8 +21,13 @@ public class Usersyncer {
 
     private boolean supportCORS;
 
-    public Usersyncer(String cookieFamilyName, String usersyncUrl, String redirectUrl, String externalUri,
-                      String type, boolean supportCORS) {
+    public Usersyncer(String cookieFamilyName,
+                      String usersyncUrl,
+                      String redirectUrl,
+                      String externalUri,
+                      String type,
+                      boolean supportCORS) {
+
         this.cookieFamilyName = cookieFamilyName;
         this.usersyncUrl = Objects.requireNonNull(usersyncUrl);
         this.redirectUrl = StringUtils.isNotBlank(redirectUrl)

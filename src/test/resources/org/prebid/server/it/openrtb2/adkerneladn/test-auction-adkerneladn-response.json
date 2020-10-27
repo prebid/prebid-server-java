@@ -17,6 +17,7 @@
           "cat": [
             "IAB2"
           ],
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",

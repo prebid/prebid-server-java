@@ -7,6 +7,7 @@ import lombok.Value;
 @Value
 @AllArgsConstructor(staticName = "of")
 public class PubmaticBidExt {
+
     @JsonProperty("BidType")
     Integer bidType;
 

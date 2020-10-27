@@ -81,9 +81,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         auctionRequestFactory.fromRequest(routingContext, startTime)
-                .map(context -> context.toBuilder()
-                        .requestTypeMetric(requestTypeMetric(context.getBidRequest()))
-                        .build())
 
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
@@ -93,10 +90,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
                 .map(result -> addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
                 .setHandler(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
-    }
-
-    private static MetricName requestTypeMetric(BidRequest bidRequest) {
-        return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

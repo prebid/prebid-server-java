@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class NoEnforcePurposeStrategyTest {
+
     private static final int PURPOSE_ID = 1;
 
     @Rule
