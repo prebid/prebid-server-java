@@ -144,27 +144,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithErrorIfOptedOut() {
-        // given
-        given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).setStatusCode(eq(401));
-        verify(httpResponse).setStatusMessage(eq("User has opted out"));
-        verify(httpResponse).end();
-        verify(routingContext, never()).getBody();
-        verifyNoMoreInteractions(httpResponse, tcfDefinerService);
-    }
-
-    @Test
-    public void shouldRespondWithErrorIfRequestBodyIsMissing() {
+    public void shouldRespondWithErrorAndSendToAnalyticsWithoutTcfWhenRequestBodyIsMissing() {
         // given
         given(routingContext.getBody()).willReturn(null);
 
@@ -175,14 +155,19 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).setStatusMessage(eq("Request has no body"));
-        verify(httpResponse).end();
+        verify(httpResponse).closed();
+        verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).end("Invalid request format: Request has no body");
+        verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
+        assertThat(cookieSyncEvent)
+                .isEqualTo(CookieSyncEvent.error(400, "Invalid request format: Request has no body"));
     }
 
     @Test
-    public void shouldRespondWithErrorIfRequestBodyCouldNotBeParsed() {
+    public void shouldRespondWithErrorAndSendToAnalyticsWithoutTcfWhenRequestBodyCouldNotBeParsed() {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("{"));
 
@@ -193,10 +178,40 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).setStatusMessage(eq("Request body cannot be parsed"));
-        verify(httpResponse).end();
+        verify(httpResponse).closed();
+        verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).end("Invalid request format: Request body cannot be parsed");
+        verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
+        assertThat(cookieSyncEvent)
+                .isEqualTo(CookieSyncEvent.error(400, "Invalid request format: Request body cannot be parsed"));
+    }
+
+    @Test
+    public void shouldRespondWithErrorAndSendToAnalyticsWithTcfWhenOptedOut() {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).gdpr(1).build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).closed();
+        verify(httpResponse).setStatusCode(401);
+        verify(httpResponse).end("Unauthorized: Sync is not allowed for this uids");
+        verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
+        assertThat(cookieSyncEvent)
+                .isEqualTo(CookieSyncEvent.error(401, "Unauthorized: Sync is not allowed for this uids"));
     }
 
     @Test
@@ -212,10 +227,15 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).setStatusMessage(eq("gdpr_consent is required if gdpr is 1"));
-        verify(httpResponse).end();
+        verify(httpResponse).closed();
+        verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).end("Invalid request format: gdpr_consent is required if gdpr is 1");
+        verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
+        assertThat(cookieSyncEvent)
+                .isEqualTo(CookieSyncEvent.error(400, "Invalid request format: gdpr_consent is required if gdpr is 1"));
     }
 
     @Test
@@ -248,7 +268,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse)
-                .putHeader(eq(new AsciiString("Content-Type")), eq(new AsciiString("application/json")));
+                .putHeader(new AsciiString("Content-Type"), new AsciiString("application/json"));
     }
 
     @Test
@@ -330,7 +350,6 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         final String disabledBidder = "disabled_bidder";
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
-
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
 
@@ -1070,54 +1089,6 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateCookieSyncRequestMetric();
-    }
-
-    @Test
-    public void shouldPassUnauthorizedEventToAnalyticsReporterIfOptedOut() {
-        given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(401, "User has opted out"));
-    }
-
-    @Test
-    public void shouldPassBadRequestEventToAnalyticsReporterIfRequestBodyIsMissing() {
-        // given
-        given(routingContext.getBody()).willReturn(null);
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(400, "Request has no body"));
-    }
-
-    @Test
-    public void shouldPassBadRequestEventToAnalyticsReporterIfRequestBodyCouldNotBeParsed() {
-        // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{"));
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(400, "Request body cannot be parsed"));
     }
 
     @Test

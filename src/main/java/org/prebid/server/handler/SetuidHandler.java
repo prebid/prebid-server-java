@@ -90,7 +90,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        toSetuidContext(context).setHandler(setuidContextResult -> handleToSetuidContext(setuidContextResult, context));
+        toSetuidContext(context)
+                .setHandler(setuidContextResult -> handleSetuidContextResult(setuidContextResult, context));
     }
 
     private Future<SetuidContext> toSetuidContext(RoutingContext routingContext) {
@@ -119,7 +120,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .otherwise(Account.empty(accountId));
     }
 
-    private void handleToSetuidContext(AsyncResult<SetuidContext> setuidContextResult, RoutingContext routingContext) {
+    private void handleSetuidContextResult(AsyncResult<SetuidContext> setuidContextResult,
+                                           RoutingContext routingContext) {
         if (setuidContextResult.succeeded()) {
             final SetuidContext setuidContext = setuidContextResult.result();
             final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
@@ -131,11 +133,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
             tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
                     .map(this::isCookieAllowed)
-                    .setHandler(hostTcfResponseResult -> handleVendorIdsResult(hostTcfResponseResult, setuidContext));
+                    .setHandler(
+                            isCookieAllowedResult -> respondByVendorIdsResult(isCookieAllowedResult, setuidContext));
 
         } else {
             final Throwable error = setuidContextResult.cause();
-            handleErrors(error, routingContext, TcfContext.empty());
+            handleErrors(error, routingContext, null);
         }
     }
 
@@ -168,8 +171,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
         return notInGdprScope || !blockPixelSync;
     }
 
-    private void handleVendorIdsResult(AsyncResult<Boolean> isCookieAllowedResult,
-                                       SetuidContext setuidContext) {
+    private void respondByVendorIdsResult(AsyncResult<Boolean> isCookieAllowedResult,
+                                          SetuidContext setuidContext) {
         final String bidderCookieName = setuidContext.getCookieName();
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         final RoutingContext routingContext = setuidContext.getRoutingContext();
@@ -254,7 +257,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         respondWith(routingContext, status, body);
-        analyticsDelegator.processEvent(SetuidEvent.error(status), tcfContext);
+        if (tcfContext == null) {
+            analyticsDelegator.processEvent(SetuidEvent.error(status));
+        } else {
+            analyticsDelegator.processEvent(SetuidEvent.error(status), tcfContext);
+        }
     }
 
     private void addCookie(RoutingContext context, Cookie cookie) {
