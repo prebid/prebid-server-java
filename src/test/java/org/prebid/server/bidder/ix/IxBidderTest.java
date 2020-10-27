@@ -253,7 +253,7 @@ public class IxBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPublisher)
                 .extracting(Publisher::getId)
-                // both from same imp (same imp.ext.siteId)
+                // both from same imp (same imp.ext.bidder.siteId)
                 .containsOnly("site id");
     }
 

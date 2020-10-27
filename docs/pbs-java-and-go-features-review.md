@@ -35,7 +35,7 @@ Accept account ID on AMP requests |+|-
 Cache only-winning-bids flag |+|-
 Remote File Downloader |+|-
 Bidder Generator |+|-
-Passing `request.ext.prebid.bidders.BIDDER` to corresponding bidder |+|-
+Passing `request.ext.prebid.bidder.BIDDER` to corresponding bidder |+|+
 
 **
 * PBS-Java Currency conversion supports finding intermediate conversion rate;

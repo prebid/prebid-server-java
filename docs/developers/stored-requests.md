@@ -36,8 +36,12 @@ Add the file `stored_imps/{id}.json` and populate it with some [Imp](https://www
     ]
   },
   "ext": {
-    "appnexus": {
-      "placement_id": 10433394
+    "prebid": {
+      "bidder": {
+        "appnexus": {
+          "placement_id": 10433394
+        }
+      }
     }
   }
 }
@@ -83,8 +87,12 @@ You can also store _part_ of the Imp on the server. For example:
     ]
   },
   "ext": {
-    "appnexus": {
-      "placement_id": 10433394
+    "prebid": {
+      "bidder": {
+        "appnexus": {
+          "placement_id": 10433394
+        }
+      }
     }
   }
 }

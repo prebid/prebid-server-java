@@ -68,7 +68,8 @@ public class AdopplerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("$.imp.ext.adoppler.adunit required");
+        assertThat(result.getErrors().get(0).getMessage())
+                .startsWith("adunit parameter is required for adoppler bidder");
     }
 
     @Test
