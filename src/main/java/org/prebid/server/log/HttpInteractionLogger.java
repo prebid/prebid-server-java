@@ -1,24 +1,39 @@
 package org.prebid.server.log;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.model.HttpLogSpec;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.settings.model.Account;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class HttpInteractionLogger {
 
     private static final String HTTP_INTERACTION_LOGGER_NAME = "http-interaction";
     private static final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
 
+    private final JacksonMapper mapper;
     private final AtomicReference<SpecWithCounter> specWithCounter = new AtomicReference<>();
+
+    public HttpInteractionLogger(JacksonMapper mapper) {
+        this.mapper = mapper;
+    }
 
     public void setSpec(HttpLogSpec spec) {
         specWithCounter.set(SpecWithCounter.of(spec));
@@ -57,11 +72,13 @@ public class HttpInteractionLogger {
         }
     }
 
-    public void maybeLogBidderRequest(AuctionContext context,
-                                      BidderRequest bidderRequest) {
+    public void maybeLogBidderRequest(AuctionContext context, BidderRequest bidderRequest) {
         final String bidder = bidderRequest.getBidder();
         if (interactionSatisfiesSpec(context, bidder)) {
-            logger.info("Request body to {0}: \"{1}\"", bidder, bidderRequest.getBidRequest());
+            final BidRequest bidRequest = bidderRequest.getBidRequest();
+            final BidRequest updatedBidRequest = bidRequestWithBidderName(bidder, bidRequest);
+            final String jsonBidRequest = mapper.encode(updatedBidRequest);
+            logger.info("Request body to {0}: \"{1}\"", bidder, jsonBidRequest);
 
             incLoggedInteractions();
         }
@@ -128,6 +145,38 @@ public class HttpInteractionLogger {
                 && specWithCounter.getLoggedInteractions().incrementAndGet() >= specWithCounter.getSpec().getLimit()) {
             this.specWithCounter.set(null);
         }
+    }
+
+    private BidRequest bidRequestWithBidderName(String bidder, BidRequest bidRequest) {
+        final List<Imp> imps = bidRequest.getImp();
+        if (CollectionUtils.isEmpty(imps)) {
+            return bidRequest;
+        }
+
+        final List<Imp> updatedImps = imps.stream()
+                .map(imp -> makeImpExtBidderName(bidder, imp))
+                .collect(Collectors.toList());
+
+        return bidRequest.toBuilder().imp(updatedImps).build();
+    }
+
+    private Imp makeImpExtBidderName(String bidder, Imp imp) {
+        final ObjectNode originalImpExt = imp.getExt();
+        if (originalImpExt == null) {
+            return imp;
+        }
+
+        final ObjectNode impExt = originalImpExt.deepCopy();
+        final Imp updatedImp = imp.toBuilder().ext(impExt).build();
+
+        final JsonNode impExtBidder = impExt.remove("bidder");
+        if (impExtBidder != null) {
+            final Iterator<Map.Entry<String, JsonNode>> bidderParams = impExtBidder.fields();
+            final ObjectNode impExtBidderName = impExt.putObject(bidder);
+            bidderParams
+                    .forEachRemaining(keyToValue -> impExtBidderName.set(keyToValue.getKey(), keyToValue.getValue()));
+        }
+        return updatedImp;
     }
 
     @Value(staticConstructor = "of")
