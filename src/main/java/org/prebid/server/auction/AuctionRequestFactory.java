@@ -253,7 +253,7 @@ public class AuctionRequestFactory {
      * updated by values derived from headers and other request attributes.
      */
     private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest) {
-        return storedRequestProcessor.processStoredRequests(bidRequest)
+        return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
                 .map(this::validateRequest)
                 .map(interstitialProcessor::process);
