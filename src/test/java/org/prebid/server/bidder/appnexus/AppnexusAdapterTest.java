@@ -441,7 +441,8 @@ public class AppnexusAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids)
@@ -481,7 +482,8 @@ public class AppnexusAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids).element(0)
@@ -510,7 +512,8 @@ public class AppnexusAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids).element(0)
@@ -658,7 +661,8 @@ public class AppnexusAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(2)

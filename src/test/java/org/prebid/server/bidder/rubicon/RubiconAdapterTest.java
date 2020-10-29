@@ -695,7 +695,8 @@ public class RubiconAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids)
@@ -744,7 +745,8 @@ public class RubiconAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1)
@@ -773,7 +775,8 @@ public class RubiconAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids).isEmpty();
@@ -804,7 +807,8 @@ public class RubiconAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1)
@@ -833,7 +837,8 @@ public class RubiconAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1)
@@ -864,7 +869,8 @@ public class RubiconAdapterTest extends VertxTest {
         // when
         final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build)
+                        .collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1);
