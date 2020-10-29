@@ -90,6 +90,7 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             EventsService eventsService,
             HttpClient httpClient,
             Metrics metrics,
@@ -101,6 +102,7 @@ public class ServiceConfiguration {
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
+                expectedCacheTimeMs,
                 eventsService,
                 metrics,
                 clock,
@@ -264,17 +266,18 @@ public class ServiceConfiguration {
     VideoRequestFactory videoRequestFactory(
             @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
-            VideoStoredRequestProcessor storedRequestProcessor,
+            @Value("${auction.video.escape-log-cache-regex:#{null}}") String escapeLogCacheRegex,
+                    VideoStoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
             TimeoutResolver timeoutResolver, JacksonMapper mapper) {
 
-        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, storedRequestProcessor,
-                auctionRequestFactory, timeoutResolver, mapper);
+        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, escapeLogCacheRegex,
+                storedRequestProcessor, auctionRequestFactory, timeoutResolver, mapper);
     }
 
     @Bean
     VideoResponseFactory videoResponseFactory(JacksonMapper mapper) {
-        return new VideoResponseFactory(mapper);
+        return new VideoResponseFactory(new UUIDIdGenerator(), mapper);
     }
 
     @Bean

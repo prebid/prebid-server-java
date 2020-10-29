@@ -18,11 +18,14 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -30,6 +33,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.VideoResponse;
+import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -62,6 +66,8 @@ public class VideoHandlerTest extends VertxTest {
     private VideoResponseFactory videoResponseFactory;
     @Mock
     private ExchangeService exchangeService;
+    @Mock
+    private CacheService cacheService;
     @Mock
     private AnalyticsReporter analyticsReporter;
     @Mock
@@ -98,8 +104,8 @@ public class VideoHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
-        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter,
-                metrics, clock, jacksonMapper);
+        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, cacheService,
+                analyticsReporter, metrics, clock, jacksonMapper);
     }
 
     @Test
@@ -223,6 +229,64 @@ public class VideoHandlerTest extends VertxTest {
         verify(httpResponse).end(eq("{\"adPods\":[]}"));
     }
 
+    @Test
+    public void shouldUpdateVideoEventWithCacheLogIdErrorAndCallCacheForDebugLogWhenStatusIsNot200oK() {
+        // given
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().imp(emptyList()).build())
+                .account(Account.builder().videoCacheTtl(100).build())
+                .cachedDebugLog(new CachedDebugLog(true, 10, null, jacksonMapper))
+                .build();
+
+        final WithPodErrors<AuctionContext> auctionContextWithPodErrors = WithPodErrors.of(auctionContext, emptyList());
+        given(videoRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContextWithPodErrors));
+        given(exchangeService.holdAuction(any())).willThrow(new RuntimeException("Unexpected exception"));
+        given(cacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
+
+        // when
+        videoHandler.handle(routingContext);
+
+        // then
+        verify(cacheService).cacheVideoDebugLog(any(), anyInt());
+        final ArgumentCaptor<VideoEvent> videoEventArgumentCaptor = ArgumentCaptor.forClass(VideoEvent.class);
+        verify(analyticsReporter).processEvent(videoEventArgumentCaptor.capture());
+        assertThat(videoEventArgumentCaptor.getValue().getErrors())
+                .contains("[Debug cache ID: cacheKey]");
+    }
+
+    @Test
+    public void shouldCacheDebugLogWhenNoBidsWereReturnedAndDoesNotAddErrorToVideoEvent() {
+        // given
+        final CachedDebugLog cachedDebugLog = new CachedDebugLog(true, 10, null, jacksonMapper);
+        cachedDebugLog.setHasBids(false);
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().imp(emptyList()).build())
+                .account(Account.builder().videoCacheTtl(100).build())
+                .cachedDebugLog(cachedDebugLog)
+                .build();
+
+        final WithPodErrors<AuctionContext> auctionContextWithPodErrors = WithPodErrors.of(auctionContext, emptyList());
+        given(videoRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContextWithPodErrors));
+        given(cacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+
+        given(videoResponseFactory.toVideoResponse(any(), any(), any()))
+                .willReturn(VideoResponse.of(emptyList(), null, null, null));
+
+        // when
+        videoHandler.handle(routingContext);
+
+        // then
+        verify(cacheService).cacheVideoDebugLog(any(), anyInt());
+        final ArgumentCaptor<VideoEvent> videoEventArgumentCaptor = ArgumentCaptor.forClass(VideoEvent.class);
+        verify(analyticsReporter).processEvent(videoEventArgumentCaptor.capture());
+        assertThat(videoEventArgumentCaptor.getValue().getErrors())
+                .doesNotContain("[Debug cache ID: cacheKey]");
+    }
+
     private AuctionContext captureAuctionContext() {
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(exchangeService).holdAuction(captor.capture());
@@ -236,6 +300,7 @@ public class VideoHandlerTest extends VertxTest {
                 .imp(emptyList())).build();
 
         final AuctionContext auctionContext = AuctionContext.builder()
+                .cachedDebugLog(new CachedDebugLog(false, 100, null, jacksonMapper))
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .timeout(timeout)

@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.PodError;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
@@ -71,10 +72,12 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.getParam(anyString())).willReturn("test");
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         factory = new VideoRequestFactory(
                 Integer.MAX_VALUE,
                 false,
+                null,
                 videoStoredRequestProcessor,
                 auctionRequestFactory,
                 timeoutResolver,
@@ -105,6 +108,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         factory = new VideoRequestFactory(
                 Integer.MAX_VALUE,
                 true,
+                null,
                 videoStoredRequestProcessor,
                 auctionRequestFactory,
                 timeoutResolver,
@@ -126,6 +130,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         factory = new VideoRequestFactory(
                 2,
                 true,
+                null,
                 videoStoredRequestProcessor,
                 auctionRequestFactory,
                 timeoutResolver,
@@ -141,6 +146,55 @@ public class VideoRequestFactoryTest extends VertxTest {
         assertThat(future.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Request size exceeded max size of 2 bytes.");
+    }
+
+    @Test
+    public void fromRequestShouldCreateDebugCacheWhenQueryParamDebugIsPresent() throws JsonProcessingException {
+        // given
+        final MultiMap queryParams = MultiMap.caseInsensitiveMultiMap().add("debug", "true");
+        given(routingContext.queryParams()).willReturn(queryParams);
+        prepareMinimumSuccessfulConditions();
+
+        // when
+        final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(result.result().getData().getCachedDebugLog().isEnabled()).isTrue();
+    }
+
+    @Test
+    public void fromRequestShouldCreateDebugCacheAndIncludeRequestWithHeaders() throws JsonProcessingException {
+        // given
+        final MultiMap queryParams = MultiMap.caseInsensitiveMultiMap().add("debug", "true");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("header1", "value1");
+        given(routingContext.queryParams()).willReturn(queryParams);
+        given(httpServerRequest.headers()).willReturn(headers);
+        prepareMinimumSuccessfulConditions();
+
+        // when
+        final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(result.result().getData().getCachedDebugLog().buildCacheBody())
+                .containsSequence("<Request>{\"device\":{\"ua\":\"123\"}}</Request>\n"
+                        + "<Response></Response>\n"
+                        + "<Headers>header1: value1\n"
+                        + "</Headers>");
+    }
+
+    @Test
+    public void fromRequestShouldSetTestOneToBidRequestWhenCachedDebugLogIsEnabled() throws JsonProcessingException {
+        // given
+        final MultiMap queryParams = MultiMap.caseInsensitiveMultiMap().add("debug", "true");
+        given(routingContext.queryParams()).willReturn(queryParams);
+        prepareMinimumSuccessfulConditions();
+
+        // when
+        final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(result.result().getData().getBidRequest().getTest())
+                .isEqualTo(1);
     }
 
     @Test
@@ -213,7 +267,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any()))
-                .willReturn(Future.succeededFuture());
+                .willReturn(Future.succeededFuture(AuctionContext.builder().build()));
 
         // when
         final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
@@ -265,5 +319,30 @@ public class VideoRequestFactoryTest extends VertxTest {
         assertThat(future.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Device.UA and User-Agent Header is not presented");
+    }
+
+    private void prepareMinimumSuccessfulConditions() throws JsonProcessingException {
+        final ExtRequestPrebid ext = ExtRequestPrebid.builder()
+                .targeting(ExtRequestTargeting.builder().build())
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().build()))
+                .ext(ExtRequest.of(ext))
+                .build();
+
+        final WithPodErrors<BidRequest> mergedBidRequest = WithPodErrors.of(
+                bidRequest, singletonList(PodError.of(1, 1, singletonList("TEST"))));
+
+        final BidRequestVideo requestVideo = BidRequestVideo.builder().device(Device.builder()
+                .ua("123").build()).build();
+        given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(requestVideo)));
+        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any()))
+                .willReturn(Future.succeededFuture(mergedBidRequest));
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture(AuctionContext.builder()
+                        .bidRequest(invocationOnMock.getArgument(1)).build()));
     }
 }

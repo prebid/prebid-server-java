@@ -28,6 +28,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
@@ -534,6 +535,41 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldUpdateCacheDebugLogWithExtBidResponseWhenEnabledAndBidsReturned() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest())
+                .toBuilder().cachedDebugLog(new CachedDebugLog(true, 100, null, jacksonMapper)).build();
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).adm("adm").impid("i1")
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        assertThat(auctionContext.getCachedDebugLog().buildCacheBody())
+                .containsSequence("{\"responsetimemillis\":{\"bidder1\":100},\"tmaxrequest\":1000,"
+                        + "\"prebid\":{\"auctiontimestamp\":1000}}</Response>");
+    }
+
+    @Test
+    public void shouldUpdateCacheDebugLogWithExtBidResponseWhenEnabledAndNoBidsReturned() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest())
+                .toBuilder().cachedDebugLog(new CachedDebugLog(true, 100, null, jacksonMapper)).build();
+        final List<BidderResponse> bidderResponses = emptyList();
+
+        // when
+        bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        assertThat(auctionContext.getCachedDebugLog().buildCacheBody())
+                .containsSequence("{\"responsetimemillis\":{},\"tmaxrequest\":1000,\"prebid\""
+                        + ":{\"auctiontimestamp\":1000}}");
     }
 
     @Test

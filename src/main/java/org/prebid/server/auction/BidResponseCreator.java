@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
@@ -149,19 +150,26 @@ public class BidResponseCreator {
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
         if (isEmptyBidderResponses(bidderResponses)) {
+            final ExtBidResponse extBidResponse = toExtBidResponse(
+                    bidderResponses,
+                    auctionContext,
+                    CacheServiceResult.empty(),
+                    VideoStoredDataResult.empty(),
+                    auctionTimestamp,
+                    debugEnabled,
+                    null);
+
+            final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
+            if (isCachedDebugEnabled(cachedDebugLog)) {
+                cachedDebugLog.setExtBidResponse(extBidResponse);
+            }
+
             return Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
                     .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
-                    .ext(mapper.mapper().valueToTree(toExtBidResponse(
-                            bidderResponses,
-                            auctionContext,
-                            CacheServiceResult.empty(),
-                            VideoStoredDataResult.empty(),
-                            auctionTimestamp,
-                            debugEnabled,
-                            null)))
+                    .ext(mapper.mapper().valueToTree(extBidResponse))
                     .build());
         }
 
@@ -713,6 +721,11 @@ public class BidResponseCreator {
                 debugEnabled,
                 bidErrors);
 
+        final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
+        if (isCachedDebugEnabled(cachedDebugLog)) {
+            cachedDebugLog.setExtBidResponse(extBidResponse);
+        }
+
         return BidResponse.builder()
                 .id(bidRequest.getId())
                 .cur(bidRequest.getCur().get(0))
@@ -1093,6 +1106,10 @@ public class BidResponseCreator {
 
     private static Integer truncateAttrCharsOrNull(Integer value) {
         return value != null && value >= 0 && value <= 255 ? value : null;
+    }
+
+    private static boolean isCachedDebugEnabled(CachedDebugLog cachedDebugLog) {
+        return cachedDebugLog != null && cachedDebugLog.isEnabled();
     }
 
     /**
