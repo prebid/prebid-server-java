@@ -16,9 +16,7 @@ import org.prebid.server.log.model.HttpLogSpec;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.settings.model.Account;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -171,10 +169,7 @@ public class HttpInteractionLogger {
 
         final JsonNode impExtBidder = impExt.remove("bidder");
         if (impExtBidder != null) {
-            final Iterator<Map.Entry<String, JsonNode>> bidderParams = impExtBidder.fields();
-            final ObjectNode impExtBidderName = impExt.putObject(bidder);
-            bidderParams
-                    .forEachRemaining(keyToValue -> impExtBidderName.set(keyToValue.getKey(), keyToValue.getValue()));
+            impExt.set(bidder, impExtBidder);
         }
         return updatedImp;
     }

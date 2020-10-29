@@ -158,14 +158,14 @@ public class ExchangeService {
                 .compose(impsRequiredRequest -> extractBidderRequests(context, impsRequiredRequest, aliases))
                 .map(bidderRequests -> updateRequestMetric(
                         bidderRequests, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
+                .map(bidderRequests -> maybeLogBidderInteraction(context, bidderRequests))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(
                                 bidderRequest,
                                 auctionTimeout(timeout, cacheInfo.isDoCaching()),
                                 debugEnabled,
                                 aliases))
-                        .collect(Collectors.toList()))
-                        .map(compositeFuture -> maybeLogBidderInteraction(context, bidderRequests, compositeFuture)))
+                        .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(
@@ -934,11 +934,9 @@ public class ExchangeService {
         return shouldCacheBids ? timeout.minus(expectedCacheTime) : timeout;
     }
 
-    private CompositeFuture maybeLogBidderInteraction(AuctionContext context,
-                                                      List<BidderRequest> bidderResponses,
-                                                      CompositeFuture compositeFuture) {
-        bidderResponses.forEach(bidderResponse -> httpInteractionLogger.maybeLogBidderRequest(context, bidderResponse));
-        return compositeFuture;
+    private List<BidderRequest> maybeLogBidderInteraction(AuctionContext context, List<BidderRequest> bidderRequests) {
+        bidderRequests.forEach(bidderRequest -> httpInteractionLogger.maybeLogBidderRequest(context, bidderRequest));
+        return bidderRequests;
     }
 
     /**
