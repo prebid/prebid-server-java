@@ -712,10 +712,10 @@ public class AuctionRequestFactory {
             return null;
         }
 
-        if (bidRequest.getSite() != null) {
-            return ExtRequestPrebidChannel.of(WEB_CHANNEL);
-        } else if (bidRequest.getApp() != null) {
+        if (bidRequest.getApp() != null) {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);
+        } else if (bidRequest.getSite() != null) {
+            return ExtRequestPrebidChannel.of(WEB_CHANNEL);
         }
 
         return null;

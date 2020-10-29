@@ -593,24 +593,16 @@ public class ExchangeService {
         final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
-        final Site bidRequestSite = bidRequest.getSite();
-        final App bidRequestApp = bidRequest.getApp();
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
-
-        if (bidRequestSite != null && fpdApp != null || bidRequestApp != null && fpdSite != null) {
-            logger.info("Request to bidder {0} rejected as both bidRequest.site and bidRequest.app are present"
-                    + " after fpd data have been merged", bidder);
-            return null;
-        }
 
         return BidderRequest.of(bidder, bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, useFirstPartyData))
-                .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
-                .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
+                .app(prepareApp(bidRequest.getApp(), fpdApp, useFirstPartyData))
+                .site(prepareSite(bidRequest.getSite(), fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidRequest.getExt()))
                 .build());
