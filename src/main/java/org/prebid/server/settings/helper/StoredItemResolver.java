@@ -53,7 +53,8 @@ public class StoredItemResolver {
 
         // only one stored item found
         final StoredItem storedItem = storedItems.iterator().next();
-        if (storedItem.getAccountId() == null || Objects.equals(storedItem.getAccountId(), accountId)) {
+        if (StringUtils.isBlank(accountId) || storedItem.getAccountId() == null
+                || Objects.equals(accountId, storedItem.getAccountId())) {
             return storedItem;
         }
         throw new PreBidException(
