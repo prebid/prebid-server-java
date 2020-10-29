@@ -133,9 +133,9 @@ public class AdoceanBidder implements Bidder<Void> {
                     }
 
                     queryParams.add(new BasicNameValuePair("aid", extImpAdocean.getSlaveId() + ":" + impid));
-                    final List<String> sizeValues = test != null && test == 1
-                            ? setSlaveSizesParam(slaveSizes, true)
-                            : setSlaveSizesParam(slaveSizes, true);
+                    final List<String> sizeValues = test != null
+                            ? setSlaveSizesParam(slaveSizes, test == 1)
+                            : setSlaveSizesParam(slaveSizes, false);
                     if (CollectionUtils.isNotEmpty(sizeValues)) {
                         queryParams.add(new BasicNameValuePair("aosspsizes", String.join("-", sizeValues)));
                     }
@@ -207,8 +207,8 @@ public class AdoceanBidder implements Bidder<Void> {
             uriBuilder.addParameter("hcuserid", user.getBuyeruid());
         }
 
-        final List<String> sizeValues = test != null && test == 1
-                ? setSlaveSizesParam(slaveSizes, true)
+        final List<String> sizeValues = test != null
+                ? setSlaveSizesParam(slaveSizes, test == 1)
                 : setSlaveSizesParam(slaveSizes, false);
 
         if (CollectionUtils.isNotEmpty(sizeValues)) {
