@@ -48,7 +48,6 @@ public class IxBidder implements Bidder<BidRequest> {
 
     // maximum number of bid requests
     private static final int REQUEST_LIMIT = 20;
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
