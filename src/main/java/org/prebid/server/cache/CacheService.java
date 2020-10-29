@@ -32,8 +32,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.response.legacy.Bid;
+import org.prebid.server.proto.response.legacy.MediaType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -113,6 +113,7 @@ public class CacheService {
      * <p>
      * The returned result will always have the same number of elements as the values argument.
      */
+    @Deprecated
     public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, Timeout timeout, String accountId) {
         return doCache(bids, timeout, accountId, this::createPutObject, this::createBidCacheResult);
     }
@@ -122,6 +123,7 @@ public class CacheService {
      * <p>
      * The returned result will always have the same number of elements as the values argument.
      */
+    @Deprecated
     public Future<List<BidCacheResult>> cacheBidsVideoOnly(List<Bid> bids, Timeout timeout, String accountId) {
         return doCache(bids, timeout, accountId, CacheService::createPutObjectVideoOnly, this::createBidCacheResult);
     }
@@ -129,6 +131,7 @@ public class CacheService {
     /**
      * Generic method to work with cache service (legacy).
      */
+    @Deprecated
     private <T, R> Future<List<R>> doCache(List<T> bids,
                                            Timeout timeout,
                                            String accountId,

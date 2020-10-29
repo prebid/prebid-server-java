@@ -1,12 +1,13 @@
 package org.prebid.server.bidder;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.prebid.server.auction.model.AdapterRequest;
-import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.model.AdapterHttpRequest;
-import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
+import org.prebid.server.auction.legacy.model.AdapterResponse;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
+import org.prebid.server.bidder.model.legacy.AdapterHttpRequest;
+import org.prebid.server.bidder.model.legacy.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.legacy.Bid;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ import java.util.List;
  * <p>
  * Used by {@link HttpAdapterConnector} while performing requests to exchanges and compose results.
  */
+@Deprecated
 public interface Adapter<T, R> {
 
     /**
@@ -34,11 +36,11 @@ public interface Adapter<T, R> {
             throws PreBidException;
 
     /**
-     * If true - {@link org.prebid.server.auction.model.AdapterResponse} will contain bids if at least one valid bid
+     * If true - {@link AdapterResponse} will contain bids if at least one valid bid
      * exists, otherwise will contain
      * error.
      * <p>
-     * If false - {@link org.prebid.server.auction.model.AdapterResponse} will contain error if at least one error
+     * If false - {@link AdapterResponse} will contain error if at least one error
      * occurs during processing.
      */
     boolean tolerateErrors();

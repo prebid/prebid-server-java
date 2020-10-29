@@ -1,4 +1,4 @@
-package org.prebid.server.handler;
+package org.prebid.server.handler.legacy;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Format;
@@ -18,13 +18,13 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.legacy.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.AdapterRequest;
-import org.prebid.server.auction.model.AdapterResponse;
-import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
+import org.prebid.server.auction.legacy.model.AdapterResponse;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
@@ -40,15 +40,15 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.PrivacyContext;
-import org.prebid.server.proto.request.AdUnit;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.BidderInfo;
-import org.prebid.server.proto.response.BidderStatus;
-import org.prebid.server.proto.response.BidderStatus.BidderStatusBuilder;
-import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.proto.response.PreBidResponse;
+import org.prebid.server.proto.request.legacy.AdUnit;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.request.legacy.PreBidRequest.PreBidRequestBuilder;
+import org.prebid.server.proto.response.legacy.Bid;
+import org.prebid.server.proto.response.legacy.BidderInfo;
+import org.prebid.server.proto.response.legacy.BidderStatus;
+import org.prebid.server.proto.response.legacy.BidderStatus.BidderStatusBuilder;
+import org.prebid.server.proto.response.legacy.MediaType;
+import org.prebid.server.proto.response.legacy.PreBidResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -341,7 +341,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build(),
                         Arrays.stream(new String[]{"bidId1", "bidId2"})
-                                .map(id -> org.prebid.server.proto.response.Bid.builder()
+                                .map(id -> Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .build())
@@ -350,7 +350,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
                         Arrays.stream(new String[]{"bidId3", "bidId4"})
-                                .map(id -> org.prebid.server.proto.response.Bid.builder()
+                                .map(id -> Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .build())
@@ -381,12 +381,12 @@ public class AuctionHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build(),
                         asList(
-                                org.prebid.server.proto.response.Bid.builder()
+                                Bid.builder()
                                         .bidder(RUBICON).code("adUnitCode1").bidId("bidId1")
                                         .price(new BigDecimal("5.67"))
                                         .responseTimeMs(60).adServerTargeting(
                                         singletonMap("rpfl_1001", "2_tier0100")).build(),
-                                org.prebid.server.proto.response.Bid.builder()
+                                Bid.builder()
                                         .bidder(RUBICON).code("adUnitCode2").bidId("bidId2")
                                         .price(new BigDecimal("6.35"))
                                         .responseTimeMs(80).build()),
@@ -394,11 +394,11 @@ public class AuctionHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
                         asList(
-                                org.prebid.server.proto.response.Bid.builder()
+                                Bid.builder()
                                         .bidder(APPNEXUS).code("adUnitCode1").bidId("bidId3")
                                         .price(new BigDecimal("5.67"))
                                         .responseTimeMs(50).build(),
-                                org.prebid.server.proto.response.Bid.builder()
+                                Bid.builder()
                                         .bidder(APPNEXUS).code("adUnitCode2").bidId("bidId4")
                                         .price(new BigDecimal("7.15"))
                                         .responseTimeMs(100).build()),
@@ -439,7 +439,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build(),
                         singletonList(
-                                org.prebid.server.proto.response.Bid.builder().mediaType(MediaType.banner)
+                                Bid.builder().mediaType(MediaType.banner)
                                         .bidder(RUBICON).code("adUnitCode1").bidId("bidId1")
                                         .price(new BigDecimal("5.67")).build()),
                         null)));
@@ -465,7 +465,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build(),
                         singletonList(
-                                org.prebid.server.proto.response.Bid.builder().mediaType(MediaType.video)
+                                Bid.builder().mediaType(MediaType.video)
                                         .bidId("bidId1").price(new BigDecimal("5.67")).build()),
                         null)));
 
@@ -528,7 +528,7 @@ public class AuctionHandlerTest extends VertxTest {
                         emptyList(), BidderError.badInput("rubicon error"))))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
-                        singletonList(org.prebid.server.proto.response.Bid.builder()
+                        singletonList(Bid.builder()
                                 .bidId("bidId1")
                                 .price(new BigDecimal("5.67"))
                                 .build()),
@@ -900,7 +900,7 @@ public class AuctionHandlerTest extends VertxTest {
                                 .responseTimeMs(100))
                                 .build(),
                         Arrays.stream(bidIds)
-                                .map(id -> org.prebid.server.proto.response.Bid.builder()
+                                .map(id -> Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .mediaType(MediaType.banner)

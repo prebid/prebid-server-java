@@ -10,13 +10,13 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.AdapterRequest;
-import org.prebid.server.auction.model.AdapterResponse;
-import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.model.AdapterHttpRequest;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
+import org.prebid.server.auction.legacy.model.AdapterResponse;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
+import org.prebid.server.bidder.model.legacy.AdapterHttpRequest;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.model.legacy.ExchangeCall;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -24,11 +24,11 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.model.Privacy;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.BidderDebug;
-import org.prebid.server.proto.response.BidderStatus;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.response.legacy.Bid;
+import org.prebid.server.proto.response.legacy.BidderDebug;
+import org.prebid.server.proto.response.legacy.BidderStatus;
+import org.prebid.server.proto.response.legacy.MediaType;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
  * This class exists to help segregate core auction logic and minimize code duplication across the {@link Adapter}
  * implementations.
  */
+@Deprecated
 public class HttpAdapterConnector {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpAdapterConnector.class);
@@ -71,6 +72,7 @@ public class HttpAdapterConnector {
     /**
      * Executes HTTP requests for particular {@link Adapter} and returns {@link AdapterResponse}
      */
+    @Deprecated
     public <T, R> Future<AdapterResponse> call(Adapter<T, R> adapter, Usersyncer usersyncer,
                                                AdapterRequest adapterRequest,
                                                PreBidRequestContext preBidRequestContext) {

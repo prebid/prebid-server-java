@@ -10,7 +10,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
-import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.metric.MetricName;
@@ -101,6 +101,7 @@ public class PrivacyEnforcementService {
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
+    @Deprecated
     public Future<PrivacyContext> contextFromLegacyRequest(PreBidRequestContext preBidRequestContext, Account account) {
         final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequestContext.getPreBidRequest());
 

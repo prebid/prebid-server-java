@@ -20,14 +20,14 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.AdapterRequest;
-import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
-import org.prebid.server.bidder.model.AdapterHttpRequest;
-import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.model.legacy.AdapterHttpRequest;
+import org.prebid.server.bidder.model.legacy.ExchangeCall;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
@@ -57,10 +57,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.request.Sdk;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.request.legacy.Sdk;
+import org.prebid.server.proto.response.legacy.Bid;
+import org.prebid.server.proto.response.legacy.MediaType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -137,7 +137,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
         switch (mediaType) {
             case video:
-                final org.prebid.server.proto.request.Video video = adUnitBid.getVideo();
+                final org.prebid.server.proto.request.legacy.Video video = adUnitBid.getVideo();
                 return video != null && !CollectionUtils.isEmpty(video.getMimes());
             case banner:
                 return adUnitBid.getSizes().stream().map(RubiconSize::toId).anyMatch(id -> id > 0);

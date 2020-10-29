@@ -11,20 +11,20 @@ import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.AdapterRequest;
-import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.conversant.proto.ConversantParams;
-import org.prebid.server.bidder.model.AdUnitBidWithParams;
-import org.prebid.server.bidder.model.AdapterHttpRequest;
-import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.model.legacy.AdUnitBidWithParams;
+import org.prebid.server.bidder.model.legacy.AdapterHttpRequest;
+import org.prebid.server.bidder.model.legacy.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.response.legacy.Bid;
+import org.prebid.server.proto.response.legacy.MediaType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
@@ -177,7 +177,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     private static Video makeVideo(AdUnitBid adUnitBid, ConversantParams params) {
-        final org.prebid.server.proto.request.Video video = adUnitBid.getVideo();
+        final org.prebid.server.proto.request.legacy.Video video = adUnitBid.getVideo();
         final List<String> mimes = params.getMimes();
         final Integer maxduration = params.getMaxduration();
         final Integer position = params.getPosition();

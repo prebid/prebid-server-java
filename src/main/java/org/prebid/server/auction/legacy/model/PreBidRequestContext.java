@@ -1,13 +1,14 @@
-package org.prebid.server.auction.model;
+package org.prebid.server.auction.legacy.model;
 
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
 
 import java.util.List;
 
+@Deprecated
 @Builder
 @Value
 public class PreBidRequestContext {

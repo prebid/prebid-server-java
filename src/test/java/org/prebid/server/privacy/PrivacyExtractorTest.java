@@ -15,7 +15,7 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;

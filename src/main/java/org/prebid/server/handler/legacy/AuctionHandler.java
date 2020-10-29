@@ -1,4 +1,4 @@
-package org.prebid.server.handler;
+package org.prebid.server.handler.legacy;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.AsyncResult;
@@ -10,11 +10,11 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.legacy.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.TargetingKeywordsCreator;
-import org.prebid.server.auction.model.AdapterResponse;
-import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.AdapterResponse;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.Adapter;
@@ -30,13 +30,13 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
-import org.prebid.server.proto.request.AdUnit;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.BidderInfo;
-import org.prebid.server.proto.response.BidderStatus;
-import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.proto.response.PreBidResponse;
+import org.prebid.server.proto.request.legacy.AdUnit;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.response.legacy.Bid;
+import org.prebid.server.proto.response.legacy.BidderInfo;
+import org.prebid.server.proto.response.legacy.BidderStatus;
+import org.prebid.server.proto.response.legacy.MediaType;
+import org.prebid.server.proto.response.legacy.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Deprecated
 public class AuctionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);

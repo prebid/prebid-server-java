@@ -14,13 +14,13 @@ import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.response.legacy.MediaType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 /**
  * Basic {@link Adapter} implementation containing common logic functionality and helper methods.
  */
+@Deprecated
 public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse> {
 
     protected final String cookieFamilyName;
@@ -62,7 +63,7 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
     }
 
     protected static Video.VideoBuilder videoBuilder(AdUnitBid adUnitBid) {
-        final org.prebid.server.proto.request.Video video = adUnitBid.getVideo();
+        final org.prebid.server.proto.request.legacy.Video video = adUnitBid.getVideo();
         final Format format = adUnitBid.getSizes().get(0);
         return Video.builder()
                 .mimes(video.getMimes())
@@ -134,7 +135,7 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
     }
 
     private static boolean isValidAdUnitBidVideoMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
-        final org.prebid.server.proto.request.Video video = adUnitBid.getVideo();
+        final org.prebid.server.proto.request.legacy.Video video = adUnitBid.getVideo();
         return !(MediaType.video.equals(mediaType)
                 && (video == null || CollectionUtils.isEmpty(video.getMimes())));
     }

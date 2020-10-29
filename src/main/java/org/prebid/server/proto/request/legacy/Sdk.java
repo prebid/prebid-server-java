@@ -1,8 +1,9 @@
-package org.prebid.server.proto.request;
+package org.prebid.server.proto.request.legacy;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+@Deprecated
 @AllArgsConstructor(staticName = "of")
 @Value
 public class Sdk {

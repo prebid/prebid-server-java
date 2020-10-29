@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.legacy;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,20 +16,23 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
 import org.prebid.server.bidder.rubicon.proto.RubiconParams;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.proto.request.AdUnit;
-import org.prebid.server.proto.request.Bid;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.AdUnit;
+import org.prebid.server.proto.request.legacy.Bid;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.request.legacy.PreBidRequest.PreBidRequestBuilder;
+import org.prebid.server.proto.response.legacy.MediaType;
 import org.prebid.server.settings.ApplicationSettings;
 
 import java.time.Clock;

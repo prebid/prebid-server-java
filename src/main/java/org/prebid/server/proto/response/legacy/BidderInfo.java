@@ -1,10 +1,11 @@
-package org.prebid.server.proto.response;
+package org.prebid.server.proto.response.legacy;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 import java.util.List;
 
+@Deprecated
 @Value
 public class BidderInfo {
 

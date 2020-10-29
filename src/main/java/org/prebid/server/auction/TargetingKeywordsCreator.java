@@ -5,7 +5,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.legacy.Bid;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -168,6 +168,7 @@ public class TargetingKeywordsCreator {
     /**
      * Creates map of keywords for the given {@link Bid}.
      */
+    @Deprecated
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         return truncateKeys(makeFor(
                 bid.getBidder(),

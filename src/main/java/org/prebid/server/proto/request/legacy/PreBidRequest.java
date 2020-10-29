@@ -1,4 +1,4 @@
-package org.prebid.server.proto.request;
+package org.prebid.server.proto.request.legacy;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Device;
@@ -9,6 +9,7 @@ import lombok.Value;
 
 import java.util.List;
 
+@Deprecated
 @Builder(toBuilder = true)
 @Value
 public class PreBidRequest {

@@ -3,12 +3,12 @@ package org.prebid.server.bidder;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
-import org.prebid.server.auction.model.AdapterRequest;
-import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.model.AdapterHttpRequest;
-import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
+import org.prebid.server.bidder.model.legacy.AdapterHttpRequest;
+import org.prebid.server.bidder.model.legacy.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.legacy.Bid;
 
 import java.util.List;
 import java.util.Objects;
@@ -17,6 +17,7 @@ import java.util.Objects;
  * Used to indicate disabled adapter. First method call to this adapter should throw exception.
  * Other methods should never be called.
  */
+@Deprecated
 public class DisabledAdapter implements Adapter<BidRequest, BidResponse> {
 
     private String errorMessage;

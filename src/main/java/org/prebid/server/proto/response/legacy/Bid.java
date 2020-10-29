@@ -1,4 +1,4 @@
-package org.prebid.server.proto.response;
+package org.prebid.server.proto.response.legacy;
 
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +19,7 @@ import java.util.Map;
  * pressure. In order to avoid unnecessary allocations this class is made mutable (as an exception) i.e. this
  * decision could be seen as a performance optimisation.
  */
+@Deprecated
 @Builder
 @Data
 @Accessors(chain = true)

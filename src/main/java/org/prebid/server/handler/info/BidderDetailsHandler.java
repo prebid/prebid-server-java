@@ -9,7 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.proto.response.legacy.BidderInfo;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;

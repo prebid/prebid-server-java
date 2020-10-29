@@ -7,7 +7,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.legacy.Bid;
 
 import java.math.BigDecimal;
 import java.util.Map;

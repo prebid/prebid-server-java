@@ -1,6 +1,6 @@
 package org.prebid.server.bidder;
 
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.proto.response.legacy.BidderInfo;
 
 import java.util.HashMap;
 import java.util.HashSet;

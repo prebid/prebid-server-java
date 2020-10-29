@@ -2,10 +2,10 @@ package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.Imp;
 import org.junit.Test;
-import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.request.Video;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.Video;
+import org.prebid.server.proto.response.legacy.MediaType;
 
 import java.util.Collections;
 import java.util.EnumSet;

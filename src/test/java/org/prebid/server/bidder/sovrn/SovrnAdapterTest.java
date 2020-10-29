@@ -22,19 +22,19 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.AdapterRequest;
-import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.model.AdapterHttpRequest;
-import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
+import org.prebid.server.bidder.model.legacy.AdapterHttpRequest;
+import org.prebid.server.bidder.model.legacy.ExchangeCall;
 import org.prebid.server.bidder.sovrn.proto.SovrnParams;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.response.BidderDebug;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.response.legacy.BidderDebug;
+import org.prebid.server.proto.response.legacy.MediaType;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -335,13 +335,13 @@ public class SovrnAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.proto.response.Bid> bids =
+        final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(2)
-                .extracting(org.prebid.server.proto.response.Bid::getCode)
+                .extracting(org.prebid.server.proto.response.legacy.Bid::getCode)
                 .containsOnly("adUnitCode1", "adUnitCode2");
     }
 
@@ -371,14 +371,14 @@ public class SovrnAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.proto.response.Bid> bids =
+        final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1)
                 .element(0)
-                .isEqualTo(org.prebid.server.proto.response.Bid.builder()
+                .isEqualTo(org.prebid.server.proto.response.legacy.Bid.builder()
                         .bidId("bidId")
                         .code("adUnitCode")
                         .bidder("bidderCode")
@@ -413,15 +413,15 @@ public class SovrnAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.proto.response.Bid> bids =
+        final List<org.prebid.server.proto.response.legacy.Bid> bids =
                 adapter.extractBids(adapterRequest, exchangeCall).stream()
-                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+                        .map(org.prebid.server.proto.response.legacy.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(4)
                 .extracting(
-                        org.prebid.server.proto.response.Bid::getCode,
-                        org.prebid.server.proto.response.Bid::getPrice)
+                        org.prebid.server.proto.response.legacy.Bid::getCode,
+                        org.prebid.server.proto.response.legacy.Bid::getPrice)
                 .containsOnly(
                         tuple("adUnitCode4", BigDecimal.ZERO),
                         tuple("adUnitCode2", BigDecimal.ONE),

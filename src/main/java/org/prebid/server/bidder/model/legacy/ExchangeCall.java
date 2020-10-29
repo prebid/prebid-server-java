@@ -1,9 +1,11 @@
-package org.prebid.server.bidder.model;
+package org.prebid.server.bidder.model.legacy;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.proto.response.BidderDebug;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.proto.response.legacy.BidderDebug;
 
+@Deprecated
 @AllArgsConstructor
 @Value
 public class ExchangeCall<T, R> {

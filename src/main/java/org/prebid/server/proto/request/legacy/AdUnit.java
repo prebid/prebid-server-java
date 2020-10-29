@@ -1,4 +1,4 @@
-package org.prebid.server.proto.request;
+package org.prebid.server.proto.request.legacy;
 
 import com.iab.openrtb.request.Format;
 import lombok.Builder;
@@ -6,6 +6,7 @@ import lombok.Value;
 
 import java.util.List;
 
+@Deprecated
 @Builder
 @Value
 public class AdUnit {

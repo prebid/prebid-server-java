@@ -29,15 +29,15 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
-import org.prebid.server.auction.model.AdapterRequest;
-import org.prebid.server.auction.model.AdapterResponse;
-import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
-import org.prebid.server.bidder.model.AdapterHttpRequest;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdUnitBid.AdUnitBidBuilder;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
+import org.prebid.server.auction.legacy.model.AdapterResponse;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext.PreBidRequestContextBuilder;
+import org.prebid.server.bidder.model.legacy.AdapterHttpRequest;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.model.legacy.ExchangeCall;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -45,10 +45,10 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
-import org.prebid.server.proto.response.BidderDebug;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.request.legacy.PreBidRequest.PreBidRequestBuilder;
+import org.prebid.server.proto.response.legacy.BidderDebug;
+import org.prebid.server.proto.response.legacy.MediaType;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -374,7 +374,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         willReturn(new TypeReference<CustomResponse>() {
         }).given(anotherAdapter).responseTypeReference();
         given(anotherAdapter.extractBids(any(), any()))
-                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()));
+                .willReturn(singletonList(org.prebid.server.proto.response.legacy.Bid.builder()));
 
         final String bidResponse = mapper.writeValueAsString(CustomResponse.of("url", BigDecimal.ONE));
         givenHttpClientReturnsResponse(200, bidResponse);
@@ -396,7 +396,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(), any()))
-                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()));
+                .willReturn(singletonList(org.prebid.server.proto.response.legacy.Bid.builder()));
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         givenHttpClientReturnsResponse(200, bidResponse);
@@ -424,8 +424,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
         adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(), any()))
-                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()))
-                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()));
+                .willReturn(singletonList(org.prebid.server.proto.response.legacy.Bid.builder()))
+                .willReturn(singletonList(org.prebid.server.proto.response.legacy.Bid.builder()));
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         givenHttpClientReturnsResponses(
@@ -456,7 +456,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(), any()))
-                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()))
+                .willReturn(singletonList(org.prebid.server.proto.response.legacy.Bid.builder()))
                 .willReturn(null);
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
@@ -485,7 +485,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(), any()))
-                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()))
+                .willReturn(singletonList(org.prebid.server.proto.response.legacy.Bid.builder()))
                 .willThrow(new PreBidException("adapter extractBids exception"));
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
@@ -514,7 +514,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(), any()))
-                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()))
+                .willReturn(singletonList(org.prebid.server.proto.response.legacy.Bid.builder()))
                 .willThrow(new PreBidException("adapter extractBids exception"));
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
@@ -542,7 +542,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
                         .bidId("bidId1"))));
 
         given(adapter.extractBids(any(), any()))
-                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()
+                .willReturn(singletonList(org.prebid.server.proto.response.legacy.Bid.builder()
                         .code("adUnitCode1")
                         .bidId("bidId1")
                         .mediaType(MediaType.banner)));

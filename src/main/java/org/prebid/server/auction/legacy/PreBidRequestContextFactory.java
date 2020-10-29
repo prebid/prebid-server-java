@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.legacy;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.vertx.core.CompositeFuture;
@@ -10,10 +10,13 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.AdUnitBid;
-import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.legacy.model.AdUnitBid;
+import org.prebid.server.auction.legacy.model.AdapterRequest;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.legacy.model.PreBidRequestContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.PreBidException;
@@ -21,10 +24,10 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.request.AdUnit;
-import org.prebid.server.proto.request.Bid;
-import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.AdUnit;
+import org.prebid.server.proto.request.legacy.Bid;
+import org.prebid.server.proto.request.legacy.PreBidRequest;
+import org.prebid.server.proto.response.legacy.MediaType;
 import org.prebid.server.settings.ApplicationSettings;
 
 import java.util.Collections;
@@ -40,6 +43,7 @@ import java.util.stream.Stream;
 /**
  * Used in legacy request processing.
  */
+@Deprecated
 public class PreBidRequestContextFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(PreBidRequestContextFactory.class);
@@ -78,6 +82,7 @@ public class PreBidRequestContextFactory {
      * Creates a new instances of {@link PreBidRequestContext} wrapped into {@link Future} which
      * can be be eventually completed with success or error result.
      */
+    @Deprecated
     public Future<PreBidRequestContext> fromRequest(RoutingContext context) {
         final Buffer body = context.getBody();
 

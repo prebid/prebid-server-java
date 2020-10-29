@@ -1,15 +1,16 @@
-package org.prebid.server.auction.model;
+package org.prebid.server.auction.legacy.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Format;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.proto.request.Video;
-import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.request.legacy.Video;
+import org.prebid.server.proto.response.legacy.MediaType;
 
 import java.util.List;
 import java.util.Set;
 
+@Deprecated
 @Builder(toBuilder = true)
 @Value
 public class AdUnitBid {
