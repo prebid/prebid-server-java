@@ -82,6 +82,7 @@
           "crid": "10",
           "w": 0,
           "h": 0,
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",

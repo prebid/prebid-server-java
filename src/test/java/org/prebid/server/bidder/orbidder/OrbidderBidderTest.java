@@ -59,48 +59,6 @@ public class OrbidderBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseStatusIsNotOk() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(404, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected HTTP status 404.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenBadRequest() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(400, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid request.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenBadServerResponse() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(500, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Server internal error.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall("false");

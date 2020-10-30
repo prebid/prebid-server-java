@@ -219,6 +219,9 @@ public class StoredResponseProcessor {
             final String rowSeatBid = idToRowSeatBid.getValue();
             try {
                 final List<SeatBid> seatBids = mapper.mapper().readValue(rowSeatBid, SEATBID_LIST_TYPEREFERENCE);
+
+                validateStoredSeatBid(seatBids);
+
                 resolvedSeatBids.addAll(seatBids.stream()
                         .map(seatBid -> updateSeatBidBids(seatBid, impId))
                         .collect(Collectors.toList()));
@@ -226,7 +229,6 @@ public class StoredResponseProcessor {
                 throw new InvalidRequestException(String.format("Can't parse Json for stored response with id %s", id));
             }
         }
-        validateStoredSeatBid(resolvedSeatBids);
         return mergeSameBidderSeatBid(resolvedSeatBids);
     }
 
@@ -246,6 +248,10 @@ public class StoredResponseProcessor {
         for (final SeatBid seatBid : seatBids) {
             if (StringUtils.isEmpty(seatBid.getSeat())) {
                 throw new InvalidRequestException("Seat can't be empty in stored response seatBid");
+            }
+
+            if (CollectionUtils.isEmpty(seatBid.getBid())) {
+                throw new InvalidRequestException("There must be at least one bid in stored response seatBid");
             }
         }
     }

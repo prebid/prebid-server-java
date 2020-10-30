@@ -96,6 +96,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -1030,9 +1031,14 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
-                .willReturn(singletonList(BidderResponse.of("someBidder",
-                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bidId1").build(),
-                                BidType.banner, "USD")), null, emptyList()), 100)));
+                .willReturn(singletonList(BidderResponse.of(
+                        "someBidder",
+                        BidderSeatBid.of(
+                                singletonList(BidderBid.of(
+                                        Bid.builder().id("bidId1").price(ONE).build(), BidType.banner, "USD")),
+                                null,
+                                emptyList()),
+                        100)));
 
         givenBidResponseCreator(singletonList(Bid.builder().id("bidId1").build()));
 
@@ -2101,6 +2107,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
+        verify(metrics).updateRequestBidderCardinalityMetric(1);
         verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.openrtb2web));
         verify(metrics)
                 .updateAdapterRequestTypeAndNoCookieMetrics(eq("someBidder"), eq(MetricName.openrtb2web), eq(true));

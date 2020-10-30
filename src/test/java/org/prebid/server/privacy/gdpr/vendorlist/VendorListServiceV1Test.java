@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
@@ -81,6 +82,7 @@ public class VendorListServiceV1Test extends VertxTest {
                 "http://vendorlist/{VERSION}",
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
+                false,
                 null,
                 FALLBACK_VENDOR_LIST_PATH,
                 bidderCatalog,
@@ -105,6 +107,7 @@ public class VendorListServiceV1Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -114,6 +117,53 @@ public class VendorListServiceV1Test extends VertxTest {
                         metrics,
                         jacksonMapper))
                 .hasMessage("dir creation error");
+    }
+
+    @Test
+    public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
+        // given
+        vendorListService = new VendorListServiceV1(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                FALLBACK_VENDOR_LIST_PATH,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper);
+
+        // when
+        final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
+
+        // then
+        verifyZeroInteractions(httpClient);
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+    }
+
+    @Test
+    public void shouldThorowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() throws JsonProcessingException {
+        // then
+        assertThatThrownBy(() -> vendorListService = new VendorListServiceV1(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                null,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("No fallback vendorList for deprecated version present");
     }
 
     @Test
@@ -128,6 +178,7 @@ public class VendorListServiceV1Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -153,6 +204,7 @@ public class VendorListServiceV1Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -178,6 +230,7 @@ public class VendorListServiceV1Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -409,6 +462,23 @@ public class VendorListServiceV1Test extends VertxTest {
         // then
         assertThat(future1).isFailed();
         assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
+    }
+
+    @Test
+    public void shouldReturnFallbackIfServerUnavailable() {
+        // given
+        givenHttpClientReturnsResponse(503, StringUtils.EMPTY);
+
+        // when
+
+        // first call triggers http request that results in 503
+        final Future<Map<Integer, VendorV1>> future1 = vendorListService.forVersion(1);
+        // second call yields fallback vendor list
+        final Future<Map<Integer, VendorV1>> future2 = vendorListService.forVersion(1);
+
+        // then
+        assertThat(future1).isFailed();
+        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
     }
 
     // Metrics tests

@@ -144,34 +144,6 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseStatusIsNotOk() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(404, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected HTTP status 404.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseStatusIsNot() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(400, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid request.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
-    }
-
-    @Test
     public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
         // given
 
