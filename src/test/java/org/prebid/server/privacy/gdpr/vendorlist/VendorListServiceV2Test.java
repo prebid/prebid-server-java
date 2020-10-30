@@ -18,6 +18,10 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Feature;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialFeature;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialPurpose;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV2;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 import org.prebid.server.vertx.http.HttpClient;
@@ -25,11 +29,11 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.File;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -43,6 +47,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
 
 public class VendorListServiceV2Test extends VertxTest {
 
@@ -143,17 +149,17 @@ public class VendorListServiceV2Test extends VertxTest {
         assertThat(future).succeededWith(singletonMap(
                 52, VendorV2.builder()
                         .id(52)
-                        .purposes(singleton(1))
-                        .legIntPurposes(singleton(2))
-                        .flexiblePurposes(emptySet())
-                        .specialPurposes(emptySet())
-                        .features(emptySet())
-                        .specialFeatures(emptySet())
+                        .purposes(EnumSet.of(ONE))
+                        .legIntPurposes(EnumSet.of(TWO))
+                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                        .features(EnumSet.noneOf(Feature.class))
+                        .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                         .build()));
     }
 
     @Test
-    public void shouldThorowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() throws JsonProcessingException {
+    public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
         // then
         assertThatThrownBy(() -> new VendorListServiceV2(
                 CACHE_DIR,
@@ -433,12 +439,12 @@ public class VendorListServiceV2Test extends VertxTest {
         assertThat(result).succeededWith(singletonMap(
                 52, VendorV2.builder()
                         .id(52)
-                        .purposes(singleton(1))
-                        .legIntPurposes(singleton(2))
-                        .flexiblePurposes(emptySet())
-                        .specialPurposes(emptySet())
-                        .features(emptySet())
-                        .specialFeatures(emptySet())
+                        .purposes(EnumSet.of(ONE))
+                        .legIntPurposes(EnumSet.of(TWO))
+                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                        .features(EnumSet.noneOf(Feature.class))
+                        .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                         .build()));
     }
 
@@ -447,21 +453,21 @@ public class VendorListServiceV2Test extends VertxTest {
         // given
         final VendorV2 firstExternalV2 = VendorV2.builder()
                 .id(52)
-                .purposes(singleton(1))
-                .legIntPurposes(singleton(2))
-                .flexiblePurposes(emptySet())
-                .specialPurposes(emptySet())
-                .features(emptySet())
-                .specialFeatures(emptySet())
+                .purposes(EnumSet.of(ONE))
+                .legIntPurposes(EnumSet.of(TWO))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                .features(EnumSet.noneOf(Feature.class))
+                .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
         final VendorV2 secondExternalV2 = VendorV2.builder()
                 .id(42)
-                .purposes(singleton(1))
-                .legIntPurposes(singleton(2))
-                .flexiblePurposes(emptySet())
-                .specialPurposes(emptySet())
-                .features(emptySet())
-                .specialFeatures(emptySet())
+                .purposes(EnumSet.of(ONE))
+                .legIntPurposes(EnumSet.of(TWO))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                .features(EnumSet.noneOf(Feature.class))
+                .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
         final Map<Integer, VendorV2> idToVendor = new HashMap<>();
         idToVendor.put(52, firstExternalV2);
@@ -498,12 +504,12 @@ public class VendorListServiceV2Test extends VertxTest {
         assertThat(future2).succeededWith(singletonMap(
                 52, VendorV2.builder()
                         .id(52)
-                        .purposes(singleton(1))
-                        .legIntPurposes(singleton(2))
-                        .flexiblePurposes(emptySet())
-                        .specialPurposes(emptySet())
-                        .features(emptySet())
-                        .specialFeatures(emptySet())
+                        .purposes(EnumSet.of(ONE))
+                        .legIntPurposes(EnumSet.of(TWO))
+                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                        .features(EnumSet.noneOf(Feature.class))
+                        .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                         .build()));
     }
 
@@ -582,12 +588,12 @@ public class VendorListServiceV2Test extends VertxTest {
     private static VendorListV2 givenVendorList() {
         final VendorV2 vendor = VendorV2.builder()
                 .id(52)
-                .purposes(singleton(1))
-                .legIntPurposes(singleton(2))
-                .flexiblePurposes(emptySet())
-                .specialPurposes(emptySet())
-                .features(emptySet())
-                .specialFeatures(emptySet())
+                .purposes(EnumSet.of(ONE))
+                .legIntPurposes(EnumSet.of(TWO))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                .features(EnumSet.noneOf(Feature.class))
+                .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
         return VendorListV2.of(1, new Date(), singletonMap(52, vendor));
     }
