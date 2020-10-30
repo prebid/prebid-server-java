@@ -31,6 +31,13 @@ public class YieldmoBidder extends OpenrtbBidder<ExtImpYieldmo> {
 
     @Override
     protected BidType getBidType(String impId, List<Imp> imps) {
-        return BidType.banner;
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
+            }
+        }
+        return BidType.video;
     }
 }
