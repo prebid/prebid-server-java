@@ -420,7 +420,6 @@ public class ServiceConfiguration {
             Clock clock,
             JacksonMapper mapper) {
 
-
         return new BidResponseCreator(
                 cacheService,
                 bidderCatalog,

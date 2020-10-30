@@ -4,7 +4,7 @@
       "type": "json",
       "value": {
         "id": "7706636740145184841",
-        "impid": "impId1",
+        "impid": "test-imp-id",
         "price": 0.5,
         "adid": "29681110",
         "adm": "some-test-ad",

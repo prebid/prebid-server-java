@@ -445,7 +445,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<Imp> imps = singletonList(Imp.builder()
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder().storedAuctionResponse(ExtStoredAuctionResponse.of("1")).build(),
-                        null)))
+                        null, null)))
                 .build());
 
         given(applicationSettings.getStoredResponses(any(), any()))

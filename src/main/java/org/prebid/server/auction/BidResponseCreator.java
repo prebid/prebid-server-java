@@ -229,7 +229,7 @@ public class BidResponseCreator {
                 eventsContext)
                 .compose(cacheResult -> videoStoredDataResult(auctionContext)
                         .map(videoStoredDataResult -> toBidResponse(
-                                bidderResponses,
+                                bidderResponsesWithWinningBids,
                                 auctionContext,
                                 targeting,
                                 winningBids,

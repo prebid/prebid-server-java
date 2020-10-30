@@ -2225,7 +2225,7 @@ public class RubiconBidderTest extends VertxTest {
         final ExtImp extImp = ExtImp.of(ExtImpPrebid.builder()
                 .bidder(mapper.valueToTree(
                         RubiconImpExtPrebidBidder.of(RubiconImpExtPrebidRubiconDebug.of(4.44f))))
-                .build(), null);
+                .build(), null, null);
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(

@@ -227,7 +227,6 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bid1, bid4, bid3, bid2))),
                 same(auctionContext),
-                eq(asList(givenImp("impId1"), givenImp("impId2"))),
                 eq(CacheContext.builder()
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)
@@ -279,7 +278,6 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bid1, bid2)) && t.size() == 2),
                 same(auctionContext),
-                eq(asList(givenImp("impId1"), givenImp("impId2"))),
                 eq(CacheContext.builder()
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(biddersToCacheBidIds)
@@ -362,7 +360,6 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(bids -> bids.contains(bid1)),
                 same(auctionContext),
-                eq(singletonList(givenImp("impId1"))),
                 eq(CacheContext.builder()
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(singletonMap("bidder1", Collections.singletonList("bidId1")))
