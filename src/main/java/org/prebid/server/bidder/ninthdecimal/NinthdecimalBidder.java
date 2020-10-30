@@ -44,7 +44,6 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpNinthdecimal>> NINTHDECIMAL_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpNinthdecimal>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;

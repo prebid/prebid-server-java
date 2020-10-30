@@ -850,7 +850,7 @@ public class ExchangeService {
         }
 
         for (BidderBid bid : bids) {
-            final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
+            final ValidationResult validationResult = responseBidValidator.validate(bid);
             if (validationResult.hasErrors()) {
                 for (String error : validationResult.getErrors()) {
                     errors.add(BidderError.generic(error));
@@ -893,7 +893,8 @@ public class ExchangeService {
             final BigDecimal price = bid.getPrice();
             try {
                 final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                        price, currencyRates(bidRequest), adServerCurrency, bidCurrency, usepbsrates);
+                        price, currencyRates(bidRequest), adServerCurrency,
+                        StringUtils.stripToNull(bidCurrency), usepbsrates);
 
                 final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
 

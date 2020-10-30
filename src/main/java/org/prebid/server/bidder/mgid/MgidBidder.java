@@ -35,8 +35,6 @@ import java.util.stream.Collectors;
 
 public class MgidBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -159,7 +157,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

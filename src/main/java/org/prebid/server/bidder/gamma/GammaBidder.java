@@ -44,8 +44,6 @@ public class GammaBidder implements Bidder<Void> {
             new TypeReference<ExtPrebid<?, ExtImpGamma>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -237,7 +235,7 @@ public class GammaBidder implements Bidder<Void> {
                 try {
                     final BidType mediaType = getMediaTypes(bidResponse.getId(), bidRequest.getImp());
                     final Bid updatedBid = convertBid(gammaBid, mediaType);
-                    bidderBids.add(BidderBid.of(updatedBid, mediaType, DEFAULT_BID_CURRENCY));
+                    bidderBids.add(BidderBid.of(updatedBid, mediaType, bidResponse.getCur()));
                 } catch (PreBidException e) {
                     errors.add(BidderError.badServerResponse(e.getMessage()));
                 }

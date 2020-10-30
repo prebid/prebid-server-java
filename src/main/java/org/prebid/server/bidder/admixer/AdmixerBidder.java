@@ -42,8 +42,6 @@ public class AdmixerBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAdmixer>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -127,14 +125,15 @@ public class AdmixerBidder implements Bidder<BidRequest> {
 
         if (CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 || CollectionUtils.isEmpty(bidResponse.getSeatbid().get(0).getBid())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
+
         return Result.of(bidderBids, Collections.emptyList());
     }
 

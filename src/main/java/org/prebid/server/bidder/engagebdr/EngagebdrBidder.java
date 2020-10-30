@@ -38,8 +38,6 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpEngagebdr>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -134,7 +132,7 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypes(bid.getImpid(), bidRequest.getImp()),
-                        DEFAULT_BID_CURRENCY))
+                        bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
