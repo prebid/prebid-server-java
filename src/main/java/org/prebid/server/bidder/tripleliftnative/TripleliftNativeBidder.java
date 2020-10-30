@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 
 public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String UNKONWN_PUBLSIHER_ID = "unknown";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
@@ -199,7 +198,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.xNative, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.xNative, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -208,4 +207,3 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 }
-

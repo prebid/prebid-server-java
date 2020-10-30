@@ -41,7 +41,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpYieldone>> YIELDONE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpYieldone>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -119,7 +119,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
                     .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                            DEFAULT_BID_CURRENCY))
+                            bidResponse.getCur()))
                     .collect(Collectors.toList());
             return Result.of(bidderBids, Collections.emptyList());
         } catch (PreBidException e) {

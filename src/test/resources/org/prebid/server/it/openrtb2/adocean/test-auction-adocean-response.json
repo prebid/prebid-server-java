@@ -48,7 +48,7 @@
       "httpcalls": {
         "adocean": [
           {
-            "uri": "{{ adocean.exchange_uri }}/_10000000/ad.json?pbsrv_v=1.0.0&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3AimpId12&gdpr_consent=consentValue&gdpr=1&hcuserid=AO-UID",
+            "uri": "{{ adocean.exchange_uri }}/_10000000/ad.json?pbsrv_v=1.1.0&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3AimpId12&gdpr_consent=consentValue&gdpr=1&hcuserid=AO-UID&aosspsizes=myaozpniqismex%7E300x250",
             "responsebody": "[{\"id\":\"adoceanmyaozpniqismex\",\"price\":\"10\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"},{\"id\":\"adoceanmyaozpniqismexs\",\"price\":\"12\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"}]",
             "status": 200
           }
