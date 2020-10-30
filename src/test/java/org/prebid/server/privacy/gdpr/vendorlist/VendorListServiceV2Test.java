@@ -149,17 +149,17 @@ public class VendorListServiceV2Test extends VertxTest {
         assertThat(future).succeededWith(singletonMap(
                 52, VendorV2.builder()
                         .id(52)
-                        .purposes(singleton(1))
-                        .legIntPurposes(singleton(2))
-                        .flexiblePurposes(emptySet())
-                        .specialPurposes(emptySet())
-                        .features(emptySet())
-                        .specialFeatures(emptySet())
+                        .purposes(EnumSet.of(ONE))
+                        .legIntPurposes(EnumSet.of(TWO))
+                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                        .features(EnumSet.noneOf(Feature.class))
+                        .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                         .build()));
     }
 
     @Test
-    public void shouldThorowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() throws JsonProcessingException {
+    public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
         // then
         assertThatThrownBy(() -> new VendorListServiceV2(
                 CACHE_DIR,

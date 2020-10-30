@@ -142,11 +142,11 @@ public class VendorListServiceV1Test extends VertxTest {
 
         // then
         verifyZeroInteractions(httpClient);
-        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     @Test
-    public void shouldThorowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() throws JsonProcessingException {
+    public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
         // then
         assertThatThrownBy(() -> vendorListService = new VendorListServiceV1(
                 CACHE_DIR,
@@ -478,7 +478,7 @@ public class VendorListServiceV1Test extends VertxTest {
 
         // then
         assertThat(future1).isFailed();
-        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     // Metrics tests
