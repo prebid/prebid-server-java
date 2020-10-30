@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * AdmixerBidder {@link Bidder} implementation.
+ * Admixer {@link Bidder} implementation.
  */
 public class AdmixerBidder implements Bidder<BidRequest> {
 
@@ -113,12 +113,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return Result.emptyWithError(BidderError.badInput("Invalid request."));
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    statusCode)));
+            return Result.empty();
         }
 
         final BidResponse bidResponse;

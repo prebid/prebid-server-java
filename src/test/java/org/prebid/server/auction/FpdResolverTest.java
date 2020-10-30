@@ -55,7 +55,7 @@ public class FpdResolverTest extends VertxTest {
                 .keywords("keywords")
                 .customdata("customdata")
                 .geo(Geo.builder().country("country").build())
-                .data(Collections.singletonList(Data.of("id", null, null, null)))
+                .data(Collections.singletonList(Data.builder().id("id").build()))
                 .build();
 
         final User fpdUser = User.builder()
@@ -67,7 +67,7 @@ public class FpdResolverTest extends VertxTest {
                 .keywords("fpdkeywords")
                 .customdata("fpdcustomdata")
                 .geo(Geo.builder().country("fpdcountry").build())
-                .data(Collections.singletonList(Data.of("fpdid", null, null, null)))
+                .data(Collections.singletonList(Data.builder().id("fpdid").build()))
                 .build();
 
         // when
@@ -83,7 +83,7 @@ public class FpdResolverTest extends VertxTest {
                 .language("language")
                 .customdata("customdata")
                 .geo(Geo.builder().country("country").build())
-                .data(Collections.singletonList(Data.of("id", null, null, null)))
+                .data(Collections.singletonList(Data.builder().id("id").build()))
                 .ext(ExtUser.builder().data(mapper.createObjectNode()
                         .set("geo", mapper.createObjectNode().put("country", "fpdcountry"))).build())
                 .build());

@@ -226,7 +226,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .deviceOs("nokia")
                         .isMobile(1)
                         .user(User.builder().id("userId").buyeruid("buid").build())
-                        .adapterVersion("0.8.0")
+                        .adapterVersion("0.9.0")
                         .adapterName("BF_PREBID_S2S")
                         .ip("192.168.255.255")
                         .requestId("153")

@@ -14,7 +14,9 @@
         "h": 400
       },
       "ext": {
-        "bidder": {}
+        "bidder": {
+          "zoneid": "9042"
+        }
       }
     }
   ],
@@ -86,7 +88,10 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

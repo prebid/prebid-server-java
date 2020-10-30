@@ -38,8 +38,16 @@ public class ResponseBidValidator {
         }
 
         final BigDecimal price = bid.getPrice();
-        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ValidationException("Bid \"%s\" does not contain a positive 'price'", bidId);
+        if (price == null) {
+            throw new ValidationException("Bid \"%s\" does not contain a 'price'", bidId);
+        }
+
+        if (price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException("Bid \"%s\" `price `has negative value", bidId);
+        }
+
+        if (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(bid.getDealid())) {
+            throw new ValidationException("Non deal bid \"%s\" has 0 price", bidId);
         }
 
         if (StringUtils.isEmpty(bid.getCrid())) {

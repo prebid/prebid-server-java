@@ -14,6 +14,7 @@
           ],
           "cid": "1001",
           "crid": "2002",
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "banner",

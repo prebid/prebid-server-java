@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -32,9 +33,12 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -42,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -78,6 +83,9 @@ public class AuctionRequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
+    public static final String WEB_CHANNEL = "web";
+    public static final String APP_CHANNEL = "app";
+
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
     private final boolean shouldCacheOnlyWinningBids;
@@ -95,6 +103,7 @@ public class AuctionRequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
     private final IdGenerator idGenerator;
+    private final PrivacyEnforcementService privacyEnforcementService;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
 
@@ -116,12 +125,13 @@ public class AuctionRequestFactory {
                                  TimeoutFactory timeoutFactory,
                                  ApplicationSettings applicationSettings,
                                  IdGenerator idGenerator,
+                                 PrivacyEnforcementService privacyEnforcementService,
                                  JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
-        this.adServerCurrency = validateCurrency(adServerCurrency);
+        this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -136,6 +146,7 @@ public class AuctionRequestFactory {
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.idGenerator = Objects.requireNonNull(idGenerator);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -143,10 +154,6 @@ public class AuctionRequestFactory {
      * Validates ISO-4217 currency code.
      */
     private static String validateCurrency(String code) {
-        if (StringUtils.isBlank(code)) {
-            return code;
-        }
-
         try {
             Currency.getInstance(code);
         } catch (IllegalArgumentException e) {
@@ -168,9 +175,13 @@ public class AuctionRequestFactory {
         }
 
         return updateBidRequest(routingContext, incomingBidRequest)
-                .compose(bidRequest ->
-                        toAuctionContext(routingContext, bidRequest, errors, startTime,
-                                timeoutResolver));
+                .compose(bidRequest -> toAuctionContext(
+                        routingContext,
+                        bidRequest,
+                        requestTypeMetric(bidRequest),
+                        errors,
+                        startTime,
+                        timeoutResolver));
     }
 
     /**
@@ -178,20 +189,30 @@ public class AuctionRequestFactory {
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
-    Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
+    Future<AuctionContext> toAuctionContext(RoutingContext routingContext,
+                                            BidRequest bidRequest,
+                                            MetricName requestTypeMetric,
                                             List<String> errors,
-                                            long startTime, TimeoutResolver timeoutResolver) {
+                                            long startTime,
+                                            TimeoutResolver timeoutResolver) {
+
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
         return accountFrom(bidRequest, timeout, routingContext)
-                .map(account -> AuctionContext.builder()
-                        .routingContext(routingContext)
-                        .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
-                        .bidRequest(bidRequest)
-                        .timeout(timeout)
-                        .account(account)
-                        .prebidErrors(errors)
-                        .build());
+                .compose(account -> privacyEnforcementService.contextFromBidRequest(
+                        bidRequest, account, requestTypeMetric, timeout)
+                        .map(privacyContext -> AuctionContext.builder()
+                                .routingContext(routingContext)
+                                .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
+                                .bidRequest(enrichBidRequestWithAccountAndPrivacyData(
+                                        bidRequest, account, privacyContext))
+                                .requestTypeMetric(requestTypeMetric)
+                                .timeout(timeout)
+                                .account(account)
+                                .prebidErrors(errors)
+                                .privacyContext(privacyContext)
+                                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                                .build()));
     }
 
     /**
@@ -232,7 +253,7 @@ public class AuctionRequestFactory {
      * updated by values derived from headers and other request attributes.
      */
     private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest) {
-        return storedRequestProcessor.processStoredRequests(bidRequest)
+        return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
                 .map(this::validateRequest)
                 .map(interstitialProcessor::process);
@@ -245,10 +266,7 @@ public class AuctionRequestFactory {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context, TimeoutResolver timeoutResolver) {
-        final boolean hasApp = bidRequest.getApp() != null;
-        if (hasApp) {
-            checkBlacklistedApp(bidRequest.getApp());
-        }
+        checkBlacklistedApp(bidRequest);
 
         final BidRequest result;
         final HttpServerRequest request = context.request();
@@ -257,7 +275,7 @@ public class AuctionRequestFactory {
         final Device populatedDevice = populateDevice(device, request);
 
         final Site site = bidRequest.getSite();
-        final Site populatedSite = hasApp ? null : populateSite(site, request);
+        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
 
         final User user = bidRequest.getUser();
         final User populatedUser = populateUser(user);
@@ -278,7 +296,8 @@ public class AuctionRequestFactory {
         final Long resolvedTmax = resolveTmax(tmax, timeoutResolver);
 
         final ExtRequest ext = bidRequest.getExt();
-        final ExtRequest populatedExt = populateRequestExt(ext, ObjectUtils.defaultIfNull(populatedImps, imps));
+        final ExtRequest populatedExt = populateRequestExt(
+                ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps));
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
                 || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
@@ -301,8 +320,10 @@ public class AuctionRequestFactory {
         return result;
     }
 
-    private void checkBlacklistedApp(App app) {
-        final String appId = app.getId();
+    private void checkBlacklistedApp(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final String appId = app != null ? app.getId() : null;
+
         if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
             throw new BlacklistedAppException(
                     String.format("Prebid-server does not process requests from App ID: %s", appId));
@@ -424,14 +445,13 @@ public class AuctionRequestFactory {
         final ExtUser ext = userExtOrNull(user);
 
         if (ext != null) {
-            final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-            return builder.ext(ext).build();
+            return user.toBuilder().ext(ext).build();
         }
         return null;
     }
 
     /**
-     * Returns {@link ObjectNode} of updated {@link ExtUser} or null if no updates needed.
+     * Returns updated {@link ExtUser} or null if no updates needed.
      */
     private ExtUser userExtOrNull(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
@@ -480,31 +500,35 @@ public class AuctionRequestFactory {
     /**
      * Returns updated {@link ExtRequest} if required or null otherwise.
      */
-    private ExtRequest populateRequestExt(ExtRequest ext, List<Imp> imps) {
-        if (ext != null) {
-            final ExtRequestPrebid prebid = ext.getPrebid();
-
-            final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
-            final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
-
-            final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
-            final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
-
-            if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
-                final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
-                        ? prebid.toBuilder()
-                        : ExtRequestPrebid.builder();
-
-                return ExtRequest.of(prebidBuilder
-                        .aliases(ObjectUtils.defaultIfNull(updatedAliases,
-                                getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
-                        .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
-                                getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                        .cache(ObjectUtils.defaultIfNull(updatedCache,
-                                getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                        .build());
-            }
+    private ExtRequest populateRequestExt(ExtRequest ext, BidRequest bidRequest, List<Imp> imps) {
+        if (ext == null) {
+            return null;
         }
+
+        final ExtRequestPrebid prebid = ext.getPrebid();
+
+        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, getImpMediaTypes(imps));
+        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+        final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
+        final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest);
+
+        if (updatedTargeting != null || updatedAliases != null || updatedCache != null || updatedChannel != null) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                    ? prebid.toBuilder()
+                    : ExtRequestPrebid.builder();
+
+            return ExtRequest.of(prebidBuilder
+                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
+                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                    .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .cache(ObjectUtils.defaultIfNull(updatedCache,
+                            getIfNotNull(prebid, ExtRequestPrebid::getCache)))
+                    .channel(ObjectUtils.defaultIfNull(updatedChannel,
+                            getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
+                    .build());
+        }
+
         return null;
     }
 
@@ -561,7 +585,7 @@ public class AuctionRequestFactory {
                     .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
                             isPriceGranularityTextual, impMediaTypes))
                     .mediatypepricegranularity(targeting.getMediatypepricegranularity())
-                    .includewinners(isIncludeWinnersNull ? true : targeting.getIncludewinners())
+                    .includewinners(isIncludeWinnersNull || targeting.getIncludewinners())
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
@@ -673,6 +697,27 @@ public class AuctionRequestFactory {
                     getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
                     true);
         }
+        return null;
+    }
+
+    /**
+     * Returns populated {@link ExtRequestPrebidChannel} or null if no changes were applied.
+     */
+    private ExtRequestPrebidChannel channelOrNull(ExtRequestPrebid prebid, BidRequest bidRequest) {
+        final String existingChannelName = getIfNotNull(getIfNotNull(prebid,
+                ExtRequestPrebid::getChannel),
+                ExtRequestPrebidChannel::getName);
+
+        if (StringUtils.isNotBlank(existingChannelName)) {
+            return null;
+        }
+
+        if (bidRequest.getSite() != null) {
+            return ExtRequestPrebidChannel.of(WEB_CHANNEL);
+        } else if (bidRequest.getApp() != null) {
+            return ExtRequestPrebidChannel.of(APP_CHANNEL);
+        }
+
         return null;
     }
 
@@ -815,5 +860,76 @@ public class AuctionRequestFactory {
                 ? Future.failedFuture(new UnauthorizedAccountException(
                 String.format("Unauthorized account id: %s", accountId), accountId))
                 : Future.succeededFuture(Account.empty(accountId));
+    }
+
+    private BidRequest enrichBidRequestWithAccountAndPrivacyData(
+            BidRequest bidRequest, Account account, PrivacyContext privacyContext) {
+
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequest enrichedRequestExt = enrichExtRequest(requestExt, account);
+
+        final Device device = bidRequest.getDevice();
+        final Device enrichedDevice = enrichDevice(device, privacyContext);
+
+        if (enrichedRequestExt != null || enrichedDevice != null) {
+            return bidRequest.toBuilder()
+                    .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
+                    .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
+                    .build();
+        }
+
+        return bidRequest;
+    }
+
+    private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
+        final ExtRequestPrebid prebidExt = getIfNotNull(ext, ExtRequest::getPrebid);
+        final String integration = getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
+        final String accountDefaultIntegration = account.getDefaultIntegration();
+
+        if (StringUtils.isBlank(integration) && StringUtils.isNotBlank(accountDefaultIntegration)) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidExtBuilder =
+                    prebidExt != null ? prebidExt.toBuilder() : ExtRequestPrebid.builder();
+
+            prebidExtBuilder.integration(accountDefaultIntegration);
+
+            return ExtRequest.of(prebidExtBuilder.build());
+        }
+
+        return null;
+    }
+
+    private Device enrichDevice(Device device, PrivacyContext privacyContext) {
+        final String ipAddress = privacyContext.getIpAddress();
+        final String country = getIfNotNull(privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+
+        final String ipAddressInRequest = getIfNotNull(device, Device::getIp);
+
+        final Geo geo = getIfNotNull(device, Device::getGeo);
+        final String countryFromRequest = getIfNotNull(geo, Geo::getCountry);
+
+        final boolean shouldUpdateIp = ipAddress != null && !Objects.equals(ipAddressInRequest, ipAddress);
+        final boolean shouldUpdateCountry = country != null && !Objects.equals(countryFromRequest, country);
+
+        if (shouldUpdateIp || shouldUpdateCountry) {
+            final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
+
+            if (shouldUpdateIp) {
+                deviceBuilder.ip(ipAddress);
+            }
+
+            if (shouldUpdateCountry) {
+                final Geo.GeoBuilder geoBuilder = geo != null ? geo.toBuilder() : Geo.builder();
+                geoBuilder.country(country);
+                deviceBuilder.geo(geoBuilder.build());
+            }
+
+            return deviceBuilder.build();
+        }
+
+        return null;
+    }
+
+    private static MetricName requestTypeMetric(BidRequest bidRequest) {
+        return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
     }
 }

@@ -9,11 +9,11 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.codec.binary.Hex;
@@ -92,6 +92,10 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput("Missing bidder token in 'user.buyeruid'"));
         }
 
+        if (bidRequest.getSite() != null) {
+            return Result.emptyWithError(BidderError.badInput("Site impressions are not supported."));
+        }
+
         final MultiMap headers = HttpUtil.headers()
                 .add("X-Fb-Pool-Routing-Token", bidRequest.getUser().getBuyeruid());
 
@@ -115,7 +119,6 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
         final String publisherId = resolvedImpExt.getPublisherId();
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(modifiedImp))
-                .site(makeSite(bidRequest.getSite(), publisherId))
                 .app(makeApp(bidRequest.getApp(), publisherId))
                 .ext(mapper.fillExtension(
                         ExtRequest.empty(), FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
@@ -225,7 +228,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
             for (final Format format : banner.getFormat()) {
                 if (format != null && isBannerHeightValid(format.getH())) {
                     return banner.toBuilder()
-                            .w(0)
+                            .w(-1)
                             .h(format.getH())
                             .format(null)
                             .build();
@@ -237,7 +240,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
                 throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
                         imp.getId()));
             }
-            return banner.toBuilder().w(0).format(null).build();
+            return banner.toBuilder().w(-1).format(null).build();
         }
     }
 
@@ -255,15 +258,6 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
                 .api(xNative.getApi())
                 .battr(xNative.getBattr())
                 .ext(xNative.getExt())
-                .build();
-    }
-
-    private static Site makeSite(Site site, String pubId) {
-        if (site == null) {
-            return null;
-        }
-        return site.toBuilder()
-                .publisher(Publisher.builder().id(pubId).build())
                 .build();
     }
 
@@ -285,7 +279,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
         final int statusCode = response.getStatusCode();
-        if (statusCode != 200) {
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             final String message = response.getHeaders().get("x-fb-an-errors");
             return Result.emptyWithError(BidderError.badInput(
                     String.format("Unexpected status code %d with error message '%s'", statusCode, message)));

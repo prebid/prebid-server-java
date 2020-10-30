@@ -2,12 +2,12 @@ package org.prebid.server.bidder.telaria;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -18,16 +18,18 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
-import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.telaria.model.TelariaRequestExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpOutTelaria;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -73,14 +75,19 @@ public class TelariaBidder implements Bidder<BidRequest> {
         final String publisherId = getPublisherId(bidRequest);
         String seatCode = null;
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
+        ExtImpTelaria extImp = null;
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpTelaria extImp = parseImpExt(imp);
+                extImp = parseImpExt(imp);
                 seatCode = extImp.getSeatCode();
                 validImps.add(updateImp(imp, extImp, publisherId));
             } catch (PreBidException e) {
                 return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
+        }
+
+        if (extImp != null && extImp.getExtra() != null) {
+            requestBuilder.ext(mapper.fillExtension(ExtRequest.empty(), TelariaRequestExt.of(extImp.getExtra())));
         }
 
         if (bidRequest.getSite() != null) {
@@ -174,26 +181,21 @@ public class TelariaBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return Result.emptyWithError(BidderError.badInput("Invalid request."));
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    statusCode)));
+            return Result.empty();
         }
 
         try {
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), getBidResponse(httpCall.getResponse())),
+            return Result.of(extractBids(getBidResponse(httpCall.getResponse())),
                     Collections.emptyList());
         } catch (DecodeException | PreBidException | IOException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
-                : bidsFromResponse(bidRequest, bidResponse);
+                : bidsFromResponse(bidResponse);
     }
 
     private BidResponse getBidResponse(HttpResponse response) throws IOException {
@@ -204,7 +206,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
         return mapper.decodeValue(response.getBody(), BidResponse.class);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -214,7 +216,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private static byte[] decompress(String file) throws IOException {
+    public static byte[] decompress(String file) throws IOException {
         try (GZIPInputStream gzipInput = new GZIPInputStream(new FileInputStream(file))) {
             return IOUtils.toByteArray(gzipInput);
         }
