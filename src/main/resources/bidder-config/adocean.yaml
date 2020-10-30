@@ -1,0 +1,22 @@
+adapters:
+  adocean:
+    enabled: false
+    endpoint: https://{{Host}}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: aoteam@gemius.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 328
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: adocean
+      type: redirect
+      support-cors: false

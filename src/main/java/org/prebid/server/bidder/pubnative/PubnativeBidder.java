@@ -89,9 +89,6 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private static BidRequest modifyRequest(BidRequest bidRequest, Imp imp) {
-        final BidRequest.BidRequestBuilder bidRequestBuilder = bidRequest.toBuilder()
-                .test(0);
-
         Imp outgoingImp = imp;
         final Banner banner = imp.getBanner();
         if (banner != null) {
@@ -112,7 +109,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
             }
         }
 
-        return bidRequestBuilder
+        return bidRequest.toBuilder()
                 .imp(Collections.singletonList(outgoingImp))
                 .build();
     }
@@ -134,7 +131,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
         if (httpResponse.getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         try {

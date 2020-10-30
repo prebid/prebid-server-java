@@ -25,6 +25,10 @@ public class Account {
 
     Integer truncateTargetAttr;
 
+    String defaultIntegration;
+
+    AccountAnalyticsConfig analyticsConfig;
+
     Boolean preferDeals;
 
     public static Account empty(String id) {

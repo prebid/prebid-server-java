@@ -9,7 +9,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
@@ -81,7 +83,13 @@ public class FileApplicationSettingsTest {
                         + "preferDeals: 'true',"
                         + "enforceCcpa: 'true',"
                         + "gdpr: {"
-                        + "enabled: true,"
+                        + "enabled: 'true',"
+                        + "integration-enabled: {"
+                        + "amp: 'true',"
+                        + "web: 'true',"
+                        + "video: 'true',"
+                        + "app: 'true'"
+                        + "},"
                         + "purposes: {"
                         + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
                         + "p2: {enforce-purpose: full,enforce-vendors: true,vendor-exceptions: [openx]}"
@@ -92,7 +100,12 @@ public class FileApplicationSettingsTest {
                         + "},"
                         + "purpose-one-treatment-interpretation: access-allowed"
                         + "},"
-                        + "analyticsSamplingFactor : '1'"
+                        + "analyticsSamplingFactor : '1',"
+                        + "truncateTargetAttr: '20',"
+                        + "defaultIntegration: 'web',"
+                        + "analyticsConfig: {"
+                        + "auction-events: {amp: 'true'}"
+                        + "}"
                         + "}"
                         + "]"));
 
@@ -114,6 +127,7 @@ public class FileApplicationSettingsTest {
                 .preferDeals(true)
                 .gdpr(AccountGdprConfig.builder()
                         .enabled(true)
+                        .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                         .purposes(Purposes.builder()
                                 .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
                                 .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
@@ -125,8 +139,10 @@ public class FileApplicationSettingsTest {
                         .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                         .build())
                 .analyticsSamplingFactor(1)
+                .truncateTargetAttr(20)
+                .defaultIntegration("web")
+                .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                 .build());
-
     }
 
     @Test
@@ -210,7 +226,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(singleton("2"), emptySet(), null);
+                applicationSettings.getStoredData(null, singleton("2"), emptySet(), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
@@ -238,7 +254,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(emptySet(), singleton("2"), null);
+                applicationSettings.getStoredData(null, emptySet(), singleton("2"), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/imps/1.json"));
@@ -265,7 +281,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(singleton("1"), singleton("2"), null);
+                applicationSettings.getStoredData(null, singleton("1"), singleton("2"), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
@@ -292,7 +308,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getAmpStoredData(emptySet(), singleton("2"), null);
+                applicationSettings.getAmpStoredData(null, emptySet(), singleton("2"), null);
 
         // then
         assertThat(storedRequestResult.result().getErrors()).isNotNull().isEmpty();
