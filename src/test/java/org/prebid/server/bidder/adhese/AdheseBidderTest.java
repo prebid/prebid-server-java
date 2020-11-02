@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -106,6 +107,9 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of("demo",
                                 "_adhese_prebid_demo_", "leaderboard", mapper.convertValue(targets, JsonNode.class)))))
                         .build()))
+                .device(Device.builder()
+                        .ifa("dum-my")
+                        .build())
                 .build();
 
         // when
@@ -115,7 +119,7 @@ public class AdheseBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/ag55/cigent;brussels"
-                        + "/tlall/xtdummy");
+                        + "/tlall/xtdummy/xzdum-my");
     }
 
     @Test
