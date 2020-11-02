@@ -39,8 +39,8 @@ public class WinningBidsResolver {
      * Returns given list of {@link BidderResponse}s if {@link Bid}s have different impIds.
      */
     public BidderResponse resolveWinningBidsPerImpBidder(BidderResponse bidderResponse, List<Imp> imps,
-                                                         boolean accountPreferDeals) {
-        final Map<String, Boolean> impPreferDeals = extractDealsPreferenceByImp(imps, accountPreferDeals);
+                                                         boolean preferDeals) {
+        final Map<String, Boolean> impPreferDeals = extractDealsPreferenceByImp(imps, preferDeals);
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
         final List<BidderBid> responseBidderBids = ListUtils.emptyIfNull(seatBid.getBids());
         final Map<String, List<BidderBid>> impsIdToBidderBids = responseBidderBids.stream()
@@ -62,8 +62,8 @@ public class WinningBidsResolver {
      * or impression deals preferences.
      */
     public Set<Bid> resolveWinningBids(List<BidderResponse> bidderResponses, List<Imp> imps,
-                                       boolean accountPreferDeals) {
-        final Map<String, Boolean> impPreferDeals = extractDealsPreferenceByImp(imps, accountPreferDeals);
+                                       boolean preferDeals) {
+        final Map<String, Boolean> impPreferDeals = extractDealsPreferenceByImp(imps, preferDeals);
         final Map<String, Bid> winningBidsMap = new HashMap<>();
         for (BidderResponse bidderResponse : bidderResponses) {
             for (BidderBid bidderBid : bidderResponse.getSeatBid().getBids()) {
@@ -77,10 +77,10 @@ public class WinningBidsResolver {
     /**
      * Extract deals preference per impression.
      */
-    private Map<String, Boolean> extractDealsPreferenceByImp(List<Imp> imps, boolean accountPreferDeals) {
+    private Map<String, Boolean> extractDealsPreferenceByImp(List<Imp> imps, boolean preferDeals) {
         return imps.stream()
                 .collect(Collectors.toMap(Imp::getId,
-                        imp -> preferDeals(extractImpPreferDeal(imp), accountPreferDeals)));
+                        imp -> preferDeals(extractImpPreferDeal(imp), preferDeals)));
     }
 
     /**

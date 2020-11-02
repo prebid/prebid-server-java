@@ -830,6 +830,71 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldPassPreferDealsTrueToWinningBidsResolverWhenAccountPreferFalseAndBidRequestTrue() {
+        // given
+        AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(givenImp("i1"))),
+                extBuilder -> extBuilder.targeting(givenTargeting().toBuilder().preferdeals(true).build())));
+        auctionContext = auctionContext.toBuilder().account(Account.builder().preferDeals(false).build()).build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
+        given(winningBidsResolver.resolveWinningBids(anyList(), anyList(), anyBoolean()))
+                .willReturn(singleton(bid));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        verify(winningBidsResolver).resolveWinningBids(any(), any(), eq(true));
+        verify(winningBidsResolver).resolveWinningBidsPerImpBidder(any(), any(), eq(true));
+    }
+
+    @Test
+    public void shouldPassPreferDealsFalseToWinningBidsResolverWhenAccountPreferTrueAndBidRequestFalse() {
+        // given
+        AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(givenImp("i1"))),
+                extBuilder -> extBuilder.targeting(givenTargeting().toBuilder().preferdeals(false).build())));
+        auctionContext = auctionContext.toBuilder().account(Account.builder().preferDeals(true).build()).build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
+        given(winningBidsResolver.resolveWinningBids(anyList(), anyList(), anyBoolean()))
+                .willReturn(singleton(bid));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        verify(winningBidsResolver).resolveWinningBids(any(), any(), eq(false));
+        verify(winningBidsResolver).resolveWinningBidsPerImpBidder(any(), any(), eq(false));
+    }
+
+    @Test
+    public void shouldPassPreferDealsFalseWhenAccountAndBidRequestPreferDealsIsNotDefined() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(givenImp("i1"))),
+                extBuilder -> extBuilder.targeting(givenTargeting())));
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
+        given(winningBidsResolver.resolveWinningBids(anyList(), anyList(), anyBoolean()))
+                .willReturn(singleton(bid));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        verify(winningBidsResolver).resolveWinningBids(any(), any(), eq(false));
+        verify(winningBidsResolver).resolveWinningBidsPerImpBidder(any(), any(), eq(false));
+    }
+
+    @Test
     public void shouldPopulateTargetingKeywords() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(

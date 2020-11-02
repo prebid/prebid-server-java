@@ -195,18 +195,18 @@ public class BidResponseCreator {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
         final List<Imp> imps = bidRequest.getImp();
-        final boolean accountPreferDeals = BooleanUtils.toBooleanDefaultIfNull(account.getPreferDeals(), false);
+        ExtRequestTargeting targeting = targeting(bidRequest);
+        final boolean preferDeals = isPreferDeals(account, targeting);
         final List<BidderResponse> bidderResponsesWithWinningBids = bidderResponses.stream()
                 .map(bidderResponse -> winningBidsResolver.resolveWinningBidsPerImpBidder(bidderResponse, imps,
-                        accountPreferDeals))
+                        preferDeals))
                 .collect(Collectors.toList());
 
-        ExtRequestTargeting targeting = targeting(bidRequest);
         final Set<Bid> winningBidsByBidder = getWinningBidForEachBidder(bidderResponses);
 
         // determine winning bids only if targeting is present
         final Set<Bid> winningBids = targeting != null
-                ? winningBidsResolver.resolveWinningBids(bidderResponsesWithWinningBids, imps, accountPreferDeals)
+                ? winningBidsResolver.resolveWinningBids(bidderResponsesWithWinningBids, imps, preferDeals)
                 : Collections.emptySet();
 
         final Set<Bid> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly()
@@ -246,6 +246,14 @@ public class BidResponseCreator {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         return prebid != null ? prebid.getTargeting() : null;
+    }
+
+    private boolean isPreferDeals(Account account, ExtRequestTargeting targeting) {
+        final Boolean requestPreferDeals = targeting != null ? targeting.getPreferdeals() : null;
+        final Boolean accountPreferDeals = account.getPreferDeals();
+        return requestPreferDeals != null
+                ? requestPreferDeals
+                : BooleanUtils.toBooleanDefaultIfNull(accountPreferDeals, false);
     }
 
     private Set<Bid> getWinningBidForEachBidder(List<BidderResponse> bidderResponses) {
