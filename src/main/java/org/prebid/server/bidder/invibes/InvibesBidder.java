@@ -65,6 +65,10 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
     @Override
     public Result<List<HttpRequest<InvibesBidRequest>>> makeHttpRequests(BidRequest request) {
+        if (request.getSite() == null) {
+            return Result.emptyWithError(BidderError.badInput("Site not specified"));
+        }
+
         final List<BidderError> errors = new ArrayList<>();
 
         final String consentString = resolveConsentString(request.getUser());
@@ -86,8 +90,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
-
-            invibesInternalParams = updateInvibesInternalParams(invibesInternalParams, extImpInvibes, imp);
+            updateInvibesInternalParams(invibesInternalParams, extImpInvibes, imp);
         }
         //TODO add AMP parameter to invibesInternalParams, after reqInfo will be implemented
 
@@ -100,9 +103,6 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         invibesInternalParams.setGdprConsent(consentString);
 
         try {
-            if (request.getSite() == null) {
-                throw new PreBidException("Site not specified");
-            }
             final HttpRequest<InvibesBidRequest> httpRequest = makeRequest(invibesInternalParams, request);
             return Result.of(Collections.singletonList(httpRequest), errors);
         } catch (PreBidException e) {
@@ -137,7 +137,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         return gdpr == null || gdpr == 1;
     }
 
-    private InvibesInternalParams updateInvibesInternalParams(InvibesInternalParams invibesInternalParams,
+    private void updateInvibesInternalParams(InvibesInternalParams invibesInternalParams,
                                                               ExtImpInvibes invibesExt,
                                                               Imp imp) {
         final String impExtPlacementId = invibesExt.getPlacementId();
@@ -158,7 +158,6 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
         final InvibesBidParams updatedBidParams = bidParams.toBuilder()
                 .placementIds(updatedPlacementIds)
-                .properties(bidParams.getProperties())
                 .build();
 
         invibesInternalParams.setDomainId(invibesExt.getDomainId());
@@ -173,8 +172,6 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         if (invibesDebug != null) {
             invibesInternalParams.setTestLog(invibesDebug.getTestLog());
         }
-
-        return invibesInternalParams;
     }
 
     private List<Format> resolveAdFormats(Banner currentBanner) {
