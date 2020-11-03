@@ -107,9 +107,7 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of("demo",
                                 "_adhese_prebid_demo_", "leaderboard", mapper.convertValue(targets, JsonNode.class)))))
                         .build()))
-                .device(Device.builder()
-                        .ifa("dum-my")
-                        .build())
+                .device(Device.builder().ifa("dum-my").build())
                 .build();
 
         // when

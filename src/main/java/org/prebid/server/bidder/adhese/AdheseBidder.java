@@ -143,17 +143,14 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     private static String getRefererParameter(Site site) {
-        final String page = site != null ? site.getPage() : null;
-        return StringUtils.isNotBlank(page)
-                ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(page))
+        return site != null && StringUtils.isNotBlank(site.getPage())
+                ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(site.getPage()))
                 : "";
     }
 
     private static String getIfaParameter(Device device) {
-        final String ifa = device != null ? device.getIfa() : null;
-        return StringUtils.isNotBlank(ifa)
-                ? String.format("%s%s", QUERY_PARAMETER_IFA, ifa)
-                : "";
+        return device != null && StringUtils.isNotBlank(device.getIfa())
+                ? String.format("%s%s", QUERY_PARAMETER_IFA, device.getIfa()) : "";
     }
 
     @Override
