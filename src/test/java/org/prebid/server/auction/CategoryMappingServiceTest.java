@@ -51,7 +51,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
-public class CategoryMapperTest extends VertxTest {
+public class CategoryMappingServiceTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -61,13 +61,13 @@ public class CategoryMapperTest extends VertxTest {
 
     private Timeout timeout;
 
-    private CategoryMapper categoryMapper;
+    private CategoryMappingService categoryMappingService;
 
     private static PriceGranularity priceGranularity;
 
     @Before
     public void setUp() {
-        categoryMapper = new CategoryMapper(applicationSettings, jacksonMapper);
+        categoryMappingService = new CategoryMappingService(applicationSettings, jacksonMapper);
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
         priceGranularity = PriceGranularity.DEFAULT;
     }
@@ -94,7 +94,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat4", "fetchedCat4")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -132,7 +132,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -161,7 +161,7 @@ public class CategoryMapperTest extends VertxTest {
                 asList(10, 15, 5), true, false);
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -183,7 +183,7 @@ public class CategoryMapperTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> categoryMappingResultFuture =
-                categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(),
+                categoryMappingService.createCategoryMapping(bidderResponses, BidRequest.builder().build(),
                         extRequestTargeting, timeout);
 
         // then
@@ -203,7 +203,7 @@ public class CategoryMapperTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(3, "publisher", null, true, true);
 
         // when
-        final Future<CategoryMappingResult> categoryMappingResultFuture = categoryMapper.createCategoryMapping(
+        final Future<CategoryMappingResult> categoryMappingResultFuture = categoryMappingService.createCategoryMapping(
                 bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -227,7 +227,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
+        categoryMappingService.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
                 timeout);
 
         // then
@@ -248,7 +248,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        categoryMapper.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
+        categoryMappingService.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
                 timeout);
 
         // then
@@ -271,7 +271,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.failedFuture(new TimeoutException("Timeout")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -297,7 +297,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -324,7 +324,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -351,7 +351,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
                 Future.succeededFuture(null));
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -381,7 +381,7 @@ public class CategoryMapperTest extends VertxTest {
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -405,7 +405,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")),
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -430,7 +430,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -455,7 +455,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -481,7 +481,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -508,7 +508,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -531,7 +531,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -552,13 +552,36 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "10.00_cat1_10s")));
+    }
+
+    @Test
+    public void applyCategoryMappingShouldReturnDurCatBuiltFromPriceAndBidCatAndDurationAndBidder() {
+        // given
+        final List<BidderResponse> bidderResponses = singletonList(
+                givenBidderResponse("rubicon", givenBidderBid("1", null, "10", BidType.video, singletonList("cat1"), 10,
+                        "prCategory1")));
+
+        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, false)
+                .toBuilder().appendbiddernames(true).build();
+        given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
+
+        // when
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
+                BidRequest.builder().build(), extRequestTargeting, timeout);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
+                .isEqualTo(Collections.singletonMap("rubicon",
+                        Collections.singletonMap("1", "10.00_cat1_10s_rubicon")));
     }
 
     @Test
@@ -573,7 +596,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then
@@ -600,7 +623,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -631,7 +654,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -663,7 +686,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -695,7 +718,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -727,7 +750,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -763,7 +786,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -795,7 +818,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -830,7 +853,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -866,7 +889,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -900,7 +923,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 bidRequest, extRequestTargeting, timeout);
 
         // then
@@ -931,7 +954,7 @@ public class CategoryMapperTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
                 BidRequest.builder().build(), extRequestTargeting, timeout);
 
         // then

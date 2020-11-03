@@ -347,6 +347,7 @@ public class VideoStoredRequestProcessor {
                 .includebidderkeys(true)
                 .includebrandcategory(extIncludeBrandCategory)
                 .durationrangesec(durationRangeSec)
+                .appendbiddernames(videoRequest.getAppendbiddernames())
                 .build();
 
         final ExtRequestPrebidCache extReqPrebidCache = ExtRequestPrebidCache.of(null,

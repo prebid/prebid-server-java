@@ -11,7 +11,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
-import org.prebid.server.auction.CategoryMapper;
+import org.prebid.server.auction.CategoryMappingService;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -109,9 +109,9 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    CategoryMapper categoryMapper(ApplicationSettings applicationSettings,
-                                  JacksonMapper jacksonMapper) {
-        return new CategoryMapper(applicationSettings, jacksonMapper);
+    CategoryMappingService categoryMapper(ApplicationSettings applicationSettings,
+                                          JacksonMapper jacksonMapper) {
+        return new CategoryMappingService(applicationSettings, jacksonMapper);
     }
 
     @Bean
@@ -418,7 +418,7 @@ public class ServiceConfiguration {
     @Bean
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
-            CategoryMapper categoryMapper,
+            CategoryMappingService categoryMappingService,
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
@@ -429,7 +429,7 @@ public class ServiceConfiguration {
 
         return new BidResponseCreator(
                 cacheService,
-                categoryMapper,
+                categoryMappingService,
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,

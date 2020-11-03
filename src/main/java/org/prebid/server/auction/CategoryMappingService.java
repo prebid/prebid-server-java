@@ -50,7 +50,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class CategoryMapper {
+public class CategoryMappingService {
 
     private static final TypeReference<Map<String, ExtImpDealTier>> EXT_IMP_DEAL_TIER_REFERENCE =
             new TypeReference<Map<String, ExtImpDealTier>>() {
@@ -64,7 +64,7 @@ public class CategoryMapper {
     private final ApplicationSettings applicationSettings;
     private final JacksonMapper jacksonMapper;
 
-    public CategoryMapper(ApplicationSettings applicationSettings, JacksonMapper jacksonMapper) {
+    public CategoryMappingService(ApplicationSettings applicationSettings, JacksonMapper jacksonMapper) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
@@ -272,6 +272,7 @@ public class CategoryMapper {
                                                                  List<RejectedBid> rejectedBids) {
         final PriceGranularity priceGranularity = resolvePriceGranularity(targeting);
         final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec());
+        final boolean appendBidderNames = BooleanUtils.toBooleanDefaultIfNull(targeting.getAppendbiddernames(), false);
         Collections.sort(durations);
         final List<String> errors = new ArrayList<>();
         final Map<String, Map<String, DealTier>> impIdToBiddersDealTear = extractDealsSupported(bidRequest)
@@ -281,7 +282,7 @@ public class CategoryMapper {
         final Map<String, Set<CategoryBidContext>> uniqueCatKeysToCategoryBids = bidderResponses.stream()
                 .flatMap(bidderResponse -> initiateCategoryBidsStream(bidderResponse, rejectedBids))
                 .map(categoryBidContext -> toCategoryBid(categoryBidContext, durations, priceGranularity, withCategory,
-                        impIdToBiddersDealTear, bidderToBidCategory, rejectedBids))
+                        appendBidderNames, impIdToBiddersDealTear, bidderToBidCategory, rejectedBids))
                 .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(CategoryBidContext::getCategoryUniqueKey,
                         Collectors.mapping(Function.identity(), Collectors.toSet())));
@@ -454,6 +455,7 @@ public class CategoryMapper {
                                              List<Integer> durations,
                                              PriceGranularity priceGranularity,
                                              boolean withCategory,
+                                             boolean appendBidderName,
                                              Map<String, Map<String, DealTier>> impToBiddersDealTier,
                                              Map<String, Map<String, String>> bidderToBidCategory,
                                              List<RejectedBid> rejectedBids) {
@@ -477,7 +479,7 @@ public class CategoryMapper {
         final DealTier dealTier = impsDealTiers != null ? impsDealTiers.get(bidder) : null;
         final int dealPriority = bidderBid.getDealPriority() != null ? bidderBid.getDealPriority() : 0;
         final String categoryDuration = makeCategoryDuration(rowPrice, category, duration, dealPriority,
-                dealTier, withCategory);
+                dealTier, withCategory, appendBidderName, bidder);
 
         return CategoryBidContext.builder()
                 .bidId(bidId)
@@ -528,13 +530,15 @@ public class CategoryMapper {
      * Creates category duration.
      */
     private String makeCategoryDuration(String price, String category, int duration, int bidPriority, DealTier dealTier,
-                                        boolean withCategory) {
+                                        boolean withCategory, boolean appendBidderName, String bidder) {
         final String categoryPrefix = dealTier != null && bidPriority >= dealTier.getMinDealTier()
                 ? String.format("%s%d", dealTier.getPrefix(), dealTier.getMinDealTier())
                 : price;
-        return withCategory
+        final String categoryDuration = withCategory
                 ? String.format("%s_%s_%ds", categoryPrefix, category, duration)
                 : String.format("%s_%ds", categoryPrefix, duration);
+
+        return appendBidderName ? String.format("%s_%s", categoryDuration, bidder) : categoryDuration;
     }
 
     /**
@@ -544,7 +548,7 @@ public class CategoryMapper {
             Map<String, Set<CategoryBidContext>> categoryToDuplicatedCategoryBids) {
         return categoryToDuplicatedCategoryBids.values().stream()
                 .filter(categoryBids -> categoryBids.size() > 1)
-                .flatMap(CategoryMapper::getDuplicatedForCategory)
+                .flatMap(CategoryMappingService::getDuplicatedForCategory)
                 .map(categoryBidContext -> RejectedBid.of(categoryBidContext.getBidId(), categoryBidContext.getBidder(),
                         "Bid was deduplicated"))
                 .collect(Collectors.toSet());
