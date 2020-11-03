@@ -98,7 +98,7 @@ public class BidResponseCreator {
     private static final String PREBID_EXT = "prebid";
 
     private final CacheService cacheService;
-    private final CategoryMapper categoryMapper;
+    private final CategoryMappingService categoryMappingService;
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -112,7 +112,7 @@ public class BidResponseCreator {
     private final String cacheAssetUrlTemplate;
 
     public BidResponseCreator(CacheService cacheService,
-                              CategoryMapper categoryMapper,
+                              CategoryMappingService categoryMappingService,
                               BidderCatalog bidderCatalog,
                               EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
@@ -122,7 +122,7 @@ public class BidResponseCreator {
                               JacksonMapper mapper) {
 
         this.cacheService = Objects.requireNonNull(cacheService);
-        this.categoryMapper = Objects.requireNonNull(categoryMapper);
+        this.categoryMappingService = Objects.requireNonNull(categoryMappingService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -166,7 +166,8 @@ public class BidResponseCreator {
         }
 
         final ExtRequestTargeting targeting = targeting(bidRequest);
-        return categoryMapper.createCategoryMapping(bidderResponses, bidRequest, targeting, auctionContext.getTimeout())
+        return categoryMappingService.createCategoryMapping(bidderResponses, bidRequest, targeting,
+                auctionContext.getTimeout())
                 .map(categoryMappingResult -> updateWithCategoryErrors(categoryMappingResult, auctionContext))
                 .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
                         categoryMappingResult.getBidderResponses(),
