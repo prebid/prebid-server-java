@@ -1,0 +1,99 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "789353336",
+          "impid": "impId4",
+          "price": 6.0,
+          "adm": "adm4",
+          "crid": "crid4",
+          "w": 300,
+          "h": 600,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_cache_id_conversant": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
+                "hb_cache_id": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
+                "hb_size_conversant": "300x600",
+                "hb_uuid_conversant": "banner",
+                "hb_pb": "6.00",
+                "hb_cache_path_conversant": "/cache",
+                "hb_cache_path": "/cache",
+                "hb_uuid": "banner",
+                "hb_size": "300x600",
+                "hb_pb_conversant": "6.00",
+                "hb_bidder_conversant": "conversant",
+                "hb_bidder": "conversant",
+                "hb_cache_host": "localhost:8090",
+                "hb_cache_host_conversant": "localhost:8090"
+              },
+              "cache": {
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
+                  "cacheId": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "981876692",
+          "impid": "impId41",
+          "price": 5.0,
+          "adm": "adm41",
+          "crid": "crid41",
+          "w": 300,
+          "h": 600,
+          "exp": 120,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_cache_id_conversant": "8f17dd0b-e615-48d1-a7b1-08a704aae48d",
+                "hb_cache_id": "8f17dd0b-e615-48d1-a7b1-08a704aae48d",
+                "hb_size_conversant": "300x600",
+                "hb_uuid_conversant": "video",
+                "hb_pb": "5.00",
+                "hb_cache_path_conversant": "/cache",
+                "hb_cache_path": "/cache",
+                "hb_uuid": "video",
+                "hb_size": "300x600",
+                "hb_pb_conversant": "5.00",
+                "hb_bidder_conversant": "conversant",
+                "hb_bidder": "conversant",
+                "hb_cache_host": "localhost:8090",
+                "hb_cache_host_conversant": "localhost:8090"
+              },
+              "cache": {
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=8f17dd0b-e615-48d1-a7b1-08a704aae48d",
+                  "cacheId": "8f17dd0b-e615-48d1-a7b1-08a704aae48d"
+                },
+                "vastXml": {
+                  "url": "http://localhost:8090/cache?uuid=8300a9d5-4654-4406-b6b9-7bc5060e8a36",
+                  "cacheId": "8300a9d5-4654-4406-b6b9-7bc5060e8a36"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "conversant",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "cache": 8,
+      "conversant": 93
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}

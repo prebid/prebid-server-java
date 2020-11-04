@@ -212,7 +212,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder1", true, "cacheId1", "videoCacheId1", "banner");
+                .makeFor(bid, "bidder1", true, "cacheId1", "banner", "videoCacheId1");
 
         // then
         assertThat(keywords).containsOnly(
@@ -295,7 +295,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true, false, 0)
-                .makeFor(bid, "", true, null, null, "banner");
+                .makeFor(bid, "", true, null, "banner", null);
 
         // then
         assertThat(keywords).contains(entry("hb_format", "banner"));
@@ -477,7 +477,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 resolver)
-                .makeFor(bid, "bidder1", true, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
         assertThat(keywords).contains(entry("key_longer_than_twen", "value1"));

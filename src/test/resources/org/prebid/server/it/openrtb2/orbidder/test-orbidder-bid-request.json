@@ -69,6 +69,7 @@
       "targeting": {
         "includebidderkeys": true,
         "includewinners": true,
+        "includeformat" : false,
         "pricegranularity": {
           "precision": 2,
           "ranges": [
