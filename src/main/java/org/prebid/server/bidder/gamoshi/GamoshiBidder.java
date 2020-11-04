@@ -38,8 +38,6 @@ import java.util.stream.Collectors;
  */
 public class GamoshiBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -163,7 +161,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid,
-                        requestImpIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), DEFAULT_BID_CURRENCY))
+                        requestImpIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

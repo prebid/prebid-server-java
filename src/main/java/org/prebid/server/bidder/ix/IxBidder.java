@@ -48,7 +48,6 @@ public class IxBidder implements Bidder<BidRequest> {
 
     // maximum number of bid requests
     private static final int REQUEST_LIMIT = 20;
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -202,7 +201,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> prepareBid(bid, bidRequest))
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

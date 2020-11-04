@@ -149,22 +149,6 @@ public class PubnativeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAlwaysSetRequestTestToZero() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getTest)
-                .containsOnly(0);
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetBannerHeightAndWidthFromFirstFormatWhenHeightIsNullOrZero() {
         // given
         final Format format = Format.builder().h(2).w(3).build();
@@ -356,6 +340,7 @@ public class PubnativeBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

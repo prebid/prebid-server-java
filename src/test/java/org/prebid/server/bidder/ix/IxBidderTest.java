@@ -412,7 +412,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), banner, "EUR"));
     }
 
     @Test
@@ -432,7 +432,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), BidType.banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), BidType.banner, "EUR"));
     }
 
     @Test
@@ -462,6 +462,7 @@ public class IxBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

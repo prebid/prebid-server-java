@@ -37,11 +37,9 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -288,30 +286,11 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldSkipDecisionsWithAbsentImpIdAndAddError() throws JsonProcessingException {
-        // given
-        final Map<String, ConsumableDecision> decisionMap = new HashMap<>();
-        decisionMap.put("firstImp", ConsumableDecision.builder().pricing(ConsumablePricing.of(10.5)).build());
-        decisionMap.put("missing_Imp", ConsumableDecision.builder().pricing(ConsumablePricing.of(1.1)).build());
-
-        final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(() -> ConsumableBidResponse.of(decisionMap));
-
-        // when
-        final Result<List<BidderBid>> result = consumableBidder.makeBids(httpCall,
-                givenBidRequestWithTwoImpsAndTwoFormats());
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("ignoring bid id=request_id, request doesn't contain any "
-                        + "impression with id=missing_Imp"));
-        assertThat(result.getValue()).hasSize(1);
-    }
-
-    @Test
     public void makeBidsShouldReturnBannerBidWithExpectedFields() throws JsonProcessingException {
         // given
         final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
                 decision -> decision.pricing(ConsumablePricing.of(11.1)).adId(123L)
+                        .width(300).height(250)
                         .contents(singletonList(ConsumableContents.of("contents_body"))));
 
         // when
@@ -324,7 +303,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .contains(BidderBid.of(
                         Bid.builder()
                                 .id("request_id").impid("firstImp").price(BigDecimal.valueOf(11.1))
-                                .adm("contents_body").w(120).h(90).exp(30).crid("123").build(),
+                                .adm("contents_body").w(300).h(250).exp(30).crid("123").build(),
                         BidType.banner, null));
     }
 
@@ -400,15 +379,6 @@ public class ConsumableBidderTest extends VertxTest {
         return HttpCall.success(
                 HttpRequest.<ConsumableBidRequest>builder().build(),
                 HttpResponse.of(200, null, body),
-                null);
-    }
-
-    private static HttpCall<ConsumableBidRequest> givenHttpCall(Supplier<ConsumableBidResponse> bidResponseSupplier)
-            throws JsonProcessingException {
-
-        return HttpCall.success(
-                HttpRequest.<ConsumableBidRequest>builder().build(),
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponseSupplier.get())),
                 null);
     }
 }

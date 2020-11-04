@@ -51,7 +51,6 @@
       }
     }
   },
-  "test": 0,
   "at": 1,
   "tmax": 5000,
   "cur": [
@@ -88,7 +87,10 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

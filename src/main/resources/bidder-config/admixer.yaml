@@ -23,7 +23,7 @@ adapters:
       vendor-id: 0
     usersync:
       url: https://inv-nets.admixer.net/adxcm.aspx?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=1&rurl=
-      redirect-url: /setuid?bidder=admixer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$$visitor_cookie$$
+      redirect-url: /setuid?bidder=admixer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$$visitor_cookie$$
       cookie-family-name: admixer
       type: redirect
       support-cors: false

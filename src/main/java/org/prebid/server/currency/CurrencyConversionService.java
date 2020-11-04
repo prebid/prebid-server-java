@@ -121,8 +121,24 @@ public class CurrencyConversionService implements Initializable {
         return Future.failedFuture(exception);
     }
 
+    public boolean isExternalRatesActive() {
+        return externalConversionProperties != null;
+    }
+
+    public String getCurrencyServerUrl() {
+        return currencyServerUrl;
+    }
+
+    public Long getRefreshPeriod() {
+        return externalConversionProperties != null ? externalConversionProperties.getRefreshPeriod() : null;
+    }
+
     public ZonedDateTime getLastUpdated() {
         return lastUpdated;
+    }
+
+    public Map<String, Map<String, BigDecimal>> getExternalCurrencyRates() {
+        return externalCurrencyRates;
     }
 
     /**
@@ -156,7 +172,9 @@ public class CurrencyConversionService implements Initializable {
                 adServerCurrency, effectiveBidCurrency);
 
         if (conversionRate == null) {
-            throw new PreBidException("no currency conversion available");
+            throw new PreBidException(
+                    String.format("Unable to convert bid currency %s to desired ad server currency %s",
+                            effectiveBidCurrency, adServerCurrency));
         }
 
         return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);

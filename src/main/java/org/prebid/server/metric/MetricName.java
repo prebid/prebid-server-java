@@ -1,6 +1,7 @@
 package org.prebid.server.metric;
 
 public enum MetricName {
+
     // connection
     connection_accept_errors,
 
@@ -43,6 +44,9 @@ public enum MetricName {
     amp,
     video,
     legacy,
+    cookiesync,
+    setuid,
+
 
     // request and adapter statuses
     ok,
@@ -85,6 +89,7 @@ public enum MetricName {
 
     // vendor list
     missing,
+    fallback,
 
     // stored data
     stored_requests_found,
@@ -93,8 +98,7 @@ public enum MetricName {
     stored_imps_missing,
 
     // cache
-    prebid_cache_request_success_time,
-    prebid_cache_request_error_time,
+    creative_size,
 
     //account.*.requests.
     rejected;

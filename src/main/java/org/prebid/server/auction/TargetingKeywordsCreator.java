@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Used throughout Prebid to create targeting keys as keys which can be used in an ad server like DFP.
@@ -46,10 +47,6 @@ public class TargetingKeywordsCreator {
      */
     private static final String HB_BIDDER_KEY = "hb_bidder";
     /**
-     * Stores bid ID.
-     */
-    private static final String HB_BIDID_KEY = "hb_bidid";
-    /**
      * Respects rounded CPM value.
      */
     private static final String HB_PB_KEY = "hb_pb";
@@ -79,20 +76,11 @@ public class TargetingKeywordsCreator {
      * Stores http path for cache service endpoint.
      */
     private static final String HB_CACHE_PATH_KEY = "hb_cache_path";
-    /**
-     * Stores win type url to support event notification.
-     */
-    private static final String HB_WINURL_KEY = "hb_winurl";
 
     /**
      * Stores bid's format. For example "video" or "banner".
      */
     private static final String HB_FORMAT_KEY = "hb_format";
-
-    /**
-     * Collection of keys to be excluded from creating key with "_BIDDER" suffix
-     */
-    private static final Set<String> EXCLUDED_BIDDER_KEYS = Collections.singleton(HB_WINURL_KEY);
 
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
@@ -183,7 +171,7 @@ public class TargetingKeywordsCreator {
 
         try {
             return PriceGranularity.createFromString(stringPriceGranularity);
-        } catch (PreBidException ex) {
+        } catch (PreBidException e) {
             logger.error("Price range granularity error: ''{0}'' is not a recognized granularity",
                     stringPriceGranularity);
         }
@@ -195,9 +183,8 @@ public class TargetingKeywordsCreator {
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         final MediaType mediaType = bid.getMediaType();
-        return makeFor(
+        return truncateKeys(makeFor(
                 bid.getBidder(),
-                bid.getBidId(),
                 winningBid,
                 bid.getPrice(),
                 StringUtils.EMPTY,
@@ -206,18 +193,21 @@ public class TargetingKeywordsCreator {
                 bid.getCacheId(),
                 null,
                 mediaType != null ? mediaType.name() : null,
-                bid.getDealId(),
-                null);
+                bid.getDealId()));
     }
 
     /**
      * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
      */
-    Map<String, String> makeFor(com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid, String cacheId,
-                                String vastCacheId, String format, String winUrl) {
+    Map<String, String> makeFor(com.iab.openrtb.response.Bid bid,
+                                String bidder,
+                                boolean winningBid,
+                                String cacheId,
+                                String format,
+                                String vastCacheId) {
+
         final Map<String, String> keywords = makeFor(
                 bidder,
-                bid.getId(),
                 winningBid,
                 bid.getPrice(),
                 "0.0",
@@ -226,38 +216,34 @@ public class TargetingKeywordsCreator {
                 cacheId,
                 vastCacheId,
                 format,
-                bid.getDealid(),
-                winUrl);
+                bid.getDealid());
 
         if (resolver == null) {
-            return keywords;
+            return truncateKeys(keywords);
         }
 
         final Map<String, String> augmentedKeywords = new HashMap<>(keywords);
         augmentedKeywords.putAll(resolver.resolve(bid, bidder));
 
-        return augmentedKeywords;
+        return truncateKeys(augmentedKeywords);
     }
 
     /**
      * Common method for creating targeting keywords.
      */
-    private Map<String, String> makeFor(
-            String bidder,
-            String bidId,
-            boolean winningBid,
-            BigDecimal price,
-            String defaultCpm,
-            Integer width,
-            Integer height,
-            String cacheId,
-            String vastCacheId,
-            String format,
-            String dealId,
-            String winUrl) {
+    private Map<String, String> makeFor(String bidder,
+                                        boolean winningBid,
+                                        BigDecimal price,
+                                        String defaultCpm,
+                                        Integer width,
+                                        Integer height,
+                                        String cacheId,
+                                        String vastCacheId,
+                                        String format,
+                                        String dealId) {
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
-                truncateAttrChars, EXCLUDED_BIDDER_KEYS);
+                Collections.emptySet());
 
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         keywordMap.put(HB_PB_KEY, roundedCpm);
@@ -288,10 +274,6 @@ public class TargetingKeywordsCreator {
         if (isApp) {
             keywordMap.put(HB_ENV_KEY, HB_ENV_APP_VALUE);
         }
-        if (winningBid && winUrl != null) {
-            keywordMap.put(HB_WINURL_KEY, winUrl);
-            keywordMap.put(HB_BIDID_KEY, bidId);
-        }
 
         return keywordMap.asMap();
     }
@@ -314,6 +296,19 @@ public class TargetingKeywordsCreator {
                 : null;
     }
 
+    private Map<String, String> truncateKeys(Map<String, String> keyValues) {
+        return truncateAttrChars > 0
+                ? keyValues.entrySet().stream()
+                .collect(Collectors.toMap(keyValue -> truncateKey(keyValue.getKey()), Map.Entry::getValue))
+                : keyValues;
+    }
+
+    private String truncateKey(String key) {
+        return key.length() > truncateAttrChars
+                ? key.substring(0, truncateAttrChars)
+                : key;
+    }
+
     /**
      * Helper for targeting keywords.
      * <p>
@@ -325,19 +320,17 @@ public class TargetingKeywordsCreator {
         private final boolean winningBid;
         private final boolean includeWinners;
         private final boolean includeBidderKeys;
-        private final int truncateAttrChars;
         private final Set<String> excludedBidderKeys;
 
         private final Map<String, String> keywords;
 
         KeywordMap(String bidder, boolean winningBid, boolean includeWinners, boolean includeBidderKeys,
-                   int truncateAttrChars, Set<String> excludedBidderKeys) {
+                   Set<String> excludedBidderKeys) {
             this.bidder = bidder;
             this.winningBid = winningBid;
             this.includeWinners = includeWinners;
             this.includeBidderKeys = includeBidderKeys;
             this.excludedBidderKeys = excludedBidderKeys;
-            this.truncateAttrChars = truncateAttrChars;
 
             this.keywords = new HashMap<>();
         }
@@ -349,19 +342,13 @@ public class TargetingKeywordsCreator {
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
             if (includeBidderKeys && !excludedBidderKeys.contains(prefix)) {
-                keys.add(truncateKey(String.format("%s_%s", prefix, bidder)));
+                keys.add(String.format("%s_%s", prefix, bidder));
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {
                 keys.add(prefix);
             }
             return keys;
-        }
-
-        private String truncateKey(String key) {
-            return truncateAttrChars > 0 && key.length() > truncateAttrChars
-                    ? key.substring(0, truncateAttrChars)
-                    : key;
         }
 
         private Map<String, String> asMap() {

@@ -21,32 +21,35 @@ import java.util.Set;
 public interface ApplicationSettings {
 
     /**
-     * Returns {@link Account} info for given a accountId
+     * Returns {@link Account} for the given account ID.
      */
     Future<Account> getAccountById(String accountId, Timeout timeout);
 
     /**
-     * Returns AddUnitConfig info for a given adUnitConfigId
+     * Returns configuration for the given adUnit config ID.
      */
     Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout);
 
     /**
-     * Fetches stored requests and imps
+     * Fetches stored requests and imps by IDs.
      */
-    Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout);
+    Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                           Timeout timeout);
 
     /**
-     * Fetches stored response
+     * Fetches AMP stored requests and imps by IDs.
+     */
+    Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                              Timeout timeout);
+
+    /**
+     * Fetches Video stored requests and imps by IDs.
+     */
+    Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                Timeout timeout);
+
+    /**
+     * Fetches stored response by IDs.
      */
     Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout);
-
-    /**
-     * Fetches AMP stored requests and imps
-     */
-    Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout);
-
-    /**
-     * Fetches Video stored requests and imps
-     */
-    Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout);
 }

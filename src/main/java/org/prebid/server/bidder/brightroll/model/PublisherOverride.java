@@ -9,6 +9,7 @@ import java.util.List;
 @Value
 @AllArgsConstructor(staticName = "of")
 public class PublisherOverride {
+
     /**
      * Blocked advertisers.
      */
