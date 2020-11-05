@@ -10,6 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpHeaders;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -40,10 +41,14 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private static final String BIDDER_PARAM = "bidder";
     private static final String UID_PARAM = "uid";
-    private static final String FORMAT_PARAM = "format";
-    private static final String IMG_FORMAT_PARAM = "img";
+    private static final String FORMAT_PARAM = "f";
+    private static final String IMG_FORMAT_PARAM = "i";
+    private static final String BLANK_FORMAT_PARAM = "b";
     private static final String PIXEL_FILE_PATH = "static/tracking-pixel.png";
     private static final String ACCOUNT_PARAM = "account";
+    private static final int UNAVAILABLE_FOR_LEGAL_REASONS = 451;
+    private static final String REDIRECT = "redirect";
+    private static final String TEXT_HTML = "text/html";
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
@@ -54,7 +59,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
-    private final Set<String> activeCookieFamilyNames;
+    private final Map<String, String> activeCookieFamilyNamesToType;
 
     public SetuidHandler(long defaultTimeout,
                          UidsCookieService uidsCookieService,
@@ -77,11 +82,10 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
 
-        activeCookieFamilyNames = bidderCatalog.names().stream()
+        activeCookieFamilyNamesToType = bidderCatalog.names().stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
-                .map(Usersyncer::getCookieFamilyName)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, Usersyncer::getType));
     }
 
     @Override
@@ -97,7 +101,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         final String cookieName = context.request().getParam(BIDDER_PARAM);
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
-        if (isCookieNameBlank || !activeCookieFamilyNames.contains(cookieName)) {
+        if (isCookieNameBlank || !activeCookieFamilyNamesToType.containsKey(cookieName)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String body = "\"bidder\" query param is ";
             respondWith(context, status, body + (isCookieNameBlank ? "required" : "invalid"));
@@ -105,17 +109,17 @@ public class SetuidHandler implements Handler<RoutingContext> {
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
-
         final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final String requestAccount = context.request().getParam(ACCOUNT_PARAM);
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
+        final String cookieType = activeCookieFamilyNamesToType.get(cookieName);
 
         accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromSetuidRequest(
                         context.request(), account, timeout))
                 .compose(privacyContext -> tcfDefinerService.resultForVendorIds(
                         vendorIds, privacyContext.getTcfContext()))
-                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
+                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName, cookieType));
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
@@ -126,7 +130,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private void handleResult(AsyncResult<TcfResponse<Integer>> asyncResult, RoutingContext context,
-                              UidsCookie uidsCookie, String bidder) {
+                              UidsCookie uidsCookie, String bidder, String cookieType) {
         if (asyncResult.failed()) {
             respondWithError(context, bidder, asyncResult.cause());
         } else {
@@ -145,9 +149,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
             final boolean allowedCookie = notInGdprScope || !blockPixelSync;
 
             if (allowedCookie) {
-                respondWithCookie(context, bidder, uidsCookie);
+                respondWithCookie(context, bidder, uidsCookie, cookieType);
             } else {
-                respondWithoutCookie(context, HttpResponseStatus.OK.code(),
+                respondWithoutCookie(context, UNAVAILABLE_FOR_LEGAL_REASONS,
                         "The gdpr_consent param prevents cookies from being saved", bidder);
             }
         }
@@ -175,7 +179,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         analyticsReporter.processEvent(SetuidEvent.error(status));
     }
 
-    private void respondWithCookie(RoutingContext context, String bidder, UidsCookie uidsCookie) {
+    private void respondWithCookie(RoutingContext context, String bidder, UidsCookie uidsCookie, String cookieType) {
         final String uid = context.request().getParam(UID_PARAM);
         final UidsCookie updatedUidsCookie;
         boolean successfullyUpdated = false;
@@ -199,7 +203,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         // Send pixel file to response if "format=img"
         final String format = context.request().getParam(FORMAT_PARAM);
-        if (StringUtils.equals(format, IMG_FORMAT_PARAM)) {
+        if (shouldRespondWithPixel(format, cookieType)) {
             context.response().sendFile(PIXEL_FILE_PATH);
         } else {
             respondWith(context, status, null);
@@ -217,6 +221,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         context.response().headers().add(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie));
     }
 
+    private boolean shouldRespondWithPixel(String format, String cookieType) {
+        return StringUtils.equals(format, IMG_FORMAT_PARAM)
+                || !StringUtils.equals(format, BLANK_FORMAT_PARAM) && StringUtils.equals(cookieType, REDIRECT);
+    }
+
     private static void respondWith(RoutingContext context, int status, String body) {
         // don't send the response if client has gone
         if (context.response().closed()) {
@@ -228,7 +237,10 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (body != null) {
             context.response().end(body);
         } else {
-            context.response().end();
+            context.response()
+                    .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
+                    .putHeader(HttpHeaders.CONTENT_TYPE, TEXT_HTML)
+                    .end();
         }
     }
 }

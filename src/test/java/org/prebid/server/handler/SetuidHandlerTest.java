@@ -46,9 +46,11 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
@@ -102,12 +104,14 @@ public class SetuidHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
 
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.putHeader(anyString(), anyString())).willReturn(httpResponse);
 
         given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("test", "test"));
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("rubicon", "audienceNetwork")));
         given(bidderCatalog.isActive(any())).willReturn(true);
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                new Usersyncer(RUBICON, null, null, null, false));
+                new Usersyncer(RUBICON, null, null, "iframe", false),
+                new Usersyncer(FACEBOOK, null, null, "iframe", false));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -192,7 +196,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(routingContext, never()).addCookie(any(Cookie.class));
-        verify(httpResponse).setStatusCode(eq(200));
+        verify(httpResponse).setStatusCode(eq(451));
         verify(httpResponse).end(eq("The gdpr_consent param prevents cookies from being saved"));
     }
 
@@ -298,7 +302,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
-        given(httpRequest.getParam("format")).willReturn("img");
+        given(httpRequest.getParam("f")).willReturn("i");
 
         // this uids cookie stands for {"tempUIDs":{"adnxs":{"uid":"12345"}}}
         given(uidsCookieService.toCookie(any())).willReturn(Cookie
@@ -329,9 +333,9 @@ public class SetuidHandlerTest extends VertxTest {
         // this uids cookie value stands for {"tempUIDs":{"audienceNetwork":{"uid":"facebookUid"}}}
         given(uidsCookieService.toCookie(any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhdWRpZW5jZU5ldHdvcmsiOnsidWlkIjoiZmFjZWJvb2tVaWQifX19"));
-
+        given(bidderCatalog.names()).willReturn(singleton(FACEBOOK));
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                new Usersyncer(FACEBOOK, null, null, null, false));
+                new Usersyncer(FACEBOOK, null, null, "iframe", false));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -372,7 +376,32 @@ public class SetuidHandlerTest extends VertxTest {
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
-        given(httpRequest.getParam("format")).willReturn("img");
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+        final String uidsCookie = getUidsCookie();
+        final Uids decodedUids = decodeUids(uidsCookie);
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
+    }
+
+    @Test
+    public void shouldSendPixelWhenFParamIsEqualToIWhenTypeIsIframe() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
+
+        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("f")).willReturn("i");
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
@@ -383,11 +412,108 @@ public class SetuidHandlerTest extends VertxTest {
         // then
         verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).sendFile(any());
+    }
 
-        final String uidsCookie = getUidsCookie();
-        final Uids decodedUids = decodeUids(uidsCookie);
-        assertThat(decodedUids.getUids()).hasSize(1);
-        assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
+    @Test
+    public void shouldSendEmptyResponseWhenFParamIsEqualToBWhenTypeIsRedirect() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
+
+        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("f")).willReturn("b");
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+        given(bidderCatalog.names()).willReturn(singleton(RUBICON));
+        given(bidderCatalog.usersyncerByName(any())).willReturn(
+                new Usersyncer(RUBICON, null, null, "redirect", false));
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        setuidHandler = new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                privacyEnforcementService,
+                tcfDefinerService,
+                null,
+                analyticsReporter,
+                metrics,
+                new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())));
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+        verify(httpResponse, never()).sendFile(any());
+        verify(httpResponse).putHeader(eq("Content-Length"), eq("0"));
+        verify(httpResponse).putHeader(eq("Content-Type"), eq("text/html"));
+    }
+
+    @Test
+    public void shouldSendEmptyResponseWhenParamNotDefinedAndTypeIsIframe() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
+
+        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+        verify(httpResponse, never()).sendFile(any());
+        verify(httpResponse).putHeader(eq("Content-Length"), eq("0"));
+        verify(httpResponse).putHeader(eq("Content-Type"), eq("text/html"));
+    }
+
+    @Test
+    public void shouldSendPixelWhenFParamNotDefinedAndTypeIsRedirect() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
+
+        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(bidderCatalog.names()).willReturn(singleton(RUBICON));
+        given(bidderCatalog.usersyncerByName(any())).willReturn(
+                new Usersyncer(RUBICON, null, null, "redirect", false));
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        setuidHandler = new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                privacyEnforcementService,
+                tcfDefinerService,
+                null,
+                analyticsReporter,
+                metrics,
+                new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())));
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+        verify(httpResponse).sendFile(any());
     }
 
     @Test
@@ -577,9 +703,10 @@ public class SetuidHandlerTest extends VertxTest {
 
         given(httpRequest.getParam("bidder")).willReturn(FACEBOOK);
         given(httpRequest.getParam("uid")).willReturn("0");
+        given(bidderCatalog.names()).willReturn(singleton(FACEBOOK));
 
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                new Usersyncer(FACEBOOK, null, null, null, false));
+                new Usersyncer(FACEBOOK, null, null, "iframe", false));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
