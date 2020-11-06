@@ -44,7 +44,7 @@ public class CircuitBreaker {
 
         this.vertx = vertx;
         this.openingIntervalMs = openingIntervalMs;
-        this.clock = clock;
+        this.clock = Objects.requireNonNull(clock);
     }
 
     /**
