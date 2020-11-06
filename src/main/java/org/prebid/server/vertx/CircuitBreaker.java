@@ -38,12 +38,13 @@ public class CircuitBreaker {
                 Objects.requireNonNull(name),
                 Objects.requireNonNull(vertx),
                 new CircuitBreakerOptions()
+                        .setNotificationPeriod(0)
                         .setMaxFailures(openingThreshold)
                         .setResetTimeout(closingIntervalMs));
 
         this.vertx = vertx;
         this.openingIntervalMs = openingIntervalMs;
-        this.clock = Objects.requireNonNull(clock);
+        this.clock = clock;
     }
 
     /**
