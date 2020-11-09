@@ -70,8 +70,9 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isNull();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid imp id=123. Expected imp.banner or imp.video"));
+        assertThat(result.getErrors())
+                .allMatch(error -> error.getType() == BidderError.Type.bad_input
+                        && error.getMessage().startsWith("Invalid imp id=123. Expected imp.banner or imp.vide"));
     }
 
     @Test
@@ -90,7 +91,8 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_input
+                && error.getMessage().startsWith("Cannot deserialize instance"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -103,8 +105,9 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid zoneId value: null. Ignoring imp id=123"));
+        assertThat(result.getErrors())
+                .allMatch(error -> error.getType() == BidderError.Type.bad_input
+                        && error.getMessage().equals("Invalid zoneId value: null. Ignoring imp id=123"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -117,8 +120,9 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid zoneId value: 0. Ignoring imp id=123"));
+        assertThat(result.getErrors())
+                .allMatch(error -> error.getType() == BidderError.Type.bad_input
+                        && error.getMessage().equals("Invalid zoneId value: 0. Ignoring imp id=123"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -131,8 +135,9 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
+        assertThat(result.getErrors())
+                .allMatch(error -> error.getType() == BidderError.Type.bad_input
+                        && error.getMessage().equals("Host is empty. Ignoring imp id=123"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -145,8 +150,9 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
+        assertThat(result.getErrors())
+                .allMatch(error -> error.getType() == BidderError.Type.bad_input
+                        && error.getMessage().equals("Host is empty. Ignoring imp id=123"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -280,7 +286,8 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
@@ -323,8 +330,9 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adkernelBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Invalid SeatBids count: 0"));
+        assertThat(result.getErrors())
+                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                        && error.getMessage().equals("Invalid SeatBids count: 0"));
         assertThat(result.getValue()).isEmpty();
     }
 
