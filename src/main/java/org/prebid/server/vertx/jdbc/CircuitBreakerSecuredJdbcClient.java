@@ -33,7 +33,7 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
                                            int openingThreshold, long openingIntervalMs, long closingIntervalMs,
                                            Clock clock) {
 
-        breaker = new CircuitBreaker("jdbc-client-circuit-breaker", Objects.requireNonNull(vertx),
+        breaker = new CircuitBreaker("db_cb", Objects.requireNonNull(vertx),
                 openingThreshold, openingIntervalMs, closingIntervalMs, Objects.requireNonNull(clock))
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())

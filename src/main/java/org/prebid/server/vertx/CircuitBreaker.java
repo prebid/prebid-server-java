@@ -38,6 +38,7 @@ public class CircuitBreaker {
                 Objects.requireNonNull(name),
                 Objects.requireNonNull(vertx),
                 new CircuitBreakerOptions()
+                        .setNotificationPeriod(0)
                         .setMaxFailures(openingThreshold)
                         .setResetTimeout(closingIntervalMs));
 

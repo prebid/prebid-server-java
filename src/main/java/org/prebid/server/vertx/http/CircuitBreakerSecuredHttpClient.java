@@ -1,5 +1,6 @@
 package org.prebid.server.vertx.http;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -17,7 +18,6 @@ import java.net.URL;
 import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -29,9 +29,10 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredHttpClient.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
     private static final int LOG_PERIOD_SECONDS = 5;
+    private static final long IDLE_EXPIRE_DAYS = 3;
 
     private final Function<String, CircuitBreaker> circuitBreakerCreator;
-    private final Map<String, CircuitBreaker> circuitBreakerByName = new ConcurrentHashMap<>();
+    private final Map<String, CircuitBreaker> circuitBreakerByName;
 
     private final HttpClient httpClient;
     private final Metrics metrics;
@@ -45,7 +46,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                            Clock clock) {
 
         circuitBreakerCreator = name -> new CircuitBreaker(
-                "http-client-circuit-breaker-" + name,
+                "http_cb_" + name,
                 Objects.requireNonNull(vertx),
                 openingThreshold,
                 openingIntervalMs,
@@ -54,6 +55,11 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));
+
+        circuitBreakerByName = Caffeine.newBuilder()
+                .expireAfterAccess(IDLE_EXPIRE_DAYS, TimeUnit.DAYS) // remove unused CBs
+                .<String, CircuitBreaker>build()
+                .asMap();
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
@@ -85,8 +91,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private static String nameFrom(String urlAsString) {
         final URL url = parseUrl(urlAsString);
-        return url.getProtocol() + "://" + url.getHost()
-                + (url.getPort() != -1 ? ":" + url.getPort() : "") + url.getPath();
+        return url.getProtocol() + "://" + url.getHost() + (url.getPort() != -1 ? ":" + url.getPort() : "");
     }
 
     private static String idFrom(String urlAsString) {

@@ -31,7 +31,7 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
                                                    int openingThreshold, long openingIntervalMs,
                                                    long closingIntervalMs, Clock clock) {
 
-        breaker = new CircuitBreaker("geolocation-service-circuit-breaker", Objects.requireNonNull(vertx),
+        breaker = new CircuitBreaker("geo_cb", Objects.requireNonNull(vertx),
                 openingThreshold, openingIntervalMs, closingIntervalMs, Objects.requireNonNull(clock))
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
