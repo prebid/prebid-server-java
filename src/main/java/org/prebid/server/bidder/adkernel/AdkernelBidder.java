@@ -104,16 +104,14 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         return extImpAdkernel;
     }
 
-    //Group impressions by AdKernel-specific parameters `zoneId` & `host`
     private static void dispatchImpression(Imp imp, ExtImpAdkernel extImpAdkernel,
                                            Map<ExtImpAdkernel, List<Imp>> pubToImp) {
         pubToImp.putIfAbsent(extImpAdkernel, new ArrayList<>());
         pubToImp.get(extImpAdkernel).add(compatImpression(imp));
     }
 
-    //Alter impression info to comply with adkernel platform requirements
     private static Imp compatImpression(Imp imp) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder().ext(null) //do not forward ext to adkernel platform
+        final Imp.ImpBuilder impBuilder = imp.toBuilder().ext(null)
                 .audio(null)
                 .xNative(null);
         return imp.getBanner() != null ? impBuilder.video(null).build() : impBuilder.build();
@@ -121,8 +119,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static boolean hasNoImpressions(Map<ExtImpAdkernel, List<Imp>> pubToImps) {
         return pubToImps.values().stream()
-                .mapToLong(Collection::size)
-                .sum() == 0;
+                .noneMatch(imp -> imp.size() > 0);
     }
 
     private HttpRequest<BidRequest> createHttpRequest(Map.Entry<ExtImpAdkernel, List<Imp>> extAndImp,
