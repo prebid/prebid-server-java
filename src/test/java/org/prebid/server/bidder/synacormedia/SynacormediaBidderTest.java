@@ -22,6 +22,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
+import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtRequestSynacormedia;
 
 import java.util.List;
 import java.util.function.Function;
@@ -62,8 +63,9 @@ public class SynacormediaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = synacormediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).hasSize(1)
+                .allMatch(error -> error.getType() == BidderError.Type.bad_input
+                        && error.getMessage().startsWith("Invalid Impression"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -86,7 +88,7 @@ public class SynacormediaBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsOnly(BidRequest.builder()
                         .imp(singletonList(givenImp(identity()).toBuilder().tagid("tagId").build()))
-                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), ExtImpSynacormedia.of("seatId", null)))
+                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), ExtRequestSynacormedia.of("seatId")))
                         .build());
     }
 
@@ -103,7 +105,8 @@ public class SynacormediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid Impression"));
+                .allMatch(error -> error.getType() == BidderError.Type.bad_input
+                        && error.getMessage().startsWith("Invalid Impression"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -120,7 +123,8 @@ public class SynacormediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid Impression"));
+                .allMatch(error -> error.getType() == BidderError.Type.bad_input
+                        && error.getMessage().startsWith("Invalid Impression"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -148,9 +152,9 @@ public class SynacormediaBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = synacormediaBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                        && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
         assertThat(result.getValue()).isEmpty();
     }
 
