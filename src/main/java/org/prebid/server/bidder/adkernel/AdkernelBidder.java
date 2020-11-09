@@ -57,9 +57,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         final Map<ExtImpAdkernel, List<Imp>> pubToImps = new HashMap<>();
         for (Imp imp : request.getImp()) {
             try {
-                validateImp(imp);
-                final ExtImpAdkernel extImpAdkernel = parseAndValidateImpExt(imp);
-                dispatchImpression(imp, extImpAdkernel, pubToImps);
+                processImp(imp, pubToImps);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -75,6 +73,12 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
 
         return Result.of(httpRequests, errors);
+    }
+
+    private void processImp(Imp imp, Map<ExtImpAdkernel, List<Imp>> pubToImps) {
+        validateImp(imp);
+        final ExtImpAdkernel extImpAdkernel = parseAndValidateImpExt(imp);
+        dispatchImpression(imp, extImpAdkernel, pubToImps);
     }
 
     private static void validateImp(Imp imp) {
@@ -142,8 +146,8 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidRequest createBidRequest(
-            List<Imp> imps, BidRequest.BidRequestBuilder requestBuilder, Site site, App app) {
+    private static BidRequest createBidRequest(List<Imp> imps, BidRequest.BidRequestBuilder requestBuilder,
+                                               Site site, App app) {
 
         requestBuilder.imp(imps);
 
@@ -183,9 +187,6 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Figures out which media type this bid is for.
-     */
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getBanner() != null) {
