@@ -84,11 +84,14 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final List<String> adSlotIds = extImps.stream()
                 .map(ExtImpYieldlab::getAdslotId)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         final Map<String, String> targeting = extImps.stream()
                 .map(ExtImpYieldlab::getTargeting)
+                .filter(Objects::nonNull)
                 .flatMap(map -> map.entrySet().stream())
+                .filter(entry -> entry.getKey() != null)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         final String adSlotIdsParams = adSlotIds.stream().sorted().collect(Collectors.joining(AD_SLOT_ID_SEPARATOR));
@@ -99,7 +102,7 @@ public class YieldlabBidder implements Bidder<Void> {
         final List<ExtImpYieldlab> extImps = new ArrayList<>();
         for (Imp imp : imps) {
             final ExtImpYieldlab extImpYieldlab = parseImpExt(imp);
-            if (Objects.nonNull(extImpYieldlab)) {
+            if (extImpYieldlab != null) {
                 extImps.add(extImpYieldlab);
             }
         }
@@ -128,29 +131,29 @@ public class YieldlabBidder implements Bidder<Void> {
                 .addParameter("t", getTargetingValues(extImpYieldlab));
 
         final User user = request.getUser();
-        if (Objects.nonNull(user) && StringUtils.isNotBlank(user.getBuyeruid())) {
+        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
             uriBuilder.addParameter("ids", String.join("ylid:", user.getBuyeruid()));
         }
 
         final Device device = request.getDevice();
-        if (Objects.nonNull(device)) {
+        if (device != null) {
             uriBuilder.addParameter("yl_rtb_ifa", device.getIfa())
                     .addParameter("yl_rtb_devicetype", device.getDevicetype().toString());
 
             final Integer connectionType = device.getConnectiontype();
-            if (Objects.nonNull(connectionType)) {
+            if (connectionType != null) {
                 uriBuilder.addParameter("yl_rtb_connectiontype", connectionType.toString());
             }
 
             final Geo geo = device.getGeo();
-            if (Objects.nonNull(geo)) {
+            if (geo != null) {
                 uriBuilder.addParameter("lat", geo.getLat().toString())
                         .addParameter("lon", geo.getLon().toString());
             }
         }
 
         final App app = request.getApp();
-        if (Objects.nonNull(app)) {
+        if (app != null) {
             uriBuilder.addParameter("pubappname", app.getName())
                     .addParameter("pubbundlename", app.getBundle());
         }
@@ -174,8 +177,8 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid extRequestPrebid = Objects.nonNull(extRequest) ? extRequest.getPrebid() : null;
-        return Objects.nonNull(extRequestPrebid) && Objects.equals(extRequestPrebid.getDebug(), 1);
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
     }
 
     private String getTargetingValues(ExtImpYieldlab extImpYieldlab) {
@@ -189,9 +192,9 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private static String getGdprParameter(Regs regs) {
-        if (Objects.nonNull(regs)) {
+        if (regs != null) {
             final Integer gdpr = regs.getExt() != null ? regs.getExt().getGdpr() : null;
-            if (Objects.nonNull(gdpr) && (gdpr == 0 || gdpr == 1)) {
+            if (gdpr != null && (gdpr == 0 || gdpr == 1)) {
                 return gdpr.toString();
             }
         }
@@ -199,8 +202,8 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private static String getConsentParameter(User user) {
-        final ExtUser extUser = Objects.nonNull(user) ? user.getExt() : null;
-        final String consent = Objects.nonNull(extUser) ? extUser.getConsent() : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final String consent = extUser != null ? extUser.getConsent() : null;
         return ObjectUtils.defaultIfNull(consent, "");
     }
 
@@ -208,16 +211,16 @@ public class YieldlabBidder implements Bidder<Void> {
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add("Accept", "application/json");
 
-        if (Objects.nonNull(site)) {
+        if (site != null) {
             addHeader(headers, "Referer", site.getPage());
         }
 
-        if (Objects.nonNull(device)) {
+        if (device != null) {
             addHeader(headers, "User-Agent", device.getUa());
             addHeader(headers, "X-Forwarded-For", device.getIp());
         }
 
-        if (Objects.nonNull(user) && StringUtils.isNotBlank(user.getBuyeruid())) {
+        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
             headers.add("Cookie", String.format("id=%s", user.getBuyeruid()));
         }
 
@@ -253,7 +256,7 @@ public class YieldlabBidder implements Bidder<Void> {
                 return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
 
-            if (Objects.nonNull(bidderBid)) {
+            if (bidderBid != null) {
                 bidderBids.add(bidderBid);
             }
         }
@@ -310,13 +313,17 @@ public class YieldlabBidder implements Bidder<Void> {
         final ExtImpYieldlab matchedExtImp = getMatchedExtImp(yieldlabResponse.getId(), bidRequest.getImp());
 
         updatedBid.id(String.valueOf(yieldlabResponse.getId()))
-                .price(BigDecimal.valueOf(yieldlabResponse.getPrice() / 100))
+                .price(resolvePrice(yieldlabResponse.getPrice()))
                 .dealid(String.valueOf(yieldlabResponse.getPid()))
                 .crid(makeCreativeId(bidRequest, yieldlabResponse, matchedExtImp))
                 .w(resolveSizeParameter(yieldlabResponse.getAdSize(), true))
                 .h(resolveSizeParameter(yieldlabResponse.getAdSize(), false));
 
         return updatedBid;
+    }
+
+    private static BigDecimal resolvePrice(Double price) {
+        return price != null ? BigDecimal.valueOf(price / 100) : null;
     }
 
     private static String makeCreativeId(BidRequest bidRequest, YieldlabResponse yieldlabResponse,
