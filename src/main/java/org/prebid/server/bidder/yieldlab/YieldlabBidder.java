@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -137,18 +138,18 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final Device device = request.getDevice();
         if (device != null) {
-            uriBuilder.addParameter("yl_rtb_ifa", device.getIfa())
-                    .addParameter("yl_rtb_devicetype", device.getDevicetype().toString());
+            uriBuilder.addParameter("yl_rtb_ifa", device.getIfa());
 
+            uriBuilder.addParameter("yl_rtb_devicetype", resolveNumberParameter(device.getDevicetype()));
             final Integer connectionType = device.getConnectiontype();
             if (connectionType != null) {
-                uriBuilder.addParameter("yl_rtb_connectiontype", connectionType.toString());
+                uriBuilder.addParameter("yl_rtb_connectiontype", device.getConnectiontype().toString());
             }
 
             final Geo geo = device.getGeo();
             if (geo != null) {
-                uriBuilder.addParameter("lat", geo.getLat().toString())
-                        .addParameter("lon", geo.getLon().toString());
+                uriBuilder.addParameter("lat", resolveNumberParameter(geo.getLat()));
+                uriBuilder.addParameter("lon", resolveNumberParameter(geo.getLon()));
             }
         }
 
@@ -209,28 +210,22 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private static MultiMap resolveHeaders(Site site, Device device, User user) {
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                .add("Accept", "application/json");
+                .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
         if (site != null) {
-            addHeader(headers, "Referer", site.getPage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER.toString(), site.getPage());
         }
 
         if (device != null) {
-            addHeader(headers, "User-Agent", device.getUa());
-            addHeader(headers, "X-Forwarded-For", device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
         }
 
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            headers.add("Cookie", String.format("id=%s", user.getBuyeruid()));
+            headers.add(HttpUtil.COOKIE_HEADER.toString(), String.format("id=%s", user.getBuyeruid()));
         }
 
         return headers;
-    }
-
-    private static void addHeader(MultiMap headers, String header, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            headers.add(header, value);
-        }
     }
 
     @Override
@@ -271,7 +266,11 @@ public class YieldlabBidder implements Bidder<Void> {
         if (matchedExtImp == null) {
             throw new PreBidException("Invalid extension");
         }
+
         final Imp currentImp = bidRequest.getImp().get(currentImpIndex);
+        if (currentImp == null) {
+            throw new PreBidException(String.format("Imp not present for id %s", currentImpIndex));
+        }
         final Bid.BidBuilder updatedBid = Bid.builder();
 
         BidType bidType;
@@ -312,9 +311,13 @@ public class YieldlabBidder implements Bidder<Void> {
                                         Bid.BidBuilder updatedBid) {
         final ExtImpYieldlab matchedExtImp = getMatchedExtImp(yieldlabResponse.getId(), bidRequest.getImp());
 
-        updatedBid.id(String.valueOf(yieldlabResponse.getId()))
+        if (matchedExtImp == null) {
+            throw new PreBidException("Invalid extension");
+        }
+
+        updatedBid.id(resolveNumberParameter(yieldlabResponse.getId()))
                 .price(resolvePrice(yieldlabResponse.getPrice()))
-                .dealid(String.valueOf(yieldlabResponse.getPid()))
+                .dealid(resolveNumberParameter(yieldlabResponse.getPid()))
                 .crid(makeCreativeId(bidRequest, yieldlabResponse, matchedExtImp))
                 .w(resolveSizeParameter(yieldlabResponse.getAdSize(), true))
                 .h(resolveSizeParameter(yieldlabResponse.getAdSize(), false));
@@ -324,6 +327,10 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private static BigDecimal resolvePrice(Double price) {
         return price != null ? BigDecimal.valueOf(price / 100) : null;
+    }
+
+    private static String resolveNumberParameter(Number param) {
+        return param != null ? String.valueOf(param) : null;
     }
 
     private static String makeCreativeId(BidRequest bidRequest, YieldlabResponse yieldlabResponse,
