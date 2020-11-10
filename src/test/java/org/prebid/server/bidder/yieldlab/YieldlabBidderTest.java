@@ -36,7 +36,6 @@ import java.util.function.Function;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -106,7 +105,6 @@ public class YieldlabBidderTest extends VertxTest {
                 .flatExtracting(r -> r.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
-                        tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
                         tuple("User-Agent", "Agent"),
                         tuple("X-Forwarded-For", "ip"),
@@ -124,8 +122,8 @@ public class YieldlabBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unrecognized token 'invalid':");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("Unrecognized token 'invalid"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -193,10 +191,8 @@ public class YieldlabBidderTest extends VertxTest {
                         .build(),
                 BidType.banner, "EUR");
 
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull()
-                .hasSize(1).element(0).isEqualTo(expected);
+        assertThat(result.getValue()).containsExactly(expected);
     }
 
     @Test
@@ -211,10 +207,6 @@ public class YieldlabBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer))))
                 .build();
-    }
-
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
