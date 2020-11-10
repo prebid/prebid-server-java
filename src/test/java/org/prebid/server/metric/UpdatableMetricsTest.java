@@ -73,6 +73,18 @@ public class UpdatableMetricsTest {
     }
 
     @Test
+    public void decCounterShouldDecrementByOne() {
+        // given
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, MetricName::toString);
+
+        // when
+        updatableMetrics.decCounter(MetricName.requests);
+
+        // then
+        assertThat(metricRegistry.counter("requests").getCount()).isEqualTo(-1);
+    }
+
+    @Test
     public void updateTimerShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,

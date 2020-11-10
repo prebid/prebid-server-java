@@ -45,7 +45,40 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                            long closingIntervalMs,
                                            Clock clock) {
 
-        circuitBreakerCreator = name -> new CircuitBreaker(
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.metrics = Objects.requireNonNull(metrics);
+
+        circuitBreakerCreator =
+                circuitBreakerCreator(vertx, openingThreshold, openingIntervalMs, closingIntervalMs, clock)
+                        .andThen(this::updateCircuitBreakerCreationMetric);
+
+        circuitBreakerByName = Caffeine.newBuilder()
+                .expireAfterAccess(IDLE_EXPIRE_DAYS, TimeUnit.DAYS) // remove unused CBs
+                .removalListener((key, value, cause) -> updateCircuitBreakerDeletionMetric())
+                .<String, CircuitBreaker>build()
+                .asMap();
+
+        logger.info("Initialized HTTP client with Circuit Breaker");
+    }
+
+    @Override
+    public Future<HttpClientResponse> request(HttpMethod method,
+                                              String url,
+                                              MultiMap headers,
+                                              String body,
+                                              long timeoutMs) {
+
+        return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
+                .execute(promise -> httpClient.request(method, url, headers, body, timeoutMs).setHandler(promise));
+    }
+
+    private Function<String, CircuitBreaker> circuitBreakerCreator(Vertx vertx,
+                                                                   int openingThreshold,
+                                                                   long openingIntervalMs,
+                                                                   long closingIntervalMs,
+                                                                   Clock clock) {
+
+        return name -> new CircuitBreaker(
                 "http_cb_" + name,
                 Objects.requireNonNull(vertx),
                 openingThreshold,
@@ -55,16 +88,15 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));
+    }
 
-        circuitBreakerByName = Caffeine.newBuilder()
-                .expireAfterAccess(IDLE_EXPIRE_DAYS, TimeUnit.DAYS) // remove unused CBs
-                .<String, CircuitBreaker>build()
-                .asMap();
+    private CircuitBreaker updateCircuitBreakerCreationMetric(CircuitBreaker circuitBreaker) {
+        metrics.updateHttpClientCircuitBreakerNumberMetric(true);
+        return circuitBreaker;
+    }
 
-        this.httpClient = Objects.requireNonNull(httpClient);
-        this.metrics = Objects.requireNonNull(metrics);
-
-        logger.info("Initialized HTTP client with Circuit Breaker");
+    private void updateCircuitBreakerDeletionMetric() {
+        metrics.updateHttpClientCircuitBreakerNumberMetric(false);
     }
 
     private void circuitOpened(String name) {
@@ -82,21 +114,14 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
         metrics.updateHttpClientCircuitBreakerMetric(idFrom(name), false);
     }
 
-    @Override
-    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
-                                              long timeoutMs) {
-        return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise -> httpClient.request(method, url, headers, body, timeoutMs).setHandler(promise));
-    }
-
     private static String nameFrom(String urlAsString) {
         final URL url = parseUrl(urlAsString);
         return url.getProtocol() + "://" + url.getHost() + (url.getPort() != -1 ? ":" + url.getPort() : "");
     }
 
     private static String idFrom(String urlAsString) {
-        final URL url = parseUrl(urlAsString);
-        return url.getHost().replaceAll("[^\\w]", "_");
+        return urlAsString
+                .replaceAll("[^\\w]+", "_");
     }
 
     private static URL parseUrl(String url) {

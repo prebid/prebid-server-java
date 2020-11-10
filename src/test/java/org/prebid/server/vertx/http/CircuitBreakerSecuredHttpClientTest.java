@@ -62,7 +62,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsOnInvalidUrl() {
+    public void requestShouldFailOnInvalidUrl() {
         // when and then
         assertThatThrownBy(() -> httpClient.request(HttpMethod.GET, "invalid_url", null, null, 0L))
                 .isInstanceOf(PreBidException.class)
@@ -70,7 +70,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldSucceedsIfCircuitIsClosedAndWrappedHttpClientSucceeds(TestContext context) {
+    public void requestShouldSucceedIfCircuitIsClosedAndWrappedHttpClientSucceeds(TestContext context) {
         // given
         givenHttpClientReturning(HttpClientResponse.of(200, null, null));
 
@@ -84,7 +84,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsIfCircuitIsClosedButWrappedHttpClientFails(TestContext context) {
+    public void requestShouldFailIfCircuitIsClosedButWrappedHttpClientFails(TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
 
@@ -99,7 +99,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndClosingTimeIsNotPassedBy(
+    public void requestShouldFailIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndClosingTimeIsNotPassedBy(
             TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
@@ -119,7 +119,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsIfCircuitIsHalfOpenedButWrappedHttpClientFails(TestContext context) {
+    public void requestShouldFailIfCircuitIsHalfOpenedButWrappedHttpClientFails(TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
 
@@ -144,7 +144,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldSucceedsIfCircuitIsHalfOpenedAndWrappedHttpClientSucceeds(TestContext context) {
+    public void requestShouldSucceedIfCircuitIsHalfOpenedAndWrappedHttpClientSucceeds(TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
@@ -168,7 +168,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
+    public void requestShouldFailWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
         httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, clock);
 
@@ -191,30 +191,39 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldReportMetricsOnCircuitOpened(TestContext context) {
+    public void requestShouldReportMetricOnCircuitBreakerCreation(TestContext context) {
+        // when
+        doRequest("http://www.some-host-1.com:80/path", context);
+
+        // then
+        verify(metrics).updateHttpClientCircuitBreakerNumberMetric(eq(true));
+    }
+
+    @Test
+    public void requestShouldReportMetricOnCircuitOpened(TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        doRequest("http://www.some-host-1.com/path", context);
+        doRequest("http://www.some-host-1.com:80/path", context);
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("www_some_host_1_com"), eq(true));
+        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("http_www_some_host_1_com_80"), eq(true));
     }
 
     @Test
-    public void requestShouldReportMetricsOnCircuitClosed(TestContext context) {
+    public void requestShouldReportMetricOnCircuitClosed(TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
         // when
-        doRequest("http://www.some-host-1.com/path", context); // 1 call
-        doRequest("http://www.some-host-1.com/path", context); // 2 call
+        doRequest("http://www.some-host-1.com:80/path", context); // 1 call
+        doRequest("http://www.some-host-1.com:80/path", context); // 2 call
         doWaitForClosingInterval(context);
-        doRequest("http://www.some-host-1.com/path", context); // 3 call
+        doRequest("http://www.some-host-1.com:80/path", context); // 3 call
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("www_some_host_1_com"), eq(false));
+        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("http_www_some_host_1_com_80"), eq(false));
     }
 
     @SuppressWarnings("unchecked")

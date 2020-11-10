@@ -329,22 +329,22 @@ public class MetricsTest {
 
     @Test
     public void forCircuitBreakerShouldReturnSameCircuitBreakerMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forCircuitBreaker("id")).isSameAs(metrics.forCircuitBreaker("id"));
+        assertThat(metrics.forCircuitBreakerType(MetricName.db)).isSameAs(metrics.forCircuitBreakerType(MetricName.db));
     }
 
     @Test
     public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(
-                metrics -> metrics.forCircuitBreaker("id").incCounter(MetricName.httpclient_circuitbreaker_opened));
+                metrics -> metrics.forCircuitBreakerType(MetricName.db).incCounter(MetricName.opened));
     }
 
     @Test
     public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithId() {
         // when
-        metrics.forCircuitBreaker("id").incCounter(MetricName.httpclient_circuitbreaker_opened);
+        metrics.forCircuitBreakerType(MetricName.db).incCounter(MetricName.opened);
 
         // then
-        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened.id").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("circuit-breaker.db.opened").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -862,16 +862,16 @@ public class MetricsTest {
         metrics.updateDatabaseCircuitBreakerMetric(true);
 
         // then
-        assertThat(metricRegistry.counter("db_circuitbreaker_opened").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("circuit-breaker.db.opened").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void shouldIncrementDatabaseCircuitBreakerCloseMetric() {
+    public void shouldDecrementDatabaseCircuitBreakerOpenMetric() {
         // when
         metrics.updateDatabaseCircuitBreakerMetric(false);
 
         // then
-        assertThat(metricRegistry.counter("db_circuitbreaker_closed").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("circuit-breaker.db.opened").getCount()).isEqualTo(-1);
     }
 
     @Test
@@ -880,16 +880,34 @@ public class MetricsTest {
         metrics.updateHttpClientCircuitBreakerMetric("id", true);
 
         // then
-        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened.id").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("circuit-breaker.http.named.id.opened").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void shouldIncrementHttpClientCircuitBreakerCloseMetric() {
+    public void shouldDecrementHttpClientCircuitBreakerOpenMetric() {
         // when
         metrics.updateHttpClientCircuitBreakerMetric("id", false);
 
         // then
-        assertThat(metricRegistry.counter("httpclient_circuitbreaker_closed.id").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("circuit-breaker.http.named.id.opened").getCount()).isEqualTo(-1);
+    }
+
+    @Test
+    public void shouldIncrementHttpClientCircuitBreakerNumberMetric() {
+        // when
+        metrics.updateHttpClientCircuitBreakerNumberMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("circuit-breaker.http.existing").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldDecrementHttpClientCircuitBreakerNumberMetric() {
+        // when
+        metrics.updateHttpClientCircuitBreakerNumberMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("circuit-breaker.http.existing").getCount()).isEqualTo(-1);
     }
 
     @Test
@@ -898,16 +916,16 @@ public class MetricsTest {
         metrics.updateGeoLocationCircuitBreakerMetric(true);
 
         // then
-        assertThat(metricRegistry.counter("geolocation_circuitbreaker_opened").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("circuit-breaker.geo.opened").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void shouldIncrementGeoLocationCircuitBreakerCloseMetric() {
+    public void shouldDecrementGeoLocationCircuitBreakerOpenMetric() {
         // when
         metrics.updateGeoLocationCircuitBreakerMetric(false);
 
         // then
-        assertThat(metricRegistry.counter("geolocation_circuitbreaker_closed").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("circuit-breaker.geo.opened").getCount()).isEqualTo(-1);
     }
 
     @Test

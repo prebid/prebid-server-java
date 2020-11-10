@@ -29,7 +29,7 @@ public class Metrics extends UpdatableMetrics {
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
     private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
-    private final Function<String, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
+    private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
@@ -40,7 +40,7 @@ public class Metrics extends UpdatableMetrics {
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
     private final PrivacyMetrics privacyMetrics;
-    private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
+    private final Map<MetricName, CircuitBreakerMetrics> circuitBreakerMetrics;
     private final CacheMetrics cacheMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
@@ -55,7 +55,7 @@ public class Metrics extends UpdatableMetrics {
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
         bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
                 metricRegistry, counterType, cardinality);
-        circuitBreakerMetricsCreator = id -> new CircuitBreakerMetrics(metricRegistry, counterType, id);
+        circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
@@ -95,8 +95,8 @@ public class Metrics extends UpdatableMetrics {
         return privacyMetrics;
     }
 
-    CircuitBreakerMetrics forCircuitBreaker(String id) {
-        return circuitBreakerMetrics.computeIfAbsent(id, circuitBreakerMetricsCreator);
+    CircuitBreakerMetrics forCircuitBreakerType(MetricName type) {
+        return circuitBreakerMetrics.computeIfAbsent(type, circuitBreakerMetricsCreator);
     }
 
     CacheMetrics cache() {
@@ -379,18 +379,33 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateDatabaseCircuitBreakerMetric(boolean opened) {
+        final CircuitBreakerMetrics circuitBreakerMetrics = forCircuitBreakerType(MetricName.db);
+
         if (opened) {
-            incCounter(MetricName.db_circuitbreaker_opened);
+            circuitBreakerMetrics.incCounter(MetricName.opened);
         } else {
-            incCounter(MetricName.db_circuitbreaker_closed);
+            circuitBreakerMetrics.decCounter(MetricName.opened);
         }
     }
 
-    public void updateHttpClientCircuitBreakerMetric(String id, boolean opened) {
+    public void updateHttpClientCircuitBreakerMetric(String name, boolean opened) {
+        final CircuitBreakerMetrics.NamedCircuitBreakerMetrics circuitBreakerMetrics =
+                forCircuitBreakerType(MetricName.http).forName(name);
+
         if (opened) {
-            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_opened);
+            circuitBreakerMetrics.incCounter(MetricName.opened);
         } else {
-            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_closed);
+            circuitBreakerMetrics.decCounter(MetricName.opened);
+        }
+    }
+
+    public void updateHttpClientCircuitBreakerNumberMetric(boolean created) {
+        final CircuitBreakerMetrics circuitBreakerMetrics = forCircuitBreakerType(MetricName.http);
+
+        if (created) {
+            circuitBreakerMetrics.incCounter(MetricName.existing);
+        } else {
+            circuitBreakerMetrics.decCounter(MetricName.existing);
         }
     }
 
@@ -404,10 +419,12 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
+        final CircuitBreakerMetrics circuitBreakerMetrics = forCircuitBreakerType(MetricName.geo);
+
         if (opened) {
-            incCounter(MetricName.geolocation_circuitbreaker_opened);
+            circuitBreakerMetrics.incCounter(MetricName.opened);
         } else {
-            incCounter(MetricName.geolocation_circuitbreaker_closed);
+            circuitBreakerMetrics.decCounter(MetricName.opened);
         }
     }
 
