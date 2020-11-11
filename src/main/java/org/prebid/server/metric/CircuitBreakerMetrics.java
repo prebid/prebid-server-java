@@ -51,11 +51,6 @@ class CircuitBreakerMetrics extends UpdatableMetrics {
     }
 
     @Override
-    void decCounter(MetricName metricName) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     void updateTimer(MetricName metricName, long millis) {
         throw new UnsupportedOperationException();
     }
@@ -85,11 +80,6 @@ class CircuitBreakerMetrics extends UpdatableMetrics {
 
         @Override
         void incCounter(MetricName metricName, long value) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        void decCounter(MetricName metricName) {
             throw new UnsupportedOperationException();
         }
 

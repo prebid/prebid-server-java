@@ -865,7 +865,8 @@ public class MetricsTest {
         metrics.createHttpClientCircuitBreakerGauge("id", () -> true);
 
         // then
-        assertThat(metricRegistry.gauge("circuit-breaker.http.named.id.opened.count", () -> null).getValue()).isEqualTo(1L);
+        assertThat(metricRegistry.gauge("circuit-breaker.http.named.id.opened.count", () -> null).getValue())
+                .isEqualTo(1L);
     }
 
     @Test

@@ -73,18 +73,6 @@ public class UpdatableMetricsTest {
     }
 
     @Test
-    public void decCounterShouldDecrementByOne() {
-        // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, MetricName::toString);
-
-        // when
-        updatableMetrics.decCounter(MetricName.requests);
-
-        // then
-        assertThat(metricRegistry.counter("requests").getCount()).isEqualTo(-1);
-    }
-
-    @Test
     public void updateTimerShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
@@ -154,6 +142,49 @@ public class UpdatableMetricsTest {
 
         // then
         verify(nameCreator).apply(eq(MetricName.prices));
+    }
+
+    @Test
+    public void createGaugeShouldCreateMetricNameUsingProvidedCreator() {
+        // given
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
+                metricName -> "someprefix." + metricName.toString());
+
+        // when
+        updatableMetrics.createGauge(MetricName.opened, () -> 1);
+
+        // then
+        assertThat(metricRegistry.gauge("someprefix.opened", () -> null).getValue()).isEqualTo(1L);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void createGaugeShouldCreateMetricNameOnlyOnceOnSuccessiveCalls() {
+        // given
+        final Function<MetricName, String> nameCreator = mock(Function.class);
+        given(nameCreator.apply(any())).willReturn("");
+
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, nameCreator);
+
+        // when
+        updatableMetrics.createGauge(MetricName.opened, () -> 1);
+        updatableMetrics.createGauge(MetricName.opened, () -> 1);
+
+        // then
+        verify(nameCreator).apply(eq(MetricName.opened));
+    }
+
+    @Test
+    public void removeMetricShouldRemoveExistingMetric() {
+        // given
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, MetricName::toString);
+
+        // when
+        updatableMetrics.createGauge(MetricName.opened, () -> 1);
+        updatableMetrics.removeMetric(MetricName.opened);
+
+        // then
+        assertThat(metricRegistry.getGauges()).doesNotContainKey("opened");
     }
 
     private UpdatableMetrics givenUpdatableMetricsWith(CounterType counterType) {

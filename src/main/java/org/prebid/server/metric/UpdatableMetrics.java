@@ -55,13 +55,6 @@ class UpdatableMetrics {
     }
 
     /**
-     * Decrement metric's counter.
-     */
-    void decCounter(MetricName metricName) {
-        incCounter(metricName, -1);
-    }
-
-    /**
      * Updates metric's timer with a given value.
      */
     void updateTimer(MetricName metricName, long millis) {
