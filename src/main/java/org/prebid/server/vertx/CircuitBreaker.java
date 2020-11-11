@@ -134,4 +134,16 @@ public class CircuitBreaker {
         breaker.closeHandler(handler);
         return this;
     }
+
+    public boolean isOpen() {
+        switch (breaker.state()) {
+            case OPEN:
+            case HALF_OPEN:
+                return true;
+            case CLOSED:
+                return false;
+            default:
+                throw new IllegalStateException("Should never happen");
+        }
+    }
 }

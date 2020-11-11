@@ -333,18 +333,12 @@ public class MetricsTest {
     }
 
     @Test
-    public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(
-                metrics -> metrics.forCircuitBreakerType(MetricName.db).incCounter(MetricName.opened));
-    }
-
-    @Test
     public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithId() {
         // when
-        metrics.forCircuitBreakerType(MetricName.db).incCounter(MetricName.opened);
+        metrics.forCircuitBreakerType(MetricName.db).createGauge(MetricName.opened, () -> 1);
 
         // then
-        assertThat(metricRegistry.counter("circuit-breaker.db.opened").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.gauge("circuit-breaker.db.opened.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test
@@ -857,75 +851,39 @@ public class MetricsTest {
     }
 
     @Test
-    public void shouldIncrementDatabaseCircuitBreakerOpenMetric() {
+    public void shouldCreateDatabaseCircuitBreakerGaugeMetric() {
         // when
-        metrics.updateDatabaseCircuitBreakerMetric(true);
+        metrics.createDatabaseCircuitBreakerGauge(() -> true);
 
         // then
-        assertThat(metricRegistry.counter("circuit-breaker.db.opened").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.gauge("circuit-breaker.db.opened.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test
-    public void shouldDecrementDatabaseCircuitBreakerOpenMetric() {
+    public void shouldCreateHttpClientCircuitBreakerGaugeMetric() {
         // when
-        metrics.updateDatabaseCircuitBreakerMetric(false);
+        metrics.createHttpClientCircuitBreakerGauge("id", () -> true);
 
         // then
-        assertThat(metricRegistry.counter("circuit-breaker.db.opened").getCount()).isEqualTo(-1);
+        assertThat(metricRegistry.gauge("circuit-breaker.http.named.id.opened.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test
-    public void shouldIncrementHttpClientCircuitBreakerOpenMetric() {
+    public void shouldCreateHttpClientCircuitBreakerNumberGaugeMetric() {
         // when
-        metrics.updateHttpClientCircuitBreakerMetric("id", true);
+        metrics.createHttpClientCircuitBreakerNumberGauge(() -> 1);
 
         // then
-        assertThat(metricRegistry.counter("circuit-breaker.http.named.id.opened").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.gauge("circuit-breaker.http.existing.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test
-    public void shouldDecrementHttpClientCircuitBreakerOpenMetric() {
+    public void shouldCreateGeoLocationCircuitBreakerGaugeMetric() {
         // when
-        metrics.updateHttpClientCircuitBreakerMetric("id", false);
+        metrics.createGeoLocationCircuitBreakerGauge(() -> true);
 
         // then
-        assertThat(metricRegistry.counter("circuit-breaker.http.named.id.opened").getCount()).isEqualTo(-1);
-    }
-
-    @Test
-    public void shouldIncrementHttpClientCircuitBreakerNumberMetric() {
-        // when
-        metrics.updateHttpClientCircuitBreakerNumberMetric(true);
-
-        // then
-        assertThat(metricRegistry.counter("circuit-breaker.http.existing").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void shouldDecrementHttpClientCircuitBreakerNumberMetric() {
-        // when
-        metrics.updateHttpClientCircuitBreakerNumberMetric(false);
-
-        // then
-        assertThat(metricRegistry.counter("circuit-breaker.http.existing").getCount()).isEqualTo(-1);
-    }
-
-    @Test
-    public void shouldIncrementGeoLocationCircuitBreakerOpenMetric() {
-        // when
-        metrics.updateGeoLocationCircuitBreakerMetric(true);
-
-        // then
-        assertThat(metricRegistry.counter("circuit-breaker.geo.opened").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void shouldDecrementGeoLocationCircuitBreakerOpenMetric() {
-        // when
-        metrics.updateGeoLocationCircuitBreakerMetric(false);
-
-        // then
-        assertThat(metricRegistry.counter("circuit-breaker.geo.opened").getCount()).isEqualTo(-1);
+        assertThat(metricRegistry.gauge("circuit-breaker.geo.opened.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test

@@ -23,13 +23,18 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
     private static final int LOG_PERIOD_SECONDS = 5;
 
-    private final CircuitBreaker breaker;
     private final GeoLocationService geoLocationService;
-    private final Metrics metrics;
+    private final CircuitBreaker breaker;
 
-    public CircuitBreakerSecuredGeoLocationService(Vertx vertx, GeoLocationService geoLocationService, Metrics metrics,
-                                                   int openingThreshold, long openingIntervalMs,
-                                                   long closingIntervalMs, Clock clock) {
+    public CircuitBreakerSecuredGeoLocationService(Vertx vertx,
+                                                   GeoLocationService geoLocationService,
+                                                   Metrics metrics,
+                                                   int openingThreshold,
+                                                   long openingIntervalMs,
+                                                   long closingIntervalMs,
+                                                   Clock clock) {
+
+        this.geoLocationService = Objects.requireNonNull(geoLocationService);
 
         breaker = new CircuitBreaker("geo_cb", Objects.requireNonNull(vertx),
                 openingThreshold, openingIntervalMs, closingIntervalMs, Objects.requireNonNull(clock))
@@ -37,16 +42,21 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());
 
-        this.geoLocationService = Objects.requireNonNull(geoLocationService);
-        this.metrics = Objects.requireNonNull(metrics);
+        metrics.createGeoLocationCircuitBreakerGauge(breaker::isOpen);
 
         logger.info("Initialized GeoLocation service with Circuit Breaker");
     }
 
+    @Override
+    public Future<GeoInfo> lookup(String ip, Timeout timeout) {
+        return breaker.execute(promise -> geoLocationService.lookup(ip, timeout).setHandler(promise));
+    }
+
     private void circuitOpened() {
-        conditionalLogger.warn("GeoLocation service is unavailable, circuit opened.",
-                LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
-        metrics.updateGeoLocationCircuitBreakerMetric(true);
+        conditionalLogger.warn(
+                "GeoLocation service is unavailable, circuit opened.",
+                LOG_PERIOD_SECONDS,
+                TimeUnit.SECONDS);
     }
 
     private void circuitHalfOpened() {
@@ -55,11 +65,5 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
 
     private void circuitClosed() {
         logger.warn("GeoLocation service becomes working, circuit closed.");
-        metrics.updateGeoLocationCircuitBreakerMetric(false);
-    }
-
-    @Override
-    public Future<GeoInfo> lookup(String ip, Timeout timeout) {
-        return breaker.execute(promise -> geoLocationService.lookup(ip, timeout).setHandler(promise));
     }
 }

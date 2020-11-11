@@ -12,7 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 /**
@@ -378,35 +380,23 @@ public class Metrics extends UpdatableMetrics {
         updateTimer(MetricName.db_query_time, millis);
     }
 
-    public void updateDatabaseCircuitBreakerMetric(boolean opened) {
-        final CircuitBreakerMetrics circuitBreakerMetrics = forCircuitBreakerType(MetricName.db);
-
-        if (opened) {
-            circuitBreakerMetrics.incCounter(MetricName.opened);
-        } else {
-            circuitBreakerMetrics.decCounter(MetricName.opened);
-        }
+    public void createDatabaseCircuitBreakerGauge(BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.db)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
-    public void updateHttpClientCircuitBreakerMetric(String name, boolean opened) {
-        final CircuitBreakerMetrics.NamedCircuitBreakerMetrics circuitBreakerMetrics =
-                forCircuitBreakerType(MetricName.http).forName(name);
-
-        if (opened) {
-            circuitBreakerMetrics.incCounter(MetricName.opened);
-        } else {
-            circuitBreakerMetrics.decCounter(MetricName.opened);
-        }
+    public void createHttpClientCircuitBreakerGauge(String name, BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.http)
+                .forName(name)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
-    public void updateHttpClientCircuitBreakerNumberMetric(boolean created) {
-        final CircuitBreakerMetrics circuitBreakerMetrics = forCircuitBreakerType(MetricName.http);
+    public void removeHttpClientCircuitBreakerGauge(String name) {
+        forCircuitBreakerType(MetricName.http).forName(name).removeMetric(MetricName.opened);
+    }
 
-        if (created) {
-            circuitBreakerMetrics.incCounter(MetricName.existing);
-        } else {
-            circuitBreakerMetrics.decCounter(MetricName.existing);
-        }
+    public void createHttpClientCircuitBreakerNumberGauge(LongSupplier numberSupplier) {
+        forCircuitBreakerType(MetricName.http).createGauge(MetricName.existing, numberSupplier);
     }
 
     public void updateGeoLocationMetric(boolean successful) {
@@ -418,14 +408,9 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
-        final CircuitBreakerMetrics circuitBreakerMetrics = forCircuitBreakerType(MetricName.geo);
-
-        if (opened) {
-            circuitBreakerMetrics.incCounter(MetricName.opened);
-        } else {
-            circuitBreakerMetrics.decCounter(MetricName.opened);
-        }
+    public void createGeoLocationCircuitBreakerGauge(BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.geo)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
     public void updateStoredRequestMetric(boolean found) {

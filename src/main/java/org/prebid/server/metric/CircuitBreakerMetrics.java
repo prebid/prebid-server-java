@@ -12,6 +12,8 @@ import java.util.function.Function;
  */
 class CircuitBreakerMetrics extends UpdatableMetrics {
 
+    private static final String SUFFIX = ".count";
+
     private final Function<String, NamedCircuitBreakerMetrics> namedCircuitBreakerMetricsCreator;
     private final Map<String, NamedCircuitBreakerMetrics> namedCircuitBreakerMetrics;
 
@@ -35,7 +37,32 @@ class CircuitBreakerMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> String.format("%s.%s%s", prefix, metricName.toString(), SUFFIX);
+    }
+
+    @Override
+    void incCounter(MetricName metricName) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    void incCounter(MetricName metricName, long value) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    void decCounter(MetricName metricName) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    void updateTimer(MetricName metricName, long millis) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    void updateHistogram(MetricName metricName, long value) {
+        throw new UnsupportedOperationException();
     }
 
     static class NamedCircuitBreakerMetrics extends UpdatableMetrics {
@@ -48,7 +75,32 @@ class CircuitBreakerMetrics extends UpdatableMetrics {
         }
 
         private static Function<MetricName, String> nameCreator(String prefix, String name) {
-            return metricName -> String.format("%s.named.%s.%s", prefix, name, metricName.toString());
+            return metricName -> String.format("%s.named.%s.%s%s", prefix, name, metricName.toString(), SUFFIX);
+        }
+
+        @Override
+        void incCounter(MetricName metricName) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        void incCounter(MetricName metricName, long value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        void decCounter(MetricName metricName) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        void updateTimer(MetricName metricName, long millis) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        void updateHistogram(MetricName metricName, long value) {
+            throw new UnsupportedOperationException();
         }
     }
 }

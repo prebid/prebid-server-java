@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -22,14 +23,16 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -191,16 +194,20 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldReportMetricOnCircuitBreakerCreation(TestContext context) {
+    public void circuitBreakerNumberGaugeShouldReportActualNumber(TestContext context) {
         // when
         doRequest("http://www.some-host-1.com:80/path", context);
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerNumberMetric(eq(true));
+        final ArgumentCaptor<LongSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(LongSupplier.class);
+        verify(metrics).createHttpClientCircuitBreakerNumberGauge(gaugeValueProviderCaptor.capture());
+        final LongSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
+
+        assertThat(gaugeValueProvider.getAsLong()).isEqualTo(1);
     }
 
     @Test
-    public void requestShouldReportMetricOnCircuitOpened(TestContext context) {
+    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen(TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
 
@@ -208,11 +215,17 @@ public class CircuitBreakerSecuredHttpClientTest {
         doRequest("http://www.some-host-1.com:80/path", context);
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("http_www_some_host_1_com_80"), eq(true));
+        final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
+        verify(metrics).createHttpClientCircuitBreakerGauge(
+                eq("http_www_some_host_1_com_80"),
+                gaugeValueProviderCaptor.capture());
+        final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
+
+        assertThat(gaugeValueProvider.getAsBoolean()).isTrue();
     }
 
     @Test
-    public void requestShouldReportMetricOnCircuitClosed(TestContext context) {
+    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed(TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
@@ -223,7 +236,13 @@ public class CircuitBreakerSecuredHttpClientTest {
         doRequest("http://www.some-host-1.com:80/path", context); // 3 call
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("http_www_some_host_1_com_80"), eq(false));
+        final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
+        verify(metrics).createHttpClientCircuitBreakerGauge(
+                eq("http_www_some_host_1_com_80"),
+                gaugeValueProviderCaptor.capture());
+        final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
+
+        assertThat(gaugeValueProvider.getAsBoolean()).isFalse();
     }
 
     @SuppressWarnings("unchecked")
