@@ -142,6 +142,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
             };
+    private static final int PORTRAIT_MOBILE_SIZE_ID = 67;
+    private static final int LANDSCAPE_MOBILE_SIZE_ID = 101;
 
     private final String endpointUrl;
     private final Set<String> supportedVendors;
@@ -347,7 +349,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     .video(makeVideo(imp.getVideo(), extRubicon.getVideo(), extPrebid));
         } else {
             builder
-                    .banner(makeBanner(imp.getBanner(), overriddenSizes(extRubicon)))
+                    .banner(makeBanner(imp, overriddenSizes(extRubicon)))
                     .video(null);
         }
 
@@ -648,7 +650,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return overriddenSizes;
     }
 
-    private Banner makeBanner(Banner banner, List<Format> overriddenSizes) {
+    private Banner makeBanner(Imp imp, List<Format> overriddenSizes) {
+        final Banner banner = imp.getBanner();
+        final boolean isInterstitial = Objects.equals(imp.getInstl(), 1);
         final List<Format> sizes = ObjectUtils.defaultIfNull(overriddenSizes, banner.getFormat());
         if (CollectionUtils.isEmpty(sizes)) {
             throw new PreBidException("rubicon imps must have at least one imp.format element");
@@ -656,12 +660,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return banner.toBuilder()
                 .format(sizes)
-                .ext(mapper.mapper().valueToTree(makeBannerExt(sizes)))
+                .ext(mapper.mapper().valueToTree(makeBannerExt(sizes, isInterstitial)))
                 .build();
     }
 
-    private static RubiconBannerExt makeBannerExt(List<Format> sizes) {
-        final List<Integer> rubiconSizeIds = mapToRubiconSizeIds(sizes);
+    private static RubiconBannerExt makeBannerExt(List<Format> sizes, boolean isInterstitial) {
+        final List<Integer> rubiconSizeIds = mapToRubiconSizeIds(sizes, isInterstitial);
         final Integer primarySizeId = rubiconSizeIds.get(0);
         final List<Integer> altSizeIds = rubiconSizeIds.size() > 1
                 ? rubiconSizeIds.subList(1, rubiconSizeIds.size())
@@ -670,7 +674,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return RubiconBannerExt.of(RubiconBannerExtRp.of(primarySizeId, altSizeIds, "text/html"));
     }
 
-    private static List<Integer> mapToRubiconSizeIds(List<Format> sizes) {
+    private static List<Integer> mapToRubiconSizeIds(List<Format> sizes, boolean isInterstitial) {
         final List<Integer> validRubiconSizeIds = sizes.stream()
                 .map(RubiconSize::toId)
                 .filter(id -> id > 0)
@@ -678,9 +682,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
 
         if (validRubiconSizeIds.isEmpty()) {
-            throw new PreBidException("No valid sizes");
+            // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits HB-10418
+            if (isInterstitial) {
+                validRubiconSizeIds.add(resolveNotStandardSizeForInstl(sizes.get(0)));
+            } else {
+                throw new PreBidException("No valid sizes");
+            }
         }
         return validRubiconSizeIds;
+    }
+
+    private static int resolveNotStandardSizeForInstl(Format size) {
+        return size.getH() > size.getW() ? PORTRAIT_MOBILE_SIZE_ID : LANDSCAPE_MOBILE_SIZE_ID;
     }
 
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
