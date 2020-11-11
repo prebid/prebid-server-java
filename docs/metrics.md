@@ -25,11 +25,7 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `requests.(ok|badinput|err|networkerr|blacklisted_account|blacklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
 - `bidder-cardinality.<cardinality>.requests` - number of requests targeting `<cardinality>` of bidders
 - `connection_accept_errors` - number of errors occurred while establishing HTTP connection
-- `db_circuitbreaker_opened` - number of times database circuit breaker was opened (database is unavailable)
-- `db_circuitbreaker_closed` - number of times database circuit breaker was closed (database is available again)
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
-- `httpclient_circuitbreaker_opened.<underscored_host>` - number of times http client circuit breaker was opened (requested resource is unavailable) for particular host
-- `httpclient_circuitbreaker_closed.<underscored_host>` - number of times http client circuit breaker was closed (requested resource is available again) for particular host
 - `stored_requests_found` - number of stored requests that were found
 - `stored_requests_missing` - number of stored requests that were not found by provided stored request IDs
 - `stored_imps_found` - number of stored impressions that were found
@@ -37,8 +33,10 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `geolocation_requests` - number of times geo location lookup was requested
 - `geolocation_successful` - number of successful geo location lookup responses
 - `geolocation_fail` - number of failed geo location lookup responses
-- `geolocation_circuitbreaker_opened` - number of times geo location circuit breaker was opened (geo location resource is unavailable)
-- `geolocation_circuitbreaker_closed` - number of times geo location circuit breaker was closed (geo location resource is available again)
+- `circuit-breaker.http.named.<host_id>.opened` - state of the http client circuit breaker for a particular host: `1` means opened (requested resource is unavailable), `0` - closed
+- `circuit.breaker.http.existing` - number of http client circuit breakers existing currently for all hosts
+- `circuit-breaker.db.opened` - state of the database circuit breaker: `1` means opened (database is unavailable), `0` - closed
+- `circuit-breaker.geo.opened` - state of the geo location circuit breaker: `1` means opened (geo location resource is unavailable), `0` - closed
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID

@@ -25,30 +25,46 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
     private static final int LOG_PERIOD_SECONDS = 5;
 
-    private final CircuitBreaker breaker;
     private final JdbcClient jdbcClient;
-    private final Metrics metrics;
+    private final CircuitBreaker breaker;
 
-    public CircuitBreakerSecuredJdbcClient(Vertx vertx, JdbcClient jdbcClient, Metrics metrics,
-                                           int openingThreshold, long openingIntervalMs, long closingIntervalMs,
+    public CircuitBreakerSecuredJdbcClient(Vertx vertx,
+                                           JdbcClient jdbcClient,
+                                           Metrics metrics,
+                                           int openingThreshold,
+                                           long openingIntervalMs,
+                                           long closingIntervalMs,
                                            Clock clock) {
 
-        breaker = new CircuitBreaker("db_cb", Objects.requireNonNull(vertx),
-                openingThreshold, openingIntervalMs, closingIntervalMs, Objects.requireNonNull(clock))
+        this.jdbcClient = Objects.requireNonNull(jdbcClient);
+
+        breaker = new CircuitBreaker(
+                "db_cb",
+                Objects.requireNonNull(vertx),
+                openingThreshold,
+                openingIntervalMs,
+                closingIntervalMs,
+                Objects.requireNonNull(clock))
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());
 
-        this.jdbcClient = Objects.requireNonNull(jdbcClient);
-        this.metrics = Objects.requireNonNull(metrics);
+        metrics.createDatabaseCircuitBreakerGauge(breaker::isOpen);
 
         logger.info("Initialized JDBC client with Circuit Breaker");
     }
 
+    @Override
+    public <T> Future<T> executeQuery(String query,
+                                      List<Object> params,
+                                      Function<ResultSet, T> mapper,
+                                      Timeout timeout) {
+
+        return breaker.execute(promise -> jdbcClient.executeQuery(query, params, mapper, timeout).setHandler(promise));
+    }
+
     private void circuitOpened() {
-        conditionalLogger.warn("Database is unavailable, circuit opened.",
-                LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
-        metrics.updateDatabaseCircuitBreakerMetric(true);
+        conditionalLogger.warn("Database is unavailable, circuit opened.", LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
     }
 
     private void circuitHalfOpened() {
@@ -57,12 +73,5 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
 
     private void circuitClosed() {
         logger.warn("Database becomes working, circuit closed.");
-        metrics.updateDatabaseCircuitBreakerMetric(false);
-    }
-
-    @Override
-    public <T> Future<T> executeQuery(String query, List<Object> params, Function<ResultSet, T> mapper,
-                                      Timeout timeout) {
-        return breaker.execute(promise -> jdbcClient.executeQuery(query, params, mapper, timeout).setHandler(promise));
     }
 }
