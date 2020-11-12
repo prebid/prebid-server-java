@@ -30,7 +30,7 @@ public class VersionHandlerTest extends VertxTest {
     @Test
     public void handleShouldRespondWithHashAndVersionPassedInCreate() throws JsonProcessingException {
         // given
-        versionHandler = VersionHandler.create("1.41.0", "4df3f6192d7938ccdaac04df783c46c7e8847d08", jacksonMapper);
+        versionHandler = new VersionHandler("1.41.0", "4df3f6192d7938ccdaac04df783c46c7e8847d08", jacksonMapper);
         given(routingContext.response()).willReturn(httpResponse);
 
         // when
@@ -44,7 +44,7 @@ public class VersionHandlerTest extends VertxTest {
     @Test
     public void handleShouldRespondWithoutVersionAndCommitWhenNullPassedAtCreation() throws JsonProcessingException {
         // given
-        versionHandler = VersionHandler.create(null, null, jacksonMapper);
+        versionHandler = new VersionHandler(null, null, jacksonMapper);
         given(routingContext.response()).willReturn(httpResponse);
 
         // when

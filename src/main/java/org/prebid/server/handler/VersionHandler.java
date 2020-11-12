@@ -20,12 +20,8 @@ public class VersionHandler implements Handler<RoutingContext> {
 
     private final String revisionResponseBody;
 
-    public VersionHandler(String revisionResponseBody) {
-        this.revisionResponseBody = revisionResponseBody;
-    }
-
-    public static VersionHandler create(String version, String commitHash, JacksonMapper mapper) {
-        return new VersionHandler(createRevisionResponseBody(version, commitHash, mapper));
+    public VersionHandler(String version, String commitHash, JacksonMapper mapper) {
+        this.revisionResponseBody = createRevisionResponseBody(version, commitHash, mapper);
     }
 
     private static String createRevisionResponseBody(String version, String commitHash, JacksonMapper mapper) {

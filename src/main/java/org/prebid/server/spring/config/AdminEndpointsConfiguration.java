@@ -41,7 +41,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                VersionHandler.create(versionInfo.getVersion(), versionInfo.getCommitHash(), mapper),
+                new VersionHandler(versionInfo.getVersion(), versionInfo.getCommitHash(), mapper),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);

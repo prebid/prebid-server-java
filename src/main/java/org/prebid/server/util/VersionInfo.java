@@ -11,13 +11,14 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Value
 public class VersionInfo {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionInfo.class);
     private static final String UNDEFINED = "undefined";
 
-    private final String version;
-    private final String commitHash;
+    String version;
+    String commitHash;
 
     private VersionInfo(String version, String commitHash) {
         this.version = version;
@@ -45,14 +46,6 @@ public class VersionInfo {
         final Matcher versionMatcher = versionPattern.matcher(buildVersion);
 
         return versionMatcher.lookingAt() ? versionMatcher.group() : null;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public String getCommitHash() {
-        return commitHash;
     }
 
     @AllArgsConstructor(staticName = "of")
