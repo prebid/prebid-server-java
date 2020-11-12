@@ -1,31 +1,30 @@
 package org.prebid.server.privacy.gdpr.vendorlist.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.EnumSet;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class VendorV1 {
 
     Integer id;
 
     @JsonProperty("purposeIds")
-    Set<Integer> purposeIds;
+    EnumSet<Purpose> purposeIds;
 
     @JsonProperty("legIntPurposeIds")
-    Set<Integer> legIntPurposeIds;
+    EnumSet<Purpose> legIntPurposeIds;
 
-    public Set<Integer> combinedPurposes() {
-        return Stream.of(purposeIds != null ? purposeIds : Collections.<Integer>emptySet(),
-                legIntPurposeIds != null ? legIntPurposeIds : Collections.<Integer>emptySet())
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
+    public EnumSet<Purpose> combinedPurposes() {
+        final EnumSet<Purpose> combinedPurposes = EnumSet.noneOf(Purpose.class);
+        if (purposeIds != null) {
+            combinedPurposes.addAll(purposeIds);
+        }
+        if (legIntPurposeIds != null) {
+            combinedPurposes.addAll(legIntPurposeIds);
+        }
+
+        return combinedPurposes;
     }
 }

@@ -42,10 +42,11 @@ import java.util.stream.Collectors;
 
 public class EmxDigitalBidder implements Bidder<BidRequest> {
 
+    private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private static final TypeReference<ExtPrebid<?, ExtImpEmxDigital>> EMXDIGITAL_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpEmxDigital>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -92,8 +93,9 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isSecure(Site site) {
-        return site != null && StringUtils.isNotBlank(site.getPage()) && site.getPage()
-                .startsWith("https");
+        return site != null
+                && StringUtils.isNotBlank(site.getPage())
+                && site.getPage().startsWith("https");
     }
 
     private ExtImpEmxDigital unpackImpExt(Imp imp) {
@@ -247,7 +249,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(modifyBid(bid), BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(modifyBid(bid), BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -260,4 +262,3 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 }
-

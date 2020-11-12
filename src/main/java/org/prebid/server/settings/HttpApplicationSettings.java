@@ -98,16 +98,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
-    }
-
-    /**
-     * Not supported and returns failed result.
-     */
-    @Override
-    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        return Future.failedFuture(new PreBidException(NOT_SUPPORTED));
     }
 
     /**
@@ -115,7 +108,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
         return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
@@ -123,8 +117,17 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * Not supported and returns failed result.
      */
     @Override
-    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                       Timeout timeout) {
         return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
+    }
+
+    /**
+     * Not supported and returns failed result.
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return Future.failedFuture(new PreBidException("Not supported"));
     }
 
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,

@@ -233,67 +233,6 @@ public class GridBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidsWithCurrencyFromResponse() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .cur(singletonList("NZD"))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidResponseBuilder -> bidResponseBuilder.cur("JPY"),
-                        bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("JPY");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidsWithCurrencyFromRequest() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .cur(singletonList("JPY"))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("JPY");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidsWithDefaultCurrencyIfResponseAndRequestCurrenciesNotDefined()
-            throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
-    }
-
-    @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(gridBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
@@ -301,6 +240,7 @@ public class GridBidderTest extends VertxTest {
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
                                                 UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidResponseCustomizer.apply(BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build())))

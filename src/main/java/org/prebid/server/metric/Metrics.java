@@ -12,7 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 /**
@@ -29,7 +31,7 @@ public class Metrics extends UpdatableMetrics {
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
     private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
-    private final Function<String, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
+    private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
@@ -40,7 +42,7 @@ public class Metrics extends UpdatableMetrics {
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
     private final PrivacyMetrics privacyMetrics;
-    private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
+    private final Map<MetricName, CircuitBreakerMetrics> circuitBreakerMetrics;
     private final CacheMetrics cacheMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
@@ -55,7 +57,7 @@ public class Metrics extends UpdatableMetrics {
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
         bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
                 metricRegistry, counterType, cardinality);
-        circuitBreakerMetricsCreator = id -> new CircuitBreakerMetrics(metricRegistry, counterType, id);
+        circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
@@ -95,8 +97,8 @@ public class Metrics extends UpdatableMetrics {
         return privacyMetrics;
     }
 
-    CircuitBreakerMetrics forCircuitBreaker(String id) {
-        return circuitBreakerMetrics.computeIfAbsent(id, circuitBreakerMetricsCreator);
+    CircuitBreakerMetrics forCircuitBreakerType(MetricName type) {
+        return circuitBreakerMetrics.computeIfAbsent(type, circuitBreakerMetricsCreator);
     }
 
     CacheMetrics cache() {
@@ -378,20 +380,23 @@ public class Metrics extends UpdatableMetrics {
         updateTimer(MetricName.db_query_time, millis);
     }
 
-    public void updateDatabaseCircuitBreakerMetric(boolean opened) {
-        if (opened) {
-            incCounter(MetricName.db_circuitbreaker_opened);
-        } else {
-            incCounter(MetricName.db_circuitbreaker_closed);
-        }
+    public void createDatabaseCircuitBreakerGauge(BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.db)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
-    public void updateHttpClientCircuitBreakerMetric(String id, boolean opened) {
-        if (opened) {
-            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_opened);
-        } else {
-            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_closed);
-        }
+    public void createHttpClientCircuitBreakerGauge(String name, BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.http)
+                .forName(name)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+    }
+
+    public void removeHttpClientCircuitBreakerGauge(String name) {
+        forCircuitBreakerType(MetricName.http).forName(name).removeMetric(MetricName.opened);
+    }
+
+    public void createHttpClientCircuitBreakerNumberGauge(LongSupplier numberSupplier) {
+        forCircuitBreakerType(MetricName.http).createGauge(MetricName.existing, numberSupplier);
     }
 
     public void updateGeoLocationMetric(boolean successful) {
@@ -403,12 +408,9 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
-        if (opened) {
-            incCounter(MetricName.geolocation_circuitbreaker_opened);
-        } else {
-            incCounter(MetricName.geolocation_circuitbreaker_closed);
-        }
+    public void createGeoLocationCircuitBreakerGauge(BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.geo)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
     public void updateStoredRequestMetric(boolean found) {

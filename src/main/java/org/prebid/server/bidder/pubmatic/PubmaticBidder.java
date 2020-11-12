@@ -50,8 +50,6 @@ import java.util.stream.Collectors;
 public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(PubmaticBidder.class);
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String PREBID = "prebid";
     private static final TypeReference<ExtPrebid<?, ExtImpPubmatic>> PUBMATIC_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubmatic>>() {
@@ -272,11 +270,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(this::bidderBid)
+                .map(bid -> bidderBid(bid, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidderBid bidderBid(Bid bid) {
+    private BidderBid bidderBid(Bid bid, String currency) {
         final List<String> bidCat = bid.getCat();
         final boolean updateBidCat = bidCat != null && bidCat.size() > 1;
         final List<String> singleElementCat = updateBidCat
@@ -291,7 +289,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .build()
                 : bid;
 
-        return BidderBid.of(updatedBid, getBidType(pubmaticBidExt), DEFAULT_BID_CURRENCY);
+        return BidderBid.of(updatedBid, getBidType(pubmaticBidExt), currency);
     }
 
     private PubmaticBidExt extractBidExt(ObjectNode bidExt) {

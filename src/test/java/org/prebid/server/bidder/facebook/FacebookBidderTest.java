@@ -719,6 +719,7 @@ public class FacebookBidderTest extends VertxTest {
 
     private static HttpCall<BidRequest> givenHttpCall(Bid... bids) throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(asList(bids))
                         .build()))
