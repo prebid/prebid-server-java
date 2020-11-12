@@ -54,16 +54,15 @@ public class Tcf2Service {
     }
 
     public Future<Collection<VendorPermission>> permissionsFor(Set<Integer> vendorIds, TCString tcfConsent) {
-        final Collection<VendorPermission> vendorPermissions = vendorPermissions(vendorIds);
-        return permissionsForInternal(vendorPermissions, tcfConsent, null);
+        return permissionsForInternal(vendorPermissions(vendorIds), tcfConsent, null);
     }
 
     public Future<Collection<VendorPermission>> permissionsFor(Set<String> bidderNames,
                                                                VendorIdResolver vendorIdResolver,
                                                                TCString tcfConsent,
                                                                AccountGdprConfig accountGdprConfig) {
-        final Collection<VendorPermission> vendorPermissions = vendorPermissions(bidderNames, vendorIdResolver);
-        return permissionsForInternal(vendorPermissions, tcfConsent, accountGdprConfig);
+
+        return permissionsForInternal(vendorPermissions(bidderNames, vendorIdResolver), tcfConsent, accountGdprConfig);
     }
 
     private Collection<VendorPermission> vendorPermissions(Set<Integer> vendorIds) {
@@ -75,9 +74,7 @@ public class Tcf2Service {
                 .collect(Collectors.toList());
     }
 
-    private Collection<VendorPermission> vendorPermissions(Set<String> bidderNames,
-                                                           VendorIdResolver vendorIdResolver) {
-
+    private Collection<VendorPermission> vendorPermissions(Set<String> bidderNames, VendorIdResolver vendorIdResolver) {
         return bidderNames.stream()
                 // this check only for illegal arguments...
                 .filter(Objects::nonNull)
@@ -110,6 +107,7 @@ public class Tcf2Service {
 
     private static Collection<VendorPermissionWithGvl> wrapWithGVL(Collection<VendorPermission> vendorPermissions,
                                                                    Map<Integer, VendorV2> vendorGvlPermissions) {
+
         return vendorPermissions.stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
                 .collect(Collectors.toList());
@@ -117,6 +115,7 @@ public class Tcf2Service {
 
     private static VendorPermissionWithGvl wrapWithGVL(VendorPermission vendorPermission,
                                                        Map<Integer, VendorV2> vendorGvlPermissions) {
+
         final Integer vendorId = vendorPermission.getVendorId();
         final VendorV2 vendorGvlByVendorId = vendorId != null
                 ? vendorGvlPermissions.getOrDefault(vendorId, VendorV2.empty(vendorId))
@@ -132,8 +131,8 @@ public class Tcf2Service {
             PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation) {
 
         for (PurposeStrategy purposeStrategy : purposeStrategies) {
-            final int purposeId = purposeStrategy.getPurposeId();
-            final Purpose purposeById = findPurposeById(purposeId, purposes);
+            final org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose tcfPurpose = purposeStrategy.getPurpose();
+            final Purpose purposeById = findPurposeByTcfPurpose(tcfPurpose, purposes);
             processPurposeStrategy(tcfConsent, vendorPermissionsWithGvl, purposeById, purposeStrategy,
                     purposeOneTreatmentInterpretation, false);
         }
@@ -152,11 +151,12 @@ public class Tcf2Service {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = wrapWithEmptyGVL(vendorPermissions);
 
         for (PurposeStrategy purposeStrategy : purposeStrategies) {
-            final int purposeId = purposeStrategy.getPurposeId();
-            final Purpose downgradedPurpose = downgradePurpose(findPurposeById(purposeId, purposes));
+            final org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose tcfPurpose = purposeStrategy.getPurpose();
+            final Purpose downgradedPurpose = downgradePurpose(findPurposeByTcfPurpose(tcfPurpose, purposes));
             processPurposeStrategy(tcfConsent, vendorPermissionsWithGvl, downgradedPurpose, purposeStrategy,
                     purposeOneTreatmentInterpretation, true);
         }
+
         return Future.succeededFuture(vendorPermissions);
     }
 
@@ -166,9 +166,17 @@ public class Tcf2Service {
                                         PurposeStrategy purposeStrategy,
                                         PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation,
                                         boolean wasDowngraded) {
-        if (purposeStrategy.getPurposeId() == 1 && tcfConsent.getPurposeOneTreatment()) {
-            processPurposeOneTreatment(purposeOneTreatmentInterpretation, tcfConsent, purpose,
-                    purposeStrategy, vendorPermissionsWithGvl, wasDowngraded);
+
+        if (purposeStrategy.getPurpose() == org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE
+                && tcfConsent.getPurposeOneTreatment()) {
+
+            processPurposeOneTreatment(
+                    purposeOneTreatmentInterpretation,
+                    tcfConsent,
+                    purpose,
+                    purposeStrategy,
+                    vendorPermissionsWithGvl,
+                    wasDowngraded);
         } else {
             purposeStrategy.processTypePurposeStrategy(tcfConsent, purpose, vendorPermissionsWithGvl, wasDowngraded);
         }
@@ -180,18 +188,19 @@ public class Tcf2Service {
                                             PurposeStrategy purposeOneStrategy,
                                             Collection<VendorPermissionWithGvl> vendorPermissionsWithGvl,
                                             boolean wasDowngraded) {
+
         switch (purposeOneTreatmentInterpretation) {
             case accessAllowed:
-                vendorPermissionsWithGvl.forEach(vendorPermission -> purposeOneStrategy.allow(
-                        vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
+                vendorPermissionsWithGvl.forEach(vendorPermission ->
+                        purposeOneStrategy.allow(vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
                 break;
             case noAccessAllowed:
                 // no need for special processing of no-access-allowed since everything is disallowed from the beginning
                 break;
             case ignore:
             default:
-                purposeOneStrategy.processTypePurposeStrategy(tcfConsent, purposeOne, vendorPermissionsWithGvl,
-                        wasDowngraded);
+                purposeOneStrategy.processTypePurposeStrategy(
+                        tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
         }
     }
 
@@ -204,6 +213,7 @@ public class Tcf2Service {
 
     private static Purpose downgradePurpose(Purpose purpose) {
         final EnforcePurpose enforcePurpose = purpose.getEnforcePurpose();
+
         return enforcePurpose == null || Objects.equals(enforcePurpose, EnforcePurpose.full)
                 ? Purpose.of(EnforcePurpose.basic, purpose.getEnforceVendors(), purpose.getVendorExceptions())
                 : purpose;
@@ -227,6 +237,7 @@ public class Tcf2Service {
         if (accountGdprConfig == null || accountGdprConfig.getPurposes() == null) {
             return defaultPurposes;
         }
+
         final Purposes accountPurposes = accountGdprConfig.getPurposes();
         return Purposes.builder()
                 .p1(mergeItem(accountPurposes.getP1(), defaultPurposes.getP1()))
@@ -246,6 +257,7 @@ public class Tcf2Service {
         if (accountGdprConfig == null || accountGdprConfig.getSpecialFeatures() == null) {
             return defaultSpecialFeatures;
         }
+
         final SpecialFeatures accountSpecialFeatures = accountGdprConfig.getSpecialFeatures();
         return SpecialFeatures.builder()
                 .sf1(mergeItem(accountSpecialFeatures.getSf1(), defaultSpecialFeatures.getSf1()))
@@ -253,31 +265,33 @@ public class Tcf2Service {
                 .build();
     }
 
-    private Purpose findPurposeById(int tcfPurposeId, Purposes purposes) {
-        switch (tcfPurposeId) {
-            case 1:
+    private Purpose findPurposeByTcfPurpose(
+            org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose tcfPurpose,
+            Purposes purposes) {
+
+        switch (tcfPurpose) {
+            case ONE:
                 return purposes.getP1();
-            case 2:
+            case TWO:
                 return purposes.getP2();
-            case 3:
+            case THREE:
                 return purposes.getP3();
-            case 4:
+            case FOUR:
                 return purposes.getP4();
-            case 5:
+            case FIVE:
                 return purposes.getP5();
-            case 6:
+            case SIX:
                 return purposes.getP6();
-            case 7:
+            case SEVEN:
                 return purposes.getP7();
-            case 8:
+            case EIGHT:
                 return purposes.getP8();
-            case 9:
+            case NINE:
                 return purposes.getP9();
-            case 10:
+            case TEN:
                 return purposes.getP10();
             default:
-                throw new IllegalArgumentException(String.format("Illegal TCF code for purpose: %d",
-                        tcfPurposeId));
+                throw new IllegalArgumentException(String.format("Illegal TCF code for purpose: %s", tcfPurpose));
         }
     }
 

@@ -24,6 +24,11 @@
       "ext": {
         "rp": {
           "zone_id": 7001,
+          "target": {
+            "page": [
+              "https://google.com"
+            ]
+          },
           "track": {
             "mint": "",
             "mint_version": ""

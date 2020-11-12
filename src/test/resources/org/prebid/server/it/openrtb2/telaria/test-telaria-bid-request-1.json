@@ -67,37 +67,8 @@
     }
   },
   "ext": {
-    "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.811
-          }
-        }
-      },
-      "targeting": {
-        "includebidderkeys": true,
-        "includewinners": true,
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      },
-      "auctiontimestamp": 1000
+    "extra": {
+      "custom": "1234"
     }
   }
 }

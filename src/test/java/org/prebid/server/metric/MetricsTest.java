@@ -329,22 +329,16 @@ public class MetricsTest {
 
     @Test
     public void forCircuitBreakerShouldReturnSameCircuitBreakerMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forCircuitBreaker("id")).isSameAs(metrics.forCircuitBreaker("id"));
-    }
-
-    @Test
-    public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(
-                metrics -> metrics.forCircuitBreaker("id").incCounter(MetricName.httpclient_circuitbreaker_opened));
+        assertThat(metrics.forCircuitBreakerType(MetricName.db)).isSameAs(metrics.forCircuitBreakerType(MetricName.db));
     }
 
     @Test
     public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithId() {
         // when
-        metrics.forCircuitBreaker("id").incCounter(MetricName.httpclient_circuitbreaker_opened);
+        metrics.forCircuitBreakerType(MetricName.db).createGauge(MetricName.opened, () -> 1);
 
         // then
-        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened.id").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.gauge("circuit-breaker.db.opened.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test
@@ -447,6 +441,15 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("requests.err.openrtb2-app").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.badinput.amp").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.networkerr.amp").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void uupdateRequestBidderCardinalityMetricShouldIncrementMetrics() {
+        // when
+        metrics.updateRequestBidderCardinalityMetric(3);
+
+        // then
+        assertThat(metricRegistry.counter("bidder-cardinality.3.requests").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -848,57 +851,40 @@ public class MetricsTest {
     }
 
     @Test
-    public void shouldIncrementDatabaseCircuitBreakerOpenMetric() {
+    public void shouldCreateDatabaseCircuitBreakerGaugeMetric() {
         // when
-        metrics.updateDatabaseCircuitBreakerMetric(true);
+        metrics.createDatabaseCircuitBreakerGauge(() -> true);
 
         // then
-        assertThat(metricRegistry.counter("db_circuitbreaker_opened").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.gauge("circuit-breaker.db.opened.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test
-    public void shouldIncrementDatabaseCircuitBreakerCloseMetric() {
+    public void shouldCreateHttpClientCircuitBreakerGaugeMetric() {
         // when
-        metrics.updateDatabaseCircuitBreakerMetric(false);
+        metrics.createHttpClientCircuitBreakerGauge("id", () -> true);
 
         // then
-        assertThat(metricRegistry.counter("db_circuitbreaker_closed").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.gauge("circuit-breaker.http.named.id.opened.count", () -> null).getValue())
+                .isEqualTo(1L);
     }
 
     @Test
-    public void shouldIncrementHttpClientCircuitBreakerOpenMetric() {
+    public void shouldCreateHttpClientCircuitBreakerNumberGaugeMetric() {
         // when
-        metrics.updateHttpClientCircuitBreakerMetric("id", true);
+        metrics.createHttpClientCircuitBreakerNumberGauge(() -> 1);
 
         // then
-        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened.id").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.gauge("circuit-breaker.http.existing.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test
-    public void shouldIncrementHttpClientCircuitBreakerCloseMetric() {
+    public void shouldCreateGeoLocationCircuitBreakerGaugeMetric() {
         // when
-        metrics.updateHttpClientCircuitBreakerMetric("id", false);
+        metrics.createGeoLocationCircuitBreakerGauge(() -> true);
 
         // then
-        assertThat(metricRegistry.counter("httpclient_circuitbreaker_closed.id").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void shouldIncrementGeoLocationCircuitBreakerOpenMetric() {
-        // when
-        metrics.updateGeoLocationCircuitBreakerMetric(true);
-
-        // then
-        assertThat(metricRegistry.counter("geolocation_circuitbreaker_opened").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void shouldIncrementGeoLocationCircuitBreakerCloseMetric() {
-        // when
-        metrics.updateGeoLocationCircuitBreakerMetric(false);
-
-        // then
-        assertThat(metricRegistry.counter("geolocation_circuitbreaker_closed").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.gauge("circuit-breaker.geo.opened.count", () -> null).getValue()).isEqualTo(1L);
     }
 
     @Test
@@ -973,19 +959,32 @@ public class MetricsTest {
     @Test
     public void shouldIncrementPrebidCacheRequestSuccessTimer() {
         // when
-        metrics.updateCacheRequestSuccessTime(1424L);
+        metrics.updateCacheRequestSuccessTime("accountId", 1424L);
 
         // then
-        assertThat(metricRegistry.timer("prebid_cache_request_success_time").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.requests.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.ok").getCount()).isEqualTo(1);
     }
 
     @Test
     public void shouldIncrementPrebidCacheRequestFailedTimer() {
         // when
-        metrics.updateCacheRequestFailedTime(1424L);
+        metrics.updateCacheRequestFailedTime("accountId", 1424L);
 
         // then
-        assertThat(metricRegistry.timer("prebid_cache_request_error_time").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.requests.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.err").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheCreativeSizeHistogram() {
+        // when
+        metrics.updateCacheCreativeSize("accountId", 235);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.creative_size").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_size").getCount())
+                .isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

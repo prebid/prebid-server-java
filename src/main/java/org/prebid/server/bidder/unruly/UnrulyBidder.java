@@ -40,8 +40,6 @@ public class UnrulyBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpUnruly>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -133,8 +131,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                        DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

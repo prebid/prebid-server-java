@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -28,8 +27,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final RequestCreationStrategy requestCreationStrategy;
@@ -230,8 +227,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                        getBidCurrency(bidRequest.getCur(), bidResponse.getCur())))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -262,27 +258,6 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             }
         }
         return bidType;
-    }
-
-    /**
-     * A hook for defining a bid currency.
-     * <p>
-     * By default - USD.
-     *
-     * @return - bid currency
-     */
-    protected String getBidCurrency(List<String> requestCurrencies, String responseCurrency) {
-        final String result;
-
-        if (responseCurrency != null) {
-            result = responseCurrency;
-        } else if (CollectionUtils.isNotEmpty(requestCurrencies)) {
-            result = requestCurrencies.get(0);
-        } else {
-            result = DEFAULT_BID_CURRENCY;
-        }
-
-        return result;
     }
 
     @Override

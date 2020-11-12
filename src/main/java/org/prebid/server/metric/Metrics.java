@@ -12,7 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 /**
@@ -28,17 +30,20 @@ public class Metrics extends UpdatableMetrics {
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
-    private final Function<String, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
+    private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
+    private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterMetrics> adapterMetrics;
+    private final Map<Integer, BidderCardinalityMetrics> bidderCardinailtyMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
     private final PrivacyMetrics privacyMetrics;
-    private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
+    private final Map<MetricName, CircuitBreakerMetrics> circuitBreakerMetrics;
+    private final CacheMetrics cacheMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -50,18 +55,26 @@ public class Metrics extends UpdatableMetrics {
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
-        circuitBreakerMetricsCreator = id -> new CircuitBreakerMetrics(metricRegistry, counterType, id);
+        bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
+                metricRegistry, counterType, cardinality);
+        circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
+        bidderCardinailtyMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
         privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
         circuitBreakerMetrics = new HashMap<>();
+        cacheMetrics = new CacheMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
         return requestMetrics.computeIfAbsent(requestType, requestMetricsCreator);
+    }
+
+    BidderCardinalityMetrics forBidderCardinality(int cardinality) {
+        return bidderCardinailtyMetrics.computeIfAbsent(cardinality, bidderCardinalityMetricsCreator);
     }
 
     AccountMetrics forAccount(String account) {
@@ -84,8 +97,12 @@ public class Metrics extends UpdatableMetrics {
         return privacyMetrics;
     }
 
-    CircuitBreakerMetrics forCircuitBreaker(String id) {
-        return circuitBreakerMetrics.computeIfAbsent(id, circuitBreakerMetricsCreator);
+    CircuitBreakerMetrics forCircuitBreakerType(MetricName type) {
+        return circuitBreakerMetrics.computeIfAbsent(type, circuitBreakerMetricsCreator);
+    }
+
+    CacheMetrics cache() {
+        return cacheMetrics;
     }
 
     public void updateSafariRequestsMetric(boolean isSafari) {
@@ -164,6 +181,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateRequestTypeMetric(MetricName requestType, MetricName requestStatus) {
         forRequestType(requestType).incCounter(requestStatus);
+    }
+
+    public void updateRequestBidderCardinalityMetric(int bidderCardinality) {
+        forBidderCardinality(bidderCardinality).incCounter(MetricName.requests);
     }
 
     public void updateAccountRequestMetrics(String accountId, MetricName requestType) {
@@ -359,20 +380,23 @@ public class Metrics extends UpdatableMetrics {
         updateTimer(MetricName.db_query_time, millis);
     }
 
-    public void updateDatabaseCircuitBreakerMetric(boolean opened) {
-        if (opened) {
-            incCounter(MetricName.db_circuitbreaker_opened);
-        } else {
-            incCounter(MetricName.db_circuitbreaker_closed);
-        }
+    public void createDatabaseCircuitBreakerGauge(BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.db)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
-    public void updateHttpClientCircuitBreakerMetric(String id, boolean opened) {
-        if (opened) {
-            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_opened);
-        } else {
-            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_closed);
-        }
+    public void createHttpClientCircuitBreakerGauge(String name, BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.http)
+                .forName(name)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+    }
+
+    public void removeHttpClientCircuitBreakerGauge(String name) {
+        forCircuitBreakerType(MetricName.http).forName(name).removeMetric(MetricName.opened);
+    }
+
+    public void createHttpClientCircuitBreakerNumberGauge(LongSupplier numberSupplier) {
+        forCircuitBreakerType(MetricName.http).createGauge(MetricName.existing, numberSupplier);
     }
 
     public void updateGeoLocationMetric(boolean successful) {
@@ -384,12 +408,9 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
-        if (opened) {
-            incCounter(MetricName.geolocation_circuitbreaker_opened);
-        } else {
-            incCounter(MetricName.geolocation_circuitbreaker_closed);
-        }
+    public void createGeoLocationCircuitBreakerGauge(BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.geo)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
     public void updateStoredRequestMetric(boolean found) {
@@ -408,12 +429,19 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateCacheRequestSuccessTime(long timeElapsed) {
-        updateTimer(MetricName.prebid_cache_request_success_time, timeElapsed);
+    public void updateCacheRequestSuccessTime(String accountId, long timeElapsed) {
+        cache().requests().updateTimer(MetricName.ok, timeElapsed);
+        forAccount(accountId).cache().requests().updateTimer(MetricName.ok, timeElapsed);
     }
 
-    public void updateCacheRequestFailedTime(long timeElapsed) {
-        updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
+    public void updateCacheRequestFailedTime(String accountId, long timeElapsed) {
+        cache().requests().updateTimer(MetricName.err, timeElapsed);
+        forAccount(accountId).cache().requests().updateTimer(MetricName.err, timeElapsed);
+    }
+
+    public void updateCacheCreativeSize(String accountId, int creativeSize) {
+        cache().updateHistogram(MetricName.creative_size, creativeSize);
+        forAccount(accountId).cache().updateHistogram(MetricName.creative_size, creativeSize);
     }
 
     private String resolveMetricsBidderName(String bidder) {

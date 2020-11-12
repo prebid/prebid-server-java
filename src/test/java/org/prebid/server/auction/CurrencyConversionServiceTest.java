@@ -231,7 +231,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyConversionService.convertCurrency(BigDecimal.ONE, null, EUR, GBP,
                         false))
-                .withMessage("no currency conversion available");
+                .withMessage("Unable to convert bid currency GBP to desired ad server currency EUR");
     }
 
     @Test
@@ -239,7 +239,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         // when and then
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE, null, USD, EUR, false))
-                .withMessage("no currency conversion available");
+                .withMessage("Unable to convert bid currency EUR to desired ad server currency USD");
     }
 
     @Test
@@ -257,7 +257,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, AUD,
                         false))
-                .withMessage("no currency conversion available");
+                .withMessage("Unable to convert bid currency AUD to desired ad server currency EUR");
     }
 
     @Test
@@ -271,7 +271,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         // then
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE, null, UAH, AUD, false))
-                .withMessage("no currency conversion available");
+                .withMessage("Unable to convert bid currency AUD to desired ad server currency UAH");
     }
 
     @Test
@@ -285,7 +285,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         // then
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE, null, UAH, AUD, false))
-                .withMessage("no currency conversion available");
+                .withMessage("Unable to convert bid currency AUD to desired ad server currency UAH");
     }
 
     @SuppressWarnings("unchecked")

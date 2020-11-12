@@ -41,8 +41,6 @@ public class KidozBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpKidoz>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -128,12 +126,7 @@ public class KidozBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return Result.emptyWithError(BidderError.badInput("bad request"));
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    statusCode)));
+            return Result.empty();
         }
 
         try {
@@ -154,16 +147,16 @@ public class KidozBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, errors))
+                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         return Result.of(bidderBids, errors);
     }
 
-    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, List<BidderError> errors) {
+    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, String currency, List<BidderError> errors) {
         try {
             final BidType bidType = getBidType(bid.getImpid(), imps);
-            return BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+            return BidderBid.of(bid, bidType, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;

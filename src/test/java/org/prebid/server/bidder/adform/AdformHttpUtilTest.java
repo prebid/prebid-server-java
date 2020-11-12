@@ -10,7 +10,10 @@ import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
 import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Base64;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -127,6 +130,8 @@ public class AdformHttpUtilTest extends VertxTest {
                         .keyValues(asList("color:red", "age:30-40"))
                         .keyWords(asList("red", "blue"))
                         .priceTypes(singletonList("gross"))
+                        .cdims(asList("300x300,400x200", "300x200"))
+                        .minPrices(asList(23.1, null))
                         .endpointUrl("http://adx.adform.net/adx")
                         .tid("tid")
                         .ip("ip")
@@ -135,14 +140,22 @@ public class AdformHttpUtilTest extends VertxTest {
                         .consent("consent")
                         .secure(false)
                         .currency("USD")
+                        .eids("eyJ0ZXN0LmNvbSI6eyJvdGh")
+                        .url("https://adform.com?a=b")
                         .build());
 
         // then
-        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        final String expectedEncodedPart = Stream.of(
+                "mid=15&rcur=USD&mkv=color:red&mkw=red&cdims=300x300,400x200&minp=23.10",
+                "mid=16&rcur=USD&mkv=age:30-40&mkw=blue&cdims=300x200")
+                .map(s -> Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes()))
+                .collect(Collectors.joining("&"));
+
         assertThat(url).isEqualTo(
-                "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
-                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA"
-                        + "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
+                "http://adx.adform.net/adx?CC=1&adid=adId&eids=eyJ0ZXN0LmNvbSI6eyJvdGh&"
+                        + "fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
+                        + "&stid=tid&url=https%3A%2F%2Fadform.com%3Fa%3Db"
+                        + "&" + expectedEncodedPart);
     }
 
     @Test
@@ -290,5 +303,33 @@ public class AdformHttpUtilTest extends VertxTest {
         assertThat(url)
                 .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=gross&rp=4"
                         + "&stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
+    }
+
+    @Test
+    public void buildAdformUrlShouldNotContainEidsParamIfEmptyEids() {
+        // when
+        final String url = httpUtil.buildAdformUrl(
+                UrlParameters.builder()
+                        .masterTagIds(asList(15L, 16L))
+                        .keyValues(asList("color:red", "age:30-40"))
+                        .keyWords(asList("red", "blue"))
+                        .priceTypes(singletonList("gross"))
+                        .endpointUrl("http://adx.adform.net/adx")
+                        .tid("tid")
+                        .ip("ip")
+                        .advertisingId("adId")
+                        .gdprApplies("1")
+                        .consent("consent")
+                        .secure(false)
+                        .currency("USD")
+                        .eids(null)
+                        .build());
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url).isEqualTo(
+                "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA"
+                        + "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
     }
 }

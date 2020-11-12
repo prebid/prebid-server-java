@@ -241,6 +241,7 @@ public class ValueImpressionBidderTest extends VertxTest {
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         final Bid bid = bidCustomizer.apply(Bid.builder()).build();
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid))
                         .build()))
                 .build();

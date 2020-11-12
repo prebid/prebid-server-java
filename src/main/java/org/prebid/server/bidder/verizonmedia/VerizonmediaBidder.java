@@ -41,7 +41,6 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpVerizonmedia>> VERIZON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpVerizonmedia>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -184,7 +183,7 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(bid -> checkBid(bid.getImpid(), imps))
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

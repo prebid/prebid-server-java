@@ -42,8 +42,6 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpMarsmedia>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -164,7 +162,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
         if (response.getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         try {
@@ -178,13 +176,13 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp());
+                : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
     }
 
-    private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps) {
+    private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
         return seatbid.get(0).getBid().stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
                 .collect(Collectors.toList());
     }
 
