@@ -2,12 +2,12 @@ package org.prebid.server.bidder.telaria;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -18,12 +18,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.HttpCall;
-import org.prebid.server.bidder.model.HttpResponse;
-import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.telaria.model.TelariaRequestExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -166,7 +166,10 @@ public class TelariaBidder implements Bidder<BidRequest> {
     }
 
     private MultiMap headers(BidRequest bidRequest) {
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5").add("Accept-Encoding", "gzip");
+        final MultiMap headers = HttpUtil.headers()
+                .add("x-openrtb-version", "2.5")
+                .add(HttpUtil.ACCEPT_ENCODING_HEADER, "gzip");
+
         final Device device = bidRequest.getDevice();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
@@ -174,6 +177,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
+
         return headers;
     }
 
@@ -216,7 +220,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    public static byte[] decompress(String file) throws IOException {
+    private static byte[] decompress(String file) throws IOException {
         try (GZIPInputStream gzipInput = new GZIPInputStream(new FileInputStream(file))) {
             return IOUtils.toByteArray(gzipInput);
         }

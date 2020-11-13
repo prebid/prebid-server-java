@@ -73,8 +73,7 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     private ExtImpVerizonmedia parseAndValidateImpExt(ObjectNode impExtNode, int index) {
         final ExtImpVerizonmedia extImpVerizonmedia;
         try {
-            extImpVerizonmedia = mapper.mapper().convertValue(impExtNode,
-                    VERIZON_EXT_TYPE_REFERENCE).getBidder();
+            extImpVerizonmedia = mapper.mapper().convertValue(impExtNode, VERIZON_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
         }
@@ -145,11 +144,11 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     }
 
     private static MultiMap makeHeaders(Device device) {
-        final String deviceUa = device != null ? device.getUa() : null;
-
         final MultiMap headers = HttpUtil.headers()
                 .add("x-openrtb-version", "2.5");
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", deviceUa);
+
+        final String deviceUa = device != null ? device.getUa() : null;
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, deviceUa);
 
         return headers;
     }

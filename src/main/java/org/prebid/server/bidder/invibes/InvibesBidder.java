@@ -74,7 +74,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         final String consentString = resolveConsentString(request.getUser());
         final Boolean gdprApplies = resolveGDPRApplies(request.getRegs());
 
-        InvibesInternalParams invibesInternalParams = new InvibesInternalParams();
+        final InvibesInternalParams invibesInternalParams = new InvibesInternalParams();
         invibesInternalParams.setBidParams(InvibesBidParams.builder()
                 .properties(new HashMap<>())
                 .placementIds(new ArrayList<>())
@@ -92,7 +92,8 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
             }
             updateInvibesInternalParams(invibesInternalParams, extImpInvibes, imp);
         }
-        //TODO add AMP parameter to invibesInternalParams, after reqInfo will be implemented
+
+        //TODO: add AMP parameter to invibesInternalParams, after reqInfo will be implemented
 
         final List<String> placementIds = invibesInternalParams.getBidParams().getPlacementIds();
         if (CollectionUtils.isEmpty(placementIds)) {
@@ -138,8 +139,8 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     }
 
     private void updateInvibesInternalParams(InvibesInternalParams invibesInternalParams,
-                                                              ExtImpInvibes invibesExt,
-                                                              Imp imp) {
+                                             ExtImpInvibes invibesExt,
+                                             Imp imp) {
         final String impExtPlacementId = invibesExt.getPlacementId();
         final InvibesBidParams bidParams = invibesInternalParams.getBidParams();
         final List<String> updatedPlacementIds = bidParams.getPlacementIds();
@@ -266,21 +267,14 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     private static MultiMap resolveHeaders(Device device, Site site) {
         final MultiMap headers = HttpUtil.headers();
         if (device != null) {
-            addHeader(headers, "X-Forwarded-For", device.getIp());
-            addHeader(headers, "X-Forwarded-For", device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
         }
         if (site != null) {
-            headers.add("Referer", site.getPage());
-            addHeader(headers, "Referer", site.getPage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
         }
-        addHeader(headers, "Aver", ADAPTER_VERSION);
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Aver", ADAPTER_VERSION);
         return headers;
-    }
-
-    private static void addHeader(MultiMap headers, String header, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            headers.add(header, value);
-        }
     }
 
     @Override

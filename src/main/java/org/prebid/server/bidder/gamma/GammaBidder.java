@@ -180,12 +180,12 @@ public class GammaBidder implements Bidder<Void> {
     }
 
     private MultiMap makeHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers().clear()
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
+                .set("x-openrtb-version", "2.5")
                 .set(HttpUtil.ACCEPT_HEADER, "*/*")
                 .set(HttpUtil.CACHE_CONTROL_HEADER, "no-cache")
-                .set("x-openrtb-version", "2.5")
-                .set("Connection", "keep-alive")
-                .set("Accept-Encoding", "gzip, deflate");
+                .set(HttpUtil.CONNECTION_HEADER, "keep-alive")
+                .set(HttpUtil.ACCEPT_ENCODING_HEADER, "gzip, deflate");
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());

@@ -99,25 +99,18 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     }
 
     private MultiMap resolveHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers();
-        headers.add("X-Openrtb-Version", "2.5");
+        final MultiMap headers = HttpUtil.headers()
+                .add("X-Openrtb-Version", "2.5");
 
         if (device != null) {
-            addHeader(headers, "User-Agent", device.getUa());
-            addHeader(headers, "X-Forwarded-For", device.getIp());
-            addHeader(headers, "Accept-Language", device.getLanguage());
-            if (device.getDnt() != null) {
-                headers.add("DNT", device.getDnt().toString());
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
 
         return headers;
-    }
-
-    private static void addHeader(MultiMap headers, String header, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            headers.add(header, value);
-        }
     }
 
     @Override
