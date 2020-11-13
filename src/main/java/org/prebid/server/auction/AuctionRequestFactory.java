@@ -131,7 +131,7 @@ public class AuctionRequestFactory {
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
-        this.adServerCurrency = validateCurrency(adServerCurrency);
+        this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -154,10 +154,6 @@ public class AuctionRequestFactory {
      * Validates ISO-4217 currency code.
      */
     private static String validateCurrency(String code) {
-        if (StringUtils.isBlank(code)) {
-            return code;
-        }
-
         try {
             Currency.getInstance(code);
         } catch (IllegalArgumentException e) {
@@ -257,7 +253,7 @@ public class AuctionRequestFactory {
      * updated by values derived from headers and other request attributes.
      */
     private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest) {
-        return storedRequestProcessor.processStoredRequests(bidRequest)
+        return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
                 .map(this::validateRequest)
                 .map(interstitialProcessor::process);

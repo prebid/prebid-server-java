@@ -324,6 +324,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                                 Imp.builder().banner(Banner.builder().build()).id("321").build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(asList(Bid.builder().impid("123").build(),
                                         Bid.builder().impid("321").build()))
@@ -363,6 +364,7 @@ public class VerizonmediaBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

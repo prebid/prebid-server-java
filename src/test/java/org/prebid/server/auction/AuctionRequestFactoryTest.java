@@ -1383,8 +1383,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
 
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(
-                BidRequest.builder().build()));
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("error1", "error2")));
 
@@ -1726,7 +1726,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
             throw new RuntimeException(e);
         }
 
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willReturn(Future.succeededFuture(bidRequest));
 
         given(requestValidator.validate(any())).willReturn(ValidationResult.success());
     }

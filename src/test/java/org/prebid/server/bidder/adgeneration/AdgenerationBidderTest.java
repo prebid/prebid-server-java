@@ -112,7 +112,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2");
     }
 
     @Test
@@ -130,7 +130,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.1");
+                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.2");
     }
 
     @Test
@@ -148,7 +148,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1&tp=http%3A%2F%2Fwww.example.com");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&tp=http%3A%2F%2Fwww.example.com");
     }
 
     @Test
@@ -169,7 +169,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1&size=300%C3%97500");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&sizes=300x500");
     }
 
     @Test
@@ -199,34 +199,6 @@ public class AdgenerationBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseStatusIsNotOk() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(404, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected HTTP status 404.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseStatusIsNot() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(400, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid request.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
     }
 
     @Test

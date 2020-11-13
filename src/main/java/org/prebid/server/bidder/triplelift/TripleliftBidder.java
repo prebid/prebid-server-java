@@ -33,7 +33,6 @@ import java.util.Objects;
 
 public class TripleliftBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTriplelift>>() {
             };
@@ -127,7 +126,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                     final TripleliftResponseExt tripleliftResponseExt = mapper.mapper().treeToValue(ext,
                             TripleliftResponseExt.class);
                     final BidderBid bidderBid = BidderBid.of(bid, getBidType(tripleliftResponseExt),
-                            DEFAULT_BID_CURRENCY);
+                            bidResponse.getCur());
                     bidderBids.add(bidderBid);
                 } catch (JsonProcessingException e) {
                     errors.add(BidderError.badServerResponse(e.getMessage()));
@@ -161,4 +160,3 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 }
-

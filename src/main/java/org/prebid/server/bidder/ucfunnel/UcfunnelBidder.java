@@ -40,7 +40,6 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpUcfunnel>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -96,12 +95,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return Result.emptyWithError(BidderError.badInput("bad request"));
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    statusCode)));
+            return Result.empty();
         }
 
         final BidResponse bidResponse;
@@ -116,7 +110,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             for (Bid bid : seatBid.getBid()) {
                 final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
                 if (bidType == BidType.banner || bidType == BidType.video) {
-                    final BidderBid bidderBid = BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+                    final BidderBid bidderBid = BidderBid.of(bid, bidType, bidResponse.getCur());
                     bidderBids.add(bidderBid);
                 }
             }

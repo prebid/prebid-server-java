@@ -257,6 +257,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("impId")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))
@@ -284,6 +285,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("impId")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))
@@ -328,6 +330,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("id")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().build()))
                                 .build()))
@@ -350,6 +353,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("id")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))

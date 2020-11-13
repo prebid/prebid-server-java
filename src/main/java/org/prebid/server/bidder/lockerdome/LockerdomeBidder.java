@@ -38,8 +38,6 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpLockerdome>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -127,7 +125,7 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
