@@ -57,8 +57,8 @@ public class YieldoneBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
+                validateImpExt(imp);
                 final Imp updatedImp = modifyImp(imp);
-                validateImpExt(updatedImp);
 
                 validImps.add(updatedImp);
             } catch (PreBidException e) {
@@ -97,8 +97,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
 
     private void validateImpExt(Imp imp) {
         try {
-            final ExtImpYieldone extImpYieldone = mapper.mapper().convertValue(imp.getExt(),
-                    YIELDONE_EXT_TYPE_REFERENCE).getBidder();
+            mapper.mapper().convertValue(imp.getExt(), YIELDONE_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -112,15 +111,16 @@ public class YieldoneBidder implements Bidder<BidRequest> {
         }
 
         try {
+            final List<Imp> requestImps = bidRequest.getImp();
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
             final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                     .filter(Objects::nonNull)
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                            bidResponse.getCur()))
+                    .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), requestImps), bidResponse.getCur()))
                     .collect(Collectors.toList());
+
             return Result.of(bidderBids, Collections.emptyList());
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
@@ -145,7 +145,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        throw new PreBidException(String.format("Unknown impression type with id %s", impId));
     }
 
     @Override
