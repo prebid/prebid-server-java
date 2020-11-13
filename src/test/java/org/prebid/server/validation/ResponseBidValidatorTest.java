@@ -28,6 +28,7 @@ import java.util.function.Function;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -59,10 +60,28 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldFailedIfBidderBidCurrencyIsIncorrect() {
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                responseBidValidator.validate(
+                        BidderBid.of(
+                                Bid.builder()
+                                        .id("bidId1")
+                                        .impid("impId1")
+                                        .crid("crid1")
+                                        .price(BigDecimal.ONE)
+                                        .build(),
+                                null,
+                                "USDD"),
+                        BIDDER_NAME,
+                        givenAuctionContext(),
+                        bidderAliases));
+    }
+
+    @Test
     public void validateShouldFailIfMissingBid() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                BidderBid.of(null, null, null), BIDDER_NAME, givenAuctionContext(), bidderAliases);
+                BidderBid.of(null, null, "USD"), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).containsOnly("Empty bid object submitted.");
@@ -426,7 +445,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 .adm("<tag>https://site.com/creative.jpg</tag>")
                 .price(BigDecimal.ONE);
 
-        return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, null);
+        return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, "USD");
     }
 
     private static AuctionContext givenAuctionContext(BidRequest bidRequest, Account account) {

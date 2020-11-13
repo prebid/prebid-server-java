@@ -48,6 +48,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.FOUR;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.SEVEN;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
 
 public class Tcf2ServiceTest extends VertxTest {
 
@@ -91,10 +95,10 @@ public class Tcf2ServiceTest extends VertxTest {
     @Before
     public void setUp() {
         given(tcString.getVendorListVersion()).willReturn(10);
-        given(purposeStrategyOne.getPurposeId()).willReturn(1);
-        given(purposeStrategyTwo.getPurposeId()).willReturn(2);
-        given(purposeStrategyFour.getPurposeId()).willReturn(4);
-        given(purposeStrategySeven.getPurposeId()).willReturn(7);
+        given(purposeStrategyOne.getPurpose()).willReturn(ONE);
+        given(purposeStrategyTwo.getPurpose()).willReturn(TWO);
+        given(purposeStrategyFour.getPurpose()).willReturn(FOUR);
+        given(purposeStrategySeven.getPurpose()).willReturn(SEVEN);
         purposeStrategies = asList(purposeStrategyOne, purposeStrategyTwo, purposeStrategyFour, purposeStrategySeven);
 
         given(specialFeaturesStrategyOne.getSpecialFeatureId()).willReturn(1);

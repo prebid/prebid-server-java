@@ -781,9 +781,13 @@ public class ExchangeService {
     /**
      * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}.
      */
-    private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
-                                                    BidderAliases aliases, String publisherId,
+    private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests,
+                                                    UidsCookie uidsCookie,
+                                                    BidderAliases aliases,
+                                                    String publisherId,
                                                     MetricName requestTypeMetric) {
+
+        metrics.updateRequestBidderCardinalityMetric(bidderRequests.size());
         metrics.updateAccountRequestMetrics(publisherId, requestTypeMetric);
 
         for (BidderRequest bidderRequest : bidderRequests) {
@@ -794,6 +798,7 @@ public class ExchangeService {
 
             metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestTypeMetric, !isApp && noBuyerId);
         }
+
         return bidderRequests;
     }
 
@@ -906,7 +911,8 @@ public class ExchangeService {
             final BigDecimal price = bid.getPrice();
             try {
                 final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                        price, currencyRates(bidRequest), adServerCurrency, bidCurrency, usepbsrates);
+                        price, currencyRates(bidRequest), adServerCurrency,
+                        StringUtils.stripToNull(bidCurrency), usepbsrates);
 
                 final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
 
@@ -915,9 +921,7 @@ public class ExchangeService {
                 }
                 updatedBidderBids.add(bidderBid);
             } catch (PreBidException e) {
-                errors.add(BidderError.generic(
-                        String.format("Unable to covert bid currency %s to desired ad server currency %s. %s",
-                                bidCurrency, adServerCurrency, e.getMessage())));
+                errors.add(BidderError.generic(e.getMessage()));
             }
         }
 

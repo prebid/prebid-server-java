@@ -14,6 +14,8 @@ import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 
+import java.util.EnumSet;
+
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -21,6 +23,11 @@ import static java.util.Collections.singletonMap;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.FIVE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.FOUR;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.THREE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
 
 public class GdprServiceTest extends VertxTest {
 
@@ -83,7 +90,7 @@ public class GdprServiceTest extends VertxTest {
     public void shouldReturnAllDeniedWhenAllClaimedPurposesAreNotAllowed() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, VendorV1.of(1, singleton(4), singleton(5)))));
+                singletonMap(1, VendorV1.of(1, EnumSet.of(FOUR), EnumSet.of(FIVE)))));
 
         // when and then
         assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
@@ -94,7 +101,7 @@ public class GdprServiceTest extends VertxTest {
     public void shouldReturnPrivateInfoAllowedUserSyncDeniedWhenAllClaimedPurposesAreAllowed() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, VendorV1.of(1, singleton(2), singleton(3)))));
+                singletonMap(1, VendorV1.of(1, EnumSet.of(TWO), EnumSet.of(THREE)))));
 
         // when and then
         assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
@@ -105,7 +112,7 @@ public class GdprServiceTest extends VertxTest {
     public void shouldReturnAllAllowedWhenAllClaimedPurposesAreAllowedIncludingPurposeOne() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, VendorV1.of(1, singleton(1), singleton(2)))));
+                singletonMap(1, VendorV1.of(1, EnumSet.of(ONE), EnumSet.of(TWO)))));
 
         // when and then
         assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
@@ -116,7 +123,7 @@ public class GdprServiceTest extends VertxTest {
     public void shouldReturnPrivateInfoDeniedUserSyncAllowedWhenNotAllClaimedPurposesAreAllowedButPurposeOneIs() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, VendorV1.of(1, singleton(1), singleton(4)))));
+                singletonMap(1, VendorV1.of(1, EnumSet.of(ONE), EnumSet.of(FOUR)))));
 
         // when and then
         assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
@@ -127,7 +134,7 @@ public class GdprServiceTest extends VertxTest {
     public void shouldReturnUserSyncDeniedWhenPurposeOneIsAllowedButNotClaimed() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, VendorV1.of(1, singleton(2), singleton(3)))));
+                singletonMap(1, VendorV1.of(1, EnumSet.of(TWO), EnumSet.of(THREE)))));
 
         // when and then
         assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))

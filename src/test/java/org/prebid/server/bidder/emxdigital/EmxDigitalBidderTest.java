@@ -44,22 +44,6 @@ public class EmxDigitalBidderTest extends VertxTest {
 
     private EmxDigitalBidder emxDigitalBidder;
 
-    private static BidResponse givenBidResponse(
-            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
-
     @Before
     public void setUp() {
         emxDigitalBidder = new EmxDigitalBidder(ENDPOINT_URL, jacksonMapper);
@@ -435,5 +419,23 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(emxDigitalBidder.extractTargeting(mapper.createObjectNode()))
                 .isEqualTo(emptyMap());
     }
+
+    private static BidResponse givenBidResponse(
+            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build();
+    }
+
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return HttpCall.success(
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
+    }
+
 }
 

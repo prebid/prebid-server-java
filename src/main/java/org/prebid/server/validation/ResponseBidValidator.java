@@ -22,6 +22,7 @@ import org.prebid.server.validation.model.ValidationResult;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Currency;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -54,6 +55,7 @@ public class ResponseBidValidator {
 
         try {
             validateCommonFields(bidderBid.getBid());
+            validateCurrency(bidderBid.getBidCurrency());
 
             if (bidderBid.getType() == BidType.banner) {
                 warnings.addAll(validateBannerFields(bidderBid, bidder, auctionContext, aliases));
@@ -95,6 +97,16 @@ public class ResponseBidValidator {
 
         if (StringUtils.isEmpty(bid.getCrid())) {
             throw new ValidationException("Bid \"%s\" missing creative ID", bidId);
+        }
+    }
+
+    private static void validateCurrency(String currency) {
+        try {
+            if (StringUtils.isNotBlank(currency)) {
+                Currency.getInstance(currency);
+            }
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format("BidResponse currency is not valid: %s", currency), e);
         }
     }
 

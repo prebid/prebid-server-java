@@ -52,6 +52,7 @@ import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
+import org.prebid.server.util.VersionInfo;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -506,6 +507,11 @@ public class ServiceConfiguration {
                                               JacksonMapper mapper) {
 
         return new HttpAdapterConnector(httpClient, privacyExtractor, clock, mapper);
+    }
+
+    @Bean
+    VersionInfo versionInfo(JacksonMapper jacksonMapper) {
+        return VersionInfo.create("git-revision.json", jacksonMapper);
     }
 
     @Bean
