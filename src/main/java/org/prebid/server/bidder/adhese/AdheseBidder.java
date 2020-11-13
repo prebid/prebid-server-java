@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -57,6 +58,7 @@ public class AdheseBidder implements Bidder<Void> {
     private static final String ORIGIN = "JERLICIA";
     private static final String QUERY_PARAMETER_GDPR = "/xt";
     private static final String QUERY_PARAMETER_REFERER = "/xf";
+    private static final String QUERY_PARAMETER_IFA = "/xz";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -103,8 +105,10 @@ public class AdheseBidder implements Bidder<Void> {
         final String slotParameter = String.format("/sl%s-%s", HttpUtil.encodeUrl(extImpAdhese.getLocation()),
                 HttpUtil.encodeUrl(extImpAdhese.getFormat()));
 
-        return String.format("%s%s%s%s%s", uri, slotParameter, getTargetParameters(extImpAdhese),
-                getGdprParameter(request.getUser()), getRefererParameter(request.getSite()));
+        return String.format("%s%s%s%s%s%s", uri, slotParameter, getTargetParameters(extImpAdhese),
+                getGdprParameter(request.getUser()),
+                getRefererParameter(request.getSite()),
+                extractIfaParameter(request.getDevice()));
     }
 
     private String getTargetParameters(ExtImpAdhese extImpAdhese) {
@@ -142,6 +146,13 @@ public class AdheseBidder implements Bidder<Void> {
         final String page = site != null ? site.getPage() : null;
         return StringUtils.isNotBlank(page)
                 ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(page))
+                : "";
+    }
+
+    private static String extractIfaParameter(Device device) {
+        final String ifa = device != null ? device.getIfa() : null;
+        return StringUtils.isNotBlank(ifa)
+                ? String.format("%s%s", QUERY_PARAMETER_IFA, HttpUtil.encodeUrl(ifa))
                 : "";
     }
 
