@@ -66,15 +66,14 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
 
         final String body = mapper.encode(outgoingRequest);
 
-        return Result.of(Collections.singletonList(
+        return Result.valueOnly(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(uri)
                         .headers(headers)
                         .body(body)
                         .payload(outgoingRequest)
-                        .build()),
-                Collections.emptyList());
+                        .build()));
     }
 
     private String resolveRequestZone(Imp firstImp) {
@@ -171,7 +170,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
     }

@@ -143,7 +143,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     }
 
     private static Result<List<BidderBid>> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
         final List<BidderError> errors = new ArrayList<>();

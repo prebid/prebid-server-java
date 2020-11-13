@@ -121,7 +121,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                     .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
                             bidResponse.getCur()))
                     .collect(Collectors.toList());
-            return Result.of(bidderBids, Collections.emptyList());
+            return Result.valueOnly(bidderBids);
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }

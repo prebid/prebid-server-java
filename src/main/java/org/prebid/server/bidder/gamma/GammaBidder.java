@@ -60,7 +60,7 @@ public class GammaBidder implements Bidder<Void> {
             outgoingRequests = createHttpRequests(bidRequest, errors);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
         return Result.of(outgoingRequests, errors);
     }
@@ -221,7 +221,7 @@ public class GammaBidder implements Bidder<Void> {
     private static List<BidderBid> extractBidsAndFillErorrs(GammaBidResponse bidResponse,
                                                             BidRequest bidRequest,
                                                             List<BidderError> errors) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse, bidRequest, errors);
     }

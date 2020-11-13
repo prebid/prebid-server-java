@@ -9,6 +9,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -59,7 +60,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
 
         if (validImps.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions for triplelift"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
 
         final BidRequest updatedRequest = bidRequest.toBuilder()
@@ -109,8 +110,8 @@ public class TripleliftBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
         }
 
         final List<BidderError> errors = new ArrayList<>();

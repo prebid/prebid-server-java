@@ -183,9 +183,9 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
-                ? Result.of(Collections.emptyList(), Collections.emptyList())
-                : Result.of(createBiddersBid(bidResponse, imps), Collections.emptyList());
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Result.empty()
+                : Result.valueOnly(createBiddersBid(bidResponse, imps));
     }
 
     /**

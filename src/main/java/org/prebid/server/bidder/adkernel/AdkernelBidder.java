@@ -66,7 +66,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         }
 
         if (hasNoImpressions(pubToImps)) {
-            return Result.of(null, errors);
+            return Result.errorsOnly(errors);
         }
 
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
@@ -162,7 +162,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.valueOnly(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

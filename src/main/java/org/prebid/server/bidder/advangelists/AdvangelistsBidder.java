@@ -60,7 +60,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             final Map<ExtImpAdvangelists, List<Imp>> impToExtImp = getImpToExtImp(request, errors);
             httpRequests.addAll(buildAdapterRequests(request, impToExtImp));
         } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
 
         return Result.of(httpRequests, errors);
@@ -197,14 +197,14 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.valueOnly(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {

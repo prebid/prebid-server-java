@@ -295,7 +295,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
 
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         final List<BidderError> errors = new ArrayList<>();

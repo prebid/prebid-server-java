@@ -263,7 +263,7 @@ public class HttpAdapterConnector {
                     .map(bidBuilder -> bidBuilder.responseTimeMs(responseTime))
                     .map(Bid.BidBuilder::build)
                     .collect(Collectors.toList());
-            return Result.of(bids, Collections.emptyList());
+            return Result.valueOnly(bids);
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

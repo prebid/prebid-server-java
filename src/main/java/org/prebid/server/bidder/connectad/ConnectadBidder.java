@@ -73,7 +73,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         }
         if (CollectionUtils.isNotEmpty(errors)) {
             errors.add(BidderError.badInput("Error in preprocess of Imp"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(processedImps).build();
 

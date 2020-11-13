@@ -11,6 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -71,7 +72,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
         }
-        return Result.of(result, Collections.emptyList());
+        return Result.valueOnly(result);
     }
 
     private ExtImpSmartadserver parseImpExt(Imp imp) {
@@ -117,8 +118,8 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     }
 
     private Result<List<BidderBid>> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
         }
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()

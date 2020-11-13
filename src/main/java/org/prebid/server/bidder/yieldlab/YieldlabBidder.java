@@ -72,12 +72,12 @@ public class YieldlabBidder implements Bidder<Void> {
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final ExtImpYieldlab modifiedExtImp = constructExtImp(request.getImp());
 
-        return Result.of(Collections.singletonList(
+        return Result.valueOnly(Collections.singletonList(
                 HttpRequest.<Void>builder()
                         .method(HttpMethod.GET)
                         .uri(makeUrl(modifiedExtImp, request))
                         .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
-                        .build()), Collections.emptyList());
+                        .build()));
     }
 
     private ExtImpYieldlab constructExtImp(List<Imp> imps) {

@@ -57,7 +57,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
 
         if (CollectionUtils.isEmpty(request.getImp())) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
 
         for (Imp imp : request.getImp()) {
@@ -134,7 +134,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
 
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.valueOnly(bidderBids);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {

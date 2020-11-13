@@ -73,14 +73,14 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         try {
             firstImpExtPublisher = getAndValidateImpExt(request.getImp().get(0));
         } catch (PreBidException ex) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(ex.getMessage())));
+            return Result.emptyWithError(BidderError.badInput(ex.getMessage()));
         }
 
         final BidRequest updateBidRequest = updateBidRequest(request, firstImpExtPublisher, errors);
 
         if (CollectionUtils.isEmpty(updateBidRequest.getImp())) {
             errors.add(BidderError.badInput("No valid impression in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
 
         final String bidRequestBody;
@@ -88,18 +88,17 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             bidRequestBody = mapper.encode(updateBidRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s", e.getMessage())));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
 
-        return Result.of(Collections.singletonList(
+        return Result.valueOnly(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
                         .body(bidRequestBody)
                         .headers(createHeaders(updateBidRequest.getDevice()))
                         .payload(updateBidRequest)
-                        .build()),
-                Collections.emptyList());
+                        .build()));
     }
 
     /**
@@ -266,9 +265,9 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
-                ? Result.of(Collections.emptyList(), Collections.emptyList())
-                : Result.of(createBiddersBid(bidResponse, imps), Collections.emptyList());
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Result.empty()
+                : Result.valueOnly(createBiddersBid(bidResponse, imps));
     }
 
     /**

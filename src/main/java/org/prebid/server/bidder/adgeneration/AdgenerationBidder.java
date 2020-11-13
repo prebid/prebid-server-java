@@ -211,7 +211,7 @@ public class AdgenerationBidder implements Bidder<Void> {
                         .dealid(adgenerationResponse.getDealid())
                         .build();
                 final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.banner, getCurrency(bidRequest));
-                return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
+                return Result.valueOnly(Collections.singletonList(bidderBid));
             }
         }
         return null;

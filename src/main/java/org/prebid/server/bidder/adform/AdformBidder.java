@@ -78,7 +78,7 @@ public class AdformBidder implements Bidder<Void> {
         final List<BidderError> errors = extImpAdformsResult.getErrors();
 
         if (extImpAdforms.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
 
         final String currency = resolveRequestCurrency(request.getCur());
@@ -149,7 +149,7 @@ public class AdformBidder implements Bidder<Void> {
         } catch (JsonProcessingException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
-        return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
+        return Result.valueOnly(toBidderBid(adformBids, bidRequest.getImp()));
     }
 
     @Override

@@ -83,7 +83,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         if (modifiedImps.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
 
         return Result.of(Collections.singletonList(makeRequest(bidRequest, modifiedImps, extImpPubmatics)), errors);
@@ -259,7 +259,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse);
     }

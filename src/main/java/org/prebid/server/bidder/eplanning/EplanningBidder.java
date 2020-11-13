@@ -98,7 +98,7 @@ public class EplanningBidder implements Bidder<Void> {
         }
 
         if (CollectionUtils.isEmpty(requestsStrings)) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.errorsOnly(errors);
         }
 
         final MultiMap headers = createHeaders(request.getDevice());
