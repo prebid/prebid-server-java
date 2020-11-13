@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 public class AdgenerationBidderTest extends VertxTest {
+
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
     private AdgenerationBidder adgenerationBidder;
@@ -111,7 +112,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.0");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2");
     }
 
     @Test
@@ -129,7 +130,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.0");
+                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.2");
     }
 
     @Test
@@ -147,7 +148,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.0&tp=http%3A%2F%2Fwww.example.com");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&tp=http%3A%2F%2Fwww.example.com");
     }
 
     @Test
@@ -168,13 +169,13 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.0&size=300%C3%97500");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&sizes=300x500");
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
+        final HttpCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
@@ -201,34 +202,6 @@ public class AdgenerationBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseStatusIsNotOk() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(404, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected HTTP status 404.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseStatusIsNot() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(400, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid request.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
-    }
-
-    @Test
     public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -238,7 +211,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 "baconurl", BigDecimal.valueOf(10), "creativeid", 100, 200, 50, "vastxml", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(bidRequest,
+        final HttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -257,7 +230,7 @@ public class AdgenerationBidderTest extends VertxTest {
                         .h(100)
                         .adm(adm)
                         .build(),
-                BidType.banner, "USD");
+                BidType.banner, "JPY");
 
         assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
@@ -275,7 +248,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 "baconurl", BigDecimal.valueOf(10), "creativeid", 100, 200, 50, "", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(bidRequest,
+        final HttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -297,7 +270,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 "creativeid", 100, 200, 50, "", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(bidRequest,
+        final HttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -319,7 +292,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 100, 200, 50, "", "landingUrl", "scheduleid",
                 Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(bidRequest,
+        final HttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -343,7 +316,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 100, 200, 50, "", "landingUrl", "scheduleid",
                 Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(bidRequest,
+        final HttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
@@ -381,7 +354,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(BidRequest bidRequest, String body) {
+    private static HttpCall<Void> givenHttpCall(String body) {
         return HttpCall.success(
                 HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, body),

@@ -1,0 +1,17 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "12345",
+        "impid": "impId001",
+        "price": 2.29,
+        "adm": "<script src=\"https://ad.yieldlab.net/d/12345/123456789/400x300?ts=200000&id=abc&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=YL-UID&gdpr=0&consent=consentValue\"></script>",
+        "crid": "12345123435",
+        "dealid": "1234",
+        "w": 400,
+        "h": 300
+      }
+    }
+  ]
+}

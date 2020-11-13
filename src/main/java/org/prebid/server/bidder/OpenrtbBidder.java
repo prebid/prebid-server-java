@@ -28,8 +28,6 @@ import java.util.stream.Collectors;
 
 public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final RequestCreationStrategy requestCreationStrategy;
     private final Class<T> extType;
@@ -122,8 +120,8 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * such as setting some value from extension to impression itself, for example:
      * <p>
      * return imp.toBuilder()
-     *           .id(impExt.getSpecialId)
-     *           .build();
+     * .id(impExt.getSpecialId)
+     * .build();
      * <p>
      * NOTE: It's not the only place to apply bidder-specific changes to impressions.
      * Additionally, there's an option to do these impressions' transformations later,
@@ -191,9 +189,9 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * <p>
      * final String placementId = impExts.get(0).getPlacementId();
      * final List<Imp> impsWithTagId = modifiedImps.stream()
-     *              .map(Imp::toBuilder)
-     *              .map(impBuilder -> impBuilder.tagid(placementId).build())
-     *              .collect(Collectors.toList());
+     * .map(Imp::toBuilder)
+     * .map(impBuilder -> impBuilder.tagid(placementId).build())
+     * .collect(Collectors.toList());
      * requestBuilder.imp(impsWithTagId);
      *
      * @param bidRequest     - original incoming bid request
@@ -229,7 +227,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), getBidCurrency()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -260,17 +258,6 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             }
         }
         return bidType;
-    }
-
-    /**
-     * A hook for defining a bid currency.
-     * <p>
-     * By default - USD.
-     *
-     * @return - bid currency
-     */
-    protected String getBidCurrency() {
-        return DEFAULT_BID_CURRENCY;
     }
 
     @Override

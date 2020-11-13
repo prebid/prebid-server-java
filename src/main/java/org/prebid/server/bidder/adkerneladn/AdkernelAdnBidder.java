@@ -47,8 +47,6 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -253,7 +251,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

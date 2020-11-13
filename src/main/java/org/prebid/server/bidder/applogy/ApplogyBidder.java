@@ -41,8 +41,6 @@ public class ApplogyBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpApplogy>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -133,7 +131,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         try {
@@ -154,16 +152,16 @@ public class ApplogyBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, errors))
+                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         return Result.of(bidderBids, errors);
     }
 
-    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, List<BidderError> errors) {
+    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, String currency, List<BidderError> errors) {
         try {
             final BidType bidType = getBidType(bid.getImpid(), imps);
-            return BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+            return BidderBid.of(bid, bidType, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;

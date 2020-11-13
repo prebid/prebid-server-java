@@ -6,6 +6,7 @@
         {
           "id": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
           "impid": "impStoredAuctionResponse",
+          "crid": "crid1",
           "price": 0.9,
           "ext": {
             "prebid": {
@@ -14,12 +15,9 @@
                 "hb_pb": "0.90",
                 "hb_pb_appnexus": "0.90",
                 "hb_cache_path": "/cache",
-                "hb_winurl": "http%3A%2F%2Flocalhost%3A8080%2Fevent%3Ft%3Dwin%26b%3DBIDID%26a%3D5001%26ts%3D1000%26bidder%3Dappnexus%26f%3Di",
                 "hb_cache_path_appnexus": "/cache",
                 "hb_bidder_appnexus": "appnexus",
                 "hb_bidder": "appnexus",
-                "hb_bidid": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
-                "hb_bidid_appnexus": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
                 "hb_cache_id": "765e116a-5773-49d5-a648-0b97a9907a4e",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_appnexus": "{{ cache.host }}",
@@ -32,8 +30,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i",
-                "imp": "http://localhost:8080/event?t=imp&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i"
+                "win": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
+                "imp": "http://localhost:8080/event?t=imp&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
               }
             }
           }
@@ -58,12 +56,9 @@
               "targeting": {
                 "hb_pb": "5.50",
                 "hb_pb_appnexus": "5.50",
-                "hb_winurl": "http%3A%2F%2Flocalhost%3A8080%2Fevent%3Ft%3Dwin%26b%3DBIDID%26a%3D5001%26ts%3D1000%26bidder%3Dappnexus%26f%3Di",
                 "hb_size": "300x250",
                 "hb_bidder_appnexus": "appnexus",
                 "hb_bidder": "appnexus",
-                "hb_bidid": "7706636740145184841",
-                "hb_bidid_appnexus": "7706636740145184841",
                 "hb_cache_id": "117431c9-807a-41e1-82a7-dcd8f8875493",
                 "hb_size_appnexus": "300x250",
                 "hb_cache_id_appnexus": "117431c9-807a-41e1-82a7-dcd8f8875493",
@@ -73,8 +68,8 @@
                 "hb_cache_path_appnexus": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i",
-                "imp": "http://localhost:8080/event?t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i"
+                "win": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
+                "imp": "http://localhost:8080/event?t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
               },
               "cache": {
                 "bids": {
@@ -117,9 +112,6 @@
                 "hb_pb_appnexus": "1.00",
                 "hb_bidder_appnexus": "appnexus",
                 "hb_bidder": "appnexus",
-                "hb_bidid": "928185755156387460",
-                "hb_bidid_appnexus": "928185755156387460",
-                "hb_winurl": "http%3A%2F%2Flocalhost%3A8080%2Fevent%3Ft%3Dwin%26b%3DBIDID%26a%3D5001%26ts%3D1000%26bidder%3Dappnexus%26f%3Di",
                 "hb_cache_id": "6cf69b42-96f5-4ba1-a984-a9b4d8ff21cf",
                 "hb_cache_id_appnexus": "6cf69b42-96f5-4ba1-a984-a9b4d8ff21cf",
                 "hb_cache_host": "{{ cache.host }}",
@@ -128,8 +120,8 @@
                 "hb_cache_path_appnexus": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i",
-                "imp": "http://localhost:8080/event?t=imp&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i"
+                "win": "http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
+                "imp": "http://localhost:8080/event?t=imp&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
               },
               "cache": {
                 "bids": {
@@ -182,8 +174,8 @@
                 "hb_cache_path_appnexusAlias": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i",
-                "imp": "http://localhost:8080/event?t=imp&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i"
+                "win": "http://localhost:8080/event?t=win&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i&int=dmbjs",
+                "imp": "http://localhost:8080/event?t=imp&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i&int=dmbjs"
               },
               "cache": {
                 "bids": {
@@ -213,6 +205,7 @@
         {
           "id": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
           "impid": "impStoredBidResponse",
+          "crid": "crid1",
           "price": 0.8,
           "ext": {
             "prebid": {
@@ -222,11 +215,8 @@
                 "hb_pb_rubicon": "0.80",
                 "hb_cache_id_rubicon": "734b7948-e41d-4c14-b2c3-c31634b32376",
                 "hb_cache_path": "/cache",
-                "hb_winurl": "http%3A%2F%2Flocalhost%3A8080%2Fevent%3Ft%3Dwin%26b%3DBIDID%26a%3D5001%26ts%3D1000%26bidder%3Drubicon%26f%3Di",
                 "hb_bidder": "rubicon",
                 "hb_bidder_rubicon": "rubicon",
-                "hb_bidid": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
-                "hb_bidid_rubicon": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
                 "hb_cache_id": "734b7948-e41d-4c14-b2c3-c31634b32376",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_path_rubicon": "{{ cache.path }}",
@@ -239,8 +229,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i",
-                "imp": "http://localhost:8080/event?t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i"
+                "win": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+                "imp": "http://localhost:8080/event?t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               }
             }
           }
@@ -248,6 +238,7 @@
         {
           "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
           "impid": "impStoredAuctionResponse",
+          "crid": "crid1",
           "price": 0.8,
           "ext": {
             "prebid": {
@@ -266,8 +257,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i",
-                "imp": "http://localhost:8080/event?t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i"
+                "win": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+                "imp": "http://localhost:8080/event?t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               }
             }
           }
@@ -280,6 +271,7 @@
           "crid": "crid1",
           "w": 300,
           "h": 250,
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
@@ -300,8 +292,8 @@
                 "hb_cache_path_rubicon": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i",
-                "imp": "http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i"
+                "win": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+                "imp": "http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               },
               "cache": {
                 "vastXml": {
@@ -343,13 +335,10 @@
                 "hb_pb": "4.20",
                 "hb_pb_rubicon": "4.20",
                 "hb_cache_id_rubicon": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
-                "hb_winurl": "http%3A%2F%2Flocalhost%3A8080%2Fevent%3Ft%3Dwin%26b%3DBIDID%26a%3D5001%26ts%3D1000%26bidder%3Drubicon%26f%3Di",
                 "hb_size": "300x600",
                 "hb_size_rubicon": "300x600",
                 "hb_bidder": "rubicon",
                 "hb_bidder_rubicon": "rubicon",
-                "hb_bidid": "466223845",
-                "hb_bidid_rubicon": "466223845",
                 "hb_cache_id": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_rubicon": "{{ cache.host }}",
@@ -357,8 +346,8 @@
                 "hb_cache_path_rubicon": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i",
-                "imp": "http://localhost:8080/event?t=imp&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i"
+                "win": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+                "imp": "http://localhost:8080/event?t=imp&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               },
               "cache": {
                 "bids": {
@@ -381,7 +370,7 @@
         "appnexus": [
           {
             "uri": "{{ appnexus.exchange_uri }}?member_id=103",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId3\",\"banner\":{\"format\":[{\"w\":300,\"h\":250},{\"w\":300,\"h\":600}],\"w\":300,\"h\":250,\"pos\":3},\"tagid\":\"abc\",\"bidfloor\":1.0,\"ext\":{\"appnexus\":{\"keywords\":\"foo=bar,foo=baz\",\"traffic_source_code\":\"trafficSource\"}}},{\"id\":\"impId131\",\"native\":{\"request\":\"{\\\"ver\\\":\\\"1.1\\\",\\\"context\\\":1,\\\"contextsubtype\\\":11,\\\"plcmttype\\\":4,\\\"plcmtcnt\\\":1,\\\"assets\\\":[{\\\"id\\\":0,\\\"required\\\":1,\\\"title\\\":{\\\"len\\\":500}},{\\\"id\\\":1,\\\"required\\\":1,\\\"img\\\":{\\\"type\\\":3,\\\"wmin\\\":1,\\\"hmin\\\":1}},{\\\"id\\\":2,\\\"required\\\":0,\\\"data\\\":{\\\"len\\\":200}},{\\\"id\\\":3,\\\"required\\\":0,\\\"data\\\":{\\\"type\\\":2,\\\"len\\\":15000}},{\\\"id\\\":4,\\\"required\\\":0,\\\"data\\\":{\\\"len\\\":40}},{\\\"id\\\":5,\\\"required\\\":0,\\\"data\\\":{\\\"type\\\":11}}]}\",\"ver\":\"1.1\"},\"ext\":{\"appnexus\":{\"placement_id\":9880618}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"5001\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"80.215.195.0\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"prebid\":{\"interstitial\":{\"minwidthperc\":50,\"minheightperc\":60}}}},\"user\":{\"ext\":{\"consent\":\"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\",\"ext\":{\"schain\":{\"ver\":\"1.0\"}}},\"regs\":{\"ext\":{\"us_privacy\":\"1YNN\"}},\"ext\":{\"prebid\":{\"debug\":1,\"aliases\":{\"appnexusAlias\":\"appnexus\"},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}},\"usepbsrates\":false},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"events\":{},\"auctiontimestamp\":1000}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId3\",\"banner\":{\"format\":[{\"w\":300,\"h\":250},{\"w\":300,\"h\":600}],\"w\":300,\"h\":250,\"pos\":3},\"tagid\":\"abc\",\"bidfloor\":1.0,\"ext\":{\"appnexus\":{\"keywords\":\"foo=bar,foo=baz\",\"traffic_source_code\":\"trafficSource\"}}},{\"id\":\"impId131\",\"native\":{\"request\":\"{\\\"ver\\\":\\\"1.1\\\",\\\"context\\\":1,\\\"contextsubtype\\\":11,\\\"plcmttype\\\":4,\\\"plcmtcnt\\\":1,\\\"assets\\\":[{\\\"id\\\":0,\\\"required\\\":1,\\\"title\\\":{\\\"len\\\":500}},{\\\"id\\\":1,\\\"required\\\":1,\\\"img\\\":{\\\"type\\\":3,\\\"wmin\\\":1,\\\"hmin\\\":1}},{\\\"id\\\":2,\\\"required\\\":0,\\\"data\\\":{\\\"len\\\":200}},{\\\"id\\\":3,\\\"required\\\":0,\\\"data\\\":{\\\"type\\\":2,\\\"len\\\":15000}},{\\\"id\\\":4,\\\"required\\\":0,\\\"data\\\":{\\\"len\\\":40}},{\\\"id\\\":5,\\\"required\\\":0,\\\"data\\\":{\\\"type\\\":11}}]}\",\"ver\":\"1.1\"},\"ext\":{\"appnexus\":{\"placement_id\":9880618}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"5001\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"80.215.195.0\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"prebid\":{\"interstitial\":{\"minwidthperc\":50,\"minheightperc\":60}}}},\"user\":{\"ext\":{\"consent\":\"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\",\"ext\":{\"schain\":{\"ver\":\"1.0\"}}},\"regs\":{\"ext\":{\"us_privacy\":\"1YNN\"}},\"ext\":{\"prebid\":{\"debug\":1,\"aliases\":{\"appnexusAlias\":\"appnexus\"},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}},\"usepbsrates\":false},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"events\":{},\"auctiontimestamp\":1000,\"integration\":\"dmbjs\",\"channel\":{\"name\":\"web\"}}}}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"seat\":\"958\",\"bid\":[{\"id\":\"7706636740145184841\",\"impid\":\"impId3\",\"price\":5.5,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"h\":250,\"w\":300,\"ext\":{\"appnexus\":{\"brand_id\":1,\"auction_id\":8189378542222915032,\"bidder_id\":2,\"bid_ad_type\":0,\"ranking_price\":0.0}}},{\"id\":\"928185755156387460\",\"impid\":\"impId131\",\"price\":1.0,\"adid\":\"69595837\",\"adm\":\"{\\\"assets\\\":[{\\\"id\\\":0,\\\"img\\\":{\\\"url\\\":\\\"http://vcdn.adnxs.com/p/creative-image/5e/b6/de/c3/5eb6dec3-4854-4dcd-980a-347f36ab502e.jpg\\\",\\\"w\\\":3000,\\\"h\\\":2250,\\\"ext\\\":{\\\"appnexus\\\":{\\\"prevent_crop\\\":0}}}},{\\\"id\\\":1,\\\"title\\\":{\\\"text\\\":\\\"This is an example Prebid Native creative\\\"}},{\\\"id\\\":2,\\\"data\\\":{\\\"value\\\":\\\"Prebid.org\\\"}},{\\\"id\\\":3,\\\"data\\\":{\\\"value\\\":\\\"ThisisaPrebidNativeCreative.Therearemanylikeit,butthisoneismine.\\\"}}],\\\"link\\\":{\\\"url\\\":\\\"http://nym1-ib.adnxs.com/click?AAAAAAAA8D8AAAAAAADwPwAAAAAAAAAAAAAAAAAA8D8AAAAAAADwPwhdYz3ZyNFNG3fXpZUyLXNZ0o5aAAAAACrElgC-AwAAvgMAAAIAAAC98iUEeP4QAAAAAABVU0QAVVNEAAEAAQARIAAAAAABAgQCAAAAAAEAhBaSXgAAAAA./pp=${AUCTION_PRICE}/cnd=%21OwwGAQiGmooHEL3llyEY-PxDIAQoADoRZGVmYXVsdCNOWU0yOjQwMjM./bn=75922/test=1/referrer=prebid.org/clickenc=http%3A%2F%2Fprebid.org%2Fdev-docs%2Fshow-native-ads.html\\\"},\\\"imptrackers\\\":[\\\"http://nym1-ib.adnxs.com/openrtb_win?e=wqT_3QLFBqBFAwAAAwDWAAUBCNmku9QFEIi6jeuTm_LoTRib7t2u2tLMlnMqNgkAAAECCPA_EQEHEAAA8D8ZCQkIAAAhCQkI8D8pEQkAMQkJqAAAMKqI2wQ4vgdAvgdIAlC95ZchWPj8Q2AAaJFAeJLRBIABAYoBA1VTRJIFBvBQmAEBoAEBqAEBsAEAuAECwAEEyAEC0AEJ2AEA4AEB8AEAigI7dWYoJ2EnLCAxMzc2ODYwLCAxNTE5MzA5NDAxKTt1ZigncicsIDY5NTk1ODM3Nh4A8IqSAvUBIXRETkdfUWlHbW9vSEVMM2xseUVZQUNENF9FTXdBRGdBUUFSSXZnZFFxb2piQkZnQVlMTURhQUJ3QUhnQWdBRUFpQUVBa0FFQm1BRUJvQUVCcUFFRHNBRUF1UUVwaTRpREFBRHdQOEVCS1l1SWd3QUE4RF9KQVhfelYzek1zXzBfMlFFQUFBAQMkRHdQLUFCQVBVQgEOLEFKZ0NBS0FDQUxVQwUQBEwwCQjwTE1BQ0FNZ0NBT0FDQU9nQ0FQZ0NBSUFEQVpBREFKZ0RBYWdEaHBxS0I3b0RFV1JsWm1GMWJIUWpUbGxOTWpvME1ESXqaAjkhT3d3R0FRNvgA8E4tUHhESUFRb0FEb1JaR1ZtWVhWc2RDTk9XVTB5T2pRd01qTS7YAugH4ALH0wHqAgpwcmViaWQub3Jn8gIRCgZBRFZfSUQSBzEzNzY4NjDyARQMQ1BHXwEUNDM1MDMwOTjyAhEKBUNQARPwmQgxNDg0NzIzOIADAYgDAZADAJgDFKADAaoDAMADkBzIAwDYAwDgAwDoAwD4AwOABACSBAkvb3BlbnJ0YjKYBACiBAwxNTIuMTkzLjYuNzSoBJrMI7IEDAgAEAAYACAAMAA4ALgEAMAEAMgEANIEEWRlZmF1bHQjTllNMjo0MDIz2gQCCADgBADwBL3llyGIBQGYBQCgBf____8FA1ABqgULc29tZS1yZXEtaWTABQDJBQAFARTwP9IFCQkFC2QAAADYBQHgBQHwBd4C-gUECAAQAJAGAZgGAA..&s=08b1535744639c904684afe46e3c6c0e4786089f&test=1&referrer=prebid.org&pp=${AUCTION_PRICE}\\\"],\\\"jstracker\\\":\\\"<scriptsrc=\\\\\\\"http://www.dummyurl.js\\\\\\\"></script>\\\"}\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=69595837\",\"cid\":\"958\",\"crid\":\"69595837\",\"ext\":{\"appnexus\":{\"brand_id\":1,\"brand_category_id\":1,\"auction_id\":5607483846416358664,\"bidder_id\":2,\"bid_ad_type\":3}}}]}],\"bidid\":\"5778926625248726496\",\"cur\":\"USD\"}",
             "status": 200
           }
@@ -389,7 +378,7 @@
         "appnexusAlias": [
           {
             "uri": "{{ appnexus.exchange_uri }}?member_id=104",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId3\",\"banner\":{\"format\":[{\"w\":300,\"h\":250},{\"w\":300,\"h\":600}],\"w\":300,\"h\":250,\"pos\":1},\"tagid\":\"abc\",\"bidfloor\":1.0,\"ext\":{\"appnexus\":{\"keywords\":\"foo=barAlias,foo=bazAlias\",\"traffic_source_code\":\"trafficSourceAlias\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"5001\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"80.215.195.0\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"prebid\":{\"interstitial\":{\"minwidthperc\":50,\"minheightperc\":60}}}},\"user\":{\"ext\":{\"consent\":\"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\",\"ext\":{\"schain\":{\"ver\":\"1.0\"}}},\"regs\":{\"ext\":{\"us_privacy\":\"1YNN\"}},\"ext\":{\"prebid\":{\"debug\":1,\"aliases\":{\"appnexusAlias\":\"appnexus\"},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}},\"usepbsrates\":false},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"events\":{},\"auctiontimestamp\":1000}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId3\",\"banner\":{\"format\":[{\"w\":300,\"h\":250},{\"w\":300,\"h\":600}],\"w\":300,\"h\":250,\"pos\":1},\"tagid\":\"abc\",\"bidfloor\":1.0,\"ext\":{\"appnexus\":{\"keywords\":\"foo=barAlias,foo=bazAlias\",\"traffic_source_code\":\"trafficSourceAlias\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"5001\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"80.215.195.0\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"prebid\":{\"interstitial\":{\"minwidthperc\":50,\"minheightperc\":60}}}},\"user\":{\"ext\":{\"consent\":\"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\",\"ext\":{\"schain\":{\"ver\":\"1.0\"}}},\"regs\":{\"ext\":{\"us_privacy\":\"1YNN\"}},\"ext\":{\"prebid\":{\"debug\":1,\"aliases\":{\"appnexusAlias\":\"appnexus\"},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}},\"usepbsrates\":false},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"events\":{},\"auctiontimestamp\":1000,\"integration\":\"dmbjs\",\"channel\":{\"name\":\"web\"}}}}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"seat\":\"959\",\"bid\":[{\"id\":\"7706636740145184840\",\"impid\":\"impId3\",\"price\":5.0,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"h\":250,\"w\":300,\"cat\":[\"IAB20-3\"],\"ext\":{\"appnexus\":{\"brand_id\":350,\"brand_category_id\":350,\"auction_id\":8189378542222915031,\"bidder_id\":2,\"bid_ad_type\":0,\"ranking_price\":0.0}}}]}],\"bidid\":\"5778926625248726496\",\"cur\":\"USD\"}",
             "status": 200
           }
@@ -397,13 +386,13 @@
         "rubicon": [
           {
             "uri": "{{ rubicon.exchange_uri }}?tk_xint=dmbjs",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1],\"ext\":{\"skip\":5,\"skipdelay\":1,\"rp\":{\"size_id\":15},\"videotype\":\"rewarded\"}},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"rating\":[\"5-star\"],\"prodtype\":[\"tech\"]},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"80.215.195.0\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"ext\":{\"consent\":\"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA\",\"rp\":{\"target\":{\"ucat\":[\"new\"],\"search\":[\"iphone\"]}}}},\"at\":1,\"tmax\":5000,\"source\":{\"fd\":1,\"tid\":\"tid\",\"ext\":{\"schain\":{\"ver\":\"1.0\",\"complete\":1,\"nodes\":[{\"asi\":\"superads.com\",\"sid\":\"123\",\"hp\":1}]}}},\"regs\":{\"ext\":{\"us_privacy\":\"1YNN\"}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1],\"ext\":{\"skip\":5,\"skipdelay\":1,\"rp\":{\"size_id\":15},\"videotype\":\"rewarded\"}},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"rating\":[\"5-star\"],\"prodtype\":[\"tech\"],\"page\":[\"http://www.example.com\"]},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"80.215.195.0\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"ext\":{\"consent\":\"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA\",\"rp\":{\"target\":{\"ucat\":[\"new\"],\"search\":[\"iphone\"]}}}},\"at\":1,\"tmax\":5000,\"source\":{\"fd\":1,\"tid\":\"tid\",\"ext\":{\"schain\":{\"ver\":\"1.0\",\"complete\":1,\"nodes\":[{\"asi\":\"superads.com\",\"sid\":\"123\",\"hp\":1}]}}},\"regs\":{\"ext\":{\"us_privacy\":\"1YNN\"}}}",
             "responsebody": "{\"id\":\"bidResponseId1\",\"seatbid\":[{\"bid\":[{\"id\":\"880290288\",\"impid\":\"impId1\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid1\",\"w\":300,\"h\":250,\"ext\":{\"rp\":{\"targeting\":[{\"key\":\"rpfl_1001\",\"values\":[\"2_tier0100\"]}]}}}],\"seat\":\"seatId1\",\"group\":0}]}",
             "status": 200
           },
           {
             "uri": "{{ rubicon.exchange_uri }}?tk_xint=dmbjs",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId2\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"ext\":{\"rp\":{\"size_id\":10,\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":7001,\"track\":{\"mint\":\"\",\"mint_version\":\"\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":5001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":6001}}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"80.215.195.0\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"ext\":{\"consent\":\"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA\"}},\"at\":1,\"tmax\":5000,\"source\":{\"fd\":1,\"tid\":\"tid\",\"ext\":{\"schain\":{\"ver\":\"1.0\",\"complete\":1,\"nodes\":[{\"asi\":\"superads.com\",\"sid\":\"123\",\"hp\":1}]}}},\"regs\":{\"ext\":{\"us_privacy\":\"1YNN\"}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId2\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"ext\":{\"rp\":{\"size_id\":10,\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":7001,\"target\":{\"page\":[\"http://www.example.com\"]},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":5001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":6001}}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"80.215.195.0\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"ext\":{\"consent\":\"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA\"}},\"at\":1,\"tmax\":5000,\"source\":{\"fd\":1,\"tid\":\"tid\",\"ext\":{\"schain\":{\"ver\":\"1.0\",\"complete\":1,\"nodes\":[{\"asi\":\"superads.com\",\"sid\":\"123\",\"hp\":1}]}}},\"regs\":{\"ext\":{\"us_privacy\":\"1YNN\"}}}",
             "responsebody": "{\"id\":\"bidResponseId2\",\"seatbid\":[{\"bid\":[{\"id\":\"466223845\",\"impid\":\"impId2\",\"price\":4.26,\"adm\":\"adm2\",\"crid\":\"crid2\",\"w\":300,\"h\":600}],\"seat\":\"seatId2\",\"group\":0}]}",
             "status": 200
           }
@@ -411,7 +400,7 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184840\",\"impid\":\"impId3\",\"price\":5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"cat\":[],\"w\":300,\"h\":250,\"ext\":{\"appnexus\":{\"brand_id\":350,\"brand_category_id\":350,\"auction_id\":8189378542222915031,\"bidder_id\":2,\"bid_ad_type\":0,\"ranking_price\":0.0}},\"wurl\":\"http://localhost:8080/event?t=win&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i\"}},{\"type\":\"json\",\"value\":{\"id\":\"f227a07f-1579-4465-bc5e-5c5b02a0c180\",\"impid\":\"impStoredAuctionResponse\",\"price\":0.8,\"wurl\":\"http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i\"}},{\"type\":\"json\",\"value\":{\"id\":\"466223845\",\"impid\":\"impId2\",\"price\":4.26,\"adm\":\"adm2\",\"crid\":\"crid2\",\"w\":300,\"h\":600,\"wurl\":\"http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i\"}},{\"type\":\"json\",\"value\":{\"id\":\"f227a07f-1579-4465-bc5e-5c5b02a0c181\",\"impid\":\"impStoredBidResponse\",\"price\":0.8,\"wurl\":\"http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i\"}},{\"type\":\"json\",\"value\":{\"id\":\"880290288\",\"impid\":\"impId1\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid1\",\"w\":300,\"h\":250,\"ext\":{\"rp\":{\"targeting\":[{\"key\":\"rpfl_1001\",\"values\":[\"2_tier0100\"]}]}},\"wurl\":\"http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i\"}},{\"type\":\"json\",\"value\":{\"id\":\"a121a07f-1579-4465-bc5e-5c5b02a0c421\",\"impid\":\"impStoredAuctionResponse\",\"price\":0.9,\"wurl\":\"http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i\"}},{\"type\":\"json\",\"value\":{\"id\":\"928185755156387460\",\"impid\":\"impId131\",\"price\":1,\"adm\":\"{\\\"assets\\\":[{\\\"id\\\":0,\\\"img\\\":{\\\"url\\\":\\\"http://vcdn.adnxs.com/p/creative-image/5e/b6/de/c3/5eb6dec3-4854-4dcd-980a-347f36ab502e.jpg\\\",\\\"w\\\":3000,\\\"h\\\":2250,\\\"ext\\\":{\\\"appnexus\\\":{\\\"prevent_crop\\\":0}}}},{\\\"id\\\":1,\\\"title\\\":{\\\"text\\\":\\\"This is an example Prebid Native creative\\\"}},{\\\"id\\\":2,\\\"data\\\":{\\\"value\\\":\\\"Prebid.org\\\"}},{\\\"id\\\":3,\\\"data\\\":{\\\"value\\\":\\\"ThisisaPrebidNativeCreative.Therearemanylikeit,butthisoneismine.\\\"}}],\\\"link\\\":{\\\"url\\\":\\\"http://nym1-ib.adnxs.com/click?AAAAAAAA8D8AAAAAAADwPwAAAAAAAAAAAAAAAAAA8D8AAAAAAADwPwhdYz3ZyNFNG3fXpZUyLXNZ0o5aAAAAACrElgC-AwAAvgMAAAIAAAC98iUEeP4QAAAAAABVU0QAVVNEAAEAAQARIAAAAAABAgQCAAAAAAEAhBaSXgAAAAA./pp=${AUCTION_PRICE}/cnd=%21OwwGAQiGmooHEL3llyEY-PxDIAQoADoRZGVmYXVsdCNOWU0yOjQwMjM./bn=75922/test=1/referrer=prebid.org/clickenc=http%3A%2F%2Fprebid.org%2Fdev-docs%2Fshow-native-ads.html\\\"},\\\"imptrackers\\\":[\\\"http://nym1-ib.adnxs.com/openrtb_win?e=wqT_3QLFBqBFAwAAAwDWAAUBCNmku9QFEIi6jeuTm_LoTRib7t2u2tLMlnMqNgkAAAECCPA_EQEHEAAA8D8ZCQkIAAAhCQkI8D8pEQkAMQkJqAAAMKqI2wQ4vgdAvgdIAlC95ZchWPj8Q2AAaJFAeJLRBIABAYoBA1VTRJIFBvBQmAEBoAEBqAEBsAEAuAECwAEEyAEC0AEJ2AEA4AEB8AEAigI7dWYoJ2EnLCAxMzc2ODYwLCAxNTE5MzA5NDAxKTt1ZigncicsIDY5NTk1ODM3Nh4A8IqSAvUBIXRETkdfUWlHbW9vSEVMM2xseUVZQUNENF9FTXdBRGdBUUFSSXZnZFFxb2piQkZnQVlMTURhQUJ3QUhnQWdBRUFpQUVBa0FFQm1BRUJvQUVCcUFFRHNBRUF1UUVwaTRpREFBRHdQOEVCS1l1SWd3QUE4RF9KQVhfelYzek1zXzBfMlFFQUFBAQMkRHdQLUFCQVBVQgEOLEFKZ0NBS0FDQUxVQwUQBEwwCQjwTE1BQ0FNZ0NBT0FDQU9nQ0FQZ0NBSUFEQVpBREFKZ0RBYWdEaHBxS0I3b0RFV1JsWm1GMWJIUWpUbGxOTWpvME1ESXqaAjkhT3d3R0FRNvgA8E4tUHhESUFRb0FEb1JaR1ZtWVhWc2RDTk9XVTB5T2pRd01qTS7YAugH4ALH0wHqAgpwcmViaWQub3Jn8gIRCgZBRFZfSUQSBzEzNzY4NjDyARQMQ1BHXwEUNDM1MDMwOTjyAhEKBUNQARPwmQgxNDg0NzIzOIADAYgDAZADAJgDFKADAaoDAMADkBzIAwDYAwDgAwDoAwD4AwOABACSBAkvb3BlbnJ0YjKYBACiBAwxNTIuMTkzLjYuNzSoBJrMI7IEDAgAEAAYACAAMAA4ALgEAMAEAMgEANIEEWRlZmF1bHQjTllNMjo0MDIz2gQCCADgBADwBL3llyGIBQGYBQCgBf____8FA1ABqgULc29tZS1yZXEtaWTABQDJBQAFARTwP9IFCQkFC2QAAADYBQHgBQHwBd4C-gUECAAQAJAGAZgGAA..&s=08b1535744639c904684afe46e3c6c0e4786089f&test=1&referrer=prebid.org&pp=${AUCTION_PRICE}\\\"],\\\"jstracker\\\":\\\"<scriptsrc=\\\\\\\"http://www.dummyurl.js\\\\\\\"></script>\\\"}\",\"adid\":\"69595837\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=69595837\",\"cid\":\"958\",\"crid\":\"69595837\",\"cat\":[\"IAB20-3\"],\"ext\":{\"appnexus\":{\"brand_id\":1,\"brand_category_id\":1,\"auction_id\":5607483846416358664,\"bidder_id\":2,\"bid_ad_type\":3}},\"wurl\":\"http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i\"}},{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"impId3\",\"price\":5.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250,\"ext\":{\"appnexus\":{\"brand_id\":1,\"auction_id\":8189378542222915032,\"bidder_id\":2,\"bid_ad_type\":0,\"ranking_price\":0.0}},\"wurl\":\"http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i\"}},{\"type\":\"xml\",\"value\":\"<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b]]></Impression>\",\"expiry\":120}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184840\",\"impid\":\"impId3\",\"price\":5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"cat\":[],\"w\":300,\"h\":250,\"ext\":{\"appnexus\":{\"brand_id\":350,\"brand_category_id\":350,\"auction_id\":8189378542222915031,\"bidder_id\":2,\"bid_ad_type\":0,\"ranking_price\":0.0}},\"wurl\":\"http://localhost:8080/event?t=win&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i&int=dmbjs\"}},{\"type\":\"json\",\"value\":{\"id\":\"466223845\",\"impid\":\"impId2\",\"price\":4.26,\"adm\":\"adm2\",\"crid\":\"crid2\",\"w\":300,\"h\":600,\"wurl\":\"http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs\"}},{\"type\":\"json\",\"value\":{\"id\":\"a121a07f-1579-4465-bc5e-5c5b02a0c421\",\"impid\":\"impStoredAuctionResponse\",\"price\":0.9,\"crid\":\"crid1\",\"wurl\":\"http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs\"}},{\"type\":\"json\",\"value\":{\"id\":\"880290288\",\"impid\":\"impId1\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid1\",\"w\":300,\"h\":250,\"ext\":{\"rp\":{\"targeting\":[{\"key\":\"rpfl_1001\",\"values\":[\"2_tier0100\"]}]}},\"wurl\":\"http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs\"}},{\"type\":\"json\",\"value\":{\"id\":\"f227a07f-1579-4465-bc5e-5c5b02a0c180\",\"impid\":\"impStoredAuctionResponse\",\"price\":0.8,\"crid\":\"crid1\",\"wurl\":\"http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs\"}},{\"type\":\"json\",\"value\":{\"id\":\"f227a07f-1579-4465-bc5e-5c5b02a0c181\",\"impid\":\"impStoredBidResponse\",\"price\":0.8,\"crid\":\"crid1\",\"wurl\":\"http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs\"}},{\"type\":\"json\",\"value\":{\"id\":\"928185755156387460\",\"impid\":\"impId131\",\"price\":1,\"adm\":\"{\\\"assets\\\":[{\\\"id\\\":0,\\\"img\\\":{\\\"url\\\":\\\"http://vcdn.adnxs.com/p/creative-image/5e/b6/de/c3/5eb6dec3-4854-4dcd-980a-347f36ab502e.jpg\\\",\\\"w\\\":3000,\\\"h\\\":2250,\\\"ext\\\":{\\\"appnexus\\\":{\\\"prevent_crop\\\":0}}}},{\\\"id\\\":1,\\\"title\\\":{\\\"text\\\":\\\"This is an example Prebid Native creative\\\"}},{\\\"id\\\":2,\\\"data\\\":{\\\"value\\\":\\\"Prebid.org\\\"}},{\\\"id\\\":3,\\\"data\\\":{\\\"value\\\":\\\"ThisisaPrebidNativeCreative.Therearemanylikeit,butthisoneismine.\\\"}}],\\\"link\\\":{\\\"url\\\":\\\"http://nym1-ib.adnxs.com/click?AAAAAAAA8D8AAAAAAADwPwAAAAAAAAAAAAAAAAAA8D8AAAAAAADwPwhdYz3ZyNFNG3fXpZUyLXNZ0o5aAAAAACrElgC-AwAAvgMAAAIAAAC98iUEeP4QAAAAAABVU0QAVVNEAAEAAQARIAAAAAABAgQCAAAAAAEAhBaSXgAAAAA./pp=${AUCTION_PRICE}/cnd=%21OwwGAQiGmooHEL3llyEY-PxDIAQoADoRZGVmYXVsdCNOWU0yOjQwMjM./bn=75922/test=1/referrer=prebid.org/clickenc=http%3A%2F%2Fprebid.org%2Fdev-docs%2Fshow-native-ads.html\\\"},\\\"imptrackers\\\":[\\\"http://nym1-ib.adnxs.com/openrtb_win?e=wqT_3QLFBqBFAwAAAwDWAAUBCNmku9QFEIi6jeuTm_LoTRib7t2u2tLMlnMqNgkAAAECCPA_EQEHEAAA8D8ZCQkIAAAhCQkI8D8pEQkAMQkJqAAAMKqI2wQ4vgdAvgdIAlC95ZchWPj8Q2AAaJFAeJLRBIABAYoBA1VTRJIFBvBQmAEBoAEBqAEBsAEAuAECwAEEyAEC0AEJ2AEA4AEB8AEAigI7dWYoJ2EnLCAxMzc2ODYwLCAxNTE5MzA5NDAxKTt1ZigncicsIDY5NTk1ODM3Nh4A8IqSAvUBIXRETkdfUWlHbW9vSEVMM2xseUVZQUNENF9FTXdBRGdBUUFSSXZnZFFxb2piQkZnQVlMTURhQUJ3QUhnQWdBRUFpQUVBa0FFQm1BRUJvQUVCcUFFRHNBRUF1UUVwaTRpREFBRHdQOEVCS1l1SWd3QUE4RF9KQVhfelYzek1zXzBfMlFFQUFBAQMkRHdQLUFCQVBVQgEOLEFKZ0NBS0FDQUxVQwUQBEwwCQjwTE1BQ0FNZ0NBT0FDQU9nQ0FQZ0NBSUFEQVpBREFKZ0RBYWdEaHBxS0I3b0RFV1JsWm1GMWJIUWpUbGxOTWpvME1ESXqaAjkhT3d3R0FRNvgA8E4tUHhESUFRb0FEb1JaR1ZtWVhWc2RDTk9XVTB5T2pRd01qTS7YAugH4ALH0wHqAgpwcmViaWQub3Jn8gIRCgZBRFZfSUQSBzEzNzY4NjDyARQMQ1BHXwEUNDM1MDMwOTjyAhEKBUNQARPwmQgxNDg0NzIzOIADAYgDAZADAJgDFKADAaoDAMADkBzIAwDYAwDgAwDoAwD4AwOABACSBAkvb3BlbnJ0YjKYBACiBAwxNTIuMTkzLjYuNzSoBJrMI7IEDAgAEAAYACAAMAA4ALgEAMAEAMgEANIEEWRlZmF1bHQjTllNMjo0MDIz2gQCCADgBADwBL3llyGIBQGYBQCgBf____8FA1ABqgULc29tZS1yZXEtaWTABQDJBQAFARTwP9IFCQkFC2QAAADYBQHgBQHwBd4C-gUECAAQAJAGAZgGAA..&s=08b1535744639c904684afe46e3c6c0e4786089f&test=1&referrer=prebid.org&pp=${AUCTION_PRICE}\\\"],\\\"jstracker\\\":\\\"<scriptsrc=\\\\\\\"http://www.dummyurl.js\\\\\\\"></script>\\\"}\",\"adid\":\"69595837\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=69595837\",\"cid\":\"958\",\"crid\":\"69595837\",\"cat\":[\"IAB20-3\"],\"ext\":{\"appnexus\":{\"brand_id\":1,\"brand_category_id\":1,\"auction_id\":5607483846416358664,\"bidder_id\":2,\"bid_ad_type\":3}},\"wurl\":\"http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs\"}},{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"impId3\",\"price\":5.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250,\"ext\":{\"appnexus\":{\"brand_id\":1,\"auction_id\":8189378542222915032,\"bidder_id\":2,\"bid_ad_type\":0,\"ranking_price\":0.0}},\"wurl\":\"http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs\"}},{\"type\":\"xml\",\"value\":\"<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=dmbjs]]></Impression>\",\"expiry\":120}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"91912e5b-dfa8-42bc-9c7e-df6ce0449c19\"},{\"uuid\":\"765e116a-5773-49d5-a648-0b97a9907a4e\"},{\"uuid\":\"117431c9-807a-41e1-82a7-dcd8f8875493\"},{\"uuid\":\"6cf69b42-96f5-4ba1-a984-a9b4d8ff21cf\"},{\"uuid\":\"734b7948-e41d-4c14-b2c3-c31634b32376\"},{\"uuid\":\"c75130ed-bcdd-4821-ad91-90cf835615c5\"},{\"uuid\":\"683fe79f-6df7-4971-ac70-820e0486992d\"},{\"uuid\":\"4fe59ef5-6fb4-48c5-88b6-9870257fc49e\"},{\"uuid\":\"b2528f73-96ab-42ab-8f15-fbe6ed779a26\"}]}",
             "status": 200
           }
@@ -760,7 +749,11 @@
                 "integration": "dmbjs"
               }
             },
-            "auctiontimestamp": 1000
+            "integration": "dmbjs",
+            "auctiontimestamp": 1000,
+            "channel": {
+              "name": "web"
+            }
           }
         }
       }
