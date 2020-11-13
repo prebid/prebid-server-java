@@ -5,6 +5,7 @@ import com.iabtcf.utils.IntIterable;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class NoEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
-    public Collection<VendorPermission> allowedByTypeStrategy(int purposeId,
+    public Collection<VendorPermission> allowedByTypeStrategy(Purpose purpose,
                                                               TCString tcString,
                                                               Collection<VendorPermissionWithGvl> vendorsForPurpose,
                                                               Collection<VendorPermissionWithGvl> excludedVendors,
@@ -35,6 +36,7 @@ public class NoEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                              boolean isEnforceVendors,
                                              IntIterable vendorConsent,
                                              IntIterable vendorLIConsent) {
+
         return !isEnforceVendors || vendorConsent.contains(vendorId) || vendorLIConsent.contains(vendorId);
     }
 }

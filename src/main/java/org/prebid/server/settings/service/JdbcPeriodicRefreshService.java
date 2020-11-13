@@ -8,7 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.CacheNotificationListener;
-import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
+import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.jdbc.JdbcClient;

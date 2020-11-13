@@ -37,8 +37,6 @@ public class CpmStarBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpCpmStar>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -60,8 +58,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                             .body(mapper.encode(bidRequest))
                             .payload(request)
                             .build()),
-                    Collections.emptyList()
-            );
+                    Collections.emptyList());
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
@@ -119,16 +116,17 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> result = bidsFromResponse(request.getImp(), responseBids, errors);
+        final List<BidderBid> result = bidsFromResponse(request.getImp(), responseBids, bidResponse.getCur(), errors);
         return Result.of(result, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(List<Imp> imps, List<Bid> responseBids, List<BidderError> errors) {
+    private static List<BidderBid> bidsFromResponse(List<Imp> imps, List<Bid> responseBids, String currency,
+                                                    List<BidderError> errors) {
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (Bid bid : responseBids) {
             try {
                 final BidType bidType = resolveBidType(bid.getImpid(), imps);
-                bidderBids.add(BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY));
+                bidderBids.add(BidderBid.of(bid, bidType, currency));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(
                         String.format("bid id=%s %s", bid.getId(), e.getMessage()))

@@ -38,8 +38,6 @@ import java.util.stream.Collectors;
  */
 public class KubientBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private static final TypeReference<ExtPrebid<?, ExtImpKubient>> KUBIENT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpKubient>>() {
             };
@@ -119,16 +117,16 @@ public class KubientBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> toBidderBid(bidRequest, bid, errors))
+                .map(bid -> toBidderBid(bidRequest, bidResponse.getCur(), bid, errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         return Result.of(bidderBids, errors);
     }
 
-    private BidderBid toBidderBid(BidRequest bidRequest, Bid bid, List<BidderError> errors) {
+    private BidderBid toBidderBid(BidRequest bidRequest, String currency, Bid bid, List<BidderError> errors) {
         try {
             final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-            return BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+            return BidderBid.of(bid, bidType, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;

@@ -48,7 +48,6 @@ import java.util.zip.GZIPInputStream;
 
 public class TelariaBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final TypeReference<ExtPrebid<?, ExtImpTelaria>> TELARIA_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTelaria>>() {
             };
@@ -186,17 +185,17 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
 
         try {
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), getBidResponse(httpCall.getResponse())),
+            return Result.of(extractBids(getBidResponse(httpCall.getResponse())),
                     Collections.emptyList());
         } catch (DecodeException | PreBidException | IOException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
-                : bidsFromResponse(bidRequest, bidResponse);
+                : bidsFromResponse(bidResponse);
     }
 
     private BidResponse getBidResponse(HttpResponse response) throws IOException {
@@ -207,13 +206,13 @@ public class TelariaBidder implements Bidder<BidRequest> {
         return mapper.decodeValue(response.getBody(), BidResponse.class);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.video, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

@@ -41,7 +41,6 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpPubnative>> PUBNATIVE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubnative>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -145,16 +144,16 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp());
+                : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
     }
 
-    private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps) {
+    private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
         return seatbid.stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency))
                 .collect(Collectors.toList());
     }
 

@@ -6,6 +6,7 @@ vertx:
   uploads-dir: file-uploads
   init-timeout-ms: 5000
   http-server-instances: 1
+  enable-per-client-endpoint-metrics: false
 http:
   port: 8080
   max-headers-size: 16384
@@ -138,9 +139,11 @@ gdpr:
     v1:
       http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
       refresh-missing-list-period-ms: 3600000
+      deprecated: false
     v2:
       http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
+      deprecated: false
   purposes:
     p1:
       enforce-purpose: full
