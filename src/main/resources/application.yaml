@@ -6,6 +6,7 @@ vertx:
   uploads-dir: file-uploads
   init-timeout-ms: 5000
   http-server-instances: 1
+  enable-per-client-endpoint-metrics: false
 http:
   port: 8080
   max-headers-size: 16384
