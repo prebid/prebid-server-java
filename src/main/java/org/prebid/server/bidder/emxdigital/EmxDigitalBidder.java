@@ -181,16 +181,10 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
         final Device device = request.getDevice();
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER,
-                    device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
-                    device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER,
-                    device.getLanguage());
-            if (device.getDnt() != null) {
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER,
-                        String.valueOf(device.getDnt()));
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
 
         final Site site = request.getSite();

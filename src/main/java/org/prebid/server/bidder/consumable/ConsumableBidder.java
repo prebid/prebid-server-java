@@ -97,7 +97,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         }
 
         final ConsumableBidRequest outgoingRequest = requestBuilder.build();
-        String body;
+        final String body;
         try {
             body = mapper.encode(outgoingRequest);
         } catch (EncodeException e) {
@@ -152,26 +152,28 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
 
     private static MultiMap resolveHeaders(BidRequest request) {
         final MultiMap headers = HttpUtil.headers();
+
         final Device device = request.getDevice();
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
             final String ip = device.getIp();
             if (StringUtils.isNotBlank(ip)) {
+                headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, ip);
                 headers.add("Forwarded", "for=" + ip);
-                headers.add("X-Forwarded-For", ip);
             }
         }
 
         final User user = request.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            headers.add("Cookie", String.format("azk=%s", user.getBuyeruid().trim()));
+            headers.add(HttpUtil.COOKIE_HEADER, String.format("azk=%s", user.getBuyeruid().trim()));
         }
 
         final Site site = request.getSite();
-        if (site != null && StringUtils.isNotBlank(site.getPage())) {
-            headers.set("Referer", site.getPage());
+        final String page = site != null ? site.getPage() : null;
+        if (StringUtils.isNotBlank(page)) {
+            headers.set(HttpUtil.REFERER_HEADER, page);
             try {
-                headers.set("Origin", HttpUtil.validateUrl(site.getPage()));
+                headers.set(HttpUtil.ORIGIN_HEADER, HttpUtil.validateUrl(page));
             } catch (IllegalArgumentException e) {
                 // do nothing, just skip adding this header
             }

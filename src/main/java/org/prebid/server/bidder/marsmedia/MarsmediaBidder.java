@@ -146,14 +146,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
                 .add("x-openrtb-version", "2.5");
 
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Forwarded-For", device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Accept-Language", device.getLanguage());
-
-            final Integer deviceDnt = device.getDnt();
-            if (deviceDnt != null) {
-                headers.add("DNT", deviceDnt.toString());
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
         return headers;
     }
