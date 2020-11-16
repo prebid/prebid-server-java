@@ -63,10 +63,8 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getMessage()
-                .startsWith("$.imp.ext.adoppler.adunit required")
-                && error.getType().equals(BidderError.Type.bad_input));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("$.imp.ext.adoppler.adunit required"));
     }
 
     @Test
@@ -111,7 +109,7 @@ public class AdopplerBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("X-OpenRTB-Version", "2.5"),
+                .containsExactlyInAnyOrder(tuple("X-OpenRTB-Version", "2.5"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
@@ -133,9 +131,8 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getMessage().startsWith("duplicate $.imp.id impId")
-                && error.getType().equals(BidderError.Type.bad_input));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("duplicate $.imp.id impId"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -158,10 +155,9 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getMessage()
-                .startsWith("one of $.imp.banner, $.imp.video, $.imp.audio and $.imp.native field required")
-                && error.getType().equals(BidderError.Type.bad_input));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("one of $.imp.banner, $.imp.video, "
+                        + "$.imp.audio and $.imp.native field required"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -181,9 +177,8 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getMessage().startsWith("unknown impId: nul")
-                && error.getType().equals(BidderError.Type.bad_input));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("unknown impId: null"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -203,10 +198,8 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getMessage()
-                .startsWith("$.seatbid.bid.ext.ads.video required")
-                && error.getType().equals(BidderError.Type.bad_input));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("$.seatbid.bid.ext.ads.video required"));
         assertThat(result.getValue()).isEmpty();
     }
 
