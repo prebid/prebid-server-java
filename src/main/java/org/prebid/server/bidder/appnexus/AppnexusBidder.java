@@ -421,11 +421,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
-
     private List<BidderBid> extractBids(BidResponse bidResponse) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()

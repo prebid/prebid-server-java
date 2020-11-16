@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.dmx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -36,7 +35,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -270,10 +268,5 @@ public class DmxBidder implements Bidder<BidRequest> {
     private static String getAdm(Bid bid) {
         final String wrappedNurl = String.format(IMP, bid.getNurl());
         return bid.getAdm().replaceFirst(SEARCH, wrappedNurl);
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

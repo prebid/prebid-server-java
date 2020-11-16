@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,11 +104,6 @@ public class OrbidderBidderTest extends VertxTest {
         assertThat(result).isNotNull()
                 .extracting(Result::getValue, Result::getErrors)
                 .containsOnly(Collections.emptyList(), Collections.emptyList());
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(orbidderBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

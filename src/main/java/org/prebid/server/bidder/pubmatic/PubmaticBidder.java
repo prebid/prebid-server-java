@@ -326,9 +326,4 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(duration, null)).build();
         return extBid.set(PREBID, mapper.mapper().valueToTree(extBidPrebid));
     }
-
-    @Override
-    public final Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
 }

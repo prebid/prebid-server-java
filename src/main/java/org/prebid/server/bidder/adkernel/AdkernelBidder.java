@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.adkernel;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -196,10 +195,5 @@ public class AdkernelBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.video;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

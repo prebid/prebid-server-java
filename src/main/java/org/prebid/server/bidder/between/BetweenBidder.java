@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.between;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -140,10 +139,5 @@ public class BetweenBidder implements Bidder<BidRequest> {
         // TODO add video/native, maybe audio banner types when demand appears
 
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

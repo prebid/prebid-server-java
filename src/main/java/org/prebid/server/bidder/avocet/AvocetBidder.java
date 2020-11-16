@@ -26,7 +26,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class AvocetBidder implements Bidder<BidRequest> {
@@ -127,10 +126,5 @@ public class AvocetBidder implements Bidder<BidRequest> {
         } catch (JsonProcessingException e) {
             throw new PreBidException("Invalid Avocet bidder bid extension", e);
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

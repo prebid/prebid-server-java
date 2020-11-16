@@ -29,7 +29,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class TripleliftBidder implements Bidder<BidRequest> {
@@ -154,10 +153,5 @@ public class TripleliftBidder implements Bidder<BidRequest> {
             return BidType.video;
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

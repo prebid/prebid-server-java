@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.emxdigital;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -37,7 +36,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -71,12 +69,12 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final String url = makeUrl(request);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(url)
-                        .body(body)
-                        .headers(headers)
-                        .payload(request)
-                        .build());
+                .method(HttpMethod.POST)
+                .uri(url)
+                .body(body)
+                .headers(headers)
+                .payload(request)
+                .build());
     }
 
     // Handle request errors and formatting to be sent to EMX
@@ -249,10 +247,5 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
     private static Bid modifyBid(Bid bid) {
         return bid.toBuilder().impid(bid.getId()).build();
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -25,7 +25,6 @@ import org.prebid.server.proto.openrtb.ext.request.yeahmobi.ExtImpYeahmobi;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,7 +93,7 @@ public class YeahmobiBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .banner(Banner.builder().build())
-                .xNative(Native.builder().request(nativeRequest).build()));
+                        .xNative(Native.builder().request(nativeRequest).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
@@ -256,11 +255,6 @@ public class YeahmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(yeahmobiBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(

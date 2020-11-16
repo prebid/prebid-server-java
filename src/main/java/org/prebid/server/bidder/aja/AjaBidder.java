@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.aja;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -173,10 +172,5 @@ public class AjaBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException(String.format("Response received for unexpected type of bid bidID: %s", bidId));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

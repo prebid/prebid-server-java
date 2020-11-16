@@ -80,11 +80,6 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         }
     }
 
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
-
     /**
      * Validates and creates {@link Map} where sourceId is used as key and {@link List} of {@link Imp} as value.
      */

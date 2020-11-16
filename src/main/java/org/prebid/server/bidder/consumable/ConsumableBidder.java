@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.consumable;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -38,7 +37,6 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -102,16 +100,16 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
             body = mapper.encode(outgoingRequest);
         } catch (EncodeException e) {
             return Result.withError(BidderError.badInput(
-                            String.format("Failed to encode request body, error: %s", e.getMessage())));
+                    String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
 
         return Result.withValue(HttpRequest.<ConsumableBidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(body)
-                        .headers(resolveHeaders(request))
-                        .payload(outgoingRequest)
-                        .build());
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .body(body)
+                .headers(resolveHeaders(request))
+                .payload(outgoingRequest)
+                .build());
     }
 
     private void resolveRequestFields(ConsumableBidRequest.ConsumableBidRequestBuilder requestBuilder,
@@ -222,10 +220,5 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
             }
         }
         return bidderBids;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }
