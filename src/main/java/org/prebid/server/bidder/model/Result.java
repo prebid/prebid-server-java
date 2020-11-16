@@ -32,4 +32,8 @@ public class Result<T> {
     public static <R> Result<List<R>> withError(BidderError error) {
         return Result.of(Collections.emptyList(), Collections.singletonList(error));
     }
+
+    public static <R> Result<List<R>> empty() {
+        return Result.of(Collections.emptyList(), Collections.emptyList());
+    }
 }
