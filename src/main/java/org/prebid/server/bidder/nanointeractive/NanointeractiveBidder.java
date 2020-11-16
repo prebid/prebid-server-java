@@ -111,7 +111,7 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
     }
 
     private MultiMap headers(BidRequest bidRequest) {
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
         final Device device = bidRequest.getDevice();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());

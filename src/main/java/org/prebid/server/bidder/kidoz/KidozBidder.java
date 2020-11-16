@@ -72,7 +72,7 @@ public class KidozBidder implements Bidder<BidRequest> {
 
         final String body = mapper.encode(outgoingRequest);
 
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)

@@ -131,7 +131,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         final String uri = String.format(endpointTemplate, impExt.getHost(), impExt.getZoneId());
 
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         final BidRequest outgoingRequest = createBidRequest(extAndImp.getValue(), requestBuilder, site, app);
         final String body = mapper.encode(outgoingRequest);

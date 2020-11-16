@@ -142,7 +142,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
 
     private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());

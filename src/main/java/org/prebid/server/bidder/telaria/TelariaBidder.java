@@ -167,7 +167,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
     private MultiMap headers(BidRequest bidRequest) {
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5")
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5")
                 .add(HttpUtil.ACCEPT_ENCODING_HEADER, "gzip");
 
         final Device device = bidRequest.getDevice();

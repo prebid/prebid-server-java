@@ -181,7 +181,7 @@ public class GammaBidder implements Bidder<Void> {
 
     private MultiMap makeHeaders(Device device) {
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                .set("x-openrtb-version", "2.5")
+                .set(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5")
                 .set(HttpUtil.ACCEPT_HEADER, "*/*")
                 .set(HttpUtil.CACHE_CONTROL_HEADER, "no-cache")
                 .set(HttpUtil.CONNECTION_HEADER, "keep-alive")

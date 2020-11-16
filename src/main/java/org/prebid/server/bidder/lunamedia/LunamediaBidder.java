@@ -156,7 +156,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
 
             final String body = mapper.encode(updatedBidRequest);
             final MultiMap headers = HttpUtil.headers()
-                    .add("x-openrtb-version", "2.5");
+                    .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
             final String createdEndpoint = endpointUrl + extImpLunamedia.getPubid();
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()

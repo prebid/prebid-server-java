@@ -66,7 +66,7 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
         }
 
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         final BidRequest outgoingRequest = validImps.size() != requestImps.size()
                 ? bidRequest.toBuilder().imp(validImps).build()

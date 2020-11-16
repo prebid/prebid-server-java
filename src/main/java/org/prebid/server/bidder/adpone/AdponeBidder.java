@@ -50,7 +50,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers()
-                                .add("x-openrtb-version", OPENRTB_VERSION))
+                                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION))
                         .body(mapper.encode(bidRequest))
                         .payload(bidRequest)
                         .build()),

@@ -74,7 +74,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     private static MultiMap headers() {
         return HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
     }
 
     private List<ExtImpAdkernelAdn> getAndValidateImpExt(List<Imp> imps) {

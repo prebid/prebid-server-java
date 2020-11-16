@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -45,7 +44,6 @@ import java.util.stream.Collectors;
 public class BrightrollBidder implements Bidder<BidRequest> {
 
     private static final String OPENRTB_VERSION = "2.5";
-    private static final CharSequence OPEN_RTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
             };
@@ -235,8 +233,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      */
     private MultiMap createHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
-
-        headers.add(OPEN_RTB_VERSION_HEADER, OPENRTB_VERSION);
+        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());

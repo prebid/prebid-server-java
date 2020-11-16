@@ -148,7 +148,7 @@ public class GamoshiBidderTest extends VertxTest {
                 .containsOnly("https://test.endpoint.com/r/supply/bidr?bidder=prebid-server");
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("x-openrtb-version", "2.4"),
+                .containsOnly(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.4"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
