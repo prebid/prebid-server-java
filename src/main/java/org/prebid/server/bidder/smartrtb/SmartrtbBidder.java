@@ -90,7 +90,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
         final String body = mapper.encode(outgoingRequest);
         final String requestUrl = endpointUrl + pubId;
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -129,7 +129,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
@@ -140,7 +140,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                 try {
                     smartrtbResponseExt = parseResponseExt(ext);
                 } catch (PreBidException e) {
-                    return Result.emptyWithError(BidderError.badServerResponse("Invalid bid extension from endpoint."));
+                    return Result.withError(BidderError.badServerResponse("Invalid bid extension from endpoint."));
                 }
                 final BidType bidType;
                 switch (smartrtbResponseExt.getFormat()) {
@@ -151,7 +151,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                         bidType = BidType.video;
                         break;
                     default:
-                        return Result.emptyWithError(BidderError.badServerResponse(String.format(
+                        return Result.withError(BidderError.badServerResponse(String.format(
                                 "Unsupported creative type %s.", smartrtbResponseExt.getFormat())));
                 }
                 final Bid updatedBid = bid.toBuilder().ext(null).build();
@@ -159,7 +159,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                 bidderBids.add(bidderBid);
             }
         }
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.withValues(bidderBids);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {

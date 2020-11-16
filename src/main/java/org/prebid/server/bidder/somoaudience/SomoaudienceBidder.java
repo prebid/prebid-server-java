@@ -154,7 +154,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
 
     private static MultiMap basicHeaders() {
         return HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
     }
 
     private static void addDeviceHeaders(MultiMap headers, Device device) {
@@ -175,7 +175,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -183,9 +183,9 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
-                ? Result.of(Collections.emptyList(), Collections.emptyList())
-                : Result.of(createBiddersBid(bidResponse, imps), Collections.emptyList());
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Result.empty()
+                : Result.withValues(createBiddersBid(bidResponse, imps));
     }
 
     /**

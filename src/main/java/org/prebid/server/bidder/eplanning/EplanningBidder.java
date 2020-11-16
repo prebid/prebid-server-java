@@ -98,7 +98,7 @@ public class EplanningBidder implements Bidder<Void> {
         }
 
         if (CollectionUtils.isEmpty(requestsStrings)) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final MultiMap headers = createHeaders(request.getDevice());
@@ -269,7 +269,7 @@ public class EplanningBidder implements Bidder<Void> {
             final HbResponse hbResponse = mapper.decodeValue(httpCall.getResponse().getBody(), HbResponse.class);
             return extractBids(hbResponse, bidRequest);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

@@ -58,7 +58,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             requestZone = resolveRequestZone(bidRequest.getImp().get(0));
             outgoingRequest = createOutgoingRequest(bidRequest);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final String uri = endpointUrl + "&zone=" + requestZone;
@@ -66,15 +66,13 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
 
         final String body = mapper.encode(outgoingRequest);
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(uri)
                         .headers(headers)
                         .body(body)
                         .payload(outgoingRequest)
-                        .build()),
-                Collections.emptyList());
+                        .build());
     }
 
     private String resolveRequestZone(Imp firstImp) {
@@ -143,7 +141,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
 
     private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
@@ -166,12 +164,12 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
     }

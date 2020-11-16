@@ -60,7 +60,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
             extImpKrushmedia = parseImpExt(request.getImp().get(0));
             url = resolveEndpoint(extImpKrushmedia.getAccountId());
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final BidRequest outgoingRequest = request.toBuilder()
@@ -100,7 +100,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
 
     private MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers()
-                .add("X-Openrtb-Version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
@@ -124,7 +124,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

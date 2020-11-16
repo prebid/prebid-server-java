@@ -210,7 +210,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return Result.of(extractBids(bidRequest, httpCall.getRequest().getPayload(), bidResponse),
                     Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -1001,7 +1001,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractBids(BidRequest prebidRequest, BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(prebidRequest, bidRequest, bidResponse);
     }

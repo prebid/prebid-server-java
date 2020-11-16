@@ -64,12 +64,12 @@ public class TelariaBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<Imp> validImps = new ArrayList<>();
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("Telaria: Missing Imp Object"));
+            return Result.withError(BidderError.badInput("Telaria: Missing Imp Object"));
         }
         try {
             validateImp(bidRequest.getImp());
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final String publisherId = getPublisherId(bidRequest);
@@ -82,7 +82,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 seatCode = extImp.getSeatCode();
                 validImps.add(updateImp(imp, extImp, publisherId));
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -167,7 +167,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
     private MultiMap headers(BidRequest bidRequest) {
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5")
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5")
                 .add(HttpUtil.ACCEPT_ENCODING_HEADER, "gzip");
 
         final Device device = bidRequest.getDevice();
@@ -192,12 +192,12 @@ public class TelariaBidder implements Bidder<BidRequest> {
             return Result.of(extractBids(getBidResponse(httpCall.getResponse())),
                     Collections.emptyList());
         } catch (DecodeException | PreBidException | IOException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse);
     }

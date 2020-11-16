@@ -53,7 +53,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No valid impressions in the bid request"));
+            return Result.withError(BidderError.badInput("No valid impressions in the bid request"));
         }
 
         String partnerId = null;
@@ -63,7 +63,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             partnerId = extImpUcfunnel.getPartnerid();
             if (StringUtils.isEmpty(partnerId) || StringUtils.isEmpty(adUnitId)) {
                 errors.add(BidderError.badInput("No PartnerId or AdUnitId in the bid request"));
-                return Result.of(Collections.emptyList(), errors);
+                return Result.withErrors(errors);
             }
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -102,7 +102,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
@@ -115,7 +115,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.withValues(bidderBids);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {

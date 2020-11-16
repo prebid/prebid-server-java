@@ -66,7 +66,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
         }
 
         if (validImpsWithExts.size() == 0) {
-            return Result.emptyWithError(BidderError.badInput("No valid Imps in Bid Request"));
+            return Result.withError(BidderError.badInput("No valid Imps in Bid Request"));
         }
 
         final List<HttpRequest<BidRequest>> madeRequests = new ArrayList<>();
@@ -115,7 +115,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
