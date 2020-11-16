@@ -22,6 +22,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.inmobi.ExtImpInmobi;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -61,10 +62,8 @@ public class InmobiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
-                .extracting(BidderError::getMessage)
-                .containsOnly("'plc' is a required attribute for InMobi's bidder ext");
+                .containsExactly(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
     }
 
     @Test
@@ -76,10 +75,8 @@ public class InmobiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
-                .extracting(BidderError::getMessage)
-                .containsOnly("'plc' is a required attribute for InMobi's bidder ext");
+                .containsExactly(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
     }
 
     @Test
@@ -91,8 +88,8 @@ public class InmobiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("bad InMobi bidder ext");
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("bad InMobi bidder ext"));
     }
 
     @Test
@@ -112,11 +109,49 @@ public class InmobiBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsOnly(Banner.builder()
+                .containsExactly(Banner.builder()
                         .w(FORMAT_W)
                         .h(FORMAT_H)
                         .format(Collections.singletonList(bannerFormat))
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateOnlyFirstImpression() {
+        // given
+        final Format bannerFormat = Format.builder().w(FORMAT_W).h(FORMAT_H).build();
+        final Imp firstImp = Imp.builder()
+                .banner(Banner.builder().id("firstBanner").format(Collections.singletonList(bannerFormat)).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("plc"))))
+                .build();
+        final Imp secondImp = Imp.builder()
+                .banner(Banner.builder().id("secondBanner").format(Collections.singletonList(bannerFormat)).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("plc"))))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Arrays.asList(firstImp, secondImp))
+                .build();
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Banner firstExpectedBanner = Banner.builder()
+                .id("firstBanner")
+                .w(FORMAT_W)
+                .h(FORMAT_H)
+                .format(Collections.singletonList(bannerFormat))
+                .build();
+        final Banner secondExpectedBanner = Banner.builder()
+                .id("secondBanner")
+                .format(Collections.singletonList(bannerFormat))
+                .build();
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(firstExpectedBanner, secondExpectedBanner);
     }
 
     @Test
@@ -128,11 +163,9 @@ public class InmobiBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors())
-                .extracting(BidderError::getType)
-                .containsOnly(BidderError.Type.bad_server_response);
+                .allMatch(error -> error.getMessage().startsWith("Failed to decode: Unrecognized token")
+                        && error.getType().equals(BidderError.Type.bad_server_response));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -180,7 +213,7 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), banner, null));
     }
 
     @Test
@@ -198,7 +231,7 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), video, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), video, null));
     }
 
     @Test
@@ -217,7 +250,7 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), banner, null));
     }
 
     @Test

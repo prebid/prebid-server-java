@@ -93,8 +93,8 @@ public class InmobiBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp) {
-        if (imp.getBanner() != null) {
-            final Banner banner = imp.getBanner();
+        final Banner banner = imp.getBanner();
+        if (banner != null) {
             if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0 || banner.getH() == 0)
                     && CollectionUtils.isNotEmpty(banner.getFormat())) {
                 final Format format = banner.getFormat().get(0);
