@@ -93,7 +93,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             }
         }
         if (bannerImps.isEmpty() && videoImps.isEmpty()) {
-            return Result.emptyWithError(BidderError.badInput("no valid impressions were found in the request"));
+            return Result.withError(BidderError.badInput("no valid impressions were found in the request"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -388,7 +388,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final String bodyString = httpCall.getResponse().getBody();
         if (StringUtils.isBlank(bodyString)) {
-            return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
+            return Result.withError(BidderError.badServerResponse("Received a null response from beachfront"));
         }
 
         if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()
@@ -402,7 +402,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             try {
                 return processBannerResponse(bodyString);
             } catch (PreBidException ex) {
-                return Result.emptyWithError(BidderError.badServerResponse(ex.getMessage()));
+                return Result.withError(BidderError.badServerResponse(ex.getMessage()));
             }
         }
     }
@@ -413,12 +413,11 @@ public class BeachfrontBidder implements Bidder<Void> {
     private Result<List<BidderBid>> processBannerResponse(String responseBody) {
         final List<BeachfrontResponseSlot> responseSlots = makeBeachfrontResponseSlots(responseBody);
 
-        return Result.of(responseSlots.stream()
+        return Result.withValues(responseSlots.stream()
                         .filter(Objects::nonNull)
                         .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
                         .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
-                        .collect(Collectors.toList()),
-                Collections.emptyList());
+                        .collect(Collectors.toList()));
     }
 
     /**
@@ -458,22 +457,20 @@ public class BeachfrontBidder implements Bidder<Void> {
                 httpRequest.getBody(), BeachfrontVideoRequest.class);
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
         final List<Imp> imps = videoRequest.getRequest().getImp();
         if (httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)) {
-            return Result.of(updateVideoBids(bids, imps).stream()
+            return Result.withValues(updateVideoBids(bids, imps).stream()
                             .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                            .collect(Collectors.toList()),
-                    Collections.emptyList());
+                            .collect(Collectors.toList()));
         } else {
-            return Result.of(bids.stream()
+            return Result.withValues(bids.stream()
                             .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
                             .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                            .collect(Collectors.toList()),
-                    Collections.emptyList());
+                            .collect(Collectors.toList()));
         }
     }
 

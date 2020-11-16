@@ -69,7 +69,7 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isNull();
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput("Invalid imp id=123. Expected imp.banner or imp.video"));
     }
@@ -91,7 +91,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        assertThat(result.getValue()).isNull();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -105,7 +105,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput("Invalid zoneId value: null. Ignoring imp id=123"));
-        assertThat(result.getValue()).isNull();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -119,7 +119,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput("Invalid zoneId value: 0. Ignoring imp id=123"));
-        assertThat(result.getValue()).isNull();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -133,7 +133,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
-        assertThat(result.getValue()).isNull();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -147,7 +147,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
-        assertThat(result.getValue()).isNull();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -168,7 +168,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
-                        tuple("x-openrtb-version", "2.5"));
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
     }
 
     @Test

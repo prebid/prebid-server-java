@@ -65,7 +65,7 @@ public class AdgenerationBidder implements Bidder<Void> {
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
+            return Result.withError(BidderError.badInput("No impression in the bid request"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -175,12 +175,12 @@ public class AdgenerationBidder implements Bidder<Void> {
         try {
             final AdgenerationResponse adgenerationResponse = decodeBodyToBidResponse(httpCall.getResponse());
             if (CollectionUtils.isEmpty(adgenerationResponse.getResults())) {
-                return Result.emptyWithError(BidderError.badServerResponse("Results object in BidResponse is empty"));
+                return Result.withError(BidderError.badServerResponse("Results object in BidResponse is empty"));
             }
 
             return resultWithBidderBids(bidRequest, adgenerationResponse);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -211,7 +211,7 @@ public class AdgenerationBidder implements Bidder<Void> {
                         .dealid(adgenerationResponse.getDealid())
                         .build();
                 final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.banner, getCurrency(bidRequest));
-                return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
+                return Result.withValue(bidderBid);
             }
         }
         return null;
