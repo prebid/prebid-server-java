@@ -71,7 +71,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         try {
             firstImpExtPublisher = getAndValidateImpExt(request.getImp().get(0));
         } catch (PreBidException ex) {
-            return Result.emptyWithError(BidderError.badInput(ex.getMessage()));
+            return Result.withError(BidderError.badInput(ex.getMessage()));
         }
 
         final BidRequest updateBidRequest = updateBidRequest(request, firstImpExtPublisher, errors);
@@ -253,7 +253,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

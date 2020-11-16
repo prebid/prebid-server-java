@@ -75,7 +75,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
 
         // site.page validation is already performed by {@link RequestValidator#validate}
         if (page == null) {
-            return Result.emptyWithError(BidderError.badInput("site.page is required"));
+            return Result.withError(BidderError.badInput("site.page is required"));
         }
 
         final boolean test = Objects.equals(request.getTest(), 1);
@@ -85,7 +85,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
         try {
             strUriParameters = parseBidRequestToUriParameters(request, date, test);
         } catch (IllegalArgumentException e) {
-            return Result.emptyWithError(BidderError.badInput(
+            return Result.withError(BidderError.badInput(
                     String.format("Error occurred parsing sharethrough parameters %s", e.getMessage())));
         }
         final MultiMap headers = makeHeaders(request.getDevice(), page);
@@ -197,7 +197,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                     ExtImpSharethroughResponse.class);
             return Result.withValues(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()));
         } catch (IOException | IllegalArgumentException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

@@ -54,7 +54,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 final ExtImpDatablocks extImpDatablocks = parseAndValidateImpExt(imp.getExt());
                 extToImps.computeIfAbsent(extImpDatablocks, ext -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -110,7 +110,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

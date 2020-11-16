@@ -29,7 +29,7 @@ public class Result<T> {
         return Result.of(Collections.emptyList(), errors);
     }
 
-    public static <R> Result<List<R>> emptyWithError(BidderError error) {
+    public static <R> Result<List<R>> withError(BidderError error) {
         return Result.of(Collections.emptyList(), Collections.singletonList(error));
     }
 

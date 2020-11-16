@@ -57,7 +57,7 @@ public class KubientBidder implements Bidder<BidRequest> {
             try {
                 validateImpExt(imp);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -65,7 +65,7 @@ public class KubientBidder implements Bidder<BidRequest> {
         try {
             body = mapper.encode(request);
         } catch (EncodeException e) {
-            return Result.emptyWithError(
+            return Result.withError(
                     BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
 
@@ -104,7 +104,7 @@ public class KubientBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

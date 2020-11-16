@@ -269,7 +269,7 @@ public class EplanningBidder implements Bidder<Void> {
             final HbResponse hbResponse = mapper.decodeValue(httpCall.getResponse().getBody(), HbResponse.class);
             return extractBids(hbResponse, bidRequest);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

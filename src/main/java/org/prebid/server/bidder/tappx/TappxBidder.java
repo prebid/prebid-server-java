@@ -62,7 +62,7 @@ public class TappxBidder implements Bidder<BidRequest> {
             extImpTappx = parseBidRequestToExtImpTappx(request);
             url = buildEndpointUrl(extImpTappx, request.getTest());
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final BigDecimal extBidfloor = extImpTappx.getBidfloor();
@@ -144,7 +144,7 @@ public class TappxBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

@@ -59,11 +59,11 @@ public class InmobiBidder implements Bidder<BidRequest> {
         try {
             extImpInmobi = parseImpExt(imp);
         } catch (Exception e) {
-            return Result.emptyWithError(BidderError.badInput("bad InMobi bidder ext"));
+            return Result.withError(BidderError.badInput("bad InMobi bidder ext"));
         }
 
         if (StringUtils.isEmpty(extImpInmobi.getPlc())) {
-            return Result.emptyWithError(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
+            return Result.withError(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
         }
 
         final BidRequest outgoingRequest = request.toBuilder()
@@ -112,7 +112,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

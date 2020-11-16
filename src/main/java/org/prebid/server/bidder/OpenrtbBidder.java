@@ -50,7 +50,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         try {
             validateRequest(bidRequest);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -211,7 +211,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

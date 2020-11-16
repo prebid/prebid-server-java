@@ -147,7 +147,7 @@ public class AdformBidder implements Bidder<Void> {
                     httpResponse.getBody(),
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, AdformBid.class));
         } catch (JsonProcessingException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
         return Result.withValues(toBidderBid(adformBids, bidRequest.getImp()));
     }

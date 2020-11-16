@@ -67,7 +67,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         }
 
         if (extImpYeahmobi == null) {
-            return Result.emptyWithError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
+            return Result.withError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
         }
 
         final String host = String.format("gw-%s-bid.yeahtargeter.com", HttpUtil.encodeUrl(extImpYeahmobi.getZoneId()));
@@ -129,7 +129,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

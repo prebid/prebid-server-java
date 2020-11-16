@@ -205,7 +205,7 @@ public class GammaBidder implements Bidder<Void> {
 
         final String body = httpCall.getResponse().getBody();
         if (body == null) {
-            return Result.emptyWithError(BidderError.badServerResponse("bad server response: body is empty"));
+            return Result.withError(BidderError.badServerResponse("bad server response: body is empty"));
         }
 
         try {
@@ -213,7 +213,7 @@ public class GammaBidder implements Bidder<Void> {
             final List<BidderError> errors = new ArrayList<>();
             return Result.of(extractBidsAndFillErorrs(bidResponse, bidRequest, errors), errors);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(
+            return Result.withError(BidderError.badServerResponse(
                     String.format("bad server response: %s", e.getMessage())));
         }
     }

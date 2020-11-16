@@ -58,7 +58,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             requestZone = resolveRequestZone(bidRequest.getImp().get(0));
             outgoingRequest = createOutgoingRequest(bidRequest);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final String uri = endpointUrl + "&zone=" + requestZone;
@@ -164,7 +164,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

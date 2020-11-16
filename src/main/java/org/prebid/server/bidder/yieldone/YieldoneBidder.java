@@ -123,7 +123,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                     .collect(Collectors.toList());
             return Result.withValues(bidderBids);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 

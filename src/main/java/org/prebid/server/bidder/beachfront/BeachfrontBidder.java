@@ -93,7 +93,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             }
         }
         if (bannerImps.isEmpty() && videoImps.isEmpty()) {
-            return Result.emptyWithError(BidderError.badInput("no valid impressions were found in the request"));
+            return Result.withError(BidderError.badInput("no valid impressions were found in the request"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -388,7 +388,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final String bodyString = httpCall.getResponse().getBody();
         if (StringUtils.isBlank(bodyString)) {
-            return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
+            return Result.withError(BidderError.badServerResponse("Received a null response from beachfront"));
         }
 
         if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()
@@ -402,7 +402,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             try {
                 return processBannerResponse(bodyString);
             } catch (PreBidException ex) {
-                return Result.emptyWithError(BidderError.badServerResponse(ex.getMessage()));
+                return Result.withError(BidderError.badServerResponse(ex.getMessage()));
             }
         }
     }

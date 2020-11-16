@@ -238,7 +238,7 @@ public class YieldlabBidder implements Bidder<Void> {
         try {
             yieldlabResponses = decodeBodyToBidList(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
@@ -247,7 +247,7 @@ public class YieldlabBidder implements Bidder<Void> {
             try {
                 bidderBid = resolveBidderBid(yieldlabResponses, i, bidRequest);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
 
             if (bidderBid != null) {

@@ -25,7 +25,7 @@ public class DisabledBidder implements Bidder<Void> {
 
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
-        return Result.emptyWithError(BidderError.badInput(errorMessage));
+        return Result.withError(BidderError.badInput(errorMessage));
     }
 
     @Override

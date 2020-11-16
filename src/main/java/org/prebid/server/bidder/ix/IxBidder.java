@@ -60,7 +60,7 @@ public class IxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         if (bidRequest.getApp() != null) {
-            return Result.emptyWithError(BidderError.badInput("ix doesn't support apps"));
+            return Result.withError(BidderError.badInput("ix doesn't support apps"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -186,7 +186,7 @@ public class IxBidder implements Bidder<BidRequest> {
             final BidRequest payload = httpCall.getRequest().getPayload();
             return Result.withValues(extractBids(bidResponse, payload));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

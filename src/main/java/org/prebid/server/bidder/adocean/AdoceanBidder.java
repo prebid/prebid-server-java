@@ -94,7 +94,7 @@ public class AdoceanBidder implements Bidder<Void> {
                 }
                 httpRequests.add(createSingleRequest(request, imp, extImpAdocean, consentString, slaveSizes));
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -258,7 +258,7 @@ public class AdoceanBidder implements Bidder<Void> {
         try {
             params = URLEncodedUtils.parse(new URI(httpCall.getRequest().getUri()), StandardCharsets.UTF_8);
         } catch (URISyntaxException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final Map<String, String> auctionIds = params != null ? params.stream()
@@ -270,7 +270,7 @@ public class AdoceanBidder implements Bidder<Void> {
         try {
             adoceanResponses = getAdoceanResponseAdUnitList(httpCall.getResponse().getBody());
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError
+            return Result.withError(BidderError
                     .badServerResponse("Failed to decode: No content to map due to end-of-input"));
         }
 

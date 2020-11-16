@@ -48,7 +48,7 @@ public class AvocetBidder implements Bidder<BidRequest> {
         try {
             body = mapper.encode(request);
         } catch (EncodeException e) {
-            return Result.emptyWithError(
+            return Result.withError(
                     BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
 
@@ -74,7 +74,7 @@ public class AvocetBidder implements Bidder<BidRequest> {
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();

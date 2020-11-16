@@ -42,7 +42,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
         try {
             mapper.mapper().convertValue(bidRequest.getImp().get(0).getExt().get("bidder"), ExtImpAdpone.class);
         } catch (IllegalArgumentException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         return Result.of(Collections.singletonList(
@@ -63,7 +63,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

@@ -59,12 +59,12 @@ public class MgidBidder implements Bidder<BidRequest> {
                 final Imp modifiedImp = modifyImp(imp, impExt);
                 imps.add(modifiedImp);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
         if (StringUtils.isBlank(accountId)) {
-            return Result.emptyWithError(BidderError.badInput("accountId is not set"));
+            return Result.withError(BidderError.badInput("accountId is not set"));
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
@@ -141,7 +141,7 @@ public class MgidBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

@@ -69,7 +69,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         try {
             firstImpExt = parseAndValidateImpExt(validImps.get(0));
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
@@ -138,7 +138,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

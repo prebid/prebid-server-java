@@ -107,7 +107,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {

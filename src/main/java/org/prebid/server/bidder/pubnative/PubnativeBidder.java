@@ -54,7 +54,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         if (device == null || StringUtils.isBlank(device.getOs())) {
-            return Result.emptyWithError(BidderError.badInput("Impression is missing device OS information"));
+            return Result.withError(BidderError.badInput("Impression is missing device OS information"));
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
@@ -137,7 +137,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpResponse.getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
