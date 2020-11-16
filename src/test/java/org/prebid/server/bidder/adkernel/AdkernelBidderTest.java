@@ -71,8 +71,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isNull();
         assertThat(result.getErrors())
-                .allMatch(error -> error.getType() == BidderError.Type.bad_input
-                        && error.getMessage().startsWith("Invalid imp id=123. Expected imp.banner or imp.vide"));
+                .containsExactly(BidderError.badInput("Invalid imp id=123. Expected imp.banner or imp.video"));
     }
 
     @Test
@@ -106,8 +105,7 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .allMatch(error -> error.getType() == BidderError.Type.bad_input
-                        && error.getMessage().equals("Invalid zoneId value: null. Ignoring imp id=123"));
+                .containsExactly(BidderError.badInput("Invalid zoneId value: null. Ignoring imp id=123"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -121,8 +119,7 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .allMatch(error -> error.getType() == BidderError.Type.bad_input
-                        && error.getMessage().equals("Invalid zoneId value: 0. Ignoring imp id=123"));
+                .containsExactly(BidderError.badInput("Invalid zoneId value: 0. Ignoring imp id=123"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -136,8 +133,7 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .allMatch(error -> error.getType() == BidderError.Type.bad_input
-                        && error.getMessage().equals("Host is empty. Ignoring imp id=123"));
+                .containsExactly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -151,8 +147,7 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .allMatch(error -> error.getType() == BidderError.Type.bad_input
-                        && error.getMessage().equals("Host is empty. Ignoring imp id=123"));
+                .containsExactly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
         assertThat(result.getValue()).isNull();
     }
 
@@ -171,7 +166,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .returns("http://test_host/hb?zone=3426", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
                         tuple("x-openrtb-version", "2.5"));
@@ -214,7 +209,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner, Imp::getVideo, Imp::getAudio, Imp::getXNative)
-                .containsOnly(tuple(Banner.builder().build(), null, null, null));
+                .containsExactly(tuple(Banner.builder().build(), null, null, null));
     }
 
     @Test
@@ -234,7 +229,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner, Imp::getVideo, Imp::getAudio, Imp::getXNative)
-                .containsOnly(tuple(null, Video.builder().build(), null, null));
+                .containsExactly(tuple(null, Video.builder().build(), null, null));
     }
 
     @Test
@@ -253,7 +248,7 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
-                .containsOnly(Site.builder().publisher(null).build());
+                .containsExactly(Site.builder().publisher(null).build());
     }
 
     @Test
@@ -273,7 +268,7 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
-                .containsOnly(App.builder().publisher(null).build());
+                .containsExactly(App.builder().publisher(null).build());
     }
 
     @Test
@@ -331,8 +326,7 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
-                        && error.getMessage().equals("Invalid SeatBids count: 0"));
+                .containsExactly(BidderError.badServerResponse("Invalid SeatBids count: 0"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -351,7 +345,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -370,7 +364,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test

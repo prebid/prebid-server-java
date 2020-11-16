@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -123,7 +124,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static boolean hasNoImpressions(Map<ExtImpAdkernel, List<Imp>> pubToImps) {
         return pubToImps.values().stream()
-                .noneMatch(imp -> imp.size() > 0);
+                .allMatch(CollectionUtils::isEmpty);
     }
 
     private HttpRequest<BidRequest> createHttpRequest(Map.Entry<ExtImpAdkernel, List<Imp>> extAndImp,
@@ -146,8 +147,10 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidRequest createBidRequest(List<Imp> imps, BidRequest.BidRequestBuilder requestBuilder,
-                                               Site site, App app) {
+    private static BidRequest createBidRequest(List<Imp> imps,
+                                               BidRequest.BidRequestBuilder requestBuilder,
+                                               Site site,
+                                               App app) {
 
         requestBuilder.imp(imps);
 
