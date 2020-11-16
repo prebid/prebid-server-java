@@ -44,6 +44,7 @@ public class Metrics extends UpdatableMetrics {
     private final PrivacyMetrics privacyMetrics;
     private final Map<MetricName, CircuitBreakerMetrics> circuitBreakerMetrics;
     private final CacheMetrics cacheMetrics;
+    private final TimeoutNotificationMetrics timeoutNotificationMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -67,6 +68,7 @@ public class Metrics extends UpdatableMetrics {
         privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
         circuitBreakerMetrics = new HashMap<>();
         cacheMetrics = new CacheMetrics(metricRegistry, counterType);
+        timeoutNotificationMetrics = new TimeoutNotificationMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -442,6 +444,14 @@ public class Metrics extends UpdatableMetrics {
     public void updateCacheCreativeSize(String accountId, int creativeSize) {
         cache().updateHistogram(MetricName.creative_size, creativeSize);
         forAccount(accountId).cache().updateHistogram(MetricName.creative_size, creativeSize);
+    }
+
+    public void updateTimeoutNotificationMetric(boolean success) {
+        if (success) {
+            timeoutNotificationMetrics.incCounter(MetricName.ok);
+        } else {
+            timeoutNotificationMetrics.incCounter(MetricName.failed);
+        }
     }
 
     private String resolveMetricsBidderName(String bidder) {

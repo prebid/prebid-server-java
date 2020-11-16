@@ -61,6 +61,8 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `circuit.breaker.http.existing` - number of http client circuit breakers existing currently for all hosts
 - `circuit-breaker.db.opened` - state of the database circuit breaker: `1` means opened (database is unavailable), `0` - closed
 - `circuit-breaker.geo.opened` - state of the geo location circuit breaker: `1` means opened (geo location resource is unavailable), `0` - closed
+- `timeout_notification.ok` - number of times bidders were successfully notified about timeouts
+- `timeout_notification.failed` - number of unsuccessful attempts to notify bidders about timeouts
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID
