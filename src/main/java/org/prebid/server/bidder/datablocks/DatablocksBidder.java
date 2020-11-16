@@ -62,7 +62,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 .map(entry -> makeHttpRequest(entry, bidRequest))
                 .collect(Collectors.toList());
 
-        return Result.valueOnly(httpRequests);
+        return Result.withValues(httpRequests);
     }
 
     private ExtImpDatablocks parseAndValidateImpExt(ObjectNode extNode) {
@@ -108,7 +108,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(bidResponse, httpCall.getRequest().getPayload()));
+            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

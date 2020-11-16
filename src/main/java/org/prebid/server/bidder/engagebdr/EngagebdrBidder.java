@@ -114,7 +114,7 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
 
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(bidResponse, bidRequest));
+            return Result.withValues(extractBids(bidResponse, bidRequest));
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

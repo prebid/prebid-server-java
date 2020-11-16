@@ -78,7 +78,7 @@ public class VisxBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final VisxResponse visxResponse = mapper.decodeValue(httpCall.getResponse().getBody(), VisxResponse.class);
-            return Result.valueOnly(extractBids(httpCall.getRequest().getPayload(), visxResponse));
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), visxResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

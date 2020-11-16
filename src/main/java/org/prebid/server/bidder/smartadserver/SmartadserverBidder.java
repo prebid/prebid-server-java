@@ -72,7 +72,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
         }
-        return Result.valueOnly(result);
+        return Result.withValues(result);
     }
 
     private ExtImpSmartadserver parseImpExt(Imp imp) {

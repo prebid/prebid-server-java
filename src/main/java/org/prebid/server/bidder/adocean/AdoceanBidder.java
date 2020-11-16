@@ -98,7 +98,7 @@ public class AdoceanBidder implements Bidder<Void> {
             }
         }
 
-        return Result.valueOnly(httpRequests);
+        return Result.withValues(httpRequests);
     }
 
     private ExtImpAdocean parseImpExt(Imp imp) {
@@ -282,7 +282,7 @@ public class AdoceanBidder implements Bidder<Void> {
                         getBidCurrency(adoceanResponse)))
                 .collect(Collectors.toList());
 
-        return Result.valueOnly(bidderBids);
+        return Result.withValues(bidderBids);
     }
 
     private static Bid createBid(Map<String, String> auctionIds, AdoceanResponseAdUnit adoceanResponse) {

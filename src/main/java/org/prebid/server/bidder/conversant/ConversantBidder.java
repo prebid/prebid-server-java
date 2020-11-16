@@ -76,7 +76,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
             outgoingRequest = createBidRequest(bidRequest, errors);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         final String body = mapper.encode(outgoingRequest);
@@ -226,7 +226,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

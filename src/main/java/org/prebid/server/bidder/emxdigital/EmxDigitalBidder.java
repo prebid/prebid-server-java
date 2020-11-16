@@ -70,14 +70,13 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final MultiMap headers = makeHeaders(request);
         final String url = makeUrl(request);
 
-        return Result.valueOnly(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(url)
                         .body(body)
                         .headers(headers)
                         .payload(request)
-                        .build()));
+                        .build());
     }
 
     // Handle request errors and formatting to be sent to EMX
@@ -226,7 +225,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

@@ -413,7 +413,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     private Result<List<BidderBid>> processBannerResponse(String responseBody) {
         final List<BeachfrontResponseSlot> responseSlots = makeBeachfrontResponseSlots(responseBody);
 
-        return Result.valueOnly(responseSlots.stream()
+        return Result.withValues(responseSlots.stream()
                         .filter(Objects::nonNull)
                         .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
                         .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
@@ -463,11 +463,11 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
         final List<Imp> imps = videoRequest.getRequest().getImp();
         if (httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)) {
-            return Result.valueOnly(updateVideoBids(bids, imps).stream()
+            return Result.withValues(updateVideoBids(bids, imps).stream()
                             .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
                             .collect(Collectors.toList()));
         } else {
-            return Result.valueOnly(bids.stream()
+            return Result.withValues(bids.stream()
                             .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
                             .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
                             .collect(Collectors.toList()));

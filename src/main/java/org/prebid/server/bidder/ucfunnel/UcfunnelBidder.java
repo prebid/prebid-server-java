@@ -63,7 +63,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             partnerId = extImpUcfunnel.getPartnerid();
             if (StringUtils.isEmpty(partnerId) || StringUtils.isEmpty(adUnitId)) {
                 errors.add(BidderError.badInput("No PartnerId or AdUnitId in the bid request"));
-                return Result.errorsOnly(errors);
+                return Result.withErrors(errors);
             }
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -115,7 +115,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        return Result.valueOnly(bidderBids);
+        return Result.withValues(bidderBids);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {

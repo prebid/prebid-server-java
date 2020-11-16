@@ -159,7 +159,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                 bidderBids.add(bidderBid);
             }
         }
-        return Result.valueOnly(bidderBids);
+        return Result.withValues(bidderBids);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {

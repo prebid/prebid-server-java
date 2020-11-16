@@ -83,7 +83,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
         if (modifiedRequests.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
@@ -184,7 +184,7 @@ public class IxBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final BidRequest payload = httpCall.getRequest().getPayload();
-            return Result.valueOnly(extractBids(bidResponse, payload));
+            return Result.withValues(extractBids(bidResponse, payload));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

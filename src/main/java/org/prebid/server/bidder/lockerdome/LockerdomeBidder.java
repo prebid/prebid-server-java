@@ -62,7 +62,7 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
 
         if (validImps.isEmpty()) {
             errors.add(BidderError.badInput("No valid or supported impressions in the bid request."));
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         final MultiMap headers = HttpUtil.headers()
@@ -107,7 +107,7 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

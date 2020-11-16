@@ -83,7 +83,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         if (modifiedImps.isEmpty()) {
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         return Result.of(Collections.singletonList(makeRequest(bidRequest, modifiedImps, extImpPubmatics)), errors);

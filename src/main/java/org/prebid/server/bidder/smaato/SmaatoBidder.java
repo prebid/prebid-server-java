@@ -95,7 +95,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             modifiedUser = request.getUser() != null ? modifyUser(request.getUser()) : null;
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         final BidRequest outgoingRequest = request.toBuilder()

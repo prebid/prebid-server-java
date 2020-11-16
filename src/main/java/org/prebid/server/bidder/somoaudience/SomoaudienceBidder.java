@@ -185,7 +185,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
     private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Result.empty()
-                : Result.valueOnly(createBiddersBid(bidResponse, imps));
+                : Result.withValues(createBiddersBid(bidResponse, imps));
     }
 
     /**

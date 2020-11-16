@@ -70,14 +70,13 @@ public class TappxBidder implements Bidder<BidRequest> {
                 ? modifyRequest(request, extBidfloor)
                 : request;
 
-        return Result.valueOnly(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .headers(HttpUtil.headers())
                         .uri(url)
                         .body(mapper.encode(outgoingRequest))
                         .payload(outgoingRequest)
-                        .build()));
+                        .build());
     }
 
     /**
@@ -143,7 +142,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

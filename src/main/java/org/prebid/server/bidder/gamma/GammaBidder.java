@@ -60,7 +60,7 @@ public class GammaBidder implements Bidder<Void> {
             outgoingRequests = createHttpRequests(bidRequest, errors);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
         return Result.of(outgoingRequests, errors);
     }

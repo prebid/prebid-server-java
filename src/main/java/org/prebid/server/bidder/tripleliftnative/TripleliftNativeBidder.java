@@ -181,7 +181,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
         try {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

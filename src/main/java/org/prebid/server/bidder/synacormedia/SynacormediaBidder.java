@@ -76,7 +76,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
         }
 
         if (validImps.isEmpty()) {
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
@@ -121,7 +121,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
 
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(bidResponse, httpCall.getRequest().getPayload()));
+            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

@@ -78,7 +78,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
         if (CollectionUtils.isEmpty(updateBidRequest.getImp())) {
             errors.add(BidderError.badInput("No valid impression in the bid request"));
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         final String bidRequestBody;
@@ -86,17 +86,16 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             bidRequestBody = mapper.encode(updateBidRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s", e.getMessage())));
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
-        return Result.valueOnly(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
                         .body(bidRequestBody)
                         .headers(createHeaders(updateBidRequest.getDevice()))
                         .payload(updateBidRequest)
-                        .build()));
+                        .build());
     }
 
     /**
@@ -264,7 +263,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Result.empty()
-                : Result.valueOnly(createBiddersBid(bidResponse, imps));
+                : Result.withValues(createBiddersBid(bidResponse, imps));
     }
 
     /**

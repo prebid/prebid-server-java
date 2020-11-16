@@ -60,7 +60,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
 
         if (validImps.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions for triplelift"));
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         final BidRequest updatedRequest = bidRequest.toBuilder()

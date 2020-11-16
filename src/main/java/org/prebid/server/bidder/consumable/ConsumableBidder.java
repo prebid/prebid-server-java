@@ -105,14 +105,13 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                             String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
 
-        return Result.valueOnly(Collections.singletonList(
-                HttpRequest.<ConsumableBidRequest>builder()
+        return Result.withValue(HttpRequest.<ConsumableBidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .body(body)
                         .headers(resolveHeaders(request))
                         .payload(outgoingRequest)
-                        .build()));
+                        .build());
     }
 
     private void resolveRequestFields(ConsumableBidRequest.ConsumableBidRequestBuilder requestBuilder,

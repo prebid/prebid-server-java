@@ -128,7 +128,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             } catch (EncodeException e) {
                 errors.add(BidderError.badInput(
                         String.format("error while encoding bidRequest, err: %s", e.getMessage())));
-                return Result.errorsOnly(errors);
+                return Result.withErrors(errors);
             }
             httpRequests.add(HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)

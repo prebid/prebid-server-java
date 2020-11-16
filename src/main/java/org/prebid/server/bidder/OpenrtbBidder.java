@@ -65,7 +65,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             }
         }
         if (modifiedImpsWithExts.isEmpty()) {
-            return Result.errorsOnly(errors);
+            return Result.withErrors(errors);
         }
 
         return Result.of(createHttpRequests(bidRequest, modifiedImpsWithExts), errors);
@@ -209,7 +209,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

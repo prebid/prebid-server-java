@@ -93,7 +93,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                 .map(strUriParameter -> makeHttpRequest(headers, date, strUriParameter))
                 .collect(Collectors.toList());
 
-        return Result.valueOnly(httpRequests);
+        return Result.withValues(httpRequests);
     }
 
     /**
@@ -195,7 +195,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
             final String responseBody = httpCall.getResponse().getBody();
             final ExtImpSharethroughResponse sharethroughBid = mapper.mapper().readValue(responseBody,
                     ExtImpSharethroughResponse.class);
-            return Result.valueOnly(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()));
+            return Result.withValues(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()));
         } catch (IOException | IllegalArgumentException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

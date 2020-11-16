@@ -74,13 +74,13 @@ public class MgidBidder implements Bidder<BidRequest> {
 
         final String body = mapper.encode(outgoingRequest);
 
-        return Result.valueOnly(Collections.singletonList(HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl + accountId)
                 .body(body)
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
-                .build()));
+                .build());
     }
 
     private ExtImpMgid parseImpExt(Imp imp) {
@@ -139,7 +139,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                                                   BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.valueOnly(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
