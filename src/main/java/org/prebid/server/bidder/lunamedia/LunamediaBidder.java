@@ -211,7 +211,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+        if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
