@@ -72,12 +72,11 @@ public class YieldlabBidder implements Bidder<Void> {
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final ExtImpYieldlab modifiedExtImp = constructExtImp(request.getImp());
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<Void>builder()
+        return Result.withValue(HttpRequest.<Void>builder()
                         .method(HttpMethod.GET)
                         .uri(makeUrl(modifiedExtImp, request))
                         .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
-                        .build()), Collections.emptyList());
+                        .build());
     }
 
     private ExtImpYieldlab constructExtImp(List<Imp> imps) {
@@ -239,7 +238,7 @@ public class YieldlabBidder implements Bidder<Void> {
         try {
             yieldlabResponses = decodeBodyToBidList(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
@@ -248,7 +247,7 @@ public class YieldlabBidder implements Bidder<Void> {
             try {
                 bidderBid = resolveBidderBid(yieldlabResponses, i, bidRequest);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
 
             if (bidderBid != null) {

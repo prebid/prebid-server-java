@@ -93,7 +93,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         try {
             resolveRequestFields(requestBuilder, request.getImp());
         } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(e.getMessage())));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final ConsumableBidRequest outgoingRequest = requestBuilder.build();
@@ -101,20 +101,17 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         try {
             body = mapper.encode(outgoingRequest);
         } catch (EncodeException e) {
-            return Result.of(Collections.emptyList(),
-                    Collections.singletonList(BidderError.badInput(
-                            String.format("Failed to encode request body, error: %s", e.getMessage()))));
+            return Result.withError(BidderError.badInput(
+                            String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<ConsumableBidRequest>builder()
+        return Result.withValue(HttpRequest.<ConsumableBidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .body(body)
                         .headers(resolveHeaders(request))
                         .payload(outgoingRequest)
-                        .build()),
-                Collections.emptyList());
+                        .build());
     }
 
     private void resolveRequestFields(ConsumableBidRequest.ConsumableBidRequestBuilder requestBuilder,
@@ -188,7 +185,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         try {
             consumableResponse = mapper.decodeValue(httpCall.getResponse().getBody(), ConsumableBidResponse.class);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = extractBids(bidRequest, consumableResponse.getDecisions());

@@ -73,7 +73,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         }
         if (CollectionUtils.isNotEmpty(errors)) {
             errors.add(BidderError.badInput("Error in preprocess of Imp"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(processedImps).build();
 
@@ -160,7 +160,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

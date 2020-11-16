@@ -66,7 +66,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     @Override
     public Result<List<HttpRequest<InvibesBidRequest>>> makeHttpRequests(BidRequest request) {
         if (request.getSite() == null) {
-            return Result.emptyWithError(BidderError.badInput("Site not specified"));
+            return Result.withError(BidderError.badInput("Site not specified"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -107,7 +107,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
             final HttpRequest<InvibesBidRequest> httpRequest = makeRequest(invibesInternalParams, request);
             return Result.of(Collections.singletonList(httpRequest), errors);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 
@@ -281,19 +281,19 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<InvibesBidRequest> httpCall, BidRequest bidRequest) {
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         try {
             final InvibesBidderResponse bidResponse =
                     mapper.decodeValue(httpCall.getResponse().getBody(), InvibesBidderResponse.class);
             if (bidResponse != null && StringUtils.isNotBlank(bidResponse.getError())) {
-                return Result.emptyWithError(
+                return Result.withError(
                         BidderError.badServerResponse(String.format("Server error: %s.", bidResponse.getError())));
             }
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

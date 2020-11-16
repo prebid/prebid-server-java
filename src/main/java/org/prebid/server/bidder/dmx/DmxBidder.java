@@ -63,7 +63,7 @@ public class DmxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         if (request.getUser() == null && request.getApp() == null) {
-            return Result.emptyWithError(
+            return Result.withError(
                     BidderError.badInput("No user id or app id found. Could not send request to DMX."));
         }
 
@@ -97,7 +97,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         try {
             checkIfHasId(request.getApp(), request.getUser());
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput("This request contained no identifier"));
+            return Result.withError(BidderError.badInput("This request contained no identifier"));
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).site(modifiedSite).build();
@@ -229,7 +229,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();

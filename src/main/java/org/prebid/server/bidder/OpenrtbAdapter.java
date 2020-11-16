@@ -161,7 +161,8 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
      * Extracts bids from response, returns empty stream in case of missing bid response or seat bids
      */
     protected static Stream<com.iab.openrtb.response.Bid> responseBidStream(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null ? Stream.empty()
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Stream.empty()
                 : bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)

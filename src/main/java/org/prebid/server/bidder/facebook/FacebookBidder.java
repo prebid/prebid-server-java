@@ -89,11 +89,11 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final User user = bidRequest.getUser();
         if (user == null || StringUtils.isBlank(user.getBuyeruid())) {
-            return Result.emptyWithError(BidderError.badInput("Missing bidder token in 'user.buyeruid'"));
+            return Result.withError(BidderError.badInput("Missing bidder token in 'user.buyeruid'"));
         }
 
         if (bidRequest.getSite() != null) {
-            return Result.emptyWithError(BidderError.badInput("Site impressions are not supported."));
+            return Result.withError(BidderError.badInput("Site impressions are not supported."));
         }
 
         final MultiMap headers = HttpUtil.headers()
@@ -281,7 +281,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
         final int statusCode = response.getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             final String message = response.getHeaders().get("x-fb-an-errors");
-            return Result.emptyWithError(BidderError.badInput(
+            return Result.withError(BidderError.badInput(
                     String.format("Unexpected status code %d with error message '%s'", statusCode, message)));
         }
 
@@ -289,13 +289,13 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         final List<BidderError> errors = new ArrayList<>();

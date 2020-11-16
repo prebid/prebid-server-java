@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -41,7 +42,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
         try {
             mapper.mapper().convertValue(bidRequest.getImp().get(0).getExt().get("bidder"), ExtImpAdpone.class);
         } catch (IllegalArgumentException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         return Result.of(Collections.singletonList(
@@ -49,7 +50,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers()
-                                .add("x-openrtb-version", OPENRTB_VERSION))
+                                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION))
                         .body(mapper.encode(bidRequest))
                         .payload(bidRequest)
                         .build()),
@@ -62,12 +63,12 @@ public class AdponeBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidResponse);

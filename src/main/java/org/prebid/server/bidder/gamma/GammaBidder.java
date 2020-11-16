@@ -60,7 +60,7 @@ public class GammaBidder implements Bidder<Void> {
             outgoingRequests = createHttpRequests(bidRequest, errors);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
         return Result.of(outgoingRequests, errors);
     }
@@ -181,7 +181,7 @@ public class GammaBidder implements Bidder<Void> {
 
     private MultiMap makeHeaders(Device device) {
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                .set("x-openrtb-version", "2.5")
+                .set(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5")
                 .set(HttpUtil.ACCEPT_HEADER, "*/*")
                 .set(HttpUtil.CACHE_CONTROL_HEADER, "no-cache")
                 .set(HttpUtil.CONNECTION_HEADER, "keep-alive")
@@ -205,7 +205,7 @@ public class GammaBidder implements Bidder<Void> {
 
         final String body = httpCall.getResponse().getBody();
         if (body == null) {
-            return Result.emptyWithError(BidderError.badServerResponse("bad server response: body is empty"));
+            return Result.withError(BidderError.badServerResponse("bad server response: body is empty"));
         }
 
         try {
@@ -213,7 +213,7 @@ public class GammaBidder implements Bidder<Void> {
             final List<BidderError> errors = new ArrayList<>();
             return Result.of(extractBidsAndFillErorrs(bidResponse, bidRequest, errors), errors);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(
+            return Result.withError(BidderError.badServerResponse(
                     String.format("bad server response: %s", e.getMessage())));
         }
     }
@@ -221,7 +221,7 @@ public class GammaBidder implements Bidder<Void> {
     private static List<BidderBid> extractBidsAndFillErorrs(GammaBidResponse bidResponse,
                                                             BidRequest bidRequest,
                                                             List<BidderError> errors) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse, bidRequest, errors);
     }
