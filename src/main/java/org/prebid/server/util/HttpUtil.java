@@ -46,6 +46,8 @@ public final class HttpUtil {
     public static final CharSequence EXPIRES_HEADER = HttpHeaders.createOptimized("Expires");
     public static final CharSequence PRAGMA_HEADER = HttpHeaders.createOptimized("Pragma");
     public static final CharSequence LOCATION_HEADER = HttpHeaders.createOptimized("Location");
+    public static final CharSequence CONNECTION_HEADER = HttpHeaders.createOptimized("Connection");
+    public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
 
     private HttpUtil() {
     }

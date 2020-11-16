@@ -301,7 +301,7 @@ public class HttpBidderRequester {
 
         @Override
         public void processBids(List<BidderBid> bids) {
-
+            // no need to process bids for no operation tracker
         }
     }
 }

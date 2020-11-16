@@ -147,6 +147,7 @@ public class AdponeBidderTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId").build();
         final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))

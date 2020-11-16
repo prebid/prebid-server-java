@@ -15,7 +15,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
@@ -331,7 +330,7 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsOnly(Banner.builder().h(50).w(0).build());
+                .containsOnly(Banner.builder().h(50).w(-1).build());
     }
 
     @Test
@@ -352,7 +351,7 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpBannerWhenHeightPresentedInFormat() {
+    public void makeHttpRequestsShouldModifyImpBannerWhenHeightPresentedInFormatAndInterstitialIsNotOne() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                         .banner(Banner.builder().w(0)
@@ -369,7 +368,7 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsOnly(Banner.builder().h(250).w(0).build());
+                .containsOnly(Banner.builder().h(250).w(-1).build());
     }
 
     @Test
@@ -488,22 +487,6 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(request -> mapper.convertValue(request.getExt(), FacebookExt.class))
                 .containsOnly(
                         FacebookExt.of("101", "bd49902da11ce0fe6258e56baa0a69c2f1395b2ff1efb30d4879ed9e2343a3f6"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenResponseStatusIsNotOk() {
-        // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                .add("x-fb-an-errors", "who are you?");
-        final HttpCall<BidRequest> httpCall = HttpCall.success(null, HttpResponse.of(403, headers, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Unexpected status code 403 with error message 'who are you?'"));
     }
 
     @Test
@@ -759,6 +742,7 @@ public class FacebookBidderTest extends VertxTest {
 
     private static HttpCall<BidRequest> givenHttpCall(Bid... bids) throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(asList(bids))
                         .build()))

@@ -60,7 +60,7 @@ public class AdmixerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(emptyList())
-                        .build();
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
@@ -124,8 +124,8 @@ public class AdmixerBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(
                         BidResponse.builder()
-                        .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
-                        .build()));
+                                .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
+                                .build()));
 
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -148,7 +148,7 @@ public class AdmixerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                .build());
+                        .build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -220,6 +220,7 @@ public class AdmixerBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();

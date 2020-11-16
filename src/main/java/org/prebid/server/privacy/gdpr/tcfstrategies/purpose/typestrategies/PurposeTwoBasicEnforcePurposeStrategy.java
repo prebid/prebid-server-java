@@ -7,6 +7,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
 
 import java.util.Collection;
 import java.util.List;
@@ -16,30 +17,33 @@ public class PurposeTwoBasicEnforcePurposeStrategy extends BasicEnforcePurposeSt
 
     private static final Logger logger = LoggerFactory.getLogger(PurposeTwoBasicEnforcePurposeStrategy.class);
 
-    public Collection<VendorPermission> allowedByTypeStrategy(int purposeId,
+    public Collection<VendorPermission> allowedByTypeStrategy(Purpose purpose,
                                                               TCString vendorConsent,
                                                               Collection<VendorPermissionWithGvl> vendorsForPurpose,
                                                               Collection<VendorPermissionWithGvl> excludedVendors,
                                                               boolean isEnforceVendors) {
 
-        logger.debug("Basic strategy used fo purpose {0}", purposeId);
+        logger.debug("Basic strategy used fo purpose {0}", purpose);
+
         final List<VendorPermission> allowedVendorPermissions = vendorsForPurpose.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
                 .filter(vendorPermission -> vendorPermission.getVendorId() != null)
-                .filter(vendorPermission -> isAllowedBySimpleConsentOrPurposeLI(purposeId,
+                .filter(vendorPermission -> isAllowedBySimpleConsentOrPurposeLI(purpose,
                         vendorPermission.getVendorId(), isEnforceVendors, vendorConsent))
                 .collect(Collectors.toList());
 
         return CollectionUtils.union(allowedVendorPermissions, toVendorPermissions(excludedVendors));
     }
 
-    private boolean isAllowedBySimpleConsentOrPurposeLI(int purposeId,
+    private boolean isAllowedBySimpleConsentOrPurposeLI(Purpose purpose,
                                                         Integer vendorId,
                                                         boolean isEnforceVendor,
                                                         TCString tcString) {
+
         final IntIterable purposesLIConsent = tcString.getPurposesLITransparency();
-        return isAllowedBySimpleConsent(purposeId, vendorId, isEnforceVendor, tcString)
-                || purposesLIConsent.contains(purposeId);
+
+        return isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString)
+                || purposesLIConsent.contains(purpose.code());
     }
 
 }

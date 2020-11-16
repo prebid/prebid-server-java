@@ -13,6 +13,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.codec.binary.Hex;
@@ -57,7 +58,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);
 
     private final String endpointUrl;
@@ -231,7 +232,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             for (final Format format : banner.getFormat()) {
                 if (format != null && isBannerHeightValid(format.getH())) {
                     return banner.toBuilder()
-                            .w(0)
+                            .w(-1)
                             .h(format.getH())
                             .format(null)
                             .build();
@@ -243,7 +244,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
                         imp.getId()));
             }
-            return banner.toBuilder().w(0).format(null).build();
+            return banner.toBuilder().w(-1).format(null).build();
         }
     }
 
@@ -282,7 +283,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
         final int statusCode = response.getStatusCode();
-        if (statusCode != 200) {
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             final String message = response.getHeaders().get("x-fb-an-errors");
             return Result.emptyWithError(BidderError.badInput(
                     String.format("Unexpected status code %d with error message '%s'", statusCode, message)));
@@ -306,14 +307,14 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> toBidderBid(bid, imps, errors))
+                .map(bid -> toBidderBid(bid, imps, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         return Result.of(bidderBids, errors);
     }
 
-    private BidderBid toBidderBid(Bid bid, List<Imp> imps, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
         final String bidId;
         try {
             if (StringUtils.isBlank(bid.getAdm())) {
@@ -329,7 +330,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             bid.setAdid(bidId);
             bid.setCrid(bidId);
 
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), DEFAULT_BID_CURRENCY);
+            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
 
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));

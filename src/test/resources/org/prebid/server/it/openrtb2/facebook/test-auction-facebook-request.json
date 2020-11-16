@@ -30,7 +30,7 @@
         ]
       },
       "ext": {
-        "audienceNetwork":{
+        "audienceNetwork": {
           "placementId": "placement2",
           "publisherId": "pub2"
         }

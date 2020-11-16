@@ -240,12 +240,10 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         headers.add(OPEN_RTB_VERSION_HEADER, OPENRTB_VERSION);
 
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
-                    device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
-                    Objects.toString(device.getDnt(), null));
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
 
         return headers;
@@ -299,13 +297,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Identifies {@link BidType} depends on {@link Imp} parameters.
      */
     private static BidType bidTypeFromImp(Imp imp) {
-        final BidType bidType;
-        if (imp.getVideo() != null) {
-            bidType = BidType.video;
-        } else {
-            bidType = BidType.banner;
-        }
-        return bidType;
+        return imp.getVideo() != null ? BidType.video : BidType.banner;
     }
 
     @Override
