@@ -318,7 +318,7 @@ public class EmxDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void requestSecureShouldBe1IfPageStartsWithHttps() {
+    public void requestSecureShouldBeOneIfPageStartsWithHttps() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -342,7 +342,7 @@ public class EmxDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void requestSecureShouldBe1IfUrlStartsWithHttps() {
+    public void requestSecureShouldBeOneIfUrlStartsWithHttps() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
