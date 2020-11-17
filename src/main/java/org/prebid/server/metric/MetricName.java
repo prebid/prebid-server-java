@@ -101,7 +101,13 @@ public enum MetricName {
     creative_size,
 
     //account.*.requests.
-    rejected;
+    rejected,
+
+    // settings cache
+    stored_request("stored-request"),
+    amp_stored_request("amp-stored-request"),
+    initialize,
+    update;
 
     private final String name;
 
