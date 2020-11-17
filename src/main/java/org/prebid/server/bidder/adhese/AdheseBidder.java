@@ -56,9 +56,9 @@ public class AdheseBidder implements Bidder<Void> {
             };
 
     private static final String ORIGIN = "JERLICIA";
-    private static final String QUERY_PARAMETER_GDPR = "/xt";
-    private static final String QUERY_PARAMETER_REFERER = "/xf";
-    private static final String QUERY_PARAMETER_IFA = "/xz";
+    private static final String GDPR_QUERY_PARAMETER = "/xt";
+    private static final String REFERER_QUERY_PARAMETER = "/xf";
+    private static final String IFA_QUERY_PARAMETER = "/xz";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -138,19 +138,20 @@ public class AdheseBidder implements Bidder<Void> {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         return StringUtils.isNotBlank(consent)
-                ? String.format("%s%s", QUERY_PARAMETER_GDPR, consent)
+                ? String.format("%s%s", GDPR_QUERY_PARAMETER, consent)
                 : "";
     }
 
     private static String getRefererParameter(Site site) {
         return site != null && StringUtils.isNotBlank(site.getPage())
-                ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(site.getPage()))
+                ? String.format("%s%s", REFERER_QUERY_PARAMETER, HttpUtil.encodeUrl(site.getPage()))
                 : "";
     }
 
     private static String getIfaParameter(Device device) {
-        return device != null && StringUtils.isNotBlank(device.getIfa())
-                ? String.format("%s%s", QUERY_PARAMETER_IFA, device.getIfa()) : "";
+        final String ifa = device != null ? device.getIfa() : null;
+        return StringUtils.isNotBlank(ifa)
+                ? String.format("%s%s", IFA_QUERY_PARAMETER, HttpUtil.encodeUrl(ifa)) : "";
     }
 
     @Override
