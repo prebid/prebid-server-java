@@ -279,20 +279,6 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenResponseBodyIsEmpty() {
-        // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, null);
-
-        // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Received a null response from beachfront"));
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "[]");
