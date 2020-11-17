@@ -132,7 +132,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        verify(httpClient).request(eq(GET), anyString(), any(), isNull(), anyLong());
+        verify(httpClient).request(eq(GET), anyString(), any(), (String) isNull(), anyLong());
     }
 
     @Test
@@ -148,7 +148,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        verify(httpClient).request(any(), anyString(), eq(headers), any(), anyLong());
+        verify(httpClient).request(any(), anyString(), eq(headers), (String) isNull(), anyLong());
     }
 
     @Test
@@ -162,7 +162,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        verify(httpClient).request(any(), anyString(), isNull(), any(), anyLong());
+        verify(httpClient).request(any(), anyString(), isNull(), (String) isNull(), anyLong());
     }
 
     @Test
@@ -174,7 +174,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), eq(500L));
+        verify(httpClient).request(any(), anyString(), any(), anyString(), eq(500L));
     }
 
     @Test
@@ -205,7 +205,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), isNull(), anyLong());
+        verify(httpClient).request(any(), anyString(), any(), (String) isNull(), anyLong());
     }
 
     @Test
@@ -790,18 +790,18 @@ public class HttpAdapterConnectorTest extends VertxTest {
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), (String) any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
                 .willReturn(Future.failedFuture(throwable));
     }
 
     private void givenHttpClientReturnsResponses(HttpClientResponse... httpClientResponses) {
         BDDMockito.BDDMyOngoingStubbing<Future<HttpClientResponse>> stubbing =
-                given(httpClient.request(any(), anyString(), any(), any(), anyLong()));
+                given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()));
 
         // setup multiple answers
         for (HttpClientResponse httpClientResponse : httpClientResponses) {

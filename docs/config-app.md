@@ -324,3 +324,13 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
+
+## Analytics
+- `analytics.pubstack.enabled` - if equals to `true` the Pubstack analytics module will be enabled. Default value is `false`. 
+- `analytics.pubstack.endpoint` - url for reporting events and fetching configuration. 
+- `analytics.pubstack.scopeid` - defined the scope provided by the Pubstack Support Team.
+- `analytics.pubstack.configuration-refresh-delay-ms` - delay in milliseconds between remote config updates.
+- `analytics.pubstack.timeout-ms` - timeout in milliseconds for report and fetch config requests.
+- `analytics.pubstack.buffers.size-bytes` - threshold in bytes for buffer to send events. 
+- `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
+- `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.

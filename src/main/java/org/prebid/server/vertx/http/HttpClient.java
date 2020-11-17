@@ -8,17 +8,18 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 /**
  * Interface describes HTTP interactions.
  */
-@FunctionalInterface
 public interface HttpClient {
 
     Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body, long timeoutMs);
 
+    Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, byte[] body, long timeoutMs);
+
     default Future<HttpClientResponse> get(String url, MultiMap headers, long timeoutMs) {
-        return request(HttpMethod.GET, url, headers, null, timeoutMs);
+        return request(HttpMethod.GET, url, headers, (String) null, timeoutMs);
     }
 
     default Future<HttpClientResponse> get(String url, long timeoutMs) {
-        return request(HttpMethod.GET, url, null, null, timeoutMs);
+        return request(HttpMethod.GET, url, null, (String) null, timeoutMs);
     }
 
     default Future<HttpClientResponse> post(String url, MultiMap headers, String body, long timeoutMs) {
