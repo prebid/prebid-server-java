@@ -11,6 +11,8 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import org.junit.Before;
+import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -22,8 +24,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
 import org.prebid.server.util.HttpUtil;
-import org.junit.Before;
-import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -101,7 +100,7 @@ public class AdopplerBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("x-openrtb-version", "2.5"),
+                .containsOnly(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
@@ -217,11 +216,6 @@ public class AdopplerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(adopplerBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(

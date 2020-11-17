@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.orbidder;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -26,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -90,7 +88,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
@@ -109,10 +107,5 @@ public class OrbidderBidder implements Bidder<BidRequest> {
         } catch (DecodeException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

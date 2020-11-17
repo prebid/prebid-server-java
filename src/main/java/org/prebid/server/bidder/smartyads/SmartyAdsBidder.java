@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.smartyads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -11,7 +10,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -29,7 +27,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -61,7 +58,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
                 extImpSmartyAds = parseImpExt(imp);
                 validImps.add(updateImp(imp));
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -98,23 +95,16 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
-        headers.add("X-Openrtb-Version", "2.5");
+        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         if (device != null) {
-            if (StringUtils.isNotBlank(device.getUa())) {
-                headers.add("User-Agent", device.getUa());
-            }
-            if (StringUtils.isNotBlank(device.getIpv6())) {
-                headers.add("X-Forwarded-For", device.getIpv6());
-            }
-            if (StringUtils.isNotBlank(device.getIp())) {
-                headers.add("X-Forwarded-For", device.getIp());
-            }
-            if (StringUtils.isNotBlank(device.getLanguage())) {
-                headers.add("Accept-Language", device.getLanguage());
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+
             if (device.getDnt() != null) {
-                headers.add("Dnt", device.getDnt().toString());
+                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, device.getDnt().toString());
             }
         }
         return headers;
@@ -131,7 +121,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -162,10 +152,5 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

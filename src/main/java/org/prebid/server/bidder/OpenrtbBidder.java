@@ -1,11 +1,11 @@
 package org.prebid.server.bidder;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -49,7 +48,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         try {
             validateRequest(bidRequest);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -64,7 +63,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             }
         }
         if (modifiedImpsWithExts.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         return Result.of(createHttpRequests(bidRequest, modifiedImpsWithExts), errors);
@@ -208,14 +207,14 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
@@ -258,11 +257,6 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             }
         }
         return bidType;
-    }
-
-    @Override
-    public final Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 
     public enum RequestCreationStrategy {

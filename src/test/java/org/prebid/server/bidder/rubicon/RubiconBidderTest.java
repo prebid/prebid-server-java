@@ -266,6 +266,66 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetMobilePortrait67SizeIdFotInterstitialNotValidSize() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .instl(1)
+                        .banner(Banner.builder()
+                                .format(singletonList(
+                                        Format.builder().w(360).h(616).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder().build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner).doesNotContainNull()
+                .containsOnly(Banner.builder()
+                        .format(singletonList(
+                                Format.builder().w(360).h(616).build()))
+                        .ext(mapper.valueToTree(RubiconBannerExt.of(RubiconBannerExtRp.of(67, null, "text/html"))))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetMobileLandscape101SizeIdFotInterstitialNotValidSize() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .instl(1)
+                        .banner(Banner.builder()
+                                .format(singletonList(
+                                        Format.builder().w(616).h(360).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder().build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner).doesNotContainNull()
+                .containsOnly(Banner.builder()
+                        .format(singletonList(
+                                Format.builder().w(616).h(360).build()))
+                        .ext(mapper.valueToTree(RubiconBannerExt.of(RubiconBannerExtRp.of(101, null, "text/html"))))
+                        .build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateBannerRequestIfImpHasBannerAndVideoButNoRequiredVideoFieldsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
