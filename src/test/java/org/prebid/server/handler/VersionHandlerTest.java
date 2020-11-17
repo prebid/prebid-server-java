@@ -28,35 +28,9 @@ public class VersionHandlerTest extends VertxTest {
     private VersionHandler versionHandler;
 
     @Test
-    public void shouldCreateRevisionWithNoSetVersionValueWhenFileWasNotFound() throws JsonProcessingException {
+    public void handleShouldRespondWithHashAndVersionPassedInCreate() throws JsonProcessingException {
         // given
-        versionHandler = VersionHandler.create("not_found.json", jacksonMapper);
-        given(routingContext.response()).willReturn(httpResponse);
-
-        // when
-        versionHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("undefined", "undefined")));
-    }
-
-    @Test
-    public void handleShouldRespondWithNotSetWhenPropertyIsNotInFile() throws JsonProcessingException {
-        // given
-        versionHandler = VersionHandler.create("org/prebid/server/handler/version/empty.json", jacksonMapper);
-        given(routingContext.response()).willReturn(httpResponse);
-
-        // when
-        versionHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("undefined", "undefined")));
-    }
-
-    @Test
-    public void handleShouldRespondWithHashWhenPropertyIsInFile() throws JsonProcessingException {
-        // given
-        versionHandler = VersionHandler.create("org/prebid/server/handler/version/version.json", jacksonMapper);
+        versionHandler = new VersionHandler("1.41.0", "4df3f6192d7938ccdaac04df783c46c7e8847d08", jacksonMapper);
         given(routingContext.response()).willReturn(httpResponse);
 
         // when
@@ -65,6 +39,19 @@ public class VersionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(mapper.writeValueAsString(
                 RevisionResponse.of("4df3f6192d7938ccdaac04df783c46c7e8847d08", "1.41.0")));
+    }
+
+    @Test
+    public void handleShouldRespondWithoutVersionAndCommitWhenNullPassedAtCreation() throws JsonProcessingException {
+        // given
+        versionHandler = new VersionHandler(null, null, jacksonMapper);
+        given(routingContext.response()).willReturn(httpResponse);
+
+        // when
+        versionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of(null, null)));
     }
 
     @AllArgsConstructor(staticName = "of")

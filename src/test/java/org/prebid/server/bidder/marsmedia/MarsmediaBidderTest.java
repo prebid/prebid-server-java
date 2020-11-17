@@ -185,7 +185,7 @@ public class MarsmediaBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple("x-openrtb-version", "2.5"));
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
     }
 
     @Test

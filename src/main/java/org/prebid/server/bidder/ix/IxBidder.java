@@ -60,7 +60,7 @@ public class IxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         if (bidRequest.getApp() != null) {
-            return Result.emptyWithError(BidderError.badInput("ix doesn't support apps"));
+            return Result.withError(BidderError.badInput("ix doesn't support apps"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -83,7 +83,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
         if (modifiedRequests.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
@@ -184,14 +184,14 @@ public class IxBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final BidRequest payload = httpCall.getRequest().getPayload();
-            return Result.of(extractBids(bidResponse, payload), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse, payload));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse, bidRequest);
     }

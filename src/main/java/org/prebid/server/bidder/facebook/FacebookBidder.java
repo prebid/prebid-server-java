@@ -22,7 +22,6 @@ import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.TimeoutBidder;
 import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.facebook.proto.FacebookNative;
@@ -54,26 +53,31 @@ import java.util.stream.Collectors;
 /**
  * Facebook {@link Bidder} implementation.
  */
-public class FacebookBidder implements TimeoutBidder<BidRequest> {
+public class FacebookBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
             };
-
-    private static final String TIMEOUT_NOTIFICATION_URL =
-            "https://www.facebook.com/audiencenetwork/nurl/?partner=%s&app=%s&auction=%s&ortb_loss_code=2";
 
     private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);
 
     private final String endpointUrl;
     private final String platformId;
     private final String appSecret;
+    private final String timeoutNotificationUrlTemplate;
     private final JacksonMapper mapper;
 
-    public FacebookBidder(String endpointUrl, String platformId, String appSecret, JacksonMapper mapper) {
+    public FacebookBidder(String endpointUrl,
+                          String platformId,
+                          String appSecret,
+                          String timeoutNotificationUrlTemplate,
+                          JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.platformId = checkBlankString(Objects.requireNonNull(platformId), "platform-id");
         this.appSecret = checkBlankString(Objects.requireNonNull(appSecret), "app-secret");
+        this.timeoutNotificationUrlTemplate = HttpUtil.validateUrl(
+                Objects.requireNonNull(timeoutNotificationUrlTemplate));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -89,11 +93,11 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final User user = bidRequest.getUser();
         if (user == null || StringUtils.isBlank(user.getBuyeruid())) {
-            return Result.emptyWithError(BidderError.badInput("Missing bidder token in 'user.buyeruid'"));
+            return Result.withError(BidderError.badInput("Missing bidder token in 'user.buyeruid'"));
         }
 
         if (bidRequest.getSite() != null) {
-            return Result.emptyWithError(BidderError.badInput("Site impressions are not supported."));
+            return Result.withError(BidderError.badInput("Site impressions are not supported."));
         }
 
         final MultiMap headers = HttpUtil.headers()
@@ -281,7 +285,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
         final int statusCode = response.getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             final String message = response.getHeaders().get("x-fb-an-errors");
-            return Result.emptyWithError(BidderError.badInput(
+            return Result.withError(BidderError.badInput(
                     String.format("Unexpected status code %d with error message '%s'", statusCode, message)));
         }
 
@@ -289,13 +293,13 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -355,15 +359,22 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
 
     @Override
     public HttpRequest<Void> makeTimeoutNotification(HttpRequest<BidRequest> httpRequest) {
-        final BidRequest bidRequest;
-        try {
-            bidRequest = mapper.decodeValue(httpRequest.getBody(), BidRequest.class);
-        } catch (DecodeException e) {
-            return null; // never should happen
+        final BidRequest bidRequest = httpRequest.getPayload();
+        final String requestId = bidRequest.getId();
+        if (StringUtils.isEmpty(requestId)) {
+            return null;
         }
 
-        final String auctionId = bidRequest.getImp().get(0).getId();
-        final String url = String.format(TIMEOUT_NOTIFICATION_URL, platformId, platformId, auctionId);
+        final App app = bidRequest.getApp();
+        final Publisher publisher = app != null ? app.getPublisher() : null;
+        final String publisherId = publisher != null ? publisher.getId() : null;
+
+        if (StringUtils.isEmpty(publisherId)) {
+            return null;
+        }
+
+        final String url = String.format(timeoutNotificationUrlTemplate, this.platformId, publisherId, requestId);
+
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
                 .uri(url)

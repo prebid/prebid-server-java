@@ -95,7 +95,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             modifiedUser = request.getUser() != null ? modifyUser(request.getUser()) : null;
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final BidRequest outgoingRequest = request.toBuilder()
@@ -216,13 +216,13 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, httpCall.getResponse().getHeaders());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, MultiMap headers) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
         }
 
         final List<BidderError> errors = new ArrayList<>();
