@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.telaria;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -8,14 +9,13 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
-import io.vertx.core.MultiMap;
-import org.prebid.server.VertxTest;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -312,11 +311,6 @@ public class TelariaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(telariaBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(

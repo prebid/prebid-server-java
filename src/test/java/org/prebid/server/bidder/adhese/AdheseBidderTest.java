@@ -37,7 +37,6 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -423,11 +422,6 @@ public class AdheseBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(adheseBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static HttpCall<Void> givenHttpCall(String responseBody) {

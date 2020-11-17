@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -54,7 +53,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         if (device == null || StringUtils.isBlank(device.getOs())) {
-            return Result.emptyWithError(BidderError.badInput("Impression is missing device OS information"));
+            return Result.withError(BidderError.badInput("Impression is missing device OS information"));
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
@@ -137,12 +136,12 @@ public class PubnativeBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpResponse.getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
     }
@@ -169,10 +168,5 @@ public class PubnativeBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

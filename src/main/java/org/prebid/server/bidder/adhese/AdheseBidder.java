@@ -3,7 +3,6 @@ package org.prebid.server.bidder.adhese;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
@@ -69,14 +68,14 @@ public class AdheseBidder implements Bidder<Void> {
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
+            return Result.withError(BidderError.badInput("No impression in the bid request"));
         }
 
         final ExtImpAdhese extImpAdhese;
         try {
             extImpAdhese = parseImpExt(request.getImp().get(0));
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final String uri = buildUrl(request, endpointUrl, extImpAdhese);
@@ -158,10 +157,10 @@ public class AdheseBidder implements Bidder<Void> {
         try {
             bodyNode = mapper.decodeValue(httpResponse.getBody(), JsonNode.class);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
         if (!bodyNode.isArray()) {
-            return Result.emptyWithError(BidderError.badServerResponse("Unexpected response body"));
+            return Result.withError(BidderError.badServerResponse("Unexpected response body"));
         }
         if (bodyNode.size() == 0) {
             return Result.empty();
@@ -172,7 +171,7 @@ public class AdheseBidder implements Bidder<Void> {
         try {
             adheseBid = toObjectOfType(bidNode, AdheseBid.class);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final Bid bid;
@@ -183,14 +182,14 @@ public class AdheseBidder implements Bidder<Void> {
                 responseExt = toObjectOfType(bidNode, AdheseResponseExt.class);
                 originData = toObjectOfType(bidNode, AdheseOriginData.class);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+                return Result.withError(BidderError.badServerResponse(e.getMessage()));
             }
             bid = convertAdheseBid(adheseBid, responseExt, originData);
         } else {
             bid = convertAdheseOpenRtbBid(adheseBid);
         }
         if (bid == null) {
-            return Result.emptyWithError(BidderError.badServerResponse("Response resulted in an empty seatBid array"));
+            return Result.withError(BidderError.badServerResponse("Response resulted in an empty seatBid array"));
         }
 
         final BigDecimal price;
@@ -201,7 +200,7 @@ public class AdheseBidder implements Bidder<Void> {
             width = Integer.valueOf(adheseBid.getWidth());
             height = Integer.valueOf(adheseBid.getHeight());
         } catch (NumberFormatException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final Bid updatedBid = Bid.builder()
@@ -288,10 +287,5 @@ public class AdheseBidder implements Bidder<Void> {
         return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
                 ? BidType.video
                 : BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

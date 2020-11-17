@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.cpmstar;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -9,6 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -60,7 +59,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                             .build()),
                     Collections.emptyList());
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 
@@ -101,12 +100,12 @@ public class CpmStarBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private Result<List<BidderBid>> extractBids(BidRequest request, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
         final List<Bid> responseBids = bidResponse.getSeatbid().stream()
@@ -147,10 +146,5 @@ public class CpmStarBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException(String.format("could not find valid impid=%s", impId));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.ninthdecimal;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -146,7 +145,7 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
     }
 
     private List<HttpRequest<BidRequest>> buildBidderRequests(BidRequest bidRequest,
-                                                               Map<ExtImpNinthdecimal, List<Imp>> impExtToListOfImps) {
+                                                              Map<ExtImpNinthdecimal, List<Imp>> impExtToListOfImps) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Map.Entry<ExtImpNinthdecimal, List<Imp>> impExtAndListOfImp : impExtToListOfImps.entrySet()) {
@@ -156,7 +155,7 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
 
             final String body = mapper.encode(updatedBidRequest);
             final MultiMap headers = HttpUtil.headers()
-                    .add("x-openrtb-version", "2.5");
+                    .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
             final String createdEndpoint = endpointUrl + extImpNinthdecimal.getPubid();
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
@@ -205,7 +204,7 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -237,10 +236,5 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

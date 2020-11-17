@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -368,11 +367,6 @@ public class GammaBidderTest extends VertxTest {
         final GammaBid expectedBid = GammaBid.builder().adm("ADM").build();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(gammaBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(

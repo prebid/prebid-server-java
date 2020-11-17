@@ -903,9 +903,7 @@ public class ExchangeService {
                 }
                 updatedBidderBids.add(bidderBid);
             } catch (PreBidException e) {
-                errors.add(BidderError.generic(
-                        String.format("Unable to covert bid currency %s to desired ad server currency %s. %s",
-                                bidCurrency, adServerCurrency, e.getMessage())));
+                errors.add(BidderError.generic(e.getMessage()));
             }
         }
 

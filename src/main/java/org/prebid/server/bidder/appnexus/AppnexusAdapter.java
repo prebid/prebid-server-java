@@ -65,7 +65,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                                                                  PreBidRequestContext preBidRequestContext) {
         final BidRequestWithUrl bidRequestWithUrl = createBidRequest(endpointUrl, adapterRequest, preBidRequestContext);
         final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST,
-                bidRequestWithUrl.getEndpointUrl(), bidRequestWithUrl.getBidRequest(), headers());
+                bidRequestWithUrl.getEndpointUrl(), bidRequestWithUrl.getBidRequest(), HttpUtil.headers());
         return Collections.singletonList(httpRequest);
     }
 

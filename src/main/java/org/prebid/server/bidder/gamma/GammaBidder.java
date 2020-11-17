@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.gamma;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -35,7 +34,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class GammaBidder implements Bidder<Void> {
@@ -60,7 +58,7 @@ public class GammaBidder implements Bidder<Void> {
             outgoingRequests = createHttpRequests(bidRequest, errors);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
         return Result.of(outgoingRequests, errors);
     }
@@ -180,12 +178,12 @@ public class GammaBidder implements Bidder<Void> {
     }
 
     private MultiMap makeHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers().clear()
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
+                .set(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5")
                 .set(HttpUtil.ACCEPT_HEADER, "*/*")
                 .set(HttpUtil.CACHE_CONTROL_HEADER, "no-cache")
-                .set("x-openrtb-version", "2.5")
-                .set("Connection", "keep-alive")
-                .set("Accept-Encoding", "gzip, deflate");
+                .set(HttpUtil.CONNECTION_HEADER, "keep-alive")
+                .set(HttpUtil.ACCEPT_ENCODING_HEADER, "gzip, deflate");
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
@@ -205,7 +203,7 @@ public class GammaBidder implements Bidder<Void> {
 
         final String body = httpCall.getResponse().getBody();
         if (body == null) {
-            return Result.emptyWithError(BidderError.badServerResponse("bad server response: body is empty"));
+            return Result.withError(BidderError.badServerResponse("bad server response: body is empty"));
         }
 
         try {
@@ -213,7 +211,7 @@ public class GammaBidder implements Bidder<Void> {
             final List<BidderError> errors = new ArrayList<>();
             return Result.of(extractBidsAndFillErorrs(bidResponse, bidRequest, errors), errors);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(
+            return Result.withError(BidderError.badServerResponse(
                     String.format("bad server response: %s", e.getMessage())));
         }
     }
@@ -221,7 +219,7 @@ public class GammaBidder implements Bidder<Void> {
     private static List<BidderBid> extractBidsAndFillErorrs(GammaBidResponse bidResponse,
                                                             BidRequest bidRequest,
                                                             List<BidderError> errors) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse, bidRequest, errors);
     }
@@ -277,11 +275,6 @@ public class GammaBidder implements Bidder<Void> {
         }
 
         return gammaBid;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }
 
