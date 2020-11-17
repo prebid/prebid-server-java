@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.gamoshi;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -165,10 +164,5 @@ public class GamoshiBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(Imp imp) {
         return imp.getVideo() != null ? BidType.video : BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

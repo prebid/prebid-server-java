@@ -179,9 +179,4 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage(), e);
         }
     }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
 }

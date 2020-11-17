@@ -143,9 +143,4 @@ public class DatablocksBidder implements Bidder<BidRequest> {
         }
         return BidType.banner;
     }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
 }

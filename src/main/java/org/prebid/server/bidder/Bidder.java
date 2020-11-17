@@ -7,6 +7,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +35,9 @@ public interface Bidder<T> {
     /**
      * Extracts targeting from bidder-specific extension. It is safe to assume that {@code ext} is not null.
      */
-    Map<String, String> extractTargeting(ObjectNode ext);
+    default Map<String, String> extractTargeting(ObjectNode ext) {
+        return Collections.emptyMap();
+    }
 
     /**
      * This method is much the same as {@link #makeHttpRequests}, except it is fed the bidder request

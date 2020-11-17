@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.ninthdecimal;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -146,7 +145,7 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
     }
 
     private List<HttpRequest<BidRequest>> buildBidderRequests(BidRequest bidRequest,
-                                                               Map<ExtImpNinthdecimal, List<Imp>> impExtToListOfImps) {
+                                                              Map<ExtImpNinthdecimal, List<Imp>> impExtToListOfImps) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Map.Entry<ExtImpNinthdecimal, List<Imp>> impExtAndListOfImp : impExtToListOfImps.entrySet()) {
@@ -237,10 +236,5 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

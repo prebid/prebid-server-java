@@ -32,7 +32,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -90,12 +89,12 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         }
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
-                        .body(bidRequestBody)
-                        .headers(createHeaders(updateBidRequest.getDevice()))
-                        .payload(updateBidRequest)
-                        .build());
+                .method(HttpMethod.POST)
+                .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
+                .body(bidRequestBody)
+                .headers(createHeaders(updateBidRequest.getDevice()))
+                .payload(updateBidRequest)
+                .build());
     }
 
     /**
@@ -293,10 +292,5 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      */
     private static BidType bidTypeFromImp(Imp imp) {
         return imp.getVideo() != null ? BidType.video : BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

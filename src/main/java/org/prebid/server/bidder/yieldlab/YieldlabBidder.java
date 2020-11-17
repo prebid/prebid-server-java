@@ -2,7 +2,6 @@ package org.prebid.server.bidder.yieldlab;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -73,10 +72,10 @@ public class YieldlabBidder implements Bidder<Void> {
         final ExtImpYieldlab modifiedExtImp = constructExtImp(request.getImp());
 
         return Result.withValue(HttpRequest.<Void>builder()
-                        .method(HttpMethod.GET)
-                        .uri(makeUrl(modifiedExtImp, request))
-                        .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
-                        .build());
+                .method(HttpMethod.GET)
+                .uri(makeUrl(modifiedExtImp, request))
+                .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
+                .build());
     }
 
     private ExtImpYieldlab constructExtImp(List<Imp> imps) {
@@ -377,10 +376,5 @@ public class YieldlabBidder implements Bidder<Void> {
 
         return String.format(AD_SOURCE_URL, extImpYieldlab.getAdslotId(), extImpYieldlab.getSupplyId(),
                 yieldlabResponse.getAdSize(), uriBuilder.toString().replace("?", ""));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.facebook;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -46,7 +45,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -350,11 +348,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
         throw new PreBidException(String.format("Invalid bid imp ID %s does not match any imp IDs from the original "
                 + "bid request", impId));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 
     @Override

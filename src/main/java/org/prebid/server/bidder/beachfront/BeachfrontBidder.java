@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.beachfront;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -44,7 +43,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -414,10 +412,10 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<BeachfrontResponseSlot> responseSlots = makeBeachfrontResponseSlots(responseBody);
 
         return Result.withValues(responseSlots.stream()
-                        .filter(Objects::nonNull)
-                        .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
-                        .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
-                        .collect(Collectors.toList()));
+                .filter(Objects::nonNull)
+                .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
+                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .collect(Collectors.toList()));
     }
 
     /**
@@ -464,13 +462,13 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<Imp> imps = videoRequest.getRequest().getImp();
         if (httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)) {
             return Result.withValues(updateVideoBids(bids, imps).stream()
-                            .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                            .collect(Collectors.toList()));
+                    .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+                    .collect(Collectors.toList()));
         } else {
             return Result.withValues(bids.stream()
-                            .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
-                            .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                            .collect(Collectors.toList()));
+                    .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
+                    .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+                    .collect(Collectors.toList()));
         }
     }
 
@@ -496,10 +494,5 @@ public class BeachfrontBidder implements Bidder<Void> {
             return split[2]; //Index out of bound???...
         }
         return null;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

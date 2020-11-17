@@ -3,7 +3,6 @@ package org.prebid.server.bidder.adhese;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
@@ -288,10 +287,5 @@ public class AdheseBidder implements Bidder<Void> {
         return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
                 ? BidType.video
                 : BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -84,11 +84,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
         }
     }
 
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
-
     private List<BidRequest> makeRequests(BidRequest bidRequest, List<Imp> bannerImps, List<Imp> videoImps,
                                           List<BidderError> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
