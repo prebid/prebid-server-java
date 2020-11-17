@@ -1,6 +1,7 @@
 package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Rule;
@@ -16,6 +17,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -23,6 +25,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -94,13 +97,73 @@ public class HttpApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnEmptyResult() {
+    public void getAccountByIdShouldReturnFetchedAccount() throws JsonProcessingException {
+        // given
+        final ObjectNode account = mapper.convertValue(Account.builder()
+                .id("someId")
+                .enforceCcpa(true)
+                .priceGranularity("testPriceGranularity").build(), ObjectNode.class);
+        HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+
         // when
-        final Future<Account> future = httpApplicationSettings.getAccountById(null, null);
+        final Future<Account> future = httpApplicationSettings.getAccountById("someId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getId()).isEqualTo("someId");
+        assertThat(future.result().getEnforceCcpa()).isEqualTo(true);
+        assertThat(future.result().getPriceGranularity()).isEqualTo("testPriceGranularity");
+
+        verify(httpClient).get(eq("http://stored-requests?account-ids=[\"someId\"]"), any(),
+                anyLong());
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnErrorIdAccountNotFound() throws JsonProcessingException {
+        // given
+        HttpAccountsResponse response = HttpAccountsResponse.of(Collections.emptyMap());
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("notExistingId", timeout);
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(PreBidException.class).hasMessage("Not supported");
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Account with id :notExistingId not found");
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnErrorIfResponseStatusIsDifferentFromOk() {
+        // given
+        givenHttpClientReturnsResponse(400, null);
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Error fetching accounts [accountId] via http: unexpected response status 400");
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnErrorIfResponseHasInvalidStructure() {
+        // given
+        givenHttpClientReturnsResponse(200, "not valid response");
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessageContaining("Error fetching accounts [accountId] via http: "
+                        + "failed to parse response: Failed to decode:");
     }
 
     @Test

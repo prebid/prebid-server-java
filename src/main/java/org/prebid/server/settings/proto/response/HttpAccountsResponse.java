@@ -8,9 +8,7 @@ import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class HttpFetcherResponse {
+public class HttpAccountsResponse {
 
-    Map<String, ObjectNode> requests;
-
-    Map<String, ObjectNode> imps;
+    Map<String, ObjectNode> accounts;
 }
