@@ -85,7 +85,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
     // Handle request errors and formatting to be sent to EMX
     private BidRequest makeBidRequest(BidRequest request) {
-        final boolean isSecure = resolveDomain(request).startsWith("https");
+        final boolean isSecure = resolveUrl(request).startsWith("https");
 
         final List<Imp> modifiedImps = request.getImp().stream()
                 .map(imp -> modifyImp(imp, isSecure, unpackImpExt(imp)))
@@ -96,13 +96,14 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static String resolveDomain(BidRequest request) {
+    private static String resolveUrl(BidRequest request) {
         final Site site = request.getSite();
-        if (Objects.nonNull(site) && StringUtils.isNotBlank(site.getPage())) {
-            return site.getPage();
+        final String page = site != null ? site.getPage() : null;
+        if (StringUtils.isNotBlank(page)) {
+            return page;
         }
         final App app = request.getApp();
-        if (Objects.nonNull(app)) {
+        if (app != null) {
             if (StringUtils.isNotBlank(app.getDomain())) {
                 return app.getDomain();
             } else if (StringUtils.isNotBlank(app.getStoreurl())) {
@@ -142,8 +143,9 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(extImpEmxDigital.getTagid())
                 .secure(BooleanUtils.toInteger(isSecure));
-        if (Objects.nonNull(imp.getVideo())) {
-            impBuilder.video(modifyImpVideo(imp.getVideo()));
+        final Video video = imp.getVideo();
+        if (video != null) {
+            impBuilder.video(modifyImpVideo(video));
         } else {
             impBuilder.banner(modifyImpBanner(imp.getBanner()));
         }
@@ -227,7 +229,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             addHeader(headers, "X-Forwarded-For", device.getIp());
             addHeader(headers, "Accept-Language", device.getLanguage());
             final Integer dnt = device.getDnt();
-            if (Objects.nonNull(dnt)) {
+            if (dnt != null) {
                 addHeader(headers, "DNT", dnt.toString());
             }
         }
