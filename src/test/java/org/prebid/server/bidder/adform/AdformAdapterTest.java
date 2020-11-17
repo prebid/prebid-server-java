@@ -29,8 +29,8 @@ import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Base64;
 import java.math.BigDecimal;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 

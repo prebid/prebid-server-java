@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -33,7 +32,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,7 +43,6 @@ import java.util.stream.Collectors;
 public class BrightrollBidder implements Bidder<BidRequest> {
 
     private static final String OPENRTB_VERSION = "2.5";
-    private static final CharSequence OPEN_RTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
             };
@@ -73,14 +70,14 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         try {
             firstImpExtPublisher = getAndValidateImpExt(request.getImp().get(0));
         } catch (PreBidException ex) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(ex.getMessage())));
+            return Result.withError(BidderError.badInput(ex.getMessage()));
         }
 
         final BidRequest updateBidRequest = updateBidRequest(request, firstImpExtPublisher, errors);
 
         if (CollectionUtils.isEmpty(updateBidRequest.getImp())) {
             errors.add(BidderError.badInput("No valid impression in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final String bidRequestBody;
@@ -88,18 +85,16 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             bidRequestBody = mapper.encode(updateBidRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s", e.getMessage())));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
-                        .body(bidRequestBody)
-                        .headers(createHeaders(updateBidRequest.getDevice()))
-                        .payload(updateBidRequest)
-                        .build()),
-                Collections.emptyList());
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
+                .body(bidRequestBody)
+                .headers(createHeaders(updateBidRequest.getDevice()))
+                .payload(updateBidRequest)
+                .build());
     }
 
     /**
@@ -236,16 +231,13 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      */
     private MultiMap createHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
-
-        headers.add(OPEN_RTB_VERSION_HEADER, OPENRTB_VERSION);
+        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
-                    device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
-                    Objects.toString(device.getDnt(), null));
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
 
         return headers;
@@ -260,7 +252,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -268,9 +260,9 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
-                ? Result.of(Collections.emptyList(), Collections.emptyList())
-                : Result.of(createBiddersBid(bidResponse, imps), Collections.emptyList());
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Result.empty()
+                : Result.withValues(createBiddersBid(bidResponse, imps));
     }
 
     /**
@@ -300,10 +292,5 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      */
     private static BidType bidTypeFromImp(Imp imp) {
         return imp.getVideo() != null ? BidType.video : BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

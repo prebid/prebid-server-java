@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.inmobi;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -30,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -62,12 +60,13 @@ public class InmobiBidder implements Bidder<BidRequest> {
         try {
             extImpInmobi = parseImpExt(imp);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput("bad InMobi bidder ext"));
+            return Result.withError(BidderError.badInput("bad InMobi bidder ext"));
         }
 
         if (StringUtils.isBlank(extImpInmobi.getPlc())) {
-            return Result.emptyWithError(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
+            return Result.withError(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
         }
+
         final List<Imp> updatedImps = new ArrayList<>(request.getImp());
         updatedImps.set(FIRST_IMP_INDEX, updateImp(imp));
 
@@ -114,7 +113,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -142,10 +141,5 @@ public class InmobiBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -90,7 +90,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
         final String body = mapper.encode(outgoingRequest);
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
@@ -117,9 +117,9 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                     .flatMap(Collection::stream)
                     .map(bid -> createBid(bid, impTypes, bidResponse.getCur()))
                     .collect(Collectors.toList());
-            return Result.of(bidderBids, Collections.emptyList());
+            return Result.withValues(bidderBids);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 
@@ -178,10 +178,5 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

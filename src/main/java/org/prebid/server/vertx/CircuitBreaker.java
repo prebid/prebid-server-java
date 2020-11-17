@@ -38,6 +38,7 @@ public class CircuitBreaker {
                 Objects.requireNonNull(name),
                 Objects.requireNonNull(vertx),
                 new CircuitBreakerOptions()
+                        .setNotificationPeriod(0)
                         .setMaxFailures(openingThreshold)
                         .setResetTimeout(closingIntervalMs));
 
@@ -132,5 +133,17 @@ public class CircuitBreaker {
     public CircuitBreaker closeHandler(Handler<Void> handler) {
         breaker.closeHandler(handler);
         return this;
+    }
+
+    public boolean isOpen() {
+        switch (breaker.state()) {
+            case OPEN:
+            case HALF_OPEN:
+                return true;
+            case CLOSED:
+                return false;
+            default:
+                throw new IllegalStateException("Should never happen");
+        }
     }
 }

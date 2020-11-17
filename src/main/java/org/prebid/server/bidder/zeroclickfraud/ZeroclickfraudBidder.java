@@ -61,7 +61,7 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
                 final ExtImpZeroclickfraud extImpZeroclickfraud = parseAndValidateImpExt(imp.getExt());
                 extToImps.computeIfAbsent(extImpZeroclickfraud, ext -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -121,7 +121,7 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -153,10 +153,5 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

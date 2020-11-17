@@ -1879,7 +1879,7 @@ public class ExchangeServiceTest extends VertxTest {
                 identity());
 
         given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
-                .willThrow(new PreBidException("no currency conversion available"));
+                .willThrow(new PreBidException("Unable to convert bid currency CUR to desired ad server currency USD"));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
@@ -1890,8 +1890,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
-        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad"
-                + " server currency USD. no currency conversion available");
+        final BidderError expectedError =
+                BidderError.generic("Unable to convert bid currency CUR to desired ad server currency USD");
         final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
         assertThat(firstSeatBid.getBids()).isEmpty();
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
@@ -1948,7 +1948,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
         given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice)
-                .willThrow(new PreBidException("no currency conversion available"));
+                .willThrow(
+                        new PreBidException("Unable to convert bid currency CUR2 to desired ad server currency USD"));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
@@ -1963,8 +1964,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
         final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
-        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR2 to desired ad"
-                + " server currency USD. no currency conversion available");
+        final BidderError expectedError =
+                BidderError.generic("Unable to convert bid currency CUR2 to desired ad server currency USD");
 
         final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
         assertThat(firstSeatBid.getBids()).containsOnly(expectedBidderBid);
@@ -1989,7 +1990,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BigDecimal updatedPrice = BigDecimal.valueOf(20);
         given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
         given(currencyService.convertCurrency(any(), any(), eq("BAD"), eq("CUR"), any()))
-                .willThrow(new PreBidException("no currency conversion available"));
+                .willThrow(new PreBidException("Unable to convert bid currency CUR to desired ad server currency BAD"));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
@@ -2009,8 +2010,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .flatExtracting(BidderSeatBid::getBids)
                 .containsOnly(expectedBidderBid);
 
-        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad"
-                + " server currency BAD. no currency conversion available");
+        final BidderError expectedError =
+                BidderError.generic("Unable to convert bid currency CUR to desired ad server currency BAD");
         assertThat(argumentCaptor.getValue())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getErrors)

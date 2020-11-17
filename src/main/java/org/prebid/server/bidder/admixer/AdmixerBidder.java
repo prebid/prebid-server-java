@@ -57,7 +57,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
 
         if (CollectionUtils.isEmpty(request.getImp())) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         for (Imp imp : request.getImp()) {
@@ -120,7 +120,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         if (CollectionUtils.isEmpty(bidResponse.getSeatbid())
@@ -134,7 +134,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
 
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.withValues(bidderBids);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
@@ -160,10 +160,5 @@ public class AdmixerBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

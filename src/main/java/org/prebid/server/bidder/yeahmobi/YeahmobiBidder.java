@@ -11,6 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import lombok.SneakyThrows;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -29,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -66,7 +66,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         }
 
         if (extImpYeahmobi == null) {
-            return Result.emptyWithError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
+            return Result.withError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
         }
 
         final String host = String.format("gw-%s-bid.yeahtargeter.com", HttpUtil.encodeUrl(extImpYeahmobi.getZoneId()));
@@ -128,12 +128,12 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
@@ -162,10 +162,5 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

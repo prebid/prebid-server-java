@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.adgeneration;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
@@ -32,9 +31,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -65,7 +62,7 @@ public class AdgenerationBidder implements Bidder<Void> {
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
+            return Result.withError(BidderError.badInput("No impression in the bid request"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -175,12 +172,12 @@ public class AdgenerationBidder implements Bidder<Void> {
         try {
             final AdgenerationResponse adgenerationResponse = decodeBodyToBidResponse(httpCall.getResponse());
             if (CollectionUtils.isEmpty(adgenerationResponse.getResults())) {
-                return Result.emptyWithError(BidderError.badServerResponse("Results object in BidResponse is empty"));
+                return Result.withError(BidderError.badServerResponse("Results object in BidResponse is empty"));
             }
 
             return resultWithBidderBids(bidRequest, adgenerationResponse);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -211,7 +208,7 @@ public class AdgenerationBidder implements Bidder<Void> {
                         .dealid(adgenerationResponse.getDealid())
                         .build();
                 final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.banner, getCurrency(bidRequest));
-                return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
+                return Result.withValue(bidderBid);
             }
         }
         return null;
@@ -246,10 +243,5 @@ public class AdgenerationBidder implements Bidder<Void> {
         return !ad.contains("<body>") || ad.lastIndexOf("</body>") == -1
                 ? ""
                 : ad.replace("<body>", "").replaceFirst("<body>", "").trim();
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

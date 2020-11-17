@@ -281,7 +281,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.EMPTY, 0);
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(null, null, accountId);
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.setuid, null, accountId);
         verify(tcfDefinerService)
                 .resolveTcfContext(eq(privacy), eq("ip"), isNull(), eq(expectedRequestLogInfo), isNull());
     }
@@ -317,7 +317,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(null, null, accountId);
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.cookiesync, null, accountId);
         verify(tcfDefinerService)
                 .resolveTcfContext(eq(privacy), eq("ip"), isNull(), eq(expectedRequestLogInfo), isNull());
     }
