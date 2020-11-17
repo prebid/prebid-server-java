@@ -21,6 +21,8 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -607,6 +609,74 @@ public class CategoryMapperTest extends VertxTest {
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "rubiconPrefix3_10s")));
+        assertThat(resultFuture.result().getBidderResponses())
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids).hasSize(1);
+        assertThat(resultFuture.result().getErrors()).isEmpty();
+    }
+
+    @Test
+    public void applyCategoryMappingShouldUseDealTierFromImpExtPrebidBidders() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("impId1")
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode()
+                                        .set("rubicon", givenDealTier("prebidPrefix", 4))).build(), null)))
+                        .build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+
+        final List<BidderResponse> bidderResponses = singletonList(
+                givenBidderResponse("rubicon", givenBidderBid("1", "impId1", "10", BidType.video, singletonList("cat1"),
+                        10, "prCategory1")));
+
+        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
+        given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
+
+        // when
+        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+                bidRequest, extRequestTargeting, timeout);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
+                .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "prebidPrefix4_10s")));
+        assertThat(resultFuture.result().getBidderResponses())
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids).hasSize(1);
+        assertThat(resultFuture.result().getErrors()).isEmpty();
+    }
+
+    @Test
+    public void applyCategoryMappingShouldPrecedencePriorityAndDurationFromPrebidOverFromImpExt() {
+        // given
+        final ExtImp extImp = ExtImp.of(ExtImpPrebid.builder()
+                .bidder(mapper.createObjectNode().set("rubicon", givenDealTier("prebidPrefix", 4))).build(), null);
+        final ObjectNode impExt = mapper.valueToTree(extImp);
+        impExt.set("rubicon", givenDealTier("extPrefix", 3));
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("impId1")
+                        .ext(impExt)
+                        .build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+
+        final List<BidderResponse> bidderResponses = singletonList(
+                givenBidderResponse("rubicon", givenBidderBid("1", "impId1", "10", BidType.video, singletonList("cat1"),
+                        10, "prCategory1")));
+
+        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
+        given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
+                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
+
+        // when
+        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
+                bidRequest, extRequestTargeting, timeout);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getBiddersToBidsCategories())
+                .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", "prebidPrefix4_10s")));
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
