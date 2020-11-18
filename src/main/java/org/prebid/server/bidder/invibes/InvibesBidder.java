@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.invibes;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -10,7 +9,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -42,7 +40,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -66,7 +63,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     @Override
     public Result<List<HttpRequest<InvibesBidRequest>>> makeHttpRequests(BidRequest request) {
         if (request.getSite() == null) {
-            return Result.emptyWithError(BidderError.badInput("Site not specified"));
+            return Result.withError(BidderError.badInput("Site not specified"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -74,7 +71,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         final String consentString = resolveConsentString(request.getUser());
         final Boolean gdprApplies = resolveGDPRApplies(request.getRegs());
 
-        InvibesInternalParams invibesInternalParams = new InvibesInternalParams();
+        final InvibesInternalParams invibesInternalParams = new InvibesInternalParams();
         invibesInternalParams.setBidParams(InvibesBidParams.builder()
                 .properties(new HashMap<>())
                 .placementIds(new ArrayList<>())
@@ -92,7 +89,8 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
             }
             updateInvibesInternalParams(invibesInternalParams, extImpInvibes, imp);
         }
-        //TODO add AMP parameter to invibesInternalParams, after reqInfo will be implemented
+
+        //TODO: add AMP parameter to invibesInternalParams, after reqInfo will be implemented
 
         final List<String> placementIds = invibesInternalParams.getBidParams().getPlacementIds();
         if (CollectionUtils.isEmpty(placementIds)) {
@@ -106,7 +104,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
             final HttpRequest<InvibesBidRequest> httpRequest = makeRequest(invibesInternalParams, request);
             return Result.of(Collections.singletonList(httpRequest), errors);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 
@@ -138,8 +136,8 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     }
 
     private void updateInvibesInternalParams(InvibesInternalParams invibesInternalParams,
-                                                              ExtImpInvibes invibesExt,
-                                                              Imp imp) {
+                                             ExtImpInvibes invibesExt,
+                                             Imp imp) {
         final String impExtPlacementId = invibesExt.getPlacementId();
         final InvibesBidParams bidParams = invibesInternalParams.getBidParams();
         final List<String> updatedPlacementIds = bidParams.getPlacementIds();
@@ -266,40 +264,28 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     private static MultiMap resolveHeaders(Device device, Site site) {
         final MultiMap headers = HttpUtil.headers();
         if (device != null) {
-            addHeader(headers, "X-Forwarded-For", device.getIp());
-            addHeader(headers, "X-Forwarded-For", device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
         }
         if (site != null) {
-            headers.add("Referer", site.getPage());
-            addHeader(headers, "Referer", site.getPage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
         }
-        addHeader(headers, "Aver", ADAPTER_VERSION);
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Aver", ADAPTER_VERSION);
         return headers;
-    }
-
-    private static void addHeader(MultiMap headers, String header, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            headers.add(header, value);
-        }
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<InvibesBidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-
         try {
             final InvibesBidderResponse bidResponse =
                     mapper.decodeValue(httpCall.getResponse().getBody(), InvibesBidderResponse.class);
             if (bidResponse != null && StringUtils.isNotBlank(bidResponse.getError())) {
-                return Result.emptyWithError(
+                return Result.withError(
                         BidderError.badServerResponse(String.format("Server error: %s.", bidResponse.getError())));
             }
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -317,10 +303,5 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
                 //TODO add DealPriority
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCurrency()))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

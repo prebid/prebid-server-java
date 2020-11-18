@@ -415,19 +415,14 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
-
     private List<BidderBid> extractBids(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse);
     }
