@@ -104,33 +104,26 @@ public class AmxBidder implements Bidder<BidRequest> {
 
     private BidRequest createOutgoingRequest(BidRequest request, String publisherId, List<Imp> imps) {
         final BidRequest.BidRequestBuilder outgoingRequest = request.toBuilder();
-        updateRequestIfPublisherIdPresent(outgoingRequest, request.getApp(), request.getSite(), publisherId);
+
+        if (StringUtils.isNotBlank(publisherId)) {
+            final App app = request.getApp();
+            if (app != null) {
+                outgoingRequest
+                        .app(app.toBuilder()
+                                .publisher(resolvePublisher(app.getPublisher(), publisherId))
+                                .build());
+            }
+
+            final Site site = request.getSite();
+            if (site != null) {
+                outgoingRequest
+                        .site(site.toBuilder()
+                                .publisher(resolvePublisher(site.getPublisher(), publisherId))
+                                .build());
+            }
+        }
 
         return outgoingRequest.imp(imps).build();
-    }
-
-    private void updateRequestIfPublisherIdPresent(BidRequest.BidRequestBuilder requestBuilder,
-                                                   App app, Site site, String publisherId) {
-        if (StringUtils.isNotBlank(publisherId)) {
-            updateRequestWithPublisherId(requestBuilder, app, site, publisherId);
-        }
-    }
-
-    private void updateRequestWithPublisherId(BidRequest.BidRequestBuilder requestBuilder,
-                                              App app, Site site, String publisherId) {
-        if (app != null) {
-            requestBuilder
-                    .app(app.toBuilder()
-                            .publisher(resolvePublisher(app.getPublisher(), publisherId))
-                            .build());
-        }
-
-        if (site != null) {
-            requestBuilder
-                    .site(site.toBuilder()
-                            .publisher(resolvePublisher(site.getPublisher(), publisherId))
-                            .build());
-        }
     }
 
     private Publisher resolvePublisher(Publisher publisher, String publisherId) {
