@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -89,7 +88,7 @@ public class AmxBidder implements Bidder<BidRequest> {
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .headers(headers())
+                        .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
                         .body(mapper.encode(outgoingRequest))
                         .build()), errors);
@@ -112,7 +111,7 @@ public class AmxBidder implements Bidder<BidRequest> {
 
     private void updateRequestIfPublisherIdPresent(BidRequest.BidRequestBuilder requestBuilder,
                                                    App app, Site site, String publisherId) {
-        if (StringUtils.isBlank(publisherId)) {
+        if (StringUtils.isNotBlank(publisherId)) {
             updateRequestWithPublisherId(requestBuilder, app, site, publisherId);
         }
     }
@@ -140,19 +139,14 @@ public class AmxBidder implements Bidder<BidRequest> {
                 : Publisher.builder().id(publisherId).build();
     }
 
-    private MultiMap headers() {
-        return MultiMap.caseInsensitiveMultiMap()
-                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
-            return Result.of(extractBids(bidResponse, errors), Collections.emptyList());
+            return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -170,6 +164,7 @@ public class AmxBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> createBidderBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -183,7 +178,15 @@ public class AmxBidder implements Bidder<BidRequest> {
 
         final BidType bidType = getMediaType(amxBidExt);
 
-        return BidderBid.of(bidType == BidType.video ? updateVideoBid(bid, amxBidExt) : bid, bidType, cur);
+        final Bid updatedBid;
+        try {
+            updatedBid = bidType == BidType.video ? updateVideoBid(bid, amxBidExt) : bid;
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+
+        return BidderBid.of(updatedBid, bidType, cur);
     }
 
     private AmxBidExt parseBidderExt(ObjectNode ext) {
@@ -194,7 +197,7 @@ public class AmxBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(ext, AmxBidExt.class);
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
         }
     }
 
@@ -205,10 +208,12 @@ public class AmxBidder implements Bidder<BidRequest> {
     }
 
     private static Bid updateVideoBid(Bid bid, AmxBidExt bidExt) {
-
+        final String adm = bid.getAdm();
+        final String bidId = bid.getId();
+        validateAdm(adm, bidId);
         return bid.toBuilder()
                 .nurl("")
-                .adm(updateAdm(bidExt, bid.getNurl(), bid.getAdm(), bid.getId()))
+                .adm(updateAdm(bidExt, bid.getNurl(), adm, bidId))
                 .build();
     }
 

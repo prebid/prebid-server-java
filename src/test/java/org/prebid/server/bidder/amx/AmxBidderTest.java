@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -27,7 +28,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,14 +77,14 @@ public class AmxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://test.com/prebid/bid?v=pbs1.0");
+                .containsExactly("https://test.com/prebid/bid?v=pbs1.0");
     }
 
     @Test
     public void makeHttpRequestsShouldUpdateRequestAndImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()),
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()).site(Site.builder().build()),
                 impBuilder -> impBuilder.banner(Banner.builder().build()));
 
         // when
@@ -93,6 +93,7 @@ public class AmxBidderTest extends VertxTest {
         // then
         final BidRequest expectedBidRequest = BidRequest.builder()
                 .app(App.builder().publisher(Publisher.builder().id("testTagId").build()).build())
+                .site(Site.builder().publisher(Publisher.builder().id("testTagId").build()).build())
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
@@ -160,7 +161,7 @@ public class AmxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().build(), banner, "USD"));
     }
 
     @Test
@@ -186,7 +187,7 @@ public class AmxBidderTest extends VertxTest {
                 + "<Impression><![CDATA[someHintVAlue1]]></Impression>"
                 + "<Impression><![CDATA[someHintValue2]]></Impression>";
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder()
+                .containsExactly(BidderBid.of(Bid.builder()
                         .nurl("")
                         .ext(bidExt)
                         .adm(expectedAdm)

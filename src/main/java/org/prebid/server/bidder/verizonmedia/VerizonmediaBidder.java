@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -73,8 +72,7 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     private ExtImpVerizonmedia parseAndValidateImpExt(ObjectNode impExtNode, int index) {
         final ExtImpVerizonmedia extImpVerizonmedia;
         try {
-            extImpVerizonmedia = mapper.mapper().convertValue(impExtNode,
-                    VERIZON_EXT_TYPE_REFERENCE).getBidder();
+            extImpVerizonmedia = mapper.mapper().convertValue(impExtNode, VERIZON_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
         }
@@ -145,11 +143,11 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     }
 
     private static MultiMap makeHeaders(Device device) {
-        final String deviceUa = device != null ? device.getUa() : null;
-
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", deviceUa);
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+
+        final String deviceUa = device != null ? device.getUa() : null;
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, deviceUa);
 
         return headers;
     }
@@ -160,7 +158,7 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -194,10 +192,5 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException(String.format("Unknown ad unit code '%s'", bidImpId));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }
