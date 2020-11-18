@@ -145,7 +145,7 @@ public class AdheseBidder implements Bidder<Void> {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         return StringUtils.isNotBlank(consent)
-                ? String.format("%s%s", GDPR_QUERY_PARAMETER, HttpUtil.encodeUrl(consent))
+                ? String.format("%s%s", GDPR_QUERY_PARAMETER, consent)
                 : "";
     }
 
