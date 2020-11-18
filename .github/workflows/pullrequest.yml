@@ -7,9 +7,6 @@ on:
       - '.github/**'
     branches:
       - master
-  release:
-    types:
-      - created
 
 jobs:
   build:
