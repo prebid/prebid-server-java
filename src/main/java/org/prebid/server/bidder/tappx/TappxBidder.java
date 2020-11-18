@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.tappx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -28,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -71,12 +69,12 @@ public class TappxBidder implements Bidder<BidRequest> {
                 : request;
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .headers(HttpUtil.headers())
-                        .uri(url)
-                        .body(mapper.encode(outgoingRequest))
-                        .payload(outgoingRequest)
-                        .build());
+                .method(HttpMethod.POST)
+                .headers(HttpUtil.headers())
+                .uri(url)
+                .body(mapper.encode(outgoingRequest))
+                .payload(outgoingRequest)
+                .build());
     }
 
     /**
@@ -169,10 +167,5 @@ public class TappxBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

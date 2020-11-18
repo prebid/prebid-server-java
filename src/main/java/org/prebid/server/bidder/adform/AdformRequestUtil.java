@@ -79,6 +79,6 @@ class AdformRequestUtil {
 
         return ObjectUtils
                 .defaultIfNull(Base64.getUrlEncoder().withoutPadding().encodeToString(encodedEids.getBytes()),
-                "");
+                        "");
     }
 }

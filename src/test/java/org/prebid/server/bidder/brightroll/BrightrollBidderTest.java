@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -585,11 +584,6 @@ public class BrightrollBidderTest extends VertxTest {
                         "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at"
                                 + " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, "
                                 + "column: 3]"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(brightrollBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

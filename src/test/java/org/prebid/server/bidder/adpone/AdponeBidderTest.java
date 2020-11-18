@@ -162,11 +162,6 @@ public class AdponeBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(bid, BidType.banner, "USD"));
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(adponeBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(Collections.emptyMap());
-    }
-
     private static BidRequest givenBidRequest(JsonNode bidderNode) {
         return BidRequest.builder()
                 .imp(Collections.singletonList(Imp.builder()

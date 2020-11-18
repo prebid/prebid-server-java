@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.beachfront;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -13,7 +12,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -44,7 +42,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -387,15 +384,6 @@ public class BeachfrontBidder implements Bidder<Void> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final String bodyString = httpCall.getResponse().getBody();
-        if (StringUtils.isBlank(bodyString)) {
-            return Result.withError(BidderError.badServerResponse("Received a null response from beachfront"));
-        }
-
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()
-                || bodyString.length() <= 2) {
-            return Result.empty();
-        }
-
         try {
             return processVideoResponse(bodyString, httpCall.getRequest());
         } catch (DecodeException e) {
@@ -414,10 +402,10 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<BeachfrontResponseSlot> responseSlots = makeBeachfrontResponseSlots(responseBody);
 
         return Result.withValues(responseSlots.stream()
-                        .filter(Objects::nonNull)
-                        .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
-                        .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
-                        .collect(Collectors.toList()));
+                .filter(Objects::nonNull)
+                .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
+                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .collect(Collectors.toList()));
     }
 
     /**
@@ -464,13 +452,13 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<Imp> imps = videoRequest.getRequest().getImp();
         if (httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)) {
             return Result.withValues(updateVideoBids(bids, imps).stream()
-                            .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                            .collect(Collectors.toList()));
+                    .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+                    .collect(Collectors.toList()));
         } else {
             return Result.withValues(bids.stream()
-                            .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
-                            .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                            .collect(Collectors.toList()));
+                    .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
+                    .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+                    .collect(Collectors.toList()));
         }
     }
 
@@ -496,10 +484,5 @@ public class BeachfrontBidder implements Bidder<Void> {
             return split[2]; //Index out of bound???...
         }
         return null;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }
