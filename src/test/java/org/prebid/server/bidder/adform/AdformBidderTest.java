@@ -32,8 +32,8 @@ import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Base64;
 import java.math.BigDecimal;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -304,7 +304,7 @@ public class AdformBidderTest extends VertxTest {
                                 .consent("consent")
                                 .digitrust(ExtUserDigiTrust.of("id", 123, 1))
                                 .eids(asList(ExtUserEid.of("test.com", "some_user_id",
-                                                singletonList(ExtUserEidUid.of("uId", 1, null)), null),
+                                        singletonList(ExtUserEidUid.of("uId", 1, null)), null),
                                         ExtUserEid.of("test.com", "some_user_id",
                                                 singletonList(ExtUserEidUid.of("uId", 2, null)), null),
                                         ExtUserEid.of("test.net", "some_user_id",

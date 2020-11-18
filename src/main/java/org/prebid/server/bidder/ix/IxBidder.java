@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -32,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -60,7 +58,7 @@ public class IxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         if (bidRequest.getApp() != null) {
-            return Result.emptyWithError(BidderError.badInput("ix doesn't support apps"));
+            return Result.withError(BidderError.badInput("ix doesn't support apps"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -83,7 +81,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
         if (modifiedRequests.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
@@ -184,14 +182,14 @@ public class IxBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final BidRequest payload = httpCall.getRequest().getPayload();
-            return Result.of(extractBids(bidResponse, payload), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse, payload));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse, bidRequest);
     }
@@ -215,10 +213,5 @@ public class IxBidder implements Bidder<BidRequest> {
                     .build();
         }
         return bid;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

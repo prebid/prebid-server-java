@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -37,7 +38,6 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -106,6 +106,7 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of("demo",
                                 "_adhese_prebid_demo_", "leaderboard", mapper.convertValue(targets, JsonNode.class)))))
                         .build()))
+                .device(Device.builder().ifa("dum-my").build())
                 .build();
 
         // when
@@ -115,7 +116,7 @@ public class AdheseBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/ag55/cigent;brussels"
-                        + "/tlall/xtdummy");
+                        + "/tlall/xtdummy/xzdum-my");
     }
 
     @Test
@@ -138,20 +139,6 @@ public class AdheseBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xtdummy");
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -423,11 +410,6 @@ public class AdheseBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(adheseBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static HttpCall<Void> givenHttpCall(String responseBody) {

@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.gamoshi;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -69,7 +68,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         try {
             firstImpExt = parseAndValidateImpExt(validImps.get(0));
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
@@ -120,16 +119,14 @@ public class GamoshiBidder implements Bidder<BidRequest> {
 
     private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.4");
-        if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Forwarded-For", device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Accept-Language", device.getLanguage());
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.4");
 
-            final Integer dnt = device.getDnt();
-            if (dnt != null) {
-                headers.add("DNT", dnt.toString());
-            }
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
         return headers;
     }
@@ -140,12 +137,12 @@ public class GamoshiBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
@@ -167,10 +164,5 @@ public class GamoshiBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(Imp imp) {
         return imp.getVideo() != null ? BidType.video : BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

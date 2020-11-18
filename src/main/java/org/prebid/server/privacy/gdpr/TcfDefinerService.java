@@ -411,7 +411,7 @@ public class TcfDefinerService {
     }
 
     private static void logWarn(String consent, String message, RequestLogInfo requestLogInfo) {
-        if (requestLogInfo == null) {
+        if (requestLogInfo == null || requestLogInfo.getRequestType() == null) {
             final String exceptionMessage = String.format("Parsing consent string:\"%s\" failed for undefined type "
                     + "with exception %s", consent, message);
             UNDEFINED_CORRUPT_CONSENT_LOGGER.info(exceptionMessage, 100);
@@ -436,6 +436,8 @@ public class TcfDefinerService {
                         logMessage(consent, MetricName.legacy.toString(), requestLogInfo, message), 100);
                 break;
             case video:
+            case cookiesync:
+            case setuid:
             default:
                 UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
                         logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);
