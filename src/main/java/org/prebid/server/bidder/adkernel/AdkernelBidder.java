@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.adkernel;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -43,8 +42,6 @@ public class AdkernelBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAdkernel>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointTemplate;
     private final JacksonMapper mapper;
 
@@ -68,7 +65,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         }
 
         if (hasNoImpressions(pubToImps)) {
-            return Result.of(null, errors);
+            return Result.withErrors(errors);
         }
 
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
@@ -133,7 +130,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         final String uri = String.format(endpointTemplate, impExt.getHost(), impExt.getZoneId());
 
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         final BidRequest outgoingRequest = createBidRequest(extAndImp.getValue(), requestBuilder, site, app);
         final String body = mapper.encode(outgoingRequest);
@@ -164,9 +161,9 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -184,7 +181,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -198,10 +195,5 @@ public class AdkernelBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.video;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

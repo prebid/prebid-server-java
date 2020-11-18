@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,7 +56,7 @@ public class YieldoneBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(500).build())).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))).build()))
-                        .build();
+                .build();
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yieldoneBidder.makeHttpRequests(bidRequest);
 
@@ -201,11 +200,6 @@ public class YieldoneBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(yieldoneBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
@@ -229,6 +223,7 @@ public class YieldoneBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();

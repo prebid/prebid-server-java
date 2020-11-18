@@ -25,6 +25,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.File;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -42,6 +43,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
 
 public class VendorListServiceV1Test extends VertxTest {
 
@@ -139,11 +142,11 @@ public class VendorListServiceV1Test extends VertxTest {
 
         // then
         verifyZeroInteractions(httpClient);
-        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     @Test
-    public void shouldThorowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() throws JsonProcessingException {
+    public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
         // then
         assertThatThrownBy(() -> vendorListService = new VendorListServiceV1(
                 CACHE_DIR,
@@ -421,14 +424,16 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<Map<Integer, VendorV1>> result = vendorListService.forVersion(1);
 
         // then
-        assertThat(result).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(result).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     @Test
     public void shouldKeepPurposesOnlyForKnownVendors() throws JsonProcessingException {
         // given
         final VendorListV1 vendorList = VendorListV1.of(1, new Date(),
-                asList(VendorV1.of(52, singleton(1), singleton(2)), VendorV1.of(42, singleton(1), singleton(2))));
+                asList(
+                        VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO)),
+                        VendorV1.of(42, EnumSet.of(ONE), EnumSet.of(TWO))));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
@@ -439,7 +444,7 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     @Test
@@ -456,7 +461,7 @@ public class VendorListServiceV1Test extends VertxTest {
 
         // then
         assertThat(future1).isFailed();
-        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     @Test
@@ -473,7 +478,7 @@ public class VendorListServiceV1Test extends VertxTest {
 
         // then
         assertThat(future1).isFailed();
-        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     // Metrics tests
@@ -549,7 +554,7 @@ public class VendorListServiceV1Test extends VertxTest {
     }
 
     private static VendorListV1 givenVendorList() {
-        final VendorV1 vendor = VendorV1.of(52, singleton(1), singleton(2));
+        final VendorV1 vendor = VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO));
         return VendorListV1.of(1, new Date(), singletonList(vendor));
     }
 

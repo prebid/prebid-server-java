@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
@@ -45,8 +44,6 @@ public class AdopplerBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdoppler>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointTemplate;
     private final JacksonMapper mapper;
@@ -92,7 +89,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
         final String body = mapper.encode(outgoingRequest);
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
@@ -104,11 +101,6 @@ public class AdopplerBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
             final Map<String, BidType> impTypes = getImpTypes(bidRequest);
@@ -117,11 +109,11 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .map(bid -> createBid(bid, impTypes))
+                    .map(bid -> createBid(bid, impTypes, bidResponse.getCur()))
                     .collect(Collectors.toList());
-            return Result.of(bidderBids, Collections.emptyList());
+            return Result.withValues(bidderBids);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 
@@ -155,12 +147,12 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         return impTypes;
     }
 
-    private BidderBid createBid(Bid bid, Map<String, BidType> impTypes) {
+    private BidderBid createBid(Bid bid, Map<String, BidType> impTypes, String currency) {
         if (impTypes.get(bid.getImpid()) == null) {
             throw new PreBidException(String.format("unknown impid: %s", bid.getImpid()));
         }
         validateResponseVideoExt(bid, impTypes);
-        return BidderBid.of(bid, impTypes.get(bid.getImpid()), DEFAULT_BID_CURRENCY);
+        return BidderBid.of(bid, impTypes.get(bid.getImpid()), currency);
     }
 
     private void validateResponseVideoExt(Bid bid, Map<String, BidType> impTypes) {
@@ -180,10 +172,5 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

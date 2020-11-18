@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,7 +59,7 @@ public class AdmixerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(emptyList())
-                        .build();
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
@@ -124,8 +123,8 @@ public class AdmixerBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(
                         BidResponse.builder()
-                        .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
-                        .build()));
+                                .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
+                                .build()));
 
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -148,7 +147,7 @@ public class AdmixerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                .build());
+                        .build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -213,13 +212,9 @@ public class AdmixerBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"));
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(admixerBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
