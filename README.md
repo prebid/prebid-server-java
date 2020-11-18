@@ -1,6 +1,6 @@
-### This code is being used in production by multiple Prebid.org members, but is not the "official" version. See https://github.com/prebid/prebid-server/
+### This is the Java version of Prebid Server. See the Prebid Server [Feature List](https://docs.prebid.org/prebid-server/features/pbs-feature-idx.html) and [FAQ entry](https://docs.prebid.org/faq/prebid-server-faq.html#why-are-there-two-versions-of-prebid-server-are-they-kept-in-sync) to understand the differences between PBS-Java and [PBS-Go](https://github.com/prebid/prebid-server).
 
-# Prebid Server
+# Prebid Server (Java)
 
 [![GitHub version](https://badge.fury.io/gh/rubicon-project%2fprebid-server-java.svg)](http://badge.fury.io/gh/rubicon-project%2fprebid-server-java)
 [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/rubicon-project/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/rubicon-project/prebid-server-java/context:java)
