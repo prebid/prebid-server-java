@@ -337,20 +337,6 @@ public class KidozBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = kidozBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

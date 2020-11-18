@@ -170,18 +170,25 @@ public class HttpBidderRequester {
     }
 
     private static <T> Result<List<BidderBid>> makeBids(Bidder<T> bidder, HttpCall<T> httpCall, BidRequest bidRequest) {
-        if (httpCall.getError() != null || !isOkOrNoContent(httpCall)) {
-            return null;
-        }
-        return bidder.makeBids(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
+
+        return httpCall.getError() != null
+                ? null
+                : makeResult(bidder, httpCall, bidRequest);
     }
 
     /**
-     * Returns true if response HTTP status code is equal to 200 or 204, otherwise false.
+     * Returns result based on response status code
      */
-    private static <T> boolean isOkOrNoContent(HttpCall<T> httpCall) {
+    private static <T> Result<List<BidderBid>> makeResult(Bidder<T> bidder, HttpCall<T> httpCall,
+                                                          BidRequest bidRequest) {
         final int statusCode = httpCall.getResponse().getStatusCode();
-        return statusCode == HttpResponseStatus.OK.code() || statusCode == HttpResponseStatus.NO_CONTENT.code();
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.empty();
+        }
+        if (statusCode != HttpResponseStatus.OK.code()) {
+            return null;
+        }
+        return bidder.makeBids(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
     }
 
     /**

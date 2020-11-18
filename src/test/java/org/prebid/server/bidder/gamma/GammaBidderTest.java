@@ -232,20 +232,6 @@ public class GammaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldSetAdmFromVastXmlIsPresentAndVideoType() throws JsonProcessingException {
         // given
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
