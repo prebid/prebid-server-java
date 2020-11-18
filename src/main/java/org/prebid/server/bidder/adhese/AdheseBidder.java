@@ -3,7 +3,6 @@ package org.prebid.server.bidder.adhese;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -12,7 +11,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -56,9 +54,9 @@ public class AdheseBidder implements Bidder<Void> {
             };
 
     private static final String ORIGIN = "JERLICIA";
-    private static final String QUERY_PARAMETER_GDPR = "/xt";
-    private static final String QUERY_PARAMETER_REFERER = "/xf";
-    private static final String QUERY_PARAMETER_IFA = "/xz";
+    private static final String GDPR_QUERY_PARAMETER = "/xt";
+    private static final String REFERER_QUERY_PARAMETER = "/xf";
+    private static final String IFA_QUERY_PARAMETER = "/xz";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -71,14 +69,14 @@ public class AdheseBidder implements Bidder<Void> {
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
+            return Result.withError(BidderError.badInput("No impression in the bid request"));
         }
 
         final ExtImpAdhese extImpAdhese;
         try {
             extImpAdhese = parseImpExt(request.getImp().get(0));
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final String uri = buildUrl(request, endpointUrl, extImpAdhese);
@@ -108,7 +106,7 @@ public class AdheseBidder implements Bidder<Void> {
         return String.format("%s%s%s%s%s%s", uri, slotParameter, getTargetParameters(extImpAdhese),
                 getGdprParameter(request.getUser()),
                 getRefererParameter(request.getSite()),
-                extractIfaParameter(request.getDevice()));
+                getIfaParameter(request.getDevice()));
     }
 
     private String getTargetParameters(ExtImpAdhese extImpAdhese) {
@@ -138,41 +136,34 @@ public class AdheseBidder implements Bidder<Void> {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         return StringUtils.isNotBlank(consent)
-                ? String.format("%s%s", QUERY_PARAMETER_GDPR, consent)
+                ? String.format("%s%s", GDPR_QUERY_PARAMETER, consent)
                 : "";
     }
 
     private static String getRefererParameter(Site site) {
-        final String page = site != null ? site.getPage() : null;
-        return StringUtils.isNotBlank(page)
-                ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(page))
+        return site != null && StringUtils.isNotBlank(site.getPage())
+                ? String.format("%s%s", REFERER_QUERY_PARAMETER, HttpUtil.encodeUrl(site.getPage()))
                 : "";
     }
 
-    private static String extractIfaParameter(Device device) {
+    private static String getIfaParameter(Device device) {
         final String ifa = device != null ? device.getIfa() : null;
         return StringUtils.isNotBlank(ifa)
-                ? String.format("%s%s", QUERY_PARAMETER_IFA, HttpUtil.encodeUrl(ifa))
-                : "";
+                ? String.format("%s%s", IFA_QUERY_PARAMETER, HttpUtil.encodeUrl(ifa)) : "";
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
 
-        final int statusCode = httpResponse.getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         final JsonNode bodyNode;
         try {
             bodyNode = mapper.decodeValue(httpResponse.getBody(), JsonNode.class);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
         if (!bodyNode.isArray()) {
-            return Result.emptyWithError(BidderError.badServerResponse("Unexpected response body"));
+            return Result.withError(BidderError.badServerResponse("Unexpected response body"));
         }
         if (bodyNode.size() == 0) {
             return Result.empty();
@@ -183,7 +174,7 @@ public class AdheseBidder implements Bidder<Void> {
         try {
             adheseBid = toObjectOfType(bidNode, AdheseBid.class);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final Bid bid;
@@ -194,14 +185,14 @@ public class AdheseBidder implements Bidder<Void> {
                 responseExt = toObjectOfType(bidNode, AdheseResponseExt.class);
                 originData = toObjectOfType(bidNode, AdheseOriginData.class);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+                return Result.withError(BidderError.badServerResponse(e.getMessage()));
             }
             bid = convertAdheseBid(adheseBid, responseExt, originData);
         } else {
             bid = convertAdheseOpenRtbBid(adheseBid);
         }
         if (bid == null) {
-            return Result.emptyWithError(BidderError.badServerResponse("Response resulted in an empty seatBid array"));
+            return Result.withError(BidderError.badServerResponse("Response resulted in an empty seatBid array"));
         }
 
         final BigDecimal price;
@@ -212,7 +203,7 @@ public class AdheseBidder implements Bidder<Void> {
             width = Integer.valueOf(adheseBid.getWidth());
             height = Integer.valueOf(adheseBid.getHeight());
         } catch (NumberFormatException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final Bid updatedBid = Bid.builder()
@@ -299,10 +290,5 @@ public class AdheseBidder implements Bidder<Void> {
         return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
                 ? BidType.video
                 : BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

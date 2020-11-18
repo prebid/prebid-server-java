@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.connectad;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -10,11 +9,9 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -34,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -74,7 +70,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         }
         if (CollectionUtils.isNotEmpty(errors)) {
             errors.add(BidderError.badInput("Error in preprocess of Imp"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(processedImps).build();
 
@@ -140,47 +136,35 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         final MultiMap headers = HttpUtil.headers();
 
         if (device != null) {
-            addHeader(headers, "User-Agent", device.getUa());
-            addHeader(headers, "Accept-Language", device.getLanguage());
-            addHeader(headers, "X-Forwarded-For", device.getIp());
-            addHeader(headers, "X-Forwarded-For", device.getIpv6());
-            if (device.getDnt() != null) {
-                headers.add("DNT", device.getDnt().toString());
-            } else {
-                headers.add("DNT", "0");
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+
+            final Integer dnt = device.getDnt();
+            headers.add(HttpUtil.DNT_HEADER, dnt != null ? dnt.toString() : "0");
         }
         return headers;
     }
 
-    private static void addHeader(MultiMap headers, String header, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            headers.add(header, value);
-        }
-    }
-
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -189,10 +173,4 @@ public class ConnectadBidder implements Bidder<BidRequest> {
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
 }
-

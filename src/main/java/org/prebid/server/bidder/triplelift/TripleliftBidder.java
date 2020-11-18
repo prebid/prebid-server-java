@@ -9,6 +9,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -28,7 +29,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class TripleliftBidder implements Bidder<BidRequest> {
@@ -59,7 +59,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
 
         if (validImps.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions for triplelift"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final BidRequest updatedRequest = bidRequest.toBuilder()
@@ -106,11 +106,11 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -153,10 +153,5 @@ public class TripleliftBidder implements Bidder<BidRequest> {
             return BidType.video;
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }
