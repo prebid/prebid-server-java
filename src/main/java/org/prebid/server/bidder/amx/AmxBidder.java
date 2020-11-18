@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
@@ -34,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -106,37 +104,34 @@ public class AmxBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest createOutgoingRequest(BidRequest request, String publisherId, List<Imp> imps) {
-        return updateRequestIfPublisherIdPresent(request, publisherId).toBuilder()
-                .imp(imps)
-                .build();
+        final BidRequest.BidRequestBuilder outgoingRequest = request.toBuilder();
+        updateRequestIfPublisherIdPresent(outgoingRequest, request.getApp(), request.getSite(), publisherId);
+
+        return outgoingRequest.imp(imps).build();
     }
 
-    private BidRequest updateRequestIfPublisherIdPresent(BidRequest request, String publisherId) {
-        return StringUtils.isBlank(publisherId)
-                ? request
-                : updateRequestWithPublisherId(request, publisherId);
+    private void updateRequestIfPublisherIdPresent(BidRequest.BidRequestBuilder requestBuilder,
+                                                   App app, Site site, String publisherId) {
+        if (StringUtils.isBlank(publisherId)) {
+            updateRequestWithPublisherId(requestBuilder, app, site, publisherId);
+        }
     }
 
-    private BidRequest updateRequestWithPublisherId(BidRequest request, String publisherId) {
-        final BidRequest.BidRequestBuilder modifiedRequest = request.toBuilder();
-
-        final App app = request.getApp();
+    private void updateRequestWithPublisherId(BidRequest.BidRequestBuilder requestBuilder,
+                                              App app, Site site, String publisherId) {
         if (app != null) {
-            modifiedRequest
+            requestBuilder
                     .app(app.toBuilder()
                             .publisher(resolvePublisher(app.getPublisher(), publisherId))
                             .build());
         }
 
-        final Site site = request.getSite();
         if (site != null) {
-            modifiedRequest
+            requestBuilder
                     .site(site.toBuilder()
                             .publisher(resolvePublisher(site.getPublisher(), publisherId))
                             .build());
         }
-
-        return modifiedRequest.build();
     }
 
     private Publisher resolvePublisher(Publisher publisher, String publisherId) {
@@ -152,11 +147,6 @@ public class AmxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
@@ -254,11 +244,6 @@ public class AmxBidder implements Bidder<BidRequest> {
         if (StringUtils.isNotBlank(value)) {
             dest.append(String.format(VAST_IMPRESSION_FORMAT, value));
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }
 
