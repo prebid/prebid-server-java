@@ -10,6 +10,7 @@ import lombok.Value;
 @Value
 @AllArgsConstructor(staticName = "of")
 public class ExtDealTier {
+
     String prefix;
 
     @JsonProperty("minDealTier")

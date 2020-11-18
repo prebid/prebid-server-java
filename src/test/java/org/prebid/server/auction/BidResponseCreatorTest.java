@@ -125,7 +125,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
-    private CategoryMapper categoryMapper;
+    private CategoryMappingService categoryMappingService;
 
     private Clock clock;
 
@@ -138,7 +138,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheService.getEndpointHost()).willReturn("testHost");
         given(cacheService.getEndpointPath()).willReturn("testPath");
         given(cacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
-        given(categoryMapper.createCategoryMapping(any(), any(), any(), any())).willAnswer(invocationOnMock ->
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any())).willAnswer(invocationOnMock ->
                 Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
                         invocationOnMock.getArgument(0), null))
         );
@@ -150,7 +150,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         bidResponseCreator = new BidResponseCreator(
                 cacheService,
-                categoryMapper,
+                categoryMappingService,
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
@@ -483,7 +483,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(
                 cacheService,
-                categoryMapper,
+                categoryMappingService,
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
@@ -555,7 +555,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid1, banner, "USD"), BidderBid.of(bid2, banner, "USD")), 100));
 
-        given(categoryMapper.createCategoryMapping(any(), any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
                         singletonList(BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid1, banner, "USD")),
                                 100)),
@@ -586,7 +586,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid1, banner, "USD")), 100));
 
-        given(categoryMapper.createCategoryMapping(any(), any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("category exception")));
 
         // when
@@ -920,7 +920,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(
                 cacheService,
-                categoryMapper,
+                categoryMappingService,
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
@@ -1343,7 +1343,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(1, "category")).build()))).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
-        given(categoryMapper.createCategoryMapping(anyList(), any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(),
                         Collections.singletonMap("bidder1", Collections.singletonMap("bidId1", true)),
                         bidderResponses, emptyList())));
