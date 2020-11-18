@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -148,7 +147,7 @@ public class GamoshiBidderTest extends VertxTest {
                 .containsOnly("https://test.endpoint.com/r/supply/bidr?bidder=prebid-server");
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("x-openrtb-version", "2.4"),
+                .containsOnly(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.4"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
@@ -300,11 +299,6 @@ public class GamoshiBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(gamoshiBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(

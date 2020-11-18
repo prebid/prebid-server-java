@@ -27,6 +27,7 @@ import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -403,9 +404,28 @@ public class ServiceConfiguration {
     @Bean
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
-            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory) {
+            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
+            BidderErrorNotifier bidderErrorNotifier) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory);
+        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+    }
+
+    @Bean
+    BidderErrorNotifier bidderErrorNotifier(
+            @Value("${auction.timeout-notification.timeout-ms}") int timeoutNotificationTimeoutMs,
+            @Value("${auction.timeout-notification.log-result}") boolean logTimeoutNotificationResult,
+            @Value("${auction.timeout-notification.log-failure-only}") boolean logTimeoutNotificationFailureOnly,
+            @Value("${auction.timeout-notification.log-sampling-rate}") double logTimeoutNotificationSamplingRate,
+            HttpClient httpClient,
+            Metrics metrics) {
+
+        return new BidderErrorNotifier(
+                timeoutNotificationTimeoutMs,
+                logTimeoutNotificationResult,
+                logTimeoutNotificationFailureOnly,
+                logTimeoutNotificationSamplingRate,
+                httpClient,
+                metrics);
     }
 
     @Bean

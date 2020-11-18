@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.lockerdome;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -28,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -62,11 +60,11 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
 
         if (validImps.isEmpty()) {
             errors.add(BidderError.badInput("No valid or supported impressions in the bid request."));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         final BidRequest outgoingRequest = validImps.size() != requestImps.size()
                 ? bidRequest.toBuilder().imp(validImps).build()
@@ -107,9 +105,9 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -127,10 +125,5 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }
