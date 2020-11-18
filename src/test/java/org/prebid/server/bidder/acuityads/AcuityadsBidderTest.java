@@ -179,6 +179,21 @@ public class AcuityadsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnErrorIfNoBidsFromSeatArePresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder().build())).build()));
+
+        // when
+        final Result<List<BidderBid>> result = acuityadsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse("Empty bids array"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
