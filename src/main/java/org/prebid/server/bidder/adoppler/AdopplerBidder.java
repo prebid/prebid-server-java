@@ -88,22 +88,19 @@ public class AdopplerBidder implements Bidder<BidRequest> {
     }
 
     private String resolveUrl(ExtImpAdoppler extImp) {
-        final String accountIdMacro;
-        final String adUnitMacro;
         final String client = extImp.getClient();
 
         try {
-            accountIdMacro = StringUtils.isBlank(client)
+            final String accountIdMacro = StringUtils.isBlank(client)
                     ? DEFAULT_CLIENT
                     : HttpUtil.encodeUrl(client);
-            adUnitMacro = HttpUtil.encodeUrl(extImp.getAdunit());
+
+            return endpointTemplate
+                    .replace("{{AccountID}}", accountIdMacro)
+                    .replace("{{AdUnit}}", HttpUtil.encodeUrl(extImp.getAdunit()));
         } catch (Exception e) {
             throw new PreBidException(e.getMessage());
         }
-
-        return endpointTemplate
-                .replace("{{AccountID}}", accountIdMacro)
-                .replace("{{AdUnit}}", adUnitMacro);
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
