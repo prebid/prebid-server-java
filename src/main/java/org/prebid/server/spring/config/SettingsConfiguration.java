@@ -330,13 +330,15 @@ public class SettingsConfiguration {
                 ApplicationSettingsCacheProperties cacheProperties,
                 @Qualifier("settingsCache") SettingsCache cache,
                 @Qualifier("ampSettingsCache") SettingsCache ampCache,
-                @Qualifier("videoSettingCache") SettingsCache videoCache) {
+                @Qualifier("videoSettingCache") SettingsCache videoCache,
+                Metrics metrics) {
 
             return new CachingApplicationSettings(
                     compositeApplicationSettings,
                     cache,
                     ampCache,
                     videoCache,
+                    metrics,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize());
         }

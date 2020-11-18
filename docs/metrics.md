@@ -65,6 +65,7 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `timeout_notification.failed` - number of unsuccessful attempts to notify bidders about timeouts
 - `settings.cache.(stored-request|amp-stored-request).refresh.(initialize|update).db_query_time` - timer tracking how long was settings cache population
 - `settings.cache.(stored-request|amp-stored-request).refresh.(initialize|update).err` - number of errors during settings cache population
+- `settings.cache.account.(hit|miss)` - number of times account was found or was missing in cache
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID

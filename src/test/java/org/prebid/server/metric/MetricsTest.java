@@ -1009,6 +1009,15 @@ public class MetricsTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    public void updateSettingsCacheEventMetricShouldIncrementMetric() {
+        // when
+        metrics.updateSettingsCacheEventMetric(MetricName.account, MetricName.hit);
+
+        // then
+        assertThat(metricRegistry.counter("settings.cache.account.hit").getCount()).isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

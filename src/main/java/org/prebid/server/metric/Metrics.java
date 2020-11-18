@@ -470,6 +470,10 @@ public class Metrics extends UpdatableMetrics {
         forSettingsCacheType(cacheType).forRefreshType(refreshType).incCounter(MetricName.err);
     }
 
+    public void updateSettingsCacheEventMetric(MetricName cacheType, MetricName event) {
+        forSettingsCacheType(cacheType).incCounter(event);
+    }
+
     private String resolveMetricsBidderName(String bidder) {
         return bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER;
     }

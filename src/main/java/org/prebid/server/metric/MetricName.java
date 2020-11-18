@@ -106,8 +106,11 @@ public enum MetricName {
     // settings cache
     stored_request("stored-request"),
     amp_stored_request("amp-stored-request"),
+    account,
     initialize,
-    update;
+    update,
+    hit,
+    miss;
 
     private final String name;
 
