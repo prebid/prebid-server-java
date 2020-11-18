@@ -253,21 +253,6 @@ public class InmobiBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), banner, null));
     }
 
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))

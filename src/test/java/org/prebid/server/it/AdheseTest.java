@@ -21,7 +21,7 @@ public class AdheseTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdhese() throws IOException, JSONException {
 
         WIRE_MOCK_RULE.stubFor(WireMock.get(WireMock.urlPathEqualTo("/adhese-exchange/sl_adhese_prebid_demo_-"
-                + "leaderboard/ag55/cigent;brussels/tlall/xtconsentValue/xfhttp%3A%2F%2Fwww.example.com"))
+                + "leaderboard/ag55/cigent;brussels/tlall/xtconsentValue/xfhttp%3A%2F%2Fwww.example.com/xzifaId"))
                 .withHeader("Accept", WireMock.equalTo("application/json"))
                 .withHeader("Content-Type", WireMock.equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(WireMock.absent())
