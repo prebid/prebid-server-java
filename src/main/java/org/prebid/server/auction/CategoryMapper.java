@@ -22,7 +22,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CategoryMappingResult;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
@@ -84,8 +83,8 @@ public class CategoryMapper {
                                                                ExtRequestTargeting targeting,
                                                                Timeout timeout) {
         if (targeting == null || targeting.getIncludebrandcategory() == null) {
-            return Future.succeededFuture(CategoryMappingResult.of(Collections.emptyMap(), bidderResponses,
-                    Collections.emptyList()));
+            return Future.succeededFuture(CategoryMappingResult.of(Collections.emptyMap(), Collections.emptyMap(),
+                    bidderResponses, Collections.emptyList()));
         }
         final ExtIncludeBrandCategory includeBrandCategory = targeting.getIncludebrandcategory();
         final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(includeBrandCategory.getWithCategory(), false);
@@ -294,8 +293,17 @@ public class CategoryMapper {
         errors.addAll(rejectedBids.stream().map(RejectedBid::getErrorMessage).collect(Collectors.toList()));
         return CategoryMappingResult.of(
                 makeBidderToBidCategoryDuration(uniqueCatKeysToCategoryBids, rejectedBids),
+                makeBidsSatisfiedPriority(uniqueCatKeysToCategoryBids),
                 removeRejectedBids(bidderResponses, rejectedBids),
                 errors);
+    }
+
+    private Map<String, Map<String, Boolean>> makeBidsSatisfiedPriority(
+            Map<String, Set<CategoryBidContext>> uniqueCatKeysToCategoryBids) {
+        return uniqueCatKeysToCategoryBids.values().stream()
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(CategoryBidContext::getBidder,
+                        Collectors.toMap(CategoryBidContext::getBidId, CategoryBidContext::isSatisfiedPriority)));
     }
 
     /**
@@ -367,11 +375,9 @@ public class CategoryMapper {
         return biddersToImpExtDealTiers
                 .entrySet().stream()
                 .filter(bidderToImpExtDealTier -> isValidBidder(bidderToImpExtDealTier.getKey()))
-                .map(bidderToImpExtDealTier -> Tuple2.of(bidderToImpExtDealTier.getKey(),
-                        normalizeExtDealTier(bidderToImpExtDealTier.getValue())))
-                .filter(biddersToImpExtDealTier -> isValidExtDealTier(biddersToImpExtDealTier.getLeft(),
-                        biddersToImpExtDealTier.getRight(), imp.getId(), errors))
-                .collect(Collectors.toMap(Tuple2::getLeft, tuple2 -> tuple2.getRight().getDealTier()));
+                .filter(biddersToImpExtDealTier -> isValidExtDealTier(biddersToImpExtDealTier.getKey(),
+                        biddersToImpExtDealTier.getValue(), imp.getId(), errors))
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getDealTier()));
     }
 
     private ExtImp decodeImpExt(ObjectNode impExt) {
@@ -380,24 +386,6 @@ public class CategoryMapper {
         } catch (JsonProcessingException e) {
             throw new PreBidException("Failed to decode imp.ext");
         }
-    }
-
-    /**
-     * Normalizes {@link DealTierContainer} fields to correct format.
-     */
-    private DealTierContainer normalizeExtDealTier(DealTierContainer dealTierContainer) {
-        if (dealTierContainer == null) {
-            return null;
-        }
-
-        final ExtDealTier dealTier = dealTierContainer.getDealTier();
-        if (dealTier == null) {
-            return dealTierContainer;
-        }
-
-        final String prefix = dealTier.getPrefix();
-        final String normalizedPrefix = prefix != null ? StringUtils.replaceAll(prefix, " ", "") : null;
-        return DealTierContainer.of(ExtDealTier.of(normalizedPrefix, dealTier.getMinDealTier()));
     }
 
     /**
@@ -500,7 +488,8 @@ public class CategoryMapper {
         final Map<String, ExtDealTier> impsDealTiers = impToBiddersDealTier.get(bid.getImpid());
         final ExtDealTier dealTier = impsDealTiers != null ? impsDealTiers.get(bidder) : null;
         final int dealPriority = bidderBid.getDealPriority() != null ? bidderBid.getDealPriority() : 0;
-        final String categoryDuration = makeCategoryDuration(rowPrice, category, duration, dealPriority,
+        final boolean satisfiedPriority = dealTier != null && dealPriority >= dealTier.getMinDealTier();
+        final String categoryDuration = makeCategoryDuration(rowPrice, category, duration, satisfiedPriority,
                 dealTier, withCategory);
 
         return CategoryBidContext.builder()
@@ -508,6 +497,7 @@ public class CategoryMapper {
                 .bidder(bidder)
                 .categoryDuration(categoryDuration)
                 .categoryUniqueKey(categoryUniqueKey)
+                .satisfiedPriority(satisfiedPriority)
                 .price(price)
                 .build();
     }
@@ -551,9 +541,9 @@ public class CategoryMapper {
     /**
      * Creates category duration.
      */
-    private String makeCategoryDuration(String price, String category, int duration, int bidPriority,
+    private String makeCategoryDuration(String price, String category, int duration, boolean satisfiedPriority,
                                         ExtDealTier dealTier, boolean withCategory) {
-        final String categoryPrefix = dealTier != null && bidPriority >= dealTier.getMinDealTier()
+        final String categoryPrefix = dealTier != null && satisfiedPriority
                 ? String.format("%s%d", dealTier.getPrefix(), dealTier.getMinDealTier())
                 : price;
         return withCategory
@@ -684,6 +674,7 @@ public class CategoryMapper {
         String categoryDuration;
         String categoryUniqueKey;
         BigDecimal price;
+        boolean satisfiedPriority;
     }
 
     @Value

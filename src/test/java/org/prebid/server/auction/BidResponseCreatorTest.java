@@ -139,7 +139,8 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheService.getEndpointPath()).willReturn("testPath");
         given(cacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
         given(categoryMapper.createCategoryMapping(any(), any(), any(), any())).willAnswer(invocationOnMock ->
-                Future.succeededFuture(CategoryMappingResult.of(null, invocationOnMock.getArgument(0), null))
+                Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
+                        invocationOnMock.getArgument(0), null))
         );
 
         given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
@@ -235,6 +236,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .cacheVideoBidsTtl(101)
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(biddersToCacheBidIds)
+                        .biddersToBidsCategories(emptyMap())
                         .build()),
                 eq(EventsContext.builder()
                         .enabledForAccount(true)
@@ -279,6 +281,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 eq(CacheContext.builder()
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(biddersToCacheBidIds)
+                        .biddersToBidsCategories(emptyMap())
                         .build()),
                 eq(EventsContext.builder().auctionTimestamp(1000L).build()));
     }
@@ -328,6 +331,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .shouldCacheVideoBids(true)
                         .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
                         .bidderToBidIds(biddersToCacheBidIds)
+                        .biddersToBidsCategories(emptyMap())
                         .build()),
                 eq(EventsContext.builder()
                         .enabledForAccount(true)
@@ -359,6 +363,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 eq(CacheContext.builder()
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(singletonMap("bidder1", Collections.singletonList("bidId1")))
+                        .biddersToBidsCategories(emptyMap())
                         .build()),
                 eq(EventsContext.builder().auctionTimestamp(1000L).build()));
     }
@@ -551,7 +556,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(bid1, banner, "USD"), BidderBid.of(bid2, banner, "USD")), 100));
 
         given(categoryMapper.createCategoryMapping(any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(CategoryMappingResult.of(null,
+                .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
                         singletonList(BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid1, banner, "USD")),
                                 100)),
                         singletonList("Filtered bid 2"))));
@@ -1308,7 +1313,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldAddExtPrebidVideo() {
+    public void shouldAddExtPrebidVideoToExtBidPrebidWhenVideoBids() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
@@ -1327,6 +1332,32 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(responseBid -> toExtPrebid(responseBid.getExt()).getPrebid().getVideo())
                 .containsOnly(ExtBidPrebidVideo.of(1, "category"));
+    }
+
+    @Test
+    public void shouldAddDealTierSatisfiedToExtBidPrebidWhenBidsPrioritySatisfiedMinPriority() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").impid("i1")
+                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(
+                        ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(1, "category")).build()))).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+        given(categoryMapper.createCategoryMapping(anyList(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(),
+                        Collections.singletonMap("bidder1", Collections.singletonMap("bidId1", true)),
+                        bidderResponses, emptyList())));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(responseBid -> toExtPrebid(responseBid.getExt()).getPrebid())
+                .extracting(ExtBidPrebid::getDealtiersatisfied)
+                .containsOnly(true);
     }
 
     @Test

@@ -102,20 +102,20 @@ public class CategoryMapperTest extends VertxTest {
         // then
         assertThat(resultFuture.succeeded()).isTrue();
         final Map<String, Map<String, String>> expectedBidCategory = new HashMap<>();
-        final Map<String, String> rubiconBidToCategory = new HashMap<>();
-        rubiconBidToCategory.put("1", "10.00_fetchedCatDup_10s");
-        rubiconBidToCategory.put("2", "15.00_fetchedCat2_15s");
-        expectedBidCategory.put("rubicon", rubiconBidToCategory);
-        expectedBidCategory.put("otherBid", Collections.singletonMap("4", "15.00_fetchedCat4_5s"));
+        final Map<String, String> otherBidToCategory = new HashMap<>();
+        otherBidToCategory.put("3", "10.00_fetchedCatDup_5s");
+        otherBidToCategory.put("4", "15.00_fetchedCat4_5s");
+        expectedBidCategory.put("rubicon", Collections.singletonMap("2", "15.00_fetchedCat2_15s"));
+        expectedBidCategory.put("otherBid", otherBidToCategory);
         assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(expectedBidCategory);
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
                 .extracting(BidderBid::getBid).hasSize(3)
                 .extracting(Bid::getId)
-                .containsOnly("1", "2", "4");
+                .containsOnly("2", "3", "4");
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("Bid rejected [bidder: otherBid, bid ID: 3] with a reason: Bid was deduplicated");
+                .containsOnly("Bid rejected [bidder: rubicon, bid ID: 1] with a reason: Bid was deduplicated");
     }
 
     @Test
@@ -712,38 +712,8 @@ public class CategoryMapperTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getErrors()).isEmpty();
-    }
-
-    @Test
-    public void applyCategoryMappingShouldRemoveSpacesFromDealTierPrefixInCatDur() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", givenDealTier(" ru bic onP refix", 3)))
-                        .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
-
-        final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid("1", "impId1", "10", BidType.video, singletonList("cat1"),
-                        10, "prCategory1")));
-
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
-        given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
-
-        // when
-        final Future<CategoryMappingResult> resultFuture = categoryMapper.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
-
-        // then
-        assertThat(resultFuture.succeeded()).isTrue();
-        assertThat(resultFuture.result().getBiddersToBidsCategories())
-                .isEqualTo(Collections.singletonMap("rubicon",
-                        Collections.singletonMap("1", "rubiconPrefix3_fetchedCat1_10s")));
-        assertThat(resultFuture.result().getBidderResponses())
-                .extracting(BidderResponse::getSeatBid)
-                .flatExtracting(BidderSeatBid::getBids).hasSize(1);
+        assertThat(resultFuture.result().getBiddersToBidsSatisfiedPriority())
+                .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", true)));
         assertThat(resultFuture.result().getErrors()).isEmpty();
     }
 
@@ -808,14 +778,15 @@ public class CategoryMapperTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
+        assertThat(resultFuture.result().getBiddersToBidsSatisfiedPriority())
+                .isEqualTo(Collections.singletonMap("rubicon", Collections.singletonMap("1", false)));
         assertThat(resultFuture.result().getErrors()).isEmpty();
     }
 
     @Test
     public void applyCategoryMappingShouldIgnoreContextAndPrebidInImpExt() {
         // given
-        final ObjectNode impExt = mapper.createObjectNode().set("rubicon",
-                givenDealTier("rubiconPrefix", 3));
+        final ObjectNode impExt = mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 3));
         impExt.set("context", mapper.createObjectNode());
         impExt.set("prebid", mapper.createObjectNode());
         final BidRequest bidRequest = BidRequest.builder()

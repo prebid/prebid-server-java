@@ -12,6 +12,8 @@ public class CategoryMappingResult {
 
     Map<String, Map<String, String>> biddersToBidsCategories;
 
+    Map<String, Map<String, Boolean>> biddersToBidsSatisfiedPriority;
+
     List<BidderResponse> bidderResponses;
 
     List<String> errors;
