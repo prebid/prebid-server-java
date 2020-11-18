@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -54,8 +55,9 @@ public class AdheseBidder implements Bidder<Void> {
             };
 
     private static final String ORIGIN = "JERLICIA";
-    private static final String QUERY_PARAMETER_GDPR = "/xt";
-    private static final String QUERY_PARAMETER_REFERER = "/xf";
+    private static final String GDPR_QUERY_PARAMETER = "/xt";
+    private static final String REFERER_QUERY_PARAMETER = "/xf";
+    private static final String IFA_QUERY_PARAMETER = "/xz";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -102,8 +104,10 @@ public class AdheseBidder implements Bidder<Void> {
         final String slotParameter = String.format("/sl%s-%s", HttpUtil.encodeUrl(extImpAdhese.getLocation()),
                 HttpUtil.encodeUrl(extImpAdhese.getFormat()));
 
-        return String.format("%s%s%s%s%s", uri, slotParameter, getTargetParameters(extImpAdhese),
-                getGdprParameter(request.getUser()), getRefererParameter(request.getSite()));
+        return String.format("%s%s%s%s%s%s", uri, slotParameter, getTargetParameters(extImpAdhese),
+                getGdprParameter(request.getUser()),
+                getRefererParameter(request.getSite()),
+                getIfaParameter(request.getDevice()));
     }
 
     private String getTargetParameters(ExtImpAdhese extImpAdhese) {
@@ -133,15 +137,20 @@ public class AdheseBidder implements Bidder<Void> {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         return StringUtils.isNotBlank(consent)
-                ? String.format("%s%s", QUERY_PARAMETER_GDPR, consent)
+                ? String.format("%s%s", GDPR_QUERY_PARAMETER, consent)
                 : "";
     }
 
     private static String getRefererParameter(Site site) {
-        final String page = site != null ? site.getPage() : null;
-        return StringUtils.isNotBlank(page)
-                ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(page))
+        return site != null && StringUtils.isNotBlank(site.getPage())
+                ? String.format("%s%s", REFERER_QUERY_PARAMETER, HttpUtil.encodeUrl(site.getPage()))
                 : "";
+    }
+
+    private static String getIfaParameter(Device device) {
+        final String ifa = device != null ? device.getIfa() : null;
+        return StringUtils.isNotBlank(ifa)
+                ? String.format("%s%s", IFA_QUERY_PARAMETER, HttpUtil.encodeUrl(ifa)) : "";
     }
 
     @Override
