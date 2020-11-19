@@ -14,7 +14,7 @@
     </organization>
 
     <scm>
-        <developerConnection>scm:git:git@github.com:rubicon-project/prebid-server-java.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:prebid/prebid-server-java.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
