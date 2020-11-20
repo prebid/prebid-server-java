@@ -11,8 +11,6 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.PreBidRequestContext;
@@ -21,7 +19,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -145,12 +142,6 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
         return allowedMediaTypes;
     }
 
-    protected MultiMap headers() {
-        return MultiMap.caseInsensitiveMultiMap()
-                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
-                .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
-    }
-
     protected static void validateImps(List<Imp> imps) {
         if (CollectionUtils.isEmpty(imps)) {
             throw new PreBidException("openRTB bids need at least one Imp");
@@ -170,7 +161,8 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
      * Extracts bids from response, returns empty stream in case of missing bid response or seat bids
      */
     protected static Stream<com.iab.openrtb.response.Bid> responseBidStream(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null ? Stream.empty()
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Stream.empty()
                 : bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)

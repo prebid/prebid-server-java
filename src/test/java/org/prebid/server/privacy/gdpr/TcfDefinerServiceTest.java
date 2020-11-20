@@ -109,7 +109,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, null);
+                Privacy.of(null, null, null, null), null, null, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -127,7 +127,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.amp, null);
+                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.amp, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.builder().build());
@@ -143,7 +143,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, accountGdprConfig, null);
+                Privacy.of(null, null, null, null), null, accountGdprConfig, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -162,7 +162,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.legacy, null);
+                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.legacy, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -192,7 +192,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.legacy, null);
+                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.legacy, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -223,7 +223,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, vendorConsent, null, null), null, null, null);
+                Privacy.of(null, vendorConsent, null, null), null, null, null, null);
 
         // then
         assertThat(result).isSucceeded();
@@ -244,7 +244,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(EMPTY, "consent", null, null), EEA_COUNTRY, "ip", null, null, null);
+                Privacy.of(EMPTY, "consent", null, null), EEA_COUNTRY, "ip", null, null, null, null);
 
         // then
         assertThat(result).isSucceeded();
@@ -272,7 +272,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(EMPTY, consentString, null, null), "ip", null, null);
+                Privacy.of(EMPTY, consentString, null, null), "ip", null, null, null);
 
         // then
         assertThat(result).isSucceeded();
@@ -311,7 +311,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), "ip", null, null);
+                Privacy.of(null, null, null, null), "ip", null, null, null);
 
         // then
         assertThat(result).isSucceeded();
@@ -347,7 +347,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, null);
+                Privacy.of(null, null, null, null), null, null, null, null);
 
         // then
         assertThat(result).isSucceeded();
@@ -366,7 +366,7 @@ public class TcfDefinerServiceTest {
     public void resolveTcfContextShouldIncrementMissingConsentStringMetric() {
         // when
         tcfDefinerService.resolveTcfContext(
-                Privacy.of("1", EMPTY, null, null), null, null, null);
+                Privacy.of("1", EMPTY, null, null), null, null, null, null);
 
         // then
         verify(metrics).updatePrivacyTcfMissingMetric();
@@ -376,7 +376,7 @@ public class TcfDefinerServiceTest {
     public void resolveTcfContextShouldIncrementInvalidConsentStringMetric() {
         // when
         tcfDefinerService.resolveTcfContext(
-                Privacy.of("1", "abc", null, null), null, null, null);
+                Privacy.of("1", "abc", null, null), null, null, null, null);
 
         // then
         verify(metrics).updatePrivacyTcfInvalidMetric();

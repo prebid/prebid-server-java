@@ -473,6 +473,47 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotSetDeviceDntIfHeaderHasInvalidValue() {
+        // given
+        given(httpRequest.getHeader("DNT")).willReturn("invalid");
+        givenValidBidRequest();
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getDnt()).isNull();
+    }
+
+    @Test
+    public void shouldSetDeviceDntIfHeaderExists() {
+        // given
+        given(httpRequest.getHeader("DNT")).willReturn("1");
+        givenValidBidRequest();
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getDnt()).isOne();
+    }
+
+    @Test
+    public void shouldOverrideDeviceDntIfHeaderExists() {
+        // given
+        given(httpRequest.getHeader("DNT")).willReturn("0");
+        givenBidRequest(BidRequest.builder()
+                .device(Device.builder().dnt(1).build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getDnt()).isZero();
+    }
+
+    @Test
     public void shouldUpdateImpsWithSecurityOneIfRequestIsSecuredAndImpSecurityNotDefined() {
         // given
         givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
@@ -1342,8 +1383,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
 
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(
-                BidRequest.builder().build()));
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("error1", "error2")));
 
@@ -1685,7 +1726,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
             throw new RuntimeException(e);
         }
 
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willReturn(Future.succeededFuture(bidRequest));
 
         given(requestValidator.validate(any())).willReturn(ValidationResult.success());
     }

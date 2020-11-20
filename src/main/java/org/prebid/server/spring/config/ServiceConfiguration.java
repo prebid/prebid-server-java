@@ -27,6 +27,7 @@ import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -51,6 +52,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
+import org.prebid.server.util.VersionInfo;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -402,9 +404,28 @@ public class ServiceConfiguration {
     @Bean
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
-            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory) {
+            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
+            BidderErrorNotifier bidderErrorNotifier) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory);
+        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+    }
+
+    @Bean
+    BidderErrorNotifier bidderErrorNotifier(
+            @Value("${auction.timeout-notification.timeout-ms}") int timeoutNotificationTimeoutMs,
+            @Value("${auction.timeout-notification.log-result}") boolean logTimeoutNotificationResult,
+            @Value("${auction.timeout-notification.log-failure-only}") boolean logTimeoutNotificationFailureOnly,
+            @Value("${auction.timeout-notification.log-sampling-rate}") double logTimeoutNotificationSamplingRate,
+            HttpClient httpClient,
+            Metrics metrics) {
+
+        return new BidderErrorNotifier(
+                timeoutNotificationTimeoutMs,
+                logTimeoutNotificationResult,
+                logTimeoutNotificationFailureOnly,
+                logTimeoutNotificationSamplingRate,
+                httpClient,
+                metrics);
     }
 
     @Bean
@@ -505,6 +526,11 @@ public class ServiceConfiguration {
                                               JacksonMapper mapper) {
 
         return new HttpAdapterConnector(httpClient, privacyExtractor, clock, mapper);
+    }
+
+    @Bean
+    VersionInfo versionInfo(JacksonMapper jacksonMapper) {
+        return VersionInfo.create("git-revision.json", jacksonMapper);
     }
 
     @Bean

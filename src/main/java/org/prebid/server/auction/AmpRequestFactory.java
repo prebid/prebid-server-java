@@ -121,7 +121,7 @@ public class AmpRequestFactory {
      */
     private Future<Tuple2<BidRequest, List<String>>> createBidRequest(RoutingContext context, String tagId) {
         final List<String> errors = new ArrayList<>();
-        return storedRequestProcessor.processAmpRequest(tagId)
+        return storedRequestProcessor.processAmpRequest(context.request().getParam(ACCOUNT_REQUEST_PARAM), tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))

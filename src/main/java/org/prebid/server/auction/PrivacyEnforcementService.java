@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
@@ -20,6 +21,7 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.VendorIdResolver;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
@@ -29,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.text.DecimalFormat;
@@ -96,18 +99,27 @@ public class PrivacyEnforcementService {
 
         final String effectiveIpAddress = isLmtEnabled(device) ? ipAddressHelper.maskIpv4(ipAddress) : ipAddress;
 
+        final AccountGdprConfig accountGdpr = account.getGdpr();
+        final String accountId = account.getId();
+        final RequestLogInfo requestLogInfo = requestLogInfo(requestType, bidRequest, accountId);
+
         return tcfDefinerService.resolveTcfContext(
-                privacy, country, effectiveIpAddress, account.getGdpr(), requestType, timeout)
+                privacy, country, effectiveIpAddress, accountGdpr, requestType, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
     public Future<PrivacyContext> contextFromLegacyRequest(PreBidRequestContext preBidRequestContext, Account account) {
         final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequestContext.getPreBidRequest());
 
+        final AccountGdprConfig accountGdpr = account.getGdpr();
+        final String accountId = account.getId();
+        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.legacy, null, accountId);
+
         return tcfDefinerService.resolveTcfContext(
                 privacy,
                 preBidRequestContext.getIp(),
-                account.getGdpr(),
+                accountGdpr,
+                requestLogInfo,
                 preBidRequestContext.getTimeout())
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
@@ -117,8 +129,11 @@ public class PrivacyEnforcementService {
 
         final Privacy privacy = privacyExtractor.validPrivacyFromSetuidRequest(httpRequest);
         final String ipAddress = HttpUtil.ipFrom(httpRequest);
+        final AccountGdprConfig accountGdpr = account.getGdpr();
+        final String accountId = account.getId();
+        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.setuid, null, accountId);
 
-        return tcfDefinerService.resolveTcfContext(privacy, ipAddress, account.getGdpr(), timeout)
+        return tcfDefinerService.resolveTcfContext(privacy, ipAddress, accountGdpr, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -127,9 +142,22 @@ public class PrivacyEnforcementService {
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(cookieSyncRequest);
         final String ipAddress = HttpUtil.ipFrom(httpRequest);
+        final AccountGdprConfig accountGdpr = account.getGdpr();
+        final String accountId = account.getId();
+        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.cookiesync, null, accountId);
 
-        return tcfDefinerService.resolveTcfContext(privacy, ipAddress, account.getGdpr(), timeout)
+        return tcfDefinerService.resolveTcfContext(privacy, ipAddress, accountGdpr, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
+    }
+
+    private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
+        if (Objects.equals(requestType, MetricName.openrtb2web)) {
+            final Site site = bidRequest.getSite();
+            final String refUrl = site != null ? site.getRef() : null;
+            return RequestLogInfo.of(requestType, refUrl, accountId);
+        }
+
+        return RequestLogInfo.of(requestType, null, accountId);
     }
 
     Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,

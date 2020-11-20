@@ -433,12 +433,6 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        // given, when and then
-        assertThat(eplanningBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
-    }
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

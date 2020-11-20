@@ -6,6 +6,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 
 class UpdatableMetrics {
 
@@ -66,6 +67,14 @@ class UpdatableMetrics {
     void updateHistogram(MetricName metricName, long value) {
         // by default histograms with exponentially decaying reservoir (size=1028, alpha=0.015) are created
         metricRegistry.histogram(name(metricName)).update(value);
+    }
+
+    void createGauge(MetricName metricName, LongSupplier supplier) {
+        metricRegistry.gauge(name(metricName), () -> supplier::getAsLong);
+    }
+
+    void removeMetric(MetricName metricName) {
+        metricRegistry.remove(name(metricName));
     }
 
     private String name(MetricName metricName) {

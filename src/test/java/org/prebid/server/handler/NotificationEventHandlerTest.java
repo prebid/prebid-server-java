@@ -36,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -300,6 +301,23 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(applicationSettings);
         verifyZeroInteractions(analyticsReporter);
+    }
+
+    @Test
+    public void shouldRespondWhenAnalyticsValueIsZeroAndDoNotSetStatusManually() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("x", "0"));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse, never()).setStatusCode(anyInt());
+        verify(httpResponse).end();
     }
 
     @Test
