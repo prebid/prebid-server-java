@@ -132,9 +132,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                     + "via http: failed to parse response: %s", accountIds, e.getMessage()));
         }
 
-        return response.getAccounts().values().stream()
-                .map(accountNode -> mapper.mapper().convertValue(accountNode, Account.class))
-                .collect(Collectors.toSet());
+        return new HashSet<>(response.getAccounts().values());
     }
 
     /**

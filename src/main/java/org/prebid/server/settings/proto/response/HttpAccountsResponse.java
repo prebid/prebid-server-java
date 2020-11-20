@@ -1,8 +1,8 @@
 package org.prebid.server.settings.proto.response;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.settings.model.Account;
 
 import java.util.Map;
 
@@ -10,5 +10,5 @@ import java.util.Map;
 @Value
 public class HttpAccountsResponse {
 
-    Map<String, ObjectNode> accounts;
+    Map<String, Account> accounts;
 }

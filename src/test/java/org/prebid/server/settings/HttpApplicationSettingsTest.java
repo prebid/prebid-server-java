@@ -1,7 +1,6 @@
 package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Rule;
@@ -99,10 +98,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldReturnFetchedAccount() throws JsonProcessingException {
         // given
-        final ObjectNode account = mapper.convertValue(Account.builder()
+        final Account account = Account.builder()
                 .id("someId")
                 .enforceCcpa(true)
-                .priceGranularity("testPriceGranularity").build(), ObjectNode.class);
+                .priceGranularity("testPriceGranularity")
+                .build();
         HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
