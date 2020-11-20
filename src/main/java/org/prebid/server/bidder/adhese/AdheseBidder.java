@@ -11,6 +11,8 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -83,11 +85,20 @@ public class AdheseBidder implements Bidder<Void> {
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
-                        .method(HttpMethod.GET)
+                        .method(HttpMethod.POST)
                         .uri(uri)
-                        .headers(HttpUtil.headers())
+                        .headers(replaceHeaders(request.getDevice()))
                         .build()),
                 Collections.emptyList());
+    }
+
+    private MultiMap replaceHeaders(Device device) {
+        MultiMap headers = HttpUtil.headers();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.createOptimized("X-Real-IP"), device.getIp());
+        }
+        return headers;
     }
 
     private ExtImpAdhese parseImpExt(Imp imp) {
