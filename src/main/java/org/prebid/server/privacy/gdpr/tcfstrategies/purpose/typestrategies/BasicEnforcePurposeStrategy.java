@@ -6,6 +6,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
 
 import java.util.Collection;
 import java.util.List;
@@ -15,18 +16,19 @@ public class BasicEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
     private static final Logger logger = LoggerFactory.getLogger(BasicEnforcePurposeStrategy.class);
 
-    public Collection<VendorPermission> allowedByTypeStrategy(int purposeId,
+    public Collection<VendorPermission> allowedByTypeStrategy(Purpose purpose,
                                                               TCString vendorConsent,
                                                               Collection<VendorPermissionWithGvl> vendorsForPurpose,
                                                               Collection<VendorPermissionWithGvl> excludedVendors,
                                                               boolean isEnforceVendors) {
 
-        logger.debug("Basic strategy used fo purpose {0}", purposeId);
+        logger.debug("Basic strategy used for purpose {0}", purpose);
+
         final List<VendorPermission> allowedVendorPermissions = vendorsForPurpose.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
                 .filter(vendorPermission -> vendorPermission.getVendorId() != null)
-                .filter(vendorPermission -> isAllowedBySimpleConsent(purposeId,
-                        vendorPermission.getVendorId(), isEnforceVendors, vendorConsent))
+                .filter(vendorPermission -> isAllowedBySimpleConsent(
+                        purpose, vendorPermission.getVendorId(), isEnforceVendors, vendorConsent))
                 .collect(Collectors.toList());
 
         return CollectionUtils.union(allowedVendorPermissions, toVendorPermissions(excludedVendors));

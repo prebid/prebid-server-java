@@ -18,4 +18,11 @@ public class AdformParams {
 
     @JsonProperty("mkw")
     String keyWords;
+
+    String cdims;
+
+    @JsonProperty("minp")
+    Double minPrice;
+
+    String url;
 }

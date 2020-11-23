@@ -1,0 +1,100 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "tagid": "2eb6bd58-865c-47ce-af7f-a918108c3fd2",
+      "ext": {
+        "mobilefuse": {
+          "placement_id": 999999,
+          "pub_id": 1111,
+          "tagid_src": "ext"
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "ip": "193.168.244.1",
+    "language": "en",
+    "ifa": "ifaId",
+    "ua": "userAgent"
+  },
+  "site": {
+    "domain": "example.com",
+    "ext": {
+      "amp": 0
+    },
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "at": 1,
+  "tmax": 3000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "user": {
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
+      },
+      "targeting": {
+        "includebidderkeys": true,
+        "includewinners": true,
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        }
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "auctiontimestamp": 1000
+    }
+  }
+}

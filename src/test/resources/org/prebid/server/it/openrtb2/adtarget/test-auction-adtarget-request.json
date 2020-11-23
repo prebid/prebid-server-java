@@ -1,0 +1,81 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId14",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "adtarget": {
+          "aid": 1000,
+          "siteId": 1234,
+          "bidFloor": 20,
+          "placementId": 10
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "site": {
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        }
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "auctiontimestamp": 1000
+    }
+  },
+  "user": {
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

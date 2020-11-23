@@ -16,7 +16,6 @@ import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import io.vertx.core.Vertx;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
@@ -219,7 +218,7 @@ public class ApplicationTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/rubicon_appnexus/test-auction-rubicon-appnexus-request.json"))
@@ -346,8 +345,13 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null,
-                        null))
+                .body(CookieSyncRequest.builder()
+                        .bidders(asList(RUBICON, APPNEXUS, ADFORM))
+                        .gdpr(1)
+                        .gdprConsent(gdprConsent)
+                        .usPrivacy("1YNN")
+                        .coopSync(false)
+                        .build())
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -581,29 +585,32 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void adminHandlerShouldRespondWithOk() {
+    public void loggingHttpInteractionShouldRespondWithOk() {
         given(ADMIN_SPEC)
-                .get("/admin?logging=error&records=1200")
+                .get("/logging/httpinteraction?limit=100")
                 .then()
                 .assertThat()
                 .statusCode(200);
     }
 
     @Test
-    public void currencyRatesHandlerShouldRespondWithLastUpdateDate() {
-        // given
-        final Instant currentTime = Instant.now();
+    public void loggingChangeLevekShouldRespondWithOk() {
+        given(ADMIN_SPEC)
+                .get("/logging/changelevel?level=info&duration=1")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
 
-        // ask endpoint after some time to ensure currency rates have already been fetched
-        Vertx.vertx().setTimer(1000L, ignored -> {
-            // when
-            final Response response = given(ADMIN_SPEC).get("/currency-rates");
-
-            // then
-            final String lastUpdateValue = response.jsonPath().getString("last_update");
-            final Instant lastUpdateTime = Instant.parse(lastUpdateValue);
-            assertThat(currentTime).isAfter(lastUpdateTime);
-        });
+    @Test
+    public void currencyRatesHandlerShouldReturnExpectedResponse() {
+        given(ADMIN_SPEC)
+                .when()
+                .get("/currency/rates")
+                .then()
+                .assertThat()
+                .body("active", Matchers.equalTo(true))
+                .statusCode(200);
     }
 
     @Test
