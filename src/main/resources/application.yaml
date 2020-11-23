@@ -88,6 +88,7 @@ auction:
     expected-request-time-ms: 10
     only-winning-bids: false
 video:
+  stored-request-required: false
   stored-requests-timeout-ms: 90
 amp:
   default-timeout-ms: 900
