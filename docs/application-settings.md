@@ -184,6 +184,8 @@ The SQL query for account must:
     * TCF configuration, JSON string, see below
     * analytics sampling factor, integer
     * maximum targeting attribute size, integer
+    * default integration value, string
+    * analytics configuration, JSON string, see below
 * specify a special single `%ACCOUNT_ID%` placeholder in the `WHERE` clause that will be replaced with account ID in 
 runtime
 
@@ -191,7 +193,7 @@ It is recommended to include `LIMIT 1` clause in the query because only the very
 
 TCF configuration column format:
 
-```
+```json
 {
   "enabled": true,
    "integration-enabled": {
@@ -298,6 +300,18 @@ TCF configuration column format:
         "bidder2"
       ]
     }
+  }
+}
+```
+
+
+Analytics configuration column format:
+```json
+{
+  "auction-events": {
+    "web": true,
+    "amp": true,
+    "app": false
   }
 }
 ```
