@@ -29,22 +29,26 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
 
     @Override
     public <T> void processEvent(T event) {
-        final String type;
+        final LogEvent<?> logEvent;
+
         if (event instanceof AuctionEvent) {
-            type = "/openrtb2/auction";
+            logEvent = new LogEvent<>("/openrtb2/auction", ((AuctionEvent) event).getBidResponse());
         } else if (event instanceof AmpEvent) {
-            type = "/openrtb2/amp";
+            logEvent = new LogEvent<>("/openrtb2/amp", ((AmpEvent) event).getBidResponse());
         } else if (event instanceof VideoEvent) {
-            type = "/openrtb2/video";
+            logEvent = new LogEvent<>("/openrtb2/video", ((VideoEvent) event).getBidResponse());
         } else if (event instanceof SetuidEvent) {
-            type = "/setuid";
+            final SetuidEvent setuidEvent = (SetuidEvent) event;
+            logEvent = new LogEvent<>(
+                    "/setuid",
+                    setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess());
         } else if (event instanceof CookieSyncEvent) {
-            type = "/cookie_sync";
+            logEvent = new LogEvent<>("/cookie_sync", ((CookieSyncEvent) event).getBidderStatus());
         } else {
-            type = "unknown";
+            logEvent = new LogEvent<>("unknown", null);
         }
 
-        logger.debug(mapper.encode(new LogEvent<>(type, event)));
+        logger.debug(mapper.encode(logEvent));
     }
 
     @AllArgsConstructor

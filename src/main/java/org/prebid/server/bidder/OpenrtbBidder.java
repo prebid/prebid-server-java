@@ -1,11 +1,11 @@
 package org.prebid.server.bidder;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -22,13 +22,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final RequestCreationStrategy requestCreationStrategy;
@@ -51,7 +48,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         try {
             validateRequest(bidRequest);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -66,7 +63,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             }
         }
         if (modifiedImpsWithExts.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         return Result.of(createHttpRequests(bidRequest, modifiedImpsWithExts), errors);
@@ -122,8 +119,8 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * such as setting some value from extension to impression itself, for example:
      * <p>
      * return imp.toBuilder()
-     *           .id(impExt.getSpecialId)
-     *           .build();
+     * .id(impExt.getSpecialId)
+     * .build();
      * <p>
      * NOTE: It's not the only place to apply bidder-specific changes to impressions.
      * Additionally, there's an option to do these impressions' transformations later,
@@ -191,9 +188,9 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * <p>
      * final String placementId = impExts.get(0).getPlacementId();
      * final List<Imp> impsWithTagId = modifiedImps.stream()
-     *              .map(Imp::toBuilder)
-     *              .map(impBuilder -> impBuilder.tagid(placementId).build())
-     *              .collect(Collectors.toList());
+     * .map(Imp::toBuilder)
+     * .map(impBuilder -> impBuilder.tagid(placementId).build())
+     * .collect(Collectors.toList());
      * requestBuilder.imp(impsWithTagId);
      *
      * @param bidRequest     - original incoming bid request
@@ -210,14 +207,14 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
@@ -229,7 +226,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), getBidCurrency()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -260,22 +257,6 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             }
         }
         return bidType;
-    }
-
-    /**
-     * A hook for defining a bid currency.
-     * <p>
-     * By default - USD.
-     *
-     * @return - bid currency
-     */
-    protected String getBidCurrency() {
-        return DEFAULT_BID_CURRENCY;
-    }
-
-    @Override
-    public final Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 
     public enum RequestCreationStrategy {

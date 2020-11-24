@@ -13,6 +13,7 @@ import java.util.List;
 )
 @Value
 public class ExtImpVisx {
+
     Integer uid;
 
     List<Integer> size;

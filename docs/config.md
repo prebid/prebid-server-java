@@ -24,14 +24,14 @@ metrics:
 settings:
   database:
     type: mysql
-    stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)
-    amp-stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)
+    stored-requests-query: SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)
+    amp-stored-requests-query: SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)
     stored-responses-query: SELECT resid, responseData FROM stored_responses WHERE resid IN (%RESPONSE_ID_LIST%)
 ```
 If some property is missed in `prebid-config.yaml` application will look for it in `src/main/resources/application.yaml` file.
 
 To use external application configuration just add the following as start up arguments:
-```
+```bash
 --spring.config.additional-location=/path/to/prebid-config.yaml
 ```
 
@@ -54,11 +54,11 @@ For example `prebid-logging.xml`:
 ```
 
 To use external logging configuration just add the following as start up arguments to java executable:
-```
+```bash
 -Dlogging.config=/path/to/prebid-logging.xml
 ```
 
-Full list of application configuration options can be found [here](config-app.md).
+For more details see [Full list of configuration options](config-app.md) and  [Application settings](application-settings.md).
 
 ### See also
 

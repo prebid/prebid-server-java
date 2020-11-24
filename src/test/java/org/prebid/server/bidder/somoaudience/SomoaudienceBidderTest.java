@@ -83,11 +83,11 @@ public class SomoaudienceBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple("x-openrtb-version", "2.5"),
-                        tuple("User-Agent", "User Agent"),
-                        tuple("X-Forwarded-For", "ip"),
-                        tuple("Accept-Language", "en"),
-                        tuple("DNT", "1"));
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "User Agent"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
+                        tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "en"),
+                        tuple(HttpUtil.DNT_HEADER.toString(), "1"));
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build())

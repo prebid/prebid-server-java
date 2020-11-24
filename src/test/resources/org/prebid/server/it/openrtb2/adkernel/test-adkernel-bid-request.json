@@ -55,16 +55,6 @@
   },
   "ext": {
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.811
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -84,7 +74,10 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

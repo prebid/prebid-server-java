@@ -59,6 +59,7 @@ import java.util.stream.Collectors;
  */
 public class HttpApplicationSettings implements ApplicationSettings {
 
+    private static final String NOT_SUPPORTED = "Not supported";
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
 
     private String endpoint;
@@ -97,8 +98,28 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
+    }
+
+    /**
+     * Runs a process to get stored requests by a collection of amp ids from http service
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
+     */
+    @Override
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
+    }
+
+    /**
+     * Not supported and returns failed result.
+     */
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                       Timeout timeout) {
+        return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
     /**
@@ -107,23 +128,6 @@ public class HttpApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return Future.failedFuture(new PreBidException("Not supported"));
-    }
-
-    /**
-     * Runs a process to get stored requests by a collection of amp ids from http service
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
-     */
-    @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
-    }
-
-    /**
-     * Not supported and returns failed result.
-     */
-    @Override
-    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,

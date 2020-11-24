@@ -42,7 +42,6 @@ import org.prebid.server.validation.VideoRequestValidator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -95,13 +94,15 @@ public class VideoStoredRequestProcessor {
     /**
      * Fetches ParsedStoredDataResult&lt;BidRequestVideo, Imp&gt; from stored request.
      */
-    Future<WithPodErrors<BidRequest>> processVideoRequest(String storedBidRequestId, Set<String> podIds,
+    Future<WithPodErrors<BidRequest>> processVideoRequest(String accountId, String storedBidRequestId,
+                                                          Set<String> podIds,
                                                           BidRequestVideo receivedRequest) {
-        final Set<String> storedRequestIds = new HashSet<>();
-        if (StringUtils.isNotBlank(storedBidRequestId)) {
-            storedRequestIds.add(storedBidRequestId);
-        }
-        return applicationSettings.getVideoStoredData(storedRequestIds, podIds, timeoutFactory.create(defaultTimeout))
+        final Set<String> storedRequestIds = StringUtils.isNotBlank(storedBidRequestId)
+                ? Collections.singleton(storedBidRequestId)
+                : Collections.emptySet();
+
+        return applicationSettings.getVideoStoredData(accountId, storedRequestIds, podIds,
+                timeoutFactory.create(defaultTimeout))
                 .compose(storedDataResult -> updateMetrics(storedDataResult, storedRequestIds, podIds))
                 .map(storedData -> mergeToBidRequest(storedData, receivedRequest, storedBidRequestId))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
