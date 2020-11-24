@@ -16,11 +16,11 @@ public class CacheServiceResult {
 
     private static final CacheServiceResult EMPTY = CacheServiceResult.of(null, null, Collections.emptyMap());
 
-    CacheHttpCall httpCall;
+    DebugHttpCall httpCall;
 
     Throwable error;
 
-    Map<Bid, CacheIdInfo> cacheBids;
+    Map<Bid, CacheInfo> cacheBids;
 
     public static CacheServiceResult empty() {
         return EMPTY;

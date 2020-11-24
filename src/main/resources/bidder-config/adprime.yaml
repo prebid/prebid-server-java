@@ -1,0 +1,25 @@
+adapters:
+  adprime:
+    enabled: false
+    endpoint: http://delta.adprime.com/?c=o&m=ortb
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: rafal@adprime.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 104
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: adprime
+      type: redirect
+      support-cors: false

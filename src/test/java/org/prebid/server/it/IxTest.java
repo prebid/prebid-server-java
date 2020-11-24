@@ -26,12 +26,12 @@ public class IxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromIx() throws IOException, JSONException {
         // given
-        // ix bid response for imp 6
+        // ix bid response for imp 6 with 300x250
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response-1.json"))));
 
-        // ix bid response for imp 61
+        // ix bid response for imp 6 with 600x480
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response-2.json"))));
@@ -79,7 +79,7 @@ public class IxTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"ix":"IE-UID"}}
+                // this uids cookie value stands for {"uids":{"ix":"IE-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7Iml4IjoiSUUtVUlEIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/ix/test-auction-ix-request.json"))

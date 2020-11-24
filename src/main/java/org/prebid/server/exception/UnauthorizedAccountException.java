@@ -6,7 +6,7 @@ import lombok.Getter;
 public class UnauthorizedAccountException extends RuntimeException {
 
     @Getter
-    private String accountId;
+    private final String accountId;
 
     public UnauthorizedAccountException(String message, String accountId) {
         super(message);

@@ -9,9 +9,10 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
-import org.prebid.server.settings.mapper.JdbcStoredResponseResultMapper;
+import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
+import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -53,11 +54,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     /**
      * Query to select stored requests and imps by ids, for example:
      * <pre>
-     * SELECT reqid, requestData, 'request' as dataType
+     * SELECT accountId, reqid, requestData, 'request' as dataType
      *   FROM stored_requests
      *   WHERE reqid in (%REQUEST_ID_LIST%)
      * UNION ALL
-     * SELECT impid, impData, 'imp' as dataType
+     * SELECT accountId, impid, impData, 'imp' as dataType
      *   FROM stored_imps
      *   WHERE impid in (%IMP_ID_LIST%)
      * </pre>
@@ -67,7 +68,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     /**
      * Query to select amp stored requests by ids, for example:
      * <pre>
-     * SELECT reqid, requestData, 'request' as dataType
+     * SELECT accountId, reqid, requestData, 'request' as dataType
      *   FROM stored_requests
      *   WHERE reqid in (%REQUEST_ID_LIST%)
      * </pre>
@@ -115,9 +116,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .videoCacheTtl(row.getInteger(3))
                         .eventsEnabled(row.getBoolean(4))
                         .enforceCcpa(row.getBoolean(5))
-                        .gdpr(toAccountTcfConfig(row.getString(6)))
+                        .gdpr(toModel(row.getString(6), AccountGdprConfig.class))
                         .analyticsSamplingFactor(row.getInteger(7))
                         .truncateTargetAttr(row.getInteger(8))
+                        .defaultIntegration(row.getString(9))
+                        .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
@@ -158,9 +161,9 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
     }
 
-    private AccountGdprConfig toAccountTcfConfig(String tcfConfig) {
+    private <T> T toModel(String source, Class<T> targetClass) {
         try {
-            return tcfConfig != null ? mapper.decodeValue(tcfConfig, AccountGdprConfig.class) : null;
+            return source != null ? mapper.decodeValue(source, targetClass) : null;
         } catch (DecodeException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -171,8 +174,29 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return fetchStoredData(selectStoredRequestsQuery, requestIds, impIds, timeout);
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
+        return fetchStoredData(selectStoredRequestsQuery, accountId, requestIds, impIds, timeout);
+    }
+
+    /**
+     * Runs a process to get stored requests by a collection of amp ids from database
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
+     */
+    @Override
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        return fetchStoredData(selectAmpStoredRequestsQuery, accountId, requestIds, Collections.emptySet(), timeout);
+    }
+
+    /**
+     * Runs a process to get stored requests by a collection of video ids from database
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
+     */
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                       Timeout timeout) {
+        return fetchStoredData(selectStoredRequestsQuery, accountId, requestIds, impIds, timeout);
     }
 
     /**
@@ -193,28 +217,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Runs a process to get stored requests by a collection of amp ids from database
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
-     */
-    @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return fetchStoredData(selectAmpStoredRequestsQuery, requestIds, Collections.emptySet(), timeout);
-    }
-
-    /**
-     * Runs a process to get stored requests by a collection of video ids from database
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
-     */
-    @Override
-    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return fetchStoredData(selectStoredRequestsQuery, requestIds, impIds, timeout);
-    }
-
-    /**
      * Fetches stored requests from database for the given query.
      */
-    private Future<StoredDataResult> fetchStoredData(String query, Set<String> requestIds, Set<String> impIds,
-                                                     Timeout timeout) {
+    private Future<StoredDataResult> fetchStoredData(String query, String accountId, Set<String> requestIds,
+                                                     Set<String> impIds, Timeout timeout) {
         final Future<StoredDataResult> future;
 
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
@@ -229,7 +235,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
             final String parametrizedQuery = createParametrizedQuery(query, requestIds.size(), impIds.size());
             future = jdbcClient.executeQuery(parametrizedQuery, idsQueryParameters,
-                    result -> JdbcStoredDataResultMapper.map(result, requestIds, impIds),
+                    result -> JdbcStoredDataResultMapper.map(result, accountId, requestIds, impIds),
                     timeout);
         }
 

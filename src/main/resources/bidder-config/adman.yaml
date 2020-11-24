@@ -1,0 +1,25 @@
+adapters:
+  adman:
+    enabled: false
+    endpoint: http://pub.admanmedia.com/?c=o&m=ortb
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prebid@admanmedia.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 149
+    usersync:
+      url: https://sync.admanmedia.com/pbs.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+      redirect-url: /setuid?bidder=adman&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[UID]
+      cookie-family-name: adman
+      type: redirect
+      support-cors: false

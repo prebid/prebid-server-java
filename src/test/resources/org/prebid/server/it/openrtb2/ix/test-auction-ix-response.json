@@ -6,23 +6,23 @@
         {
           "id": "975135373",
           "impid": "impId6",
-          "price": 4.75,
+          "price": 4.125,
           "adm": "adm6",
           "crid": "crid6",
           "w": 300,
-          "h": 600,
+          "h": 250,
           "ext": {
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb_ix": "4.70",
+                "hb_pb_ix": "4.10",
                 "hb_cache_id": "3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
                 "hb_bidder_ix": "ix",
-                "hb_pb": "4.70",
-                "hb_size_ix": "300x600",
+                "hb_pb": "4.10",
+                "hb_size_ix": "300x250",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_cache_path_ix": "{{ cache.path }}",
-                "hb_size": "300x600",
+                "hb_size": "300x250",
                 "hb_bidder": "ix",
                 "hb_cache_host_ix": "{{ cache.host }}",
                 "hb_cache_host": "{{ cache.host }}",
@@ -36,27 +36,13 @@
               }
             }
           }
-        },
-        {
-          "id": "894859517",
-          "impid": "impId6",
-          "price": 3.75,
-          "adm": "adm6",
-          "crid": "crid6",
-          "w": 600,
-          "h": 480,
-          "ext": {
-            "prebid": {
-              "type": "banner"
-            }
-          }
         }
       ],
       "seat": "ix",
       "group": 0
     }
   ],
-  "cur": "USD",
+  "cur": "EUR",
   "ext": {
     "responsetimemillis": {
       "ix": "{{ ix.response_time_ms }}",

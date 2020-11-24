@@ -1,13 +1,11 @@
 package org.prebid.server.bidder.ucfunnel;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -28,18 +26,17 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
  * Ucfunnel {@link Bidder} implementation.
  */
 public class UcfunnelBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpUcfunnel>> UCFUNNEL_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpUcfunnel>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -53,7 +50,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No valid impressions in the bid request"));
+            return Result.withError(BidderError.badInput("No valid impressions in the bid request"));
         }
 
         String partnerId = null;
@@ -63,7 +60,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             partnerId = extImpUcfunnel.getPartnerid();
             if (StringUtils.isEmpty(partnerId) || StringUtils.isEmpty(adUnitId)) {
                 errors.add(BidderError.badInput("No PartnerId or AdUnitId in the bid request"));
-                return Result.of(Collections.emptyList(), errors);
+                return Result.withErrors(errors);
             }
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -93,21 +90,11 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return Result.emptyWithError(BidderError.badInput("bad request"));
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    statusCode)));
-        }
-
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
@@ -115,12 +102,12 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             for (Bid bid : seatBid.getBid()) {
                 final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
                 if (bidType == BidType.banner || bidType == BidType.video) {
-                    final BidderBid bidderBid = BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+                    final BidderBid bidderBid = BidderBid.of(bid, bidType, bidResponse.getCur());
                     bidderBids.add(bidderBid);
                 }
             }
         }
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.withValues(bidderBids);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
@@ -146,10 +133,5 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.xNative;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

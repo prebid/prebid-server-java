@@ -9,6 +9,10 @@ There are two ways to configure application settings: database and file. This do
 - `events-enabled` - enables events for account if true
 - `enforce-ccpa` - enforces ccpa if true. Has higher priority than configuration in application.yaml.
 - `gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
+- `gdpr.integration-enabled.web` - overrides `gdpr.enabled` property behaviour for web requests type.
+- `gdpr.integration-enabled.amp` - overrides `gdpr.enabled` property behaviour for amp requests type.
+- `gdpr.integration-enabled.app` - overrides `gdpr.enabled` property behaviour for app requests type.
+- `gdpr.integration-enabled.video` - overrides `gdpr.enabled` property behaviour for video requests type.
 - `gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`. Default `full`
 - `gdpr.purposes.[p1-p10].enforce-vendors` - if equals to `true`, user must give consent to use vendors. Purposes will be omitted. Default `true`
 - `gdpr.purposes.[p1-p10].vendor-exceptions[]` - bidder names that will be treated opposite to `pN.enforce-vendors` value.
@@ -17,6 +21,8 @@ There are two ways to configure application settings: database and file. This do
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow. Values: ignore, no-access-allowed, access-allowed.
 - `analytics-sampling-factor` - Analytics sampling factor value. 
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
+- `default-integration` - Default integration to assume.
+- `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
 
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
@@ -59,8 +65,17 @@ accounts:
     enforceCcpa: true
     analyticsSamplingFactor: 1
     truncateTargetAttr: 40
+    defaultIntegration: web
+    analytics-config:
+      auction-events:
+        amp: true
     gdpr:
       enabled: true
+      integration-enabled:
+        video: true
+        web: true
+        app: true
+        amp: true
       purposes:
         p1:
           enforce-purpose: full
@@ -179,6 +194,12 @@ TCF configuration column format:
 ```
 {
   "enabled": true,
+   "integration-enabled": {
+      "video": true,
+      "web": true,
+      "app": true,
+      "amp": true
+   }
   "purpose-one-treatment-interpretation": "ignore"
   "purposes": {
     "p1": {
@@ -306,7 +327,7 @@ ENGINE=InnoDB AUTO_INCREMENT=1726 DEFAULT CHARSET=utf8'
 Query used to get an account:
 ```
 SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 
-analytics_sampling_factor, truncate_target_attr 
+analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config 
 FROM accounts_account where uuid = %ACCOUNT_ID%
 LIMIT 1
 ```

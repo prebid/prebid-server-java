@@ -31,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,15 +50,16 @@ public class BrightrollBidderTest extends VertxTest {
     private static final List<Integer> BLOCKED_CREATIVETYPES = Arrays.asList(1, 2, 3, 6, 9, 10);
     private static final List<String> BLOCKED_CATEGORIES = Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30");
     private static final List<String> BLOCKED_ADVERTISERS = Arrays.asList("adv1", "adv2", "adv3");
+    private static final BigDecimal BID_FLOOR = new BigDecimal("0.30");
 
     private BrightrollBidder brightrollBidder;
 
     @Before
     public void setUp() {
         Map<String, PublisherOverride> testPublisher = singletonMap("testPublisher",
-                PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
+                PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES, BID_FLOOR));
         Map<String, PublisherOverride> publisher = singletonMap("publisher",
-                PublisherOverride.of(null, null, null));
+                PublisherOverride.of(null, null, null, null));
         Map<String, PublisherOverride> publisherIdToOverride = new HashMap<>();
         publisherIdToOverride.putAll(testPublisher);
         publisherIdToOverride.putAll(publisher);
@@ -95,10 +96,11 @@ public class BrightrollBidderTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "en"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "192.168.0.1"),
                         tuple(HttpUtil.DNT_HEADER.toString(), "1"),
-                        tuple("x-openrtb-version", "2.5"));
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
+                                .bidfloor(BID_FLOOR)
                                 .banner(Banner.builder().battr(BLOCKED_CREATIVETYPES).build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("testPublisher"))))
                                 .build()))
@@ -303,7 +305,7 @@ public class BrightrollBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple("x-openrtb-version", "2.5"));
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
     }
 
     @Test
@@ -582,11 +584,6 @@ public class BrightrollBidderTest extends VertxTest {
                         "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at"
                                 + " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, "
                                 + "column: 3]"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(brightrollBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

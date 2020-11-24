@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,21 +49,6 @@ public class ConversantBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new ConversantBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfRequestAppHasBlankOrMissingId() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Missing app id"));
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -116,9 +100,8 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
-                .containsOnly(BidderError.badInput("Missing site id"),
-                        BidderError.badInput("No valid impressions"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Missing site id"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -143,10 +126,10 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetAppIdFromExtSiteId() {
+    public void makeHttpRequestsShouldSetAppIdFromExtSiteIdIfAppIdIsNullOrEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.app(App.builder().id("app_id").build()),
+                requestBuilder -> requestBuilder.app(App.builder().id("").build()),
                 identity(),
                 identity());
 
@@ -159,6 +142,27 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
                 .extracting(App::getId)
+                .containsOnly("site id");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetSiteIdFromExtSiteIdIfSiteIdIsNullOrEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.site(Site.builder().id(null).build()),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpConversant.builder().mobile(123).siteId("site id").build()))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getId)
                 .containsOnly("site id");
     }
 
@@ -536,11 +540,6 @@ public class ConversantBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(conversantBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
@@ -579,6 +578,7 @@ public class ConversantBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

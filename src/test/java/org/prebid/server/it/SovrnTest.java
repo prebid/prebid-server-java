@@ -90,7 +90,7 @@ public class SovrnTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"sovrn":"990011"}}
+                // this uids cookie value stands for {"uids":{"sovrn":"990011"}}
                 .cookie("uids", "eyJ1aWRzIjp7InNvdnJuIjoiOTkwMDExIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/sovrn/test-auction-sovrn-request.json"))

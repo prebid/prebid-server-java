@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.sharethrough;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -35,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -75,7 +73,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
 
         // site.page validation is already performed by {@link RequestValidator#validate}
         if (page == null) {
-            return Result.emptyWithError(BidderError.badInput("site.page is required"));
+            return Result.withError(BidderError.badInput("site.page is required"));
         }
 
         final boolean test = Objects.equals(request.getTest(), 1);
@@ -85,7 +83,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
         try {
             strUriParameters = parseBidRequestToUriParameters(request, date, test);
         } catch (IllegalArgumentException e) {
-            return Result.emptyWithError(BidderError.badInput(
+            return Result.withError(BidderError.badInput(
                     String.format("Error occurred parsing sharethrough parameters %s", e.getMessage())));
         }
         final MultiMap headers = makeHeaders(request.getDevice(), page);
@@ -93,7 +91,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                 .map(strUriParameter -> makeHttpRequest(headers, date, strUriParameter))
                 .collect(Collectors.toList());
 
-        return Result.of(httpRequests, Collections.emptyList());
+        return Result.withValues(httpRequests);
     }
 
     /**
@@ -195,10 +193,9 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
             final String responseBody = httpCall.getResponse().getBody();
             final ExtImpSharethroughResponse sharethroughBid = mapper.mapper().readValue(responseBody,
                     ExtImpSharethroughResponse.class);
-            return Result.of(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()),
-                    Collections.emptyList());
+            return Result.withValues(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()));
         } catch (IOException | IllegalArgumentException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -235,10 +232,5 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                                 .build(),
                         DEFAULT_BID_TYPE,
                         DEFAULT_BID_CURRENCY));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

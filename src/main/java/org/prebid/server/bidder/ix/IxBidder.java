@@ -1,13 +1,13 @@
 package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,7 +46,6 @@ public class IxBidder implements Bidder<BidRequest> {
 
     // maximum number of bid requests
     private static final int REQUEST_LIMIT = 20;
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -60,7 +58,7 @@ public class IxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         if (bidRequest.getApp() != null) {
-            return Result.emptyWithError(BidderError.badInput("ix doesn't support apps"));
+            return Result.withError(BidderError.badInput("ix doesn't support apps"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -83,7 +81,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
         if (modifiedRequests.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
@@ -147,24 +145,26 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private static List<BidRequest> createBidRequest(BidRequest bidRequest, Imp imp,
                                                      List<Format> formats, ExtImpIx extImpIx) {
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
-        final Imp.ImpBuilder impBuilder = imp.toBuilder();
-        final Banner.BannerBuilder bannerBuilder = imp.getBanner().toBuilder();
         final List<Format> limitedFormats = formats.size() > REQUEST_LIMIT
                 ? formats.subList(0, REQUEST_LIMIT)
                 : formats;
 
         final List<BidRequest> requests = new ArrayList<>();
         for (Format format : limitedFormats) {
-            bannerBuilder.format(Collections.singletonList(format))
+            final Banner updatedBanner = imp.getBanner().toBuilder()
+                    .format(Collections.singletonList(format))
                     .w(format.getW())
-                    .h(format.getH());
-            impBuilder.banner(bannerBuilder.build());
-            impBuilder.tagid(imp.getId());
+                    .h(format.getH())
+                    .build();
 
-            requests.add(requestBuilder
+            final Imp updatedImp = imp.toBuilder()
+                    .banner(updatedBanner)
+                    .tagid(imp.getId())
+                    .build();
+
+            requests.add(bidRequest.toBuilder()
                     .site(modifySite(bidRequest, extImpIx))
-                    .imp(Collections.singletonList(impBuilder.build()))
+                    .imp(Collections.singletonList(updatedImp))
                     .build());
         }
         return requests;
@@ -181,28 +181,37 @@ public class IxBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            final BidRequest payload = httpCall.getRequest().getPayload();
+            return Result.withValues(extractBids(bidResponse, payload));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse);
+                : bidsFromResponse(bidResponse, bidRequest);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> prepareBid(bid, bidRequest))
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
+    private static Bid prepareBid(Bid bid, BidRequest bidRequest) {
+        if (bid.getH() == null || bid.getW() == null) {
+            // Current implementation ensure that we have one imp with banner
+            final Banner banner = bidRequest.getImp().get(0).getBanner();
+            return bid.toBuilder()
+                    .w(banner.getW())
+                    .h(banner.getH())
+                    .build();
+        }
+        return bid;
     }
 }

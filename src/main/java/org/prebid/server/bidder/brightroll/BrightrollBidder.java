@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,8 +30,8 @@ import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 public class BrightrollBidder implements Bidder<BidRequest> {
 
     private static final String OPENRTB_VERSION = "2.5";
-    private static final CharSequence OPEN_RTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
             };
@@ -72,14 +70,14 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         try {
             firstImpExtPublisher = getAndValidateImpExt(request.getImp().get(0));
         } catch (PreBidException ex) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(ex.getMessage())));
+            return Result.withError(BidderError.badInput(ex.getMessage()));
         }
 
         final BidRequest updateBidRequest = updateBidRequest(request, firstImpExtPublisher, errors);
 
         if (CollectionUtils.isEmpty(updateBidRequest.getImp())) {
             errors.add(BidderError.badInput("No valid impression in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final String bidRequestBody;
@@ -87,18 +85,16 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             bidRequestBody = mapper.encode(updateBidRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s", e.getMessage())));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
-                        .body(bidRequestBody)
-                        .headers(createHeaders(updateBidRequest.getDevice()))
-                        .payload(updateBidRequest)
-                        .build()),
-                Collections.emptyList());
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
+                .body(bidRequestBody)
+                .headers(createHeaders(updateBidRequest.getDevice()))
+                .payload(updateBidRequest)
+                .build());
     }
 
     /**
@@ -170,32 +166,64 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Updates {@link Imp} {@link Banner} and/or {@link Video}.
      */
     private Imp updateImp(Imp imp, PublisherOverride publisherOverride) {
+        final BigDecimal bidFloor = publisherOverride != null && publisherOverride.getBidFloor() != null
+                ? publisherOverride.getBidFloor()
+                : null;
+        final List<Integer> impBattr = publisherOverride != null && publisherOverride.getImpBattr() != null
+                ? publisherOverride.getImpBattr()
+                : null;
+
         final Banner banner = imp.getBanner();
         if (banner != null) {
-            final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
-            if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
-                // update banner with size from first format
-                final Format firstFormat = banner.getFormat().get(0);
-                bannerBuilder
-                        .w(firstFormat.getW())
-                        .h(firstFormat.getH());
+            final boolean noSizes = banner.getW() == null && banner.getH() == null
+                    && CollectionUtils.isNotEmpty(banner.getFormat());
+
+            if (bidFloor != null || impBattr != null || noSizes) {
+                final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+                if (bidFloor != null) {
+                    impBuilder.bidfloor(bidFloor);
+                }
+                if (impBattr != null || noSizes) {
+                    impBuilder.banner(updateBanner(banner, impBattr, noSizes));
+                }
+
+                return impBuilder.build();
             }
-            if (publisherOverride != null) {
-                bannerBuilder.battr(publisherOverride.getImpBattr());
-            }
-            return imp.toBuilder()
-                    .banner(bannerBuilder.build())
-                    .build();
         }
+
         final Video video = imp.getVideo();
-        if (video != null && publisherOverride != null) {
-            return imp.toBuilder()
-                    .video(video.toBuilder()
-                            .battr(publisherOverride.getImpBattr())
-                            .build())
-                    .build();
+        if (video != null && (bidFloor != null || impBattr != null)) {
+            final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+            if (bidFloor != null) {
+                impBuilder.bidfloor(bidFloor);
+            }
+            if (impBattr != null) {
+                impBuilder.video(video.toBuilder()
+                        .battr(impBattr)
+                        .build());
+            }
+            return impBuilder.build();
         }
         return imp;
+    }
+
+    private static Banner updateBanner(Banner banner, List<Integer> impBattr, boolean noSizes) {
+        final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
+
+        if (impBattr != null) {
+            bannerBuilder.battr(impBattr);
+        }
+        if (noSizes) {
+            // update banner with size from first format
+            final Format firstFormat = banner.getFormat().get(0);
+            bannerBuilder
+                    .w(firstFormat.getW())
+                    .h(firstFormat.getH());
+        }
+
+        return bannerBuilder.build();
     }
 
     /**
@@ -203,16 +231,13 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      */
     private MultiMap createHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
-
-        headers.add(OPEN_RTB_VERSION_HEADER, OPENRTB_VERSION);
+        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
-                    device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
-                    Objects.toString(device.getDnt(), null));
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
 
         return headers;
@@ -227,7 +252,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -235,9 +260,9 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
-                ? Result.of(Collections.emptyList(), Collections.emptyList())
-                : Result.of(createBiddersBid(bidResponse, imps), Collections.emptyList());
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Result.empty()
+                : Result.withValues(createBiddersBid(bidResponse, imps));
     }
 
     /**
@@ -266,17 +291,6 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Identifies {@link BidType} depends on {@link Imp} parameters.
      */
     private static BidType bidTypeFromImp(Imp imp) {
-        final BidType bidType;
-        if (imp.getVideo() != null) {
-            bidType = BidType.video;
-        } else {
-            bidType = BidType.banner;
-        }
-        return bidType;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
+        return imp.getVideo() != null ? BidType.video : BidType.banner;
     }
 }

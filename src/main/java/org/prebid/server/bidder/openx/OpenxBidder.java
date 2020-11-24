@@ -78,15 +78,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidRequest, bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidRequest, bidResponse));
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 
     private List<BidRequest> makeRequests(BidRequest bidRequest, List<Imp> bannerImps, List<Imp> videoImps,
@@ -178,8 +173,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private ExtRequest makeReqExt(Imp imp) {
+        final ExtImpOpenx openxImpExt = parseOpenxExt(imp).getBidder();
         return mapper.fillExtension(
-                ExtRequest.empty(), OpenxRequestExt.of(parseOpenxExt(imp).getBidder().getDelDomain(), OPENX_CONFIG));
+                ExtRequest.empty(),
+                OpenxRequestExt.of(openxImpExt.getDelDomain(), openxImpExt.getPlatform(), OPENX_CONFIG));
     }
 
     private ExtPrebid<ExtImpPrebid, ExtImpOpenx> parseOpenxExt(Imp imp) {
@@ -209,7 +206,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
