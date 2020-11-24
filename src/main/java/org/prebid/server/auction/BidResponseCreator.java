@@ -280,6 +280,10 @@ public class BidResponseCreator {
 
     private static void removeRedundantBids(BidderResponse bidderResponse) {
         final List<BidderBid> responseBidderBids = bidderResponse.getSeatBid().getBids();
+        if (responseBidderBids.size() < 2) { // no reason for removing if only one bid was responded
+            return;
+        }
+
         final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
                 .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
 
