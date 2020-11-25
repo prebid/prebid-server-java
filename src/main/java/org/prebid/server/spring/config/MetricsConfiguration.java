@@ -115,10 +115,13 @@ public class MetricsConfiguration {
 
     @Bean
     MetricRegistry metricRegistry() {
+        final boolean alreadyExists = SharedMetricRegistries.names().contains(METRIC_REGISTRY_NAME);
         final MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(METRIC_REGISTRY_NAME);
 
-        metricRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
-        metricRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
+        if (!alreadyExists) {
+            metricRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
+            metricRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
+        }
 
         return metricRegistry;
     }
