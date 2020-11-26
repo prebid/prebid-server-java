@@ -109,9 +109,10 @@ public class PrivacyEnforcementService {
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
-    public Future<PrivacyContext> contextFromLegacyRequest(PreBidRequestContext preBidRequestContext, Account account) {
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequestContext.getPreBidRequest());
+    public Future<PrivacyContext> contextFromLegacyRequest(
+            PreBidRequestContext preBidRequestContext, Account account) {
 
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequestContext.getPreBidRequest());
         final AccountGdprConfig accountGdpr = account.getGdpr();
         final String accountId = account.getId();
         final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.legacy, null, accountId);
@@ -161,7 +162,6 @@ public class PrivacyEnforcementService {
         return RequestLogInfo.of(requestType, null, accountId);
     }
 
-    // TODO: Consider to remove ExtUser from method signature since it was migrated from JsonNode to POJO
     Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
                                            Map<String, User> bidderToUser,
                                            List<String> bidders,
@@ -341,7 +341,7 @@ public class PrivacyEnforcementService {
         return ccpaEnforcedBidders;
     }
 
-    private Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(
+    private static Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(
             TcfResponse<String> tcfResponse, Set<String> bidders) {
 
         final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getActions();
@@ -399,7 +399,7 @@ public class PrivacyEnforcementService {
     /**
      * Returns true if {@link User} has sensitive privacy information that can be masked.
      */
-    private boolean shouldMaskUser(User user) {
+    private static boolean shouldMaskUser(User user) {
         if (user == null) {
             return false;
         }
@@ -413,7 +413,7 @@ public class PrivacyEnforcementService {
     /**
      * Returns true if {@link User} or {@link Device} has {@link Geo} information that can be masked.
      */
-    private boolean shouldMaskGeo(User user, Device device) {
+    private static boolean shouldMaskGeo(User user, Device device) {
         return (user != null && user.getGeo() != null) || (device != null && device.getGeo() != null);
     }
 
@@ -422,7 +422,8 @@ public class PrivacyEnforcementService {
      * {@link BidderPrivacyResult}. Masking depends on GDPR and COPPA.
      */
     private List<BidderPrivacyResult> getBidderToPrivacyResult(
-            Map<String, PrivacyEnforcementAction> bidderToEnforcement, Set<String> bidders,
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement,
+            Set<String> bidders,
             Map<String, User> bidderToUser,
             Device device) {
 
@@ -441,11 +442,12 @@ public class PrivacyEnforcementService {
     /**
      * Returns {@link BidderPrivacyResult} with GDPR masking.
      */
-    private BidderPrivacyResult createBidderPrivacyResult(User user,
-                                                          Device device,
-                                                          String bidder,
-                                                          boolean isLmtEnabled,
-                                                          Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
+    private BidderPrivacyResult createBidderPrivacyResult(
+            User user,
+            Device device,
+            String bidder,
+            boolean isLmtEnabled,
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
 
         final PrivacyEnforcementAction privacyEnforcementAction = bidderToEnforcement.get(bidder);
         final boolean blockBidderRequest = privacyEnforcementAction.isBlockBidderRequest();
@@ -547,7 +549,7 @@ public class PrivacyEnforcementService {
     /**
      * Returns masked digitrust and eids of user ext.
      */
-    private ExtUser maskUserExt(ExtUser userExt) {
+    private static ExtUser maskUserExt(ExtUser userExt) {
         return userExt != null
                 ? nullIfEmpty(userExt.toBuilder().eids(null).digitrust(null).build())
                 : null;
