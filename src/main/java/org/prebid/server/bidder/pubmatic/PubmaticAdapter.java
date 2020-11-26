@@ -70,7 +70,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     @Override
     public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
                                                                  PreBidRequestContext preBidRequestContext) {
-        final MultiMap headers = headers()
+        final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.SET_COOKIE_HEADER, makeUserCookie(preBidRequestContext));
 
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);

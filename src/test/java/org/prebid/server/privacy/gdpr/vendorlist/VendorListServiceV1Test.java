@@ -3,8 +3,10 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,6 +25,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.File;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -38,15 +41,22 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
 
 public class VendorListServiceV1Test extends VertxTest {
 
     private static final String CACHE_DIR = "/cache/dir";
+    private static final long REFRESH_MISSING_LIST_PERIOD_MS = 3600000L;
+    private static final String FALLBACK_VENDOR_LIST_PATH = "fallback.json";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private Vertx vertx;
     @Mock
     private FileSystem fileSystem;
     @Mock
@@ -59,66 +69,176 @@ public class VendorListServiceV1Test extends VertxTest {
     private VendorListService<VendorListV1, VendorV1> vendorListService;
 
     @Before
-    public void setUp() {
+    public void setUp() throws JsonProcessingException {
         given(fileSystem.existsBlocking(anyString())).willReturn(false); // always create cache dir
 
         given(bidderCatalog.knownVendorIds()).willReturn(singleton(52));
 
-        vendorListService = new VendorListServiceV1(CACHE_DIR, "http://vendorlist/{VERSION}", 0, null, bidderCatalog,
-                fileSystem, httpClient, metrics, jacksonMapper);
+        given(fileSystem.readFileBlocking(eq(FALLBACK_VENDOR_LIST_PATH)))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(givenVendorList())));
+
+        vendorListService = new VendorListServiceV1(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                false,
+                null,
+                FALLBACK_VENDOR_LIST_PATH,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper);
     }
 
     // Creation related tests
 
     @Test
-    public void creationShouldFailsIfCannotCreateCacheDir() {
+    public void creationShouldFailIfCannotCreateCacheDir() {
         // given
         given(fileSystem.mkdirsBlocking(anyString())).willThrow(new RuntimeException("dir creation error"));
 
         // then
         assertThatThrownBy(
-                () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
-                        httpClient, metrics, jacksonMapper))
+                () -> new VendorListServiceV1(
+                        CACHE_DIR,
+                        "http://vendorlist/%s",
+                        0,
+                        REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
+                        null,
+                        FALLBACK_VENDOR_LIST_PATH,
+                        bidderCatalog,
+                        vertx,
+                        fileSystem,
+                        httpClient,
+                        metrics,
+                        jacksonMapper))
                 .hasMessage("dir creation error");
     }
 
     @Test
-    public void creationShouldFailsIfCannotReadFiles() {
+    public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
+        // given
+        vendorListService = new VendorListServiceV1(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                FALLBACK_VENDOR_LIST_PATH,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper);
+
+        // when
+        final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
+
+        // then
+        verifyZeroInteractions(httpClient);
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
+    }
+
+    @Test
+    public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
+        // then
+        assertThatThrownBy(() -> vendorListService = new VendorListServiceV1(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                null,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("No fallback vendorList for deprecated version present");
+    }
+
+    @Test
+    public void creationShouldFailIfCannotReadFiles() {
         // given
         given(fileSystem.readDirBlocking(anyString())).willThrow(new RuntimeException("read error"));
 
         // then
         assertThatThrownBy(
-                () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
-                        httpClient, metrics, jacksonMapper))
+                () -> new VendorListServiceV1(
+                        CACHE_DIR,
+                        "http://vendorlist/%s",
+                        0,
+                        REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
+                        null,
+                        FALLBACK_VENDOR_LIST_PATH,
+                        bidderCatalog,
+                        vertx,
+                        fileSystem,
+                        httpClient,
+                        metrics,
+                        jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
 
     @Test
-    public void creationShouldFailsIfCannotReadAtLeastOneVendorListFile() {
+    public void creationShouldFailIfCannotReadAtLeastOneVendorListFile() {
         // given
         given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("1.json"));
         given(fileSystem.readFileBlocking(anyString())).willThrow(new RuntimeException("read error"));
 
         // then
         assertThatThrownBy(
-                () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
-                        httpClient, metrics, jacksonMapper))
+                () -> new VendorListServiceV1(
+                        CACHE_DIR,
+                        "http://vendorlist/%s",
+                        0,
+                        REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
+                        null,
+                        FALLBACK_VENDOR_LIST_PATH,
+                        bidderCatalog,
+                        vertx,
+                        fileSystem,
+                        httpClient,
+                        metrics,
+                        jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
 
     @Test
-    public void creationShouldFailsIfAtLeastOneVendorListFileCannotBeParsed() {
+    public void creationShouldFailIfAtLeastOneVendorListFileCannotBeParsed() {
         // given
         given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("1.json"));
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("invalid"));
 
         // then
         assertThatThrownBy(
-                () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
-                        httpClient, metrics, jacksonMapper))
+                () -> new VendorListServiceV1(
+                        CACHE_DIR,
+                        "http://vendorlist/%s",
+                        0,
+                        REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
+                        null,
+                        FALLBACK_VENDOR_LIST_PATH,
+                        bidderCatalog,
+                        vertx,
+                        fileSystem,
+                        httpClient,
+                        metrics,
+                        jacksonMapper))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Cannot parse vendor list from: invalid");
     }
@@ -304,14 +424,16 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<Map<Integer, VendorV1>> result = vendorListService.forVersion(1);
 
         // then
-        assertThat(result).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(result).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     @Test
     public void shouldKeepPurposesOnlyForKnownVendors() throws JsonProcessingException {
         // given
         final VendorListV1 vendorList = VendorListV1.of(1, new Date(),
-                asList(VendorV1.of(52, singleton(1), singleton(2)), VendorV1.of(42, singleton(1), singleton(2))));
+                asList(
+                        VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO)),
+                        VendorV1.of(42, EnumSet.of(ONE), EnumSet.of(TWO))));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
@@ -322,7 +444,41 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
+    }
+
+    @Test
+    public void shouldReturnFallbackIfVendorListNotFound() {
+        // given
+        givenHttpClientReturnsResponse(404, StringUtils.EMPTY);
+
+        // when
+
+        // first call triggers http request that results in 404
+        final Future<Map<Integer, VendorV1>> future1 = vendorListService.forVersion(1);
+        // second call yields fallback vendor list
+        final Future<Map<Integer, VendorV1>> future2 = vendorListService.forVersion(1);
+
+        // then
+        assertThat(future1).isFailed();
+        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
+    }
+
+    @Test
+    public void shouldReturnFallbackIfServerUnavailable() {
+        // given
+        givenHttpClientReturnsResponse(503, StringUtils.EMPTY);
+
+        // when
+
+        // first call triggers http request that results in 503
+        final Future<Map<Integer, VendorV1>> future1 = vendorListService.forVersion(1);
+        // second call yields fallback vendor list
+        final Future<Map<Integer, VendorV1>> future2 = vendorListService.forVersion(1);
+
+        // then
+        assertThat(future1).isFailed();
+        assertThat(future2).succeededWith(singletonMap(52, VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO))));
     }
 
     // Metrics tests
@@ -381,8 +537,24 @@ public class VendorListServiceV1Test extends VertxTest {
         verify(metrics).updatePrivacyTcfVendorListOkMetric(eq(1));
     }
 
+    @Test
+    public void shouldIncrementVendorListFallbackMetric() {
+        // given
+        givenHttpClientReturnsResponse(404, StringUtils.EMPTY);
+
+        // when
+
+        // first call triggers http request that results in 404
+        vendorListService.forVersion(1);
+        // second call yields fallback vendor list
+        vendorListService.forVersion(1);
+
+        // then
+        verify(metrics).updatePrivacyTcfVendorListFallbackMetric(eq(1));
+    }
+
     private static VendorListV1 givenVendorList() {
-        final VendorV1 vendor = VendorV1.of(52, singleton(1), singleton(2));
+        final VendorV1 vendor = VendorV1.of(52, EnumSet.of(ONE), EnumSet.of(TWO));
         return VendorListV1.of(1, new Date(), singletonList(vendor));
     }
 

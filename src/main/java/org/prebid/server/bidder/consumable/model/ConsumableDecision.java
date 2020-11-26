@@ -25,4 +25,8 @@ public class ConsumableDecision {
 
     @JsonProperty("impressionUrl")
     String impressionUrl;
+
+    Integer width;
+
+    Integer height;
 }

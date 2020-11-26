@@ -15,6 +15,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `vertx.http-server-instances` - how many http server instances should be created. 
 This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
+- `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
 ## HTTP
 - `http.port` - the port to listen on.
@@ -24,7 +25,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Client
-- `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
+- `http-client.max-pool-size` - set the maximum pool size for outgoing connections (per host).
+- `http-client.idle-timeout-ms` - set the maximum time idle connections could exist before being reaped
+- `http-client.pool-cleaner-period-ms` - set how often idle connections will be closed removed from pool
 - `http-client.connect-timeout-ms` - set the connect timeout.
 - `http-client.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make http client more robust.
 - `http-client.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
@@ -50,6 +53,16 @@ Removes and downloads file again if depending service cant process probably corr
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
 - `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
+## General settings
+- `host-id` - the  ID of node where prebid server deployed.
+- `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
+- `admin.port` - the port to listen on administration requests.
+
+## Auction (Legacy)
+- `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
+- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
+- `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
+
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
@@ -61,12 +74,20 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
+- `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
+- `auction.id-generator-type` - if generate-bid-id is on, then this defines how the ID should be generated. Currently onlye `uuid` is supported.
 
 ## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
 - `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
+
+## Timeout notification
+- `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
+- `auction.timeout-notification.log-result` - causes bidder timeout notification result to be logged
+- `auction.timeout-notification.log-failure-only` - causes only bidder timeout notification failures to be logged
+- `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
 
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
@@ -102,14 +123,50 @@ There are several typical keys:
 
 But feel free to add additional bidder's specific options.
 
-## Admin
-- `logger-level-modifier.enabled` - enable the `/admin` endpoint.
+## Logging
+- `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
+
+## Logging
+- `logging.change-level.max-duration-ms` - maximum duration (in milliseconds) for which logging level could be changed.
 
 ## Currency Converter
 - `currency-converter.external-rates.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies from external source. Also enables `/currency-rates` endpoint on admin port.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
+
+## Admin Endpoints
+- `admin-endpoints.version.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.version.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.version.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.version.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.currency-rates.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.currency-rates.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.currency-rates.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.currency-rates.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.storedrequest.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.storedrequest.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.storedrequest.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.storedrequest.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.storedrequest-amp.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.storedrequest-amp.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.storedrequest-amp.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.storedrequest-amp.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.cache-invalidation.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.cache-invalidation.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.cache-invalidation.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.cache-invalidation.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.logging-httpinteraction.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.logging-httpinteraction.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.logging-httpinteraction.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.logging-httpinteraction.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
@@ -255,8 +312,11 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.special-features.sfN.enforce` - if equals to `true`, special feature will be enforced for purpose. Default `true`
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
+- `gdpr.vendorlist.default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
-- `gdpr.vendorlist.vN.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
+- `gdpr.vendorlist.vN.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
+- `gdpr.vendorlist.vN.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
+- `gdpr.vendorlist.vN.deprecated` - Flag to show is this vendor list is deprecated or not.
 - `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 
 ## CCPA
@@ -274,13 +334,3 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
-
-## Auction (Legacy)
-- `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
-- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
-- `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
-
-## General settings
-- `host-id` - the  ID of node where prebid server deployed.
-- `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
-- `admin.port` - the port to listen on administration requests.

@@ -1,5 +1,6 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -26,15 +27,31 @@ public class VendorListServiceV2 extends VendorListService<VendorListV2, VendorV
     public VendorListServiceV2(String cacheDir,
                                String endpointTemplate,
                                int defaultTimeoutMs,
+                               long refreshMissingListPeriodMs,
+                               boolean deprecated,
                                Integer gdprHostVendorId,
+                               String fallbackVendorListPath,
                                BidderCatalog bidderCatalog,
+                               Vertx vertx,
                                FileSystem fileSystem,
                                HttpClient httpClient,
                                Metrics metrics,
                                JacksonMapper mapper) {
 
-        super(cacheDir, endpointTemplate, defaultTimeoutMs, gdprHostVendorId, bidderCatalog, fileSystem, httpClient,
-                metrics, mapper);
+        super(
+                cacheDir,
+                endpointTemplate,
+                defaultTimeoutMs,
+                refreshMissingListPeriodMs,
+                deprecated,
+                gdprHostVendorId,
+                fallbackVendorListPath,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                mapper);
     }
 
     protected VendorListV2 toVendorList(String content) {
