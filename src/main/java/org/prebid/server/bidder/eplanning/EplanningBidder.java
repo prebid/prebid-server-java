@@ -2,10 +2,8 @@ package org.prebid.server.bidder.eplanning;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -50,6 +48,8 @@ import java.util.stream.Stream;
  */
 public class EplanningBidder implements Bidder<Void> {
 
+    private static final String CUSTOM_MARFEEL_FIXED_WIDTH = "300";
+    private static final String CUSTOM_MARFEEL_FIXED_HEIGHT = "250";
     private static final String NULL_SIZE = "1x1";
     private static final String DEFAULT_PAGE_URL = "FILE";
     private static final String SEC = "ROS";
@@ -140,23 +140,7 @@ public class EplanningBidder implements Bidder<Void> {
     }
 
     private static String resolveSizeString(Imp imp) {
-        final Banner banner = imp.getBanner();
-        final Integer bannerWidth = banner.getW();
-        final Integer bannerHeight = banner.getH();
-        if (bannerWidth != null && bannerHeight != null) {
-            return String.format("%sx%s", bannerWidth, bannerHeight);
-        }
-        final List<Format> bannerFormats = banner.getFormat();
-        if (CollectionUtils.isNotEmpty(bannerFormats)) {
-            for (Format format : bannerFormats) {
-                final Integer formatHeight = format.getH();
-                final Integer formatWidth = format.getW();
-                if (formatHeight != null && formatWidth != null) {
-                    return String.format("%sx%s", formatWidth, formatHeight);
-                }
-            }
-        }
-        return NULL_SIZE;
+        return String.format("%sx%s", CUSTOM_MARFEEL_FIXED_WIDTH, CUSTOM_MARFEEL_FIXED_HEIGHT);
     }
 
     private static String cleanName(String name) {
