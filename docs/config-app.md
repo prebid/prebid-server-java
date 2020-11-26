@@ -15,6 +15,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `vertx.http-server-instances` - how many http server instances should be created. 
 This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
+- `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
 ## HTTP
 - `http.port` - the port to listen on.
@@ -81,6 +82,12 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
+
+## Timeout notification
+- `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
+- `auction.timeout-notification.log-result` - causes bidder timeout notification result to be logged
+- `auction.timeout-notification.log-failure-only` - causes only bidder timeout notification failures to be logged
+- `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
 
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request

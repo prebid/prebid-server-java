@@ -34,7 +34,6 @@ public class YieldlabTest extends IntegrationTest {
                 .withQueryParam("lon", WireMock.equalTo("-0.128953"))
                 .withQueryParam("gdpr", WireMock.equalTo("0"))
                 .withQueryParam("consent", WireMock.equalTo("consentValue"))
-                .withHeader("Content-Type", WireMock.equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", WireMock.equalTo("application/json"))
                 .withHeader("User-Agent", WireMock.equalTo("userAgent"))
                 .withHeader("X-Forwarded-For", WireMock.equalTo("193.168.244.1"))

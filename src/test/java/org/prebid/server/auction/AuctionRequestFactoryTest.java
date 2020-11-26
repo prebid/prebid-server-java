@@ -473,6 +473,47 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotSetDeviceDntIfHeaderHasInvalidValue() {
+        // given
+        given(httpRequest.getHeader("DNT")).willReturn("invalid");
+        givenValidBidRequest();
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getDnt()).isNull();
+    }
+
+    @Test
+    public void shouldSetDeviceDntIfHeaderExists() {
+        // given
+        given(httpRequest.getHeader("DNT")).willReturn("1");
+        givenValidBidRequest();
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getDnt()).isOne();
+    }
+
+    @Test
+    public void shouldOverrideDeviceDntIfHeaderExists() {
+        // given
+        given(httpRequest.getHeader("DNT")).willReturn("0");
+        givenBidRequest(BidRequest.builder()
+                .device(Device.builder().dnt(1).build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getDnt()).isZero();
+    }
+
+    @Test
     public void shouldUpdateImpsWithSecurityOneIfRequestIsSecuredAndImpSecurityNotDefined() {
         // given
         givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());

@@ -249,7 +249,7 @@ public class Tcf2Service {
                 .p7(mergeItem(accountPurposes.getP7(), defaultPurposes.getP7()))
                 .p8(mergeItem(accountPurposes.getP8(), defaultPurposes.getP8()))
                 .p9(mergeItem(accountPurposes.getP9(), defaultPurposes.getP9()))
-                .p9(mergeItem(accountPurposes.getP10(), defaultPurposes.getP10()))
+                .p10(mergeItem(accountPurposes.getP10(), defaultPurposes.getP10()))
                 .build();
     }
 

@@ -78,7 +78,6 @@ import org.prebid.server.util.HttpUtil;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -263,6 +262,66 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getBanner).doesNotContainNull()
                 .flatExtracting(Banner::getFormat).hasSize(1)
                 .containsOnly(Format.builder().w(300).h(250).build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetMobilePortrait67SizeIdFotInterstitialNotValidSize() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .instl(1)
+                        .banner(Banner.builder()
+                                .format(singletonList(
+                                        Format.builder().w(360).h(616).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder().build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner).doesNotContainNull()
+                .containsOnly(Banner.builder()
+                        .format(singletonList(
+                                Format.builder().w(360).h(616).build()))
+                        .ext(mapper.valueToTree(RubiconBannerExt.of(RubiconBannerExtRp.of(67, null, "text/html"))))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetMobileLandscape101SizeIdFotInterstitialNotValidSize() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .instl(1)
+                        .banner(Banner.builder()
+                                .format(singletonList(
+                                        Format.builder().w(616).h(360).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder().build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner).doesNotContainNull()
+                .containsOnly(Banner.builder()
+                        .format(singletonList(
+                                Format.builder().w(616).h(360).build()))
+                        .ext(mapper.valueToTree(RubiconBannerExt.of(RubiconBannerExtRp.of(101, null, "text/html"))))
+                        .build());
     }
 
     @Test
@@ -2042,19 +2101,6 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getSource).doesNotContainNull()
                 .extracting(Source::getPchain)
                 .containsOnly("pchain");
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultIfResponseStatusIsNoContent() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall.success(HttpRequest.<BidRequest>builder().build(),
-                HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result).isEqualTo(Result.of(Collections.emptyList(), Collections.emptyList()));
     }
 
     @Test
