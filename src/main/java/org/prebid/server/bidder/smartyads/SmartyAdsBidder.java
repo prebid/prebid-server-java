@@ -103,7 +103,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpSmartyAds extImp) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, HttpUtil.encodeUrl(extImp.getHost()))
+                .replace(URL_HOST_MACRO, extImp.getHost())
                 .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(extImp.getSourceId()))
                 .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImp.getAccountId()));
     }
@@ -128,23 +128,26 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse("Bad Server Response"));
+            return Result.of(extractBids(httpCall), Collections.emptyList());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(HttpCall<BidRequest> httpCall) {
+        final BidResponse bidResponse;
+        try {
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException("Bad Server Response");
+        }
         if (bidResponse == null) {
             throw new PreBidException("Bad Server Response");
         }
         if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty SeatBid array");
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(httpCall.getRequest().getPayload(), bidResponse);
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
