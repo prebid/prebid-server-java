@@ -317,7 +317,9 @@ public class AdformBidder implements Bidder<Void> {
     private String resolveAdm(AdformBid adformBid) {
         if (Objects.equals(adformBid.getResponse(), "banner")) {
             return adformBid.getBanner();
-        } else if (Objects.equals(adformBid.getResponse(), "vast_content")) {
+        }
+
+        if (Objects.equals(adformBid.getResponse(), "vast_content")) {
             return adformBid.getVastContent();
         }
 
@@ -325,9 +327,7 @@ public class AdformBidder implements Bidder<Void> {
     }
 
     private BidType resolveBidType(String response) {
-        if (Objects.equals(response, BANNER)) {
-            return BidType.banner;
-        }
-        return BidType.video;
+        return Objects.equals(response, BANNER)
+                ? BidType.banner : BidType.video;
     }
 }
