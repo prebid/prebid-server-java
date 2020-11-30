@@ -20,6 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smartadserver.ExtImpSmartadserver;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -31,7 +32,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class SmartadserverBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/path?testParam=testVal";
 
     private SmartadserverBidder smartadserverBidder;
 
@@ -49,25 +50,25 @@ public class SmartadserverBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
+                .imp(singletonList(
+                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .build()))
                 .build();
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smartadserverBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Error parsing smartadserverExt parameters"));
     }
 
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmartadserver.of(1, 2, 3, 4))))
-                        .build()))
+                .imp(singletonList(givenImp(Function.identity())))
                 .build();
 
         // when
@@ -76,7 +77,54 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.endpoint.com/?callerId=5");
+        assertThat(result.getValue().get(0).getUri())
+                .isEqualTo("https://test.endpoint.com/path/api/bid?testParam=testVal&callerId=5");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateRequestForEveryValidImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Arrays.asList(givenImp(Function.identity()),
+                        givenImp(impBuilder -> impBuilder.id("456"))
+                ))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartadserverBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .flatExtracting(Imp::getId)
+                .containsExactly("123", "456");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateRequestForValidImpAndSaveErrorForInvalid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("456")),
+                        Imp.builder()
+                                .id("invalidImp")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .build()
+                ))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartadserverBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Error parsing smartadserverExt parameters"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .flatExtracting(Imp::getId)
+                .containsExactly("456");
     }
 
     @Test
@@ -88,9 +136,9 @@ public class SmartadserverBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartadserverBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors())
+                .allMatch(error -> error.getMessage().startsWith("Failed to decode: Unrecognized token")
+                        && error.getType() == BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -142,6 +190,25 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(Function.identity())));
+
+        // when
+        final Result<List<BidderBid>> result = smartadserverBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().build(), banner, "EUR"));
+    }
+
+    @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -158,6 +225,15 @@ public class SmartadserverBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "EUR"));
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .id("123"))
+                .banner(Banner.builder().build())
+                .video(Video.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmartadserver.of(1, 2, 3, 4))))
+                .build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
