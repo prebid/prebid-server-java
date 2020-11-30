@@ -58,26 +58,28 @@ public class SilvermobBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImpSilvermob extImp = parseImpExt(imp);
-                final String url = resolveEndpoint(extImp);
-
-                final BidRequest outgoingRequest = request.toBuilder()
-                        .imp(Collections.singletonList(imp))
-                        .build();
-
-                requests.add(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(url)
-                        .headers(resolveHeaders(request.getDevice()))
-                        .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
-                        .build());
+                requests.add(createRequestForImp(imp, request));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
         return Result.of(requests, errors);
+    }
+
+    private HttpRequest<BidRequest> createRequestForImp(Imp imp, BidRequest request) {
+        final ExtImpSilvermob extImp = parseImpExt(imp);
+
+        final BidRequest outgoingRequest = request.toBuilder()
+                .imp(Collections.singletonList(imp))
+                .build();
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(resolveEndpoint(extImp))
+                .headers(resolveHeaders(request.getDevice()))
+                .payload(outgoingRequest)
+                .body(mapper.encode(outgoingRequest))
+                .build();
     }
 
     private ExtImpSilvermob parseImpExt(Imp imp) {
@@ -99,7 +101,7 @@ public class SilvermobBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpSilvermob extImp) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, HttpUtil.encodeUrl(extImp.getHost()))
+                .replace(URL_HOST_MACRO, extImp.getHost())
                 .replace(URL_ZONE_ID_MACRO, HttpUtil.encodeUrl(extImp.getZoneId()));
     }
 
@@ -119,24 +121,26 @@ public class SilvermobBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(
-                    String.format("Error unmarshalling server Response: %s", e.getMessage())));
-        } catch (PreBidException e) {
+            return Result.of(extractBids(httpCall), Collections.emptyList());
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
+    private List<BidderBid> extractBids(HttpCall<BidRequest> httpCall) {
+        final BidResponse bidResponse;
+        try {
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Error unmarshalling server Response: %s", e.getMessage()));
+        }
         if (bidResponse == null) {
             throw new PreBidException("Response in not present");
         }
         if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty SeatBid array");
         }
-        return bidsFromResponse(bidResponse, bidRequest);
+        return bidsFromResponse(bidResponse, httpCall.getRequest().getPayload());
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
