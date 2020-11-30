@@ -99,17 +99,15 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         final String resolvedPath;
         try {
             uri = new URI(endpointUrl);
-            final String existingPath = uri.getPath();
-            resolvedPath = StringUtils.removeEnd(existingPath, "/");
+            resolvedPath = StringUtils.removeEnd(uri.getPath(), "/");
         } catch (URISyntaxException e) {
             throw new PreBidException(String.format("Malformed URL: %s.", endpointUrl));
         }
 
-        final URIBuilder uriBuilder = new URIBuilder(uri)
+        return new URIBuilder(uri)
                 .setPath(String.format("%s/api/bid", resolvedPath))
-                .addParameter("callerId", "5");
-
-        return uriBuilder.toString();
+                .addParameter("callerId", "5")
+                .toString();
     }
 
     @Override
