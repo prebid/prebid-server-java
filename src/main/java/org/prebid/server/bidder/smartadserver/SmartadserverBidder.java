@@ -9,6 +9,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -99,8 +100,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         try {
             uri = new URI(endpointUrl);
             final String existingPath = uri.getPath();
-            resolvedPath = existingPath.endsWith("/")
-                    ? existingPath.substring(0, existingPath.length() - 1) : existingPath;
+            resolvedPath = StringUtils.removeEnd(existingPath, "/");
         } catch (URISyntaxException e) {
             throw new PreBidException(String.format("Malformed URL: %s.", endpointUrl));
         }
