@@ -248,6 +248,8 @@ public class CacheServiceTest extends VertxTest {
         final Future<?> future = cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
+        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
+
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("The number of response cache objects doesn't match with bids");
@@ -431,6 +433,8 @@ public class CacheServiceTest extends VertxTest {
                 eventsContext);
 
         // then
+        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
+
         final CacheServiceResult result = future.result();
         final CacheHttpRequest request = givenCacheHttpRequest(bid);
         assertThat(result.getCacheBids()).isEmpty();
@@ -591,8 +595,7 @@ public class CacheServiceTest extends VertxTest {
                 asList(bid1, bid2),
                 givenAuctionContext(
                         accountBuilder -> accountBuilder.id("accountId"),
-                        bidRequestBuilder -> bidRequestBuilder
-                        .imp(asList(imp1, imp2))),
+                        bidRequestBuilder -> bidRequestBuilder.imp(asList(imp1, imp2))),
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)

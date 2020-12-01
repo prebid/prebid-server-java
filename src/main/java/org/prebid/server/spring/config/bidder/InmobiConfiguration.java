@@ -1,4 +1,4 @@
-package org.prebid.server.spring.config;
+package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.inmobi.InmobiBidder;

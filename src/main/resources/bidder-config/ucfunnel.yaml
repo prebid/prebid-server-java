@@ -1,7 +1,7 @@
 adapters:
   ucfunnel:
     enabled: false
-    endpoint: http://apac-hk-adx.aralego.com/prebid
+    endpoint: http://pbs.aralego.com/prebid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true

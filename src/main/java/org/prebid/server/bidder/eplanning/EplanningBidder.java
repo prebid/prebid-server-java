@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.eplanning;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -98,7 +97,7 @@ public class EplanningBidder implements Bidder<Void> {
         }
 
         if (CollectionUtils.isEmpty(requestsStrings)) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final MultiMap headers = createHeaders(request.getDevice());
@@ -151,6 +150,7 @@ public class EplanningBidder implements Bidder<Void> {
         if (bannerWidth != null && bannerHeight != null) {
             return String.format("%sx%s", bannerWidth, bannerHeight);
         }
+
         final List<Format> bannerFormats = banner.getFormat();
         if (CollectionUtils.isNotEmpty(bannerFormats)) {
             for (Format format : bannerFormats) {
@@ -161,6 +161,7 @@ public class EplanningBidder implements Bidder<Void> {
                 }
             }
         }
+
         return NULL_SIZE;
     }
 
@@ -177,21 +178,18 @@ public class EplanningBidder implements Bidder<Void> {
      */
     private static MultiMap createHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
+
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
-                    device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
-                    Objects.toString(device.getDnt(), null));
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
+
         return headers;
     }
 
     private String resolveRequestUri(BidRequest request, List<String> requestsStrings, String clientId) {
-        final Device device = request.getDevice();
-        final String ip = device != null ? device.getIp() : null;
-
         final Site site = request.getSite();
         String pageUrl = DEFAULT_PAGE_URL;
         if (site != null && StringUtils.isNotBlank(site.getPage())) {
@@ -230,6 +228,8 @@ public class EplanningBidder implements Bidder<Void> {
             uriBuilder.addParameter("uid", buyeruid);
         }
 
+        final Device device = request.getDevice();
+        final String ip = device != null ? device.getIp() : null;
         if (StringUtils.isNotBlank(ip)) {
             uriBuilder.addParameter("ip", ip);
         }
@@ -268,7 +268,7 @@ public class EplanningBidder implements Bidder<Void> {
             final HbResponse hbResponse = mapper.decodeValue(httpCall.getResponse().getBody(), HbResponse.class);
             return extractBids(hbResponse, bidRequest);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -318,10 +318,5 @@ public class EplanningBidder implements Bidder<Void> {
                         .h(hbResponseAd.getHeight())
                         .build(),
                 BidType.banner, null);
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

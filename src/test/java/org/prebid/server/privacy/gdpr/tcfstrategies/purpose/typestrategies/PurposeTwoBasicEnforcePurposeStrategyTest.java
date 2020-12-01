@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 
 import java.util.Arrays;
@@ -26,7 +27,7 @@ import static org.mockito.BDDMockito.given;
 
 public class PurposeTwoBasicEnforcePurposeStrategyTest {
 
-    private static final int PURPOSE_ID = 1;
+    private static final Purpose PURPOSE = Purpose.ONE;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -68,7 +69,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -84,7 +85,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -102,7 +103,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -120,7 +121,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -138,7 +139,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -156,7 +157,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -175,7 +176,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -194,7 +195,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -214,10 +215,10 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
                 vendorPermissionWitGvl2);
 
         given(allowedVendors.contains(anyInt())).willReturn(true);
-        given(purposesLI.contains(PURPOSE_ID)).willReturn(true);
+        given(purposesLI.contains(PURPOSE.code())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -237,10 +238,10 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
                 vendorPermissionWitGvl2);
 
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
-        given(purposesConsent.contains(PURPOSE_ID)).willReturn(true);
+        given(purposesConsent.contains(PURPOSE.code())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -258,7 +259,7 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
                 VendorV2.empty(2));
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 singleton(vendorPermissionWitGvl1), singleton(vendorPermissionWitGvl2), true);
 
         // then

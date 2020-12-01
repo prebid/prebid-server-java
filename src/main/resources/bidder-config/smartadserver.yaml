@@ -1,7 +1,7 @@
 adapters:
   smartadserver:
     enabled: false
-    endpoint: https://ssb.smartadserver.com
+    endpoint: https://ssb-global.smartadserver.com
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
@@ -18,7 +18,7 @@ adapters:
       supported-vendors:
       vendor-id: 328
     usersync:
-      url: https://ssbsync.smartadserver.com/api/sync?callerId=5&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
+      url: https://ssbsync-global.smartadserver.com/api/sync?callerId=5&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
       redirect-url: /setuid?bidder=smartadserver&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[ssb_sync_pid]
       cookie-family-name: smartadserver
       type: redirect
