@@ -73,9 +73,11 @@ public class TtxBidder implements Bidder<BidRequest> {
         final Imp firstImp = request.getImp().get(0);
         try {
             final ExtImpTtx extImpTtx = parseImpExt(firstImp);
-            requestToUpdate.site(updateSite(request.getSite(), extImpTtx.getSiteId()));
-            requestToUpdate.imp(updateImpList(request.getImp(), firstImp,
-                    extImpTtx.getProductId(), extImpTtx.getZoneId(), errors));
+            final Site updatedSite = updateSite(request.getSite(), extImpTtx.getSiteId());
+            requestToUpdate.site(updatedSite);
+            final Imp updatedFirstImp = updateFirstImp(firstImp,
+                    extImpTtx.getProductId(), extImpTtx.getZoneId(), errors);
+            requestToUpdate.imp(replaceFirstImp(request.getImp(), updatedFirstImp));
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
         }
@@ -99,8 +101,8 @@ public class TtxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<Imp> updateImpList(List<Imp> requestImps, Imp firstImp, String productId,
-                                    String zoneId, List<BidderError> errors) {
+    private Imp updateFirstImp(Imp firstImp, String productId,
+                               String zoneId, List<BidderError> errors) {
         final Imp.ImpBuilder modifiedFirstImp = firstImp.toBuilder();
         modifiedFirstImp.ext(createImpExt(productId, zoneId)).build();
 
@@ -113,9 +115,13 @@ public class TtxBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
         }
 
-        final List<Imp> imps = new ArrayList<>(requestImps);
-        imps.set(0, modifiedFirstImp.build());
-        return imps;
+        return modifiedFirstImp.build();
+    }
+
+    private List<Imp> replaceFirstImp(List<Imp> imps, Imp firstImp) {
+        final List<Imp> updatedImpList = new ArrayList<>(imps);
+        updatedImpList.set(0, firstImp);
+        return updatedImpList;
     }
 
     private ObjectNode createImpExt(String productId, String zoneId) {
@@ -141,10 +147,10 @@ public class TtxBidder implements Bidder<BidRequest> {
         final Integer resolvedPlacement = resolvePlacement(video.getPlacement(), productId);
         final Integer resolvedStartDelay = resolveStartDelay(productId);
 
-        return (resolvedPlacement != null || resolvedStartDelay != null)
+        return resolvedPlacement != null || resolvedStartDelay != null
                 ? video.toBuilder()
                 .startdelay(resolvedStartDelay != null ? resolvedStartDelay : video.getStartdelay())
-                .placement(resolvedPlacement).build()
+                .placement(resolvedPlacement != null ? resolvedPlacement : video.getPlacement()).build()
                 : video;
     }
 
@@ -164,7 +170,7 @@ public class TtxBidder implements Bidder<BidRequest> {
         return siteBuilder.id(siteId).build();
     }
 
-    private boolean isZeroOrNullInteger(Integer integer) {
+    private static boolean isZeroOrNullInteger(Integer integer) {
         return integer == null || integer == 0;
     }
 
