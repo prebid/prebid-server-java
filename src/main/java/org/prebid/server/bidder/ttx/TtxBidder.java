@@ -69,20 +69,18 @@ public class TtxBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request, List<BidderError> errors) {
-        final BidRequest.BidRequestBuilder requestToUpdate = request.toBuilder();
         final Imp firstImp = request.getImp().get(0);
+        Site updatedSite = null;
+        Imp updatedFirstImp = null;
         try {
             final ExtImpTtx extImpTtx = parseImpExt(firstImp);
-            final Site updatedSite = updateSite(request.getSite(), extImpTtx.getSiteId());
-            requestToUpdate.site(updatedSite);
-            final Imp updatedFirstImp = updateFirstImp(firstImp,
+            updatedSite = updateSite(request.getSite(), extImpTtx.getSiteId());
+            updatedFirstImp = updateFirstImp(firstImp,
                     extImpTtx.getProductId(), extImpTtx.getZoneId(), errors);
-            requestToUpdate.imp(replaceFirstImp(request.getImp(), updatedFirstImp));
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
         }
-
-        final BidRequest modifiedRequest = requestToUpdate.build();
+        final BidRequest modifiedRequest = updateRequest(request, updatedSite, updatedFirstImp);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -172,6 +170,17 @@ public class TtxBidder implements Bidder<BidRequest> {
 
     private static boolean isZeroOrNullInteger(Integer integer) {
         return integer == null || integer == 0;
+    }
+
+    private BidRequest updateRequest(BidRequest request, Site site, Imp firstImp) {
+        if (site == null && firstImp == null) {
+            return request;
+        }
+        final List<Imp> requestImps = request.getImp();
+        return request.toBuilder()
+                .site(site != null ? site : request.getSite())
+                .imp(firstImp != null ? replaceFirstImp(requestImps, firstImp) : requestImps)
+                .build();
     }
 
     @Override
