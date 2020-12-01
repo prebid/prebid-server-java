@@ -120,6 +120,22 @@ public class HttpApplicationSettingsTest extends VertxTest {
     }
 
     @Test
+    public void getAccountByIdShouldReturnFaildedFutureIfResponseIsNotPresent() throws JsonProcessingException {
+        // given
+        HttpAccountsResponse response = HttpAccountsResponse.of(null);
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("notFoundId", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Account with id : notFoundId not found");
+    }
+
+    @Test
     public void getAccountByIdShouldReturnErrorIdAccountNotFound() throws JsonProcessingException {
         // given
         HttpAccountsResponse response = HttpAccountsResponse.of(Collections.emptyMap());
@@ -132,7 +148,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Account with id :notExistingId not found");
+                .hasMessage("Account with id : notExistingId not found");
     }
 
     @Test

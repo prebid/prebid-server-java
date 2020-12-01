@@ -7,6 +7,7 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
@@ -85,7 +86,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 .map(accounts -> accounts.stream()
                         .findFirst()
                         .orElseThrow(() ->
-                                new PreBidException(String.format("Account with id :%s not found", accountId))));
+                                new PreBidException(String.format("Account with id : %s not found", accountId))));
     }
 
     private Future<Set<Account>> fetchAccountsByIds(Set<String> accountIds, Timeout timeout) {
@@ -131,8 +132,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
             throw new PreBidException(String.format("Error fetching accounts %s "
                     + "via http: failed to parse response: %s", accountIds, e.getMessage()));
         }
+        final Map<String, Account> accounts = response.getAccounts();
 
-        return new HashSet<>(response.getAccounts().values());
+        return MapUtils.isNotEmpty(accounts) ? new HashSet<>(accounts.values()) : Collections.emptySet();
     }
 
     /**
@@ -189,12 +191,12 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            return failStoreDataResponse(new TimeoutException("Timeout has been exceeded"), requestIds, impIds);
+            return failStoredDataResponse(new TimeoutException("Timeout has been exceeded"), requestIds, impIds);
         }
 
         return httpClient.get(storeRequestUrlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), remainingTimeout)
-                .compose(response -> processStoreDataResponse(response, requestIds, impIds))
-                .recover(exception -> failStoreDataResponse(exception, requestIds, impIds));
+                .compose(response -> processStoredDataResponse(response, requestIds, impIds))
+                .recover(exception -> failStoredDataResponse(exception, requestIds, impIds));
     }
 
     private static String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
@@ -219,14 +221,14 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return String.join("\",\"", ids);
     }
 
-    private static Future<StoredDataResult> failStoreDataResponse(Throwable throwable, Set<String> requestIds,
-                                                                  Set<String> impIds) {
+    private static Future<StoredDataResult> failStoredDataResponse(Throwable throwable, Set<String> requestIds,
+                                                                   Set<String> impIds) {
         return Future.succeededFuture(
                 toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
     }
 
-    private Future<StoredDataResult> processStoreDataResponse(HttpClientResponse response, Set<String> requestIds,
-                                                              Set<String> impIds) {
+    private Future<StoredDataResult> processStoredDataResponse(HttpClientResponse response, Set<String> requestIds,
+                                                               Set<String> impIds) {
         return Future.succeededFuture(
                 toStoredDataResult(requestIds, impIds, response.getStatusCode(), response.getBody()));
     }
