@@ -86,7 +86,7 @@ public class YieldmoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnRequestWithoutDeviceHeadersWhenDeviceIsNull() {
+    public void makeHttpRequestShouldReturnCorrectHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(Function.identity());
 
