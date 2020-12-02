@@ -16,7 +16,7 @@ adapters:
         - banner
         - video
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 607
     usersync:
       url: https://sync.aralego.com/idsync?gdpr={{gdpr}}}&gdpr_consent={{gdpr_consent}}&usprivacy={{us_privacy}}&redirect=
       redirect-url: /setuid?bidder=ucfunnel&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=SspCookieUserId

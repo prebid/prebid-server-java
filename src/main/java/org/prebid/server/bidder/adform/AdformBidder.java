@@ -291,24 +291,43 @@ public class AdformBidder implements Bidder<Void> {
 
         for (int i = 0; i < adformBids.size(); i++) {
             final AdformBid adformBid = adformBids.get(i);
-            if (StringUtils.isEmpty(adformBid.getBanner()) || !Objects.equals(adformBid.getResponse(), BANNER)) {
+            final String adm = resolveAdm(adformBid);
+            if (StringUtils.isBlank(adm)) {
                 continue;
             }
+            final BidType bidType = resolveBidType(adformBid.getResponse());
             final Imp imp = imps.get(i);
             bidderBids.add(BidderBid.of(Bid.builder()
                             .id(imp.getId())
                             .impid(imp.getId())
                             .price(adformBid.getWinBid())
-                            .adm(adformBid.getBanner())
+                            .adm(adm)
                             .w(adformBid.getWidth())
                             .h(adformBid.getHeight())
                             .dealid(adformBid.getDealId())
                             .crid(adformBid.getWinCrid())
                             .build(),
-                    BidType.banner,
+                    bidType,
                     currency));
         }
 
         return bidderBids;
+    }
+
+    private String resolveAdm(AdformBid adformBid) {
+        if (Objects.equals(adformBid.getResponse(), "banner")) {
+            return adformBid.getBanner();
+        }
+
+        if (Objects.equals(adformBid.getResponse(), "vast_content")) {
+            return adformBid.getVastContent();
+        }
+
+        return "";
+    }
+
+    private BidType resolveBidType(String response) {
+        return Objects.equals(response, BANNER)
+                ? BidType.banner : BidType.video;
     }
 }
