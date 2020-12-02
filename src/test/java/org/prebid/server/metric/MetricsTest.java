@@ -987,6 +987,15 @@ public class MetricsTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    public void shouldCreateCurrencyRatesGaugeMetric() {
+        // when
+        metrics.createCurrencyRatesGauge(() -> true);
+
+        // then
+        assertThat(metricRegistry.gauge("currency-rates.stale.count", () -> null).getValue()).isEqualTo(1L);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

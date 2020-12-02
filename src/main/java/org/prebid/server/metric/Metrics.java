@@ -45,6 +45,7 @@ public class Metrics extends UpdatableMetrics {
     private final Map<MetricName, CircuitBreakerMetrics> circuitBreakerMetrics;
     private final CacheMetrics cacheMetrics;
     private final TimeoutNotificationMetrics timeoutNotificationMetrics;
+    private final CurrencyRatesMetrics currencyRatesMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -69,6 +70,7 @@ public class Metrics extends UpdatableMetrics {
         circuitBreakerMetrics = new HashMap<>();
         cacheMetrics = new CacheMetrics(metricRegistry, counterType);
         timeoutNotificationMetrics = new TimeoutNotificationMetrics(metricRegistry, counterType);
+        currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -105,6 +107,10 @@ public class Metrics extends UpdatableMetrics {
 
     CacheMetrics cache() {
         return cacheMetrics;
+    }
+
+    CurrencyRatesMetrics currencyRates() {
+        return currencyRatesMetrics;
     }
 
     public void updateSafariRequestsMetric(boolean isSafari) {
@@ -452,6 +458,10 @@ public class Metrics extends UpdatableMetrics {
         } else {
             timeoutNotificationMetrics.incCounter(MetricName.failed);
         }
+    }
+
+    public void createCurrencyRatesGauge(BooleanSupplier stateSupplier) {
+        currencyRates().createGauge(MetricName.stale, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
     private String resolveMetricsBidderName(String bidder) {
