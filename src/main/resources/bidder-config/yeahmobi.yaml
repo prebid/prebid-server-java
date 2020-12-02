@@ -15,7 +15,7 @@ adapters:
         - native
       site-media-types:
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 803
     usersync:
       url:
       redirect-url:
