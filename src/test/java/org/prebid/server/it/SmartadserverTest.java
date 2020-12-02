@@ -11,6 +11,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,7 +25,8 @@ public class SmartadserverTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromSmartadserver() throws IOException, JSONException {
         // given
         // Smartadserver bid response for imp 001
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-exchange/api/bid"))
+                .withQueryParam("callerId", equalTo("5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-request-1.json")))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-response-1.json"))));
