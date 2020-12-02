@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,11 +31,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Inmobi {@link Bidder} implementation.
+ */
 public class InmobiBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpInmobi>> INMOBI_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpInmobi>>() {
             };
+    private static final int FIRST_IMP_INDEX = 0;
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -50,22 +53,23 @@ public class InmobiBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
 
-        final Imp imp = request.getImp().get(0);
-
+        final Imp imp = request.getImp().get(FIRST_IMP_INDEX);
         final ExtImpInmobi extImpInmobi;
 
         try {
             extImpInmobi = parseImpExt(imp);
-        } catch (Exception e) {
+        } catch (PreBidException e) {
             return Result.withError(BidderError.badInput("bad InMobi bidder ext"));
         }
 
-        if (StringUtils.isEmpty(extImpInmobi.getPlc())) {
+        if (StringUtils.isBlank(extImpInmobi.getPlc())) {
             return Result.withError(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
         }
 
-        final BidRequest outgoingRequest = request.toBuilder()
-                .imp(Collections.singletonList(updateImp(imp))).build();
+        final List<Imp> updatedImps = new ArrayList<>(request.getImp());
+        updatedImps.set(FIRST_IMP_INDEX, updateImp(imp));
+
+        final BidRequest outgoingRequest = request.toBuilder().imp(updatedImps).build();
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -87,8 +91,8 @@ public class InmobiBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp) {
-        if (imp.getBanner() != null) {
-            final Banner banner = imp.getBanner();
+        final Banner banner = imp.getBanner();
+        if (banner != null) {
             if ((banner.getW() == null || banner.getH() == null || banner.getW() == 0 || banner.getH() == 0)
                     && CollectionUtils.isNotEmpty(banner.getFormat())) {
                 final Format format = banner.getFormat().get(0);
@@ -100,12 +104,6 @@ public class InmobiBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
@@ -131,7 +129,7 @@ public class InmobiBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    protected BidType getBidType(String impId, List<Imp> imps) {
+    private BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getVideo() != null) {
                 return BidType.video;

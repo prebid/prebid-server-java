@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -25,7 +24,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class AdopplerBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "http://{{AccountID}}.test.com/some/path/{{AdUnit}}";
 
     private AdopplerBidder adopplerBidder;
 
@@ -58,26 +57,19 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of(null)))));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of(null, null)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("$.imp.ext.adoppler.adunit required");
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("$.imp.ext.adoppler.adunit required"));
     }
 
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build()));
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
@@ -85,11 +77,27 @@ public class AdopplerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.endpoint.com/processHeaderBid/adUnit");
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("http://clientId.test.com/some/path/adUnit");
     }
 
     @Test
-    public void makeHttpRequestsShouldSetExpectedRequestUrlAndDefaultHeaders() {
+    public void makeHttpRequestsShouldCreateUrlWithDefaultAppParamIfClientIsMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("http://app.test.com/some/path/adUnit");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetExpectedHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -100,7 +108,7 @@ public class AdopplerBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
+                .containsExactlyInAnyOrder(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
@@ -110,11 +118,9 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final Imp imp1 = Imp.builder().id("impId").banner(Banner.builder().build()).build();
         final Imp imp2 = Imp.builder().id("impId").video(Video.builder().build()).build();
-        final List imps = new ArrayList();
-        imps.add(imp1);
-        imps.add(imp2);
-        BidRequest bidRequest = BidRequest.builder()
-                .imp(imps)
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Arrays.asList(imp1, imp2))
                 .build();
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest, mapper.writeValueAsString(
@@ -124,10 +130,8 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("duplicate $.imp.id impId");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("duplicate $.imp.id impId"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -150,10 +154,9 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("one of $.imp.banner, $.imp.video, $.imp.audio and $.imp.native field required");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("one of $.imp.banner, $.imp.video, "
+                        + "$.imp.audio and $.imp.native field required"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -173,10 +176,8 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("unknown impid: null");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("unknown impId: null"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -184,8 +185,7 @@ public class AdopplerBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfExtEmpty() throws JsonProcessingException {
         // given
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
-        final List imps = Collections.singletonList(imp);
-        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(Collections.singletonList(imp)).build();
         final ObjectNode ext = mapper.valueToTree(AdopplerResponseExt.of(null));
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
                 givenBidResponse(bidBuilder -> bidBuilder
@@ -197,24 +197,8 @@ public class AdopplerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("$.seatbid.bid.ext.ads.video required");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("$.seatbid.bid.ext.ads.video required"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -235,7 +219,7 @@ public class AdopplerBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "clientId")))))
                 .build();
     }
 

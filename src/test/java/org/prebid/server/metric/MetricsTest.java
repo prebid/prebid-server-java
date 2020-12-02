@@ -988,6 +988,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldCreateCurrencyRatesGaugeMetric() {
+        // when
+        metrics.createCurrencyRatesGauge(() -> true);
+
+        // then
+        assertThat(metricRegistry.gauge("currency-rates.stale.count", () -> null).getValue()).isEqualTo(1L);
+    }
+
+    @Test
     public void updateSettingsCacheRefreshTimeShouldUpdateTimer() {
         // when
         metrics.updateSettingsCacheRefreshTime(MetricName.stored_request, MetricName.initialize, 123L);

@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -37,6 +39,7 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -105,6 +108,7 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of("demo",
                                 "_adhese_prebid_demo_", "leaderboard", mapper.convertValue(targets, JsonNode.class)))))
                         .build()))
+                .device(Device.builder().ifa("dum-my").build())
                 .build();
 
         // when
@@ -114,7 +118,49 @@ public class AdheseBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/ag55/cigent;brussels"
-                        + "/tlall/xtdummy");
+                        + "/tlall/xtdummy/xzdum-my");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyIncomingRequestWithIfaParameter() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ifa("ifaValue").build())
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdhese.of("demo", "_adhese_prebid_demo_", "leaderboard",
+                                        mapper.convertValue(emptyMap(), JsonNode.class)))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xzifaValue");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyIncomingRequestWithRefererParameter() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().page("pageValue").build())
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdhese.of("demo", "_adhese_prebid_demo_", "leaderboard",
+                                        mapper.convertValue(emptyMap(), JsonNode.class)))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xfpageValue");
     }
 
     @Test
@@ -137,20 +183,6 @@ public class AdheseBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xtdummy");
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test

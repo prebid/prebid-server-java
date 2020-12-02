@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -55,8 +54,8 @@ public class YieldoneBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
+                validateImpExt(imp);
                 final Imp updatedImp = modifyImp(imp);
-                validateImpExt(updatedImp);
 
                 validImps.add(updatedImp);
             } catch (PreBidException e) {
@@ -65,15 +64,14 @@ public class YieldoneBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
+                        .body(mapper.encode(outgoingRequest))
                         .payload(outgoingRequest)
-                        .body(body)
                         .build()),
                 errors);
     }
@@ -95,8 +93,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
 
     private void validateImpExt(Imp imp) {
         try {
-            final ExtImpYieldone extImpYieldone = mapper.mapper().convertValue(imp.getExt(),
-                    YIELDONE_EXT_TYPE_REFERENCE).getBidder();
+            mapper.mapper().convertValue(imp.getExt(), YIELDONE_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -104,21 +101,17 @@ public class YieldoneBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
+            final List<Imp> requestImps = bidRequest.getImp();
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
             final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                     .filter(Objects::nonNull)
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                            bidResponse.getCur()))
+                    .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), requestImps), bidResponse.getCur()))
                     .collect(Collectors.toList());
+
             return Result.withValues(bidderBids);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -143,7 +136,6 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        throw new PreBidException(String.format("Unknown impression type with id %s", impId));
     }
 }
-

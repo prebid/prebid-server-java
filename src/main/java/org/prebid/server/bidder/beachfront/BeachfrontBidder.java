@@ -12,7 +12,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -385,15 +384,6 @@ public class BeachfrontBidder implements Bidder<Void> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final String bodyString = httpCall.getResponse().getBody();
-        if (StringUtils.isBlank(bodyString)) {
-            return Result.withError(BidderError.badServerResponse("Received a null response from beachfront"));
-        }
-
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()
-                || bodyString.length() <= 2) {
-            return Result.empty();
-        }
-
         try {
             return processVideoResponse(bodyString, httpCall.getRequest());
         } catch (DecodeException e) {

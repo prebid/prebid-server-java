@@ -7,9 +7,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -55,11 +55,6 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
 
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.withErrors(errors);
-        }
-
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpAdmixer extImp = parseImpExt(imp);
@@ -84,21 +79,25 @@ public class AdmixerBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpAdmixer parseImpExt(Imp imp) {
+        final ExtImpAdmixer extImpAdmixer;
         try {
-            return mapper.mapper().convertValue(imp.getExt(), ADMIXER_EXT_TYPE_REFERENCE).getBidder();
+            extImpAdmixer = mapper.mapper().convertValue(imp.getExt(), ADMIXER_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("Wrong Admixer bidder ext in imp with id : %s", imp.getId()));
         }
-    }
-
-    private Imp processImp(Imp imp, ExtImpAdmixer extImpAdmixer) {
-        if (extImpAdmixer.getZone().length() != 36) {
+        if (StringUtils.length(extImpAdmixer.getZone()) != 36) {
             throw new PreBidException("ZoneId must be UUID/GUID");
         }
 
+        return extImpAdmixer;
+    }
+
+    private Imp processImp(Imp imp, ExtImpAdmixer extImpAdmixer) {
+        final Double extImpFloor = extImpAdmixer.getCustomFloor();
+        final BigDecimal customFloor = extImpFloor != null ? BigDecimal.valueOf(extImpFloor) : BigDecimal.ZERO;
         return imp.toBuilder()
                 .tagid(extImpAdmixer.getZone())
-                .bidfloor(BigDecimal.valueOf(extImpAdmixer.getCustomFloor()))
+                .bidfloor(customFloor)
                 .ext(makeImpExt(extImpAdmixer.getCustomParams()))
                 .build();
     }
@@ -111,11 +110,6 @@ public class AdmixerBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
@@ -123,7 +117,8 @@ public class AdmixerBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        if (CollectionUtils.isEmpty(bidResponse.getSeatbid())
+        if (bidResponse == null
+                || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 || CollectionUtils.isEmpty(bidResponse.getSeatbid().get(0).getBid())) {
             return Result.empty();
         }
