@@ -609,13 +609,24 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "currency-converter.external-rates", name = "enabled", havingValue = "true")
     ExternalConversionProperties externalConversionProperties(
             @Value("${currency-converter.external-rates.url}") String currencyServerUrl,
-            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeout,
-            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriod,
+            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeoutMs,
+            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriodMs,
+            @Value("${currency-converter.external-rates.stale-after-ms}") long staleAfterMs,
             Vertx vertx,
             HttpClient httpClient,
+            Metrics metrics,
+            Clock clock,
             JacksonMapper mapper) {
 
-        return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient,
+        return new ExternalConversionProperties(
+                currencyServerUrl,
+                defaultTimeoutMs,
+                refreshPeriodMs,
+                staleAfterMs,
+                vertx,
+                httpClient,
+                metrics,
+                clock,
                 mapper);
     }
 

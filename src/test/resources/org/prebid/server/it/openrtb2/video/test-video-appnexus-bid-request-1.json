@@ -248,17 +248,29 @@
     }
   },
   "device": {
-    "ua": "userAgent",
-    "ip": "193.168.244.0"
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.13 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2",
+    "dnt": 33,
+    "lmt": 44,
+    "ip": "123.145.167.10",
+    "devicetype": 1,
+    "os": "mac os",
+    "h": 480,
+    "w": 640,
+    "ifa": "AA000DFE74168477C70D291f574D344790E0BB11",
+    "didsha1": "didsha1",
+    "didmd5": "didmd5",
+    "dpidsha1": "dpidsha1",
+    "dpidmd5": "dpidmd5",
+    "macsha1": "macsha1",
+    "macmd5": "macmd5"
   },
   "user": {
+    "buyeruid": "appnexus",
     "yob": 1991,
     "gender": "F",
-    "keywords": "Hotels, Travelling"
-  },
-  "regs": {
+    "keywords": "Hotels, Travelling",
     "ext": {
-      "us_privacy": "1YNN"
+      "consent": "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"
     }
   },
   "at": 1,
@@ -266,6 +278,12 @@
   "cur": [
     "USD"
   ],
+  "regs": {
+    "ext": {
+      "gdpr": 1,
+      "us_privacy": "1YNN"
+    }
+  },
   "ext": {
     "prebid": {
       "targeting": {
@@ -283,6 +301,9 @@
       },
       "cache": {
         "vastxml": {}
+      },
+      "channel": {
+        "name": "web"
       }
     }
   }

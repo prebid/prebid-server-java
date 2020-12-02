@@ -114,6 +114,7 @@ currency-converter:
     url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
     default-timeout-ms: 4000
     refresh-period-ms: 900000
+    stale-after-ms: 259200000
 metrics:
   metricType: flushingCounter
   accounts:
