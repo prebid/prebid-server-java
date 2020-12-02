@@ -8,6 +8,7 @@ import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -38,6 +39,7 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -117,6 +119,48 @@ public class AdheseBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/ag55/cigent;brussels"
                         + "/tlall/xtdummy/xzdum-my");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyIncomingRequestWithIfaParameter() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ifa("ifaValue").build())
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdhese.of("demo", "_adhese_prebid_demo_", "leaderboard",
+                                        mapper.convertValue(emptyMap(), JsonNode.class)))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xzifaValue");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyIncomingRequestWithRefererParameter() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().page("pageValue").build())
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdhese.of("demo", "_adhese_prebid_demo_", "leaderboard",
+                                        mapper.convertValue(emptyMap(), JsonNode.class)))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xfpageValue");
     }
 
     @Test

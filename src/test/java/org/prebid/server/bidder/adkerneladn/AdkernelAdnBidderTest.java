@@ -44,7 +44,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AdkernelAdnBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://test.domain.com/rtbpub?account=";
+    private static final String ENDPOINT_URL = "http://{{Host}}/test?account={{PublisherID}}";
 
     private AdkernelAdnBidder adkernelAdnBidder;
 
@@ -149,7 +149,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns("http://test.domain.com/rtbpub?account=50357", HttpRequest::getUri);
+                .returns("http://tag.adkernel.com/test?account=50357", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
@@ -172,27 +172,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://different.domanin.com/rtbpub?account=50357");
-    }
-
-    @Test
-    public void makeHttpRequestShouldRemovePortIfHostIsSpecified() {
-        // given
-        final String urlWithPort = "http://test:8080/rtbpub?account=";
-        adkernelAdnBidder = new AdkernelAdnBidder(urlWithPort, jacksonMapper);
-
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                extImpAdkernelAdnBuilder -> extImpAdkernelAdnBuilder.host("different.domanin.com"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getUri)
-                .containsOnly("http://different.domanin.com/rtbpub?account=50357");
+                .containsOnly("http://different.domanin.com/test?account=50357");
     }
 
     @Test

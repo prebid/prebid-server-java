@@ -1,13 +1,13 @@
-### This code is being used in production by multiple Prebid.org members, but is not the "official" version. See https://github.com/prebid/prebid-server/
+### This is the Java version of Prebid Server. See the Prebid Server [Feature List](https://docs.prebid.org/prebid-server/features/pbs-feature-idx.html) and [FAQ entry](https://docs.prebid.org/faq/prebid-server-faq.html#why-are-there-two-versions-of-prebid-server-are-they-kept-in-sync) to understand the differences between PBS-Java and [PBS-Go](https://github.com/prebid/prebid-server).
 
-# Prebid Server
+# Prebid Server (Java)
 
-[![GitHub version](https://badge.fury.io/gh/rubicon-project%2fprebid-server-java.svg)](http://badge.fury.io/gh/rubicon-project%2fprebid-server-java)
-[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/rubicon-project/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/rubicon-project/prebid-server-java/context:java)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/rubicon-project/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/rubicon-project/prebid-server-java/alerts/)
-[![GitHub contributors](https://img.shields.io/github/contributors/rubicon-project/prebid-server-java.svg)](https://GitHub.com/rubicon-project/prebid-server-java/contributors/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/rubicon-project/prebid-server-java/blob/master/docs/contributing.md) 
-[![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/rubicon-project/prebid-server-java.svg)](https://GitHub.com/rubicon-project/prebid-server-java/pull/)
+[![GitHub version](https://badge.fury.io/gh/prebid%2fprebid-server-java.svg)](http://badge.fury.io/gh/prebid%2fprebid-server-java)
+[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/prebid/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/prebid/prebid-server-java/context:java)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/prebid/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/prebid/prebid-server-java/alerts/)
+[![GitHub contributors](https://img.shields.io/github/contributors/prebid/prebid-server-java.svg)](https://GitHub.com/prebid/prebid-server-java/contributors/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/prebid/prebid-server-java/blob/master/docs/contributing.md) 
+[![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/prebid/prebid-server-java.svg)](https://GitHub.com/prebid/prebid-server-java/pull/)
 
 Prebid Server is an open source implementation of Server-Side Header Bidding.
 It is managed by [Prebid.org](http://prebid.org/overview/what-is-prebid-org.html),
@@ -44,7 +44,7 @@ Follow next steps to create JAR file which can be deployed locally.
 
 - Download or clone a project:
 ```bash
-git clone https://github.com/rubicon-project/prebid-server-java.git
+git clone https://github.com/prebid/prebid-server-java.git
 ```
 
 - Move to project directory:
@@ -84,28 +84,28 @@ and verify response status is `200 OK`.
 # Documentation
 
 ## Development
-- [Differences Between Prebid Server Go and Java](differenceBetweenPBSGo-and-Java.md)
-- [Endpoints](endpoints)
-- [Adding new bidder](developers/add-new-bidder.md)
-- [Adding new analytics module](developers/add-new-analytics-module.md)
-- [Adding viewability support](developers/add-viewability-vendors.md)
-- [Auction result post-processing](developers/auction-result-post-processing.md)
-- [Cookie Syncs](developers/cookie-syncs.md)
-- [Stored Requests](developers/stored-requests.md)
-- [Unit Tests](developers/unit-tests.md)
-- [GDPR](developers/gdpr.md)
+- [Differences Between Prebid Server Go and Java](docs/differenceBetweenPBSGo-and-Java.md)
+- [Endpoints](docs/endpoints)
+- [Adding new bidder](docs/developers/add-new-bidder.md)
+- [Adding new analytics module](docs/developers/add-new-analytics-module.md)
+- [Adding viewability support](docs/developers/add-viewability-vendors.md)
+- [Auction result post-processing](docs/developers/auction-result-post-processing.md)
+- [Cookie Syncs](docs/developers/cookie-syncs.md)
+- [Stored Requests](docs/developers/stored-requests.md)
+- [Unit Tests](docs/developers/unit-tests.md)
+- [GDPR](docs/developers/gdpr.md)
 
 ## Maintenance
-- [Build for local](build.md)
-- [Build for AWS](build-aws.md)
-- [Configure application](config.md)
-  - [Full list of configuration options](config-app.md)
-  - [Application settings](application-settings.md)
-- [Run with optimizations](run.md)
-- [Metrics](metrics.md)
+- [Build for local](docs/build.md)
+- [Build for AWS](docs/build-aws.md)
+- [Configure application](docs/config.md)
+  - [Full list of configuration options](docs/config-app.md)
+  - [Application settings](docs/application-settings.md)
+- [Run with optimizations](docs/run.md)
+- [Metrics](docs/metrics.md)
 
 ## Contributing
-- [Contributing](contributing.md)
-- [Code Style](code-style.md)
-- [Code Review](code-reviews.md)
-- [Versioning](versioning.md)
+- [Contributing](docs/contributing.md)
+- [Code Style](docs/code-style.md)
+- [Code Review](docs/code-reviews.md)
+- [Versioning](docs/versioning.md)
