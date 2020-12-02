@@ -1,16 +1,14 @@
 package org.prebid.server.settings.proto.response;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.settings.model.Account;
 
 import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class HttpFetcherResponse {
+public class HttpAccountsResponse {
 
-    Map<String, ObjectNode> requests;
-
-    Map<String, ObjectNode> imps;
+    Map<String, Account> accounts;
 }
