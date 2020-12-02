@@ -101,7 +101,10 @@ public enum MetricName {
     creative_size,
 
     //account.*.requests.
-    rejected;
+    rejected,
+
+    //currency rates
+    stale;
 
     private final String name;
 

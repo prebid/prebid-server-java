@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.adkernel;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -10,6 +9,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -57,9 +57,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         final Map<ExtImpAdkernel, List<Imp>> pubToImps = new HashMap<>();
         for (Imp imp : request.getImp()) {
             try {
-                validateImp(imp);
-                final ExtImpAdkernel extImpAdkernel = parseAndValidateImpExt(imp);
-                dispatchImpression(imp, extImpAdkernel, pubToImps);
+                processImp(imp, pubToImps);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -75,6 +73,12 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
 
         return Result.of(httpRequests, errors);
+    }
+
+    private void processImp(Imp imp, Map<ExtImpAdkernel, List<Imp>> pubToImps) {
+        validateImp(imp);
+        final ExtImpAdkernel extImpAdkernel = parseAndValidateImpExt(imp);
+        dispatchImpression(imp, extImpAdkernel, pubToImps);
     }
 
     private static void validateImp(Imp imp) {
@@ -104,16 +108,14 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         return extImpAdkernel;
     }
 
-    //Group impressions by AdKernel-specific parameters `zoneId` & `host`
     private static void dispatchImpression(Imp imp, ExtImpAdkernel extImpAdkernel,
                                            Map<ExtImpAdkernel, List<Imp>> pubToImp) {
         pubToImp.putIfAbsent(extImpAdkernel, new ArrayList<>());
         pubToImp.get(extImpAdkernel).add(compatImpression(imp));
     }
 
-    //Alter impression info to comply with adkernel platform requirements
     private static Imp compatImpression(Imp imp) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder().ext(null) //do not forward ext to adkernel platform
+        final Imp.ImpBuilder impBuilder = imp.toBuilder().ext(null)
                 .audio(null)
                 .xNative(null);
         return imp.getBanner() != null ? impBuilder.video(null).build() : impBuilder.build();
@@ -121,8 +123,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static boolean hasNoImpressions(Map<ExtImpAdkernel, List<Imp>> pubToImps) {
         return pubToImps.values().stream()
-                .mapToLong(Collection::size)
-                .sum() == 0;
+                .allMatch(CollectionUtils::isEmpty);
     }
 
     private HttpRequest<BidRequest> createHttpRequest(Map.Entry<ExtImpAdkernel, List<Imp>> extAndImp,
@@ -145,8 +146,10 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidRequest createBidRequest(
-            List<Imp> imps, BidRequest.BidRequestBuilder requestBuilder, Site site, App app) {
+    private static BidRequest createBidRequest(List<Imp> imps,
+                                               BidRequest.BidRequestBuilder requestBuilder,
+                                               Site site,
+                                               App app) {
 
         requestBuilder.imp(imps);
 
@@ -186,9 +189,6 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Figures out which media type this bid is for.
-     */
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getBanner() != null) {
@@ -196,10 +196,5 @@ public class AdkernelBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.video;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

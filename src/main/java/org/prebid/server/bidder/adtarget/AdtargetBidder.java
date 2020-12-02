@@ -29,7 +29,6 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -199,10 +198,5 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(String.format(
                     "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

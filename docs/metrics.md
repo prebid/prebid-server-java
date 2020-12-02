@@ -63,6 +63,7 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `circuit-breaker.geo.opened` - state of the geo location circuit breaker: `1` means opened (geo location resource is unavailable), `0` - closed
 - `timeout_notification.ok` - number of times bidders were successfully notified about timeouts
 - `timeout_notification.failed` - number of unsuccessful attempts to notify bidders about timeouts
+- `currency-rates.stale` - a flag indicating if currency rates obtained from external source are fresh (`0`) or stale (`1`)
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID
@@ -86,7 +87,7 @@ Following metrics are collected and submitted if account is configured with `det
 - `account.<account-id>.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
 - `account.<account-id>.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
 - `account.<account-id>.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
-- `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId` ([UnauthorizedAccountException.java](https://github.com/rubicon-project/prebid-server-java/blob/master/src/main/java/org/prebid/server/exception/UnauthorizedAccountException.java))
+- `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
 
 ## General Prebid Cache metrics
 - `prebid_cache.requests.ok` - timer tracking how long did successful cache requests take

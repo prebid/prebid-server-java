@@ -2,7 +2,6 @@ package org.prebid.server.bidder.yieldlab;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -13,7 +12,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.ObjectUtils;
@@ -73,10 +71,10 @@ public class YieldlabBidder implements Bidder<Void> {
         final ExtImpYieldlab modifiedExtImp = constructExtImp(request.getImp());
 
         return Result.withValue(HttpRequest.<Void>builder()
-                        .method(HttpMethod.GET)
-                        .uri(makeUrl(modifiedExtImp, request))
-                        .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
-                        .build());
+                .method(HttpMethod.GET)
+                .uri(makeUrl(modifiedExtImp, request))
+                .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
+                .build());
     }
 
     private ExtImpYieldlab constructExtImp(List<Imp> imps) {
@@ -229,11 +227,6 @@ public class YieldlabBidder implements Bidder<Void> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         final List<YieldlabResponse> yieldlabResponses;
         try {
             yieldlabResponses = decodeBodyToBidList(httpCall);
@@ -377,10 +370,5 @@ public class YieldlabBidder implements Bidder<Void> {
 
         return String.format(AD_SOURCE_URL, extImpYieldlab.getAdslotId(), extImpYieldlab.getSupplyId(),
                 yieldlabResponse.getAdSize(), uriBuilder.toString().replace("?", ""));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

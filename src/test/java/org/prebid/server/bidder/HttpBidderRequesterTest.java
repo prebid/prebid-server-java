@@ -36,13 +36,13 @@ import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -429,9 +429,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .result();
 
         // then
-        // only two calls are expected (200 and 204) since other requests have failed with errors.
-        verify(bidder, times(2)).makeBids(any(), any());
-        assertThat(bidderSeatBid.getBids()).hasSize(2);
+        // only one calls is expected (200) since other requests have failed with errors.
+        verify(bidder, times(1)).makeBids(any(), any());
+        assertThat(bidderSeatBid.getBids()).hasSize(1);
         assertThat(bidderSeatBid.getErrors()).containsOnly(
                 BidderError.badInput("makeHttpRequestsError"),
                 BidderError.generic("Response exception"),
@@ -442,7 +442,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassEmptyJsonResponseBodyToMakeBidsIfResponseStatusIs204() {
+    public void shouldNotMakeBidsIfResponseStatusIs204() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -459,7 +459,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         httpBidderRequester.requestBids(bidder, BidRequest.builder().test(1).build(), timeout, false);
 
         // then
-        verify(bidder).makeBids(argThat(httpCall -> httpCall.getResponse().getBody().equals("{}")), any());
+        verify(bidder, never()).makeBids(any(), any());
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {

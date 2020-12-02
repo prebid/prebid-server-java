@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.logicad;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -148,10 +147,5 @@ public class LogicadBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

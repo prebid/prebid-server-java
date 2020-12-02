@@ -1,6 +1,5 @@
 package org.prebid.server.bidder;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -23,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -259,11 +257,6 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             }
         }
         return bidType;
-    }
-
-    @Override
-    public final Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 
     public enum RequestCreationStrategy {
