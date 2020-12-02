@@ -58,34 +58,41 @@ public class VideoStoredRequestProcessor {
     private static final String DEFAULT_CURRENCY = "USD";
     private static final String DEFAULT_BUYERUID = "appnexus";
 
-    private final ApplicationSettings applicationSettings;
-    private final VideoRequestValidator validator;
     private final boolean enforceStoredRequest;
     private final List<String> blacklistedAccounts;
-    private final BidRequest defaultBidRequest;
-    private final Metrics metrics;
-    private final TimeoutResolver timeoutResolver;
-    private final TimeoutFactory timeoutFactory;
     private final long defaultTimeout;
     private final String currency;
+    private final BidRequest defaultBidRequest;
+    private final VideoRequestValidator validator;
+    private final ApplicationSettings applicationSettings;
+    private final Metrics metrics;
+    private final TimeoutFactory timeoutFactory;
+    private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
-    private JsonMergeUtil jsonMergeUtil;
+    private final JsonMergeUtil jsonMergeUtil;
 
-    public VideoStoredRequestProcessor(ApplicationSettings applicationSettings, VideoRequestValidator validator,
-                                       boolean enforceStoredRequest, List<String> blacklistedAccounts,
-                                       BidRequest defaultBidRequest, Metrics metrics, TimeoutFactory timeoutFactory,
-                                       TimeoutResolver timeoutResolver, long defaultTimeout, String adServerCurrency,
+    public VideoStoredRequestProcessor(boolean enforceStoredRequest,
+                                       List<String> blacklistedAccounts,
+                                       long defaultTimeout,
+                                       String adServerCurrency,
+                                       BidRequest defaultBidRequest,
+                                       VideoRequestValidator validator,
+                                       ApplicationSettings applicationSettings,
+                                       Metrics metrics,
+                                       TimeoutFactory timeoutFactory,
+                                       TimeoutResolver timeoutResolver,
                                        JacksonMapper mapper) {
-        this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.validator = Objects.requireNonNull(validator);
+
         this.enforceStoredRequest = enforceStoredRequest;
         this.blacklistedAccounts = blacklistedAccounts;
-        this.defaultBidRequest = Objects.requireNonNull(defaultBidRequest);
-        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
-        this.metrics = Objects.requireNonNull(metrics);
         this.defaultTimeout = defaultTimeout;
         this.currency = StringUtils.isBlank(adServerCurrency) ? DEFAULT_CURRENCY : adServerCurrency;
+        this.defaultBidRequest = Objects.requireNonNull(defaultBidRequest);
+        this.validator = Objects.requireNonNull(validator);
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.metrics = Objects.requireNonNull(metrics);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.mapper = Objects.requireNonNull(mapper);
 
         jsonMergeUtil = new JsonMergeUtil(mapper);

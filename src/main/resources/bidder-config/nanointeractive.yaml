@@ -14,7 +14,7 @@ adapters:
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 72
     usersync:
       url: https://ad.audiencemanager.de/hbs/cookie_sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
       redirect-url: /setuid?bidder=nanointeractive&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
