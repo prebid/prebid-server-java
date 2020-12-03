@@ -57,38 +57,24 @@ public class TtxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final Imp firstImp = request.getImp().get(0);
-        if (firstImp.getBanner() == null
-                && firstImp.getVideo() == null) {
-            return Result.withError(BidderError.badInput("At least one of [banner, video] "
-                    + "formats must be defined in Imp. None found"));
-        }
         final List<BidderError> errors = new ArrayList<>();
         Imp updatedFirstImp = null;
         ExtImpTtx extImpTtx = null;
         try {
             extImpTtx = parseImpExt(firstImp);
-            updatedFirstImp = updateImp(firstImp, extImpTtx.getProductId(), extImpTtx.getZoneId(), errors);
+            updatedFirstImp = updatedImp(firstImp, extImpTtx.getProductId(), extImpTtx.getZoneId(), errors);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
+        }
+
+        if (updatedFirstImp != null && updatedFirstImp.getBanner() == null && updatedFirstImp.getVideo() == null) {
+            return Result.withError(BidderError.badInput("At least one of [banner, video] "
+                    + "formats must be defined in Imp. None found"));
         }
 
         final HttpRequest<BidRequest> httpRequest = createRequest(request, extImpTtx, updatedFirstImp);
 
         return Result.of(Collections.singletonList(httpRequest), errors);
-    }
-
-    private HttpRequest<BidRequest> createRequest(BidRequest request, ExtImpTtx extImpTtx, Imp updatedFirstImp) {
-        Site updatedSite = extImpTtx != null ? updateSite(request.getSite(), extImpTtx.getSiteId()) : null;
-
-        final BidRequest modifiedRequest = updateRequest(request, updatedSite, updatedFirstImp);
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(modifiedRequest)
-                .body(mapper.encode(modifiedRequest))
-                .build();
     }
 
     private ExtImpTtx parseImpExt(Imp imp) {
@@ -99,24 +85,15 @@ public class TtxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Site updateSite(Site site, String siteId) {
-        return site == null ? null : site.toBuilder().id(siteId).build();
-    }
-
-    private Imp updateImp(Imp imp, String productId, String zoneId, List<BidderError> errors) {
+    private Imp updatedImp(Imp imp, String productId, String zoneId, List<BidderError> errors) {
 
         return imp.toBuilder()
-                .video(updateVideo(imp.getVideo(), productId, errors))
+                .video(updatedVideo(imp.getVideo(), productId, errors))
                 .ext(createImpExt(productId, zoneId))
                 .build();
     }
 
-    private ObjectNode createImpExt(String productId, String zoneId) {
-        final TtxImpExt ttxImpExt = TtxImpExt.of(TtxImpExtTtx.of(productId, StringUtils.stripToNull(zoneId)));
-        return mapper.mapper().valueToTree(ttxImpExt);
-    }
-
-    private static Video updateVideo(Video video, String productId, List<BidderError> errors) {
+    private static Video updatedVideo(Video video, String productId, List<BidderError> errors) {
         if (video == null) {
             return null;
         }
@@ -124,23 +101,25 @@ public class TtxBidder implements Bidder<BidRequest> {
                 || isZeroOrNullInteger(video.getH())
                 || CollectionUtils.isEmpty(video.getProtocols())
                 || CollectionUtils.isEmpty(video.getMimes())
-                || CollectionUtils.isEmpty(video.getPlaybackmethod())
-        ) {
+                || CollectionUtils.isEmpty(video.getPlaybackmethod())) {
             errors.add(BidderError.badInput("One or more invalid or missing video field(s) "
                     + "w, h, protocols, mimes, playbackmethod"));
-            return video;
+            return null;
         }
-
-        return modifyVideo(video, productId);
-    }
-
-    private static Video modifyVideo(Video video, String productId) {
         final Integer videoPlacement = video.getPlacement();
 
         return video.toBuilder()
                 .startdelay(resolveStartDelay(video.getStartdelay(), productId))
                 .placement(resolvePlacement(videoPlacement, productId))
                 .build();
+    }
+
+    private static boolean isZeroOrNullInteger(Integer integer) {
+        return integer == null || integer == 0;
+    }
+
+    private static Integer resolveStartDelay(Integer startDelay, String productId) {
+        return Objects.equals(productId, "instream") ? Integer.valueOf(0) : startDelay;
     }
 
     private static Integer resolvePlacement(Integer videoPlacement, String productId) {
@@ -153,15 +132,26 @@ public class TtxBidder implements Bidder<BidRequest> {
         return videoPlacement;
     }
 
-    private static boolean isZeroOrNullInteger(Integer integer) {
-        return integer == null || integer == 0;
+    private ObjectNode createImpExt(String productId, String zoneId) {
+        final TtxImpExt ttxImpExt = TtxImpExt.of(TtxImpExtTtx.of(productId, StringUtils.stripToNull(zoneId)));
+        return mapper.mapper().valueToTree(ttxImpExt);
     }
 
-    private static Integer resolveStartDelay(Integer startDelay, String productId) {
-        if (Objects.equals(productId, "instream")) {
-            return 0;
-        }
-        return startDelay;
+    private HttpRequest<BidRequest> createRequest(BidRequest request, ExtImpTtx extImpTtx, Imp updatedFirstImp) {
+        final Site updatedSite = extImpTtx != null ? updateSite(request.getSite(), extImpTtx.getSiteId()) : null;
+        final BidRequest modifiedRequest = updateRequest(request, updatedSite, updatedFirstImp);
+
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(HttpUtil.headers())
+                .payload(modifiedRequest)
+                .body(mapper.encode(modifiedRequest))
+                .build();
+    }
+
+    private static Site updateSite(Site site, String siteId) {
+        return site == null ? null : site.toBuilder().id(siteId).build();
     }
 
     private static BidRequest updateRequest(BidRequest request, Site updatedSite, Imp updatedFirstImp) {
