@@ -86,32 +86,25 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest createOutgoingRequest(BidRequest bidRequest) {
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<Imp> requestImps = bidRequest.getImp();
         for (int i = 0; i < requestImps.size(); i++) {
-            final Imp imp = bidRequest.getImp().get(i);
+            final Imp imp = requestImps.get(i);
             final ExtImpConversant impExt = parseImpExt(imp, i);
-            if (i == 0) {
-                final String siteId = impExt.getSiteId();
-                if (bidRequest.getSite() != null) {
-                    requestBuilder.site(updateSite(bidRequest.getSite(), siteId));
-                } else if (bidRequest.getApp() != null) {
-                    requestBuilder.app(updateApp(bidRequest.getApp(), siteId));
-                }
-            }
             modifiedImps.add(modifyImp(imp, impExt));
         }
-        requestBuilder.imp(modifiedImps);
-        return requestBuilder.build();
-    }
 
-    private static Site updateSite(Site site, String siteId) {
-        return site.toBuilder().id(siteId).build();
-    }
+        final Imp firstImp = requestImps.get(0);
+        final ExtImpConversant extImp = parseImpExt(firstImp, 0);
+        final String siteId = extImp.getSiteId();
+        final Site requestSite = bidRequest.getSite();
+        final App requestApp = bidRequest.getApp();
 
-    private static App updateApp(App app, String siteId) {
-        return app.toBuilder().id(siteId).build();
+        return bidRequest.toBuilder()
+                .site(updateSite(requestSite, siteId))
+                .app(requestSite == null ? updateApp(requestApp, siteId) : requestApp)
+                .imp(modifiedImps)
+                .build();
     }
 
     private ExtImpConversant parseImpExt(Imp imp, int impIndex) {
@@ -126,6 +119,14 @@ public class ConversantBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("Impression[%d] requires ext.bidder.site_id", impIndex));
         }
         return extImp;
+    }
+
+    private static Site updateSite(Site site, String siteId) {
+        return site == null ? null : site.toBuilder().id(siteId).build();
+    }
+
+    private static App updateApp(App app, String siteId) {
+        return app == null ? null : app.toBuilder().id(siteId).build();
     }
 
     private static Imp modifyImp(Imp imp, ExtImpConversant impExt) {
@@ -144,17 +145,16 @@ public class ConversantBidder implements Bidder<BidRequest> {
                 .bidfloor(extBidfloor != null ? extBidfloor : imp.getBidfloor())
                 .tagid(extTagId != null ? extTagId : imp.getTagid())
                 .secure(shouldChangeSecure ? extSecure : imp.getSecure())
-                .video(impVideo != null ? modifyVideo(impVideo, impExt) : null)
+                .video(impVideo != null && impBanner == null ? modifyVideo(impVideo, impExt) : impVideo)
                 .build();
     }
 
     private static Banner modifyBanner(Banner impBanner, Integer extPosition) {
-        if (impBanner != null && extPosition != null) {
-            return impBanner.toBuilder()
-                    .pos(AD_POSITIONS.contains(extPosition) ? extPosition : null)
-                    .build();
-        }
-        return impBanner;
+        return impBanner == null || extPosition == null
+                ? impBanner
+                : impBanner.toBuilder()
+                .pos(AD_POSITIONS.contains(extPosition) ? extPosition : null)
+                .build();
     }
 
     private static Video modifyVideo(Video video, ExtImpConversant impExt) {
@@ -196,7 +196,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
