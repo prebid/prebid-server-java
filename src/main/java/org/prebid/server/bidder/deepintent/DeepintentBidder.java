@@ -98,9 +98,9 @@ public class DeepintentBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, String tagId, Banner updatedBanner) {
+    private Imp modifyImp(Imp imp, String tagId, Banner banner) {
         return imp.toBuilder()
-                .banner(updatedBanner)
+                .banner(banner)
                 .tagid(tagId)
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VER)
