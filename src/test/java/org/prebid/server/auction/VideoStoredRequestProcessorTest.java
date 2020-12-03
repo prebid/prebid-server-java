@@ -73,8 +73,18 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        target = new VideoStoredRequestProcessor(applicationSettings, validator, false, emptyList(),
-                BidRequest.builder().build(), metrics, timeoutFactory, timeoutResolver, 2000L, "USD", jacksonMapper);
+        target = new VideoStoredRequestProcessor(
+                false,
+                emptyList(),
+                2000L,
+                "USD",
+                BidRequest.builder().build(),
+                validator,
+                applicationSettings,
+                metrics,
+                timeoutFactory,
+                timeoutResolver,
+                jacksonMapper);
     }
 
     @Test

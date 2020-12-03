@@ -11,15 +11,12 @@ adapters:
       maintainer-email: sourabh@deepintent.com
       app-media-types:
         - banner
-        - video
       site-media-types:
         - banner
-        - video
       supported-vendors:
       vendor-id: 541
     usersync:
       url: https://cdn.deepintent.com/syncpixel.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      sd:
       redirect-url: /setuid?bidder=deepintent&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[uid]
       cookie-family-name: deepintent
       type: redirect

@@ -63,6 +63,10 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `circuit-breaker.geo.opened` - state of the geo location circuit breaker: `1` means opened (geo location resource is unavailable), `0` - closed
 - `timeout_notification.ok` - number of times bidders were successfully notified about timeouts
 - `timeout_notification.failed` - number of unsuccessful attempts to notify bidders about timeouts
+- `currency-rates.stale` - a flag indicating if currency rates obtained from external source are fresh (`0`) or stale (`1`)
+- `settings.cache.(stored-request|amp-stored-request).refresh.(initialize|update).db_query_time` - timer tracking how long was settings cache population
+- `settings.cache.(stored-request|amp-stored-request).refresh.(initialize|update).err` - number of errors during settings cache population
+- `settings.cache.account.(hit|miss)` - number of times account was found or was missing in cache
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID
