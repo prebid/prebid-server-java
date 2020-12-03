@@ -55,7 +55,7 @@
         <mockito.version>2.23.4</mockito.version>
         <assertj.version>3.8.0</assertj.version>
         <wiremock.version>2.26.3</wiremock.version>
-        <jetty.version>9.4.34.v20201102</jetty.version>
+        <jetty.version>9.4.35.v20201120</jetty.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
 
