@@ -212,32 +212,28 @@ public class PrivacyEnforcementService {
     }
 
     public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
-        final boolean shouldEnforceCcpa = isCCPAEnabled(account);
+        final boolean shouldEnforceCcpa = isCcpaEnabled(account);
 
         return shouldEnforceCcpa && ccpa.isEnforced();
     }
 
     private boolean isCcpaEnforced(Ccpa ccpa, Account account, MetricName requestType) {
-        final boolean shouldEnforceCcpa = isCCPAEnabled(account, requestType);
+        final boolean shouldEnforceCcpa = isCcpaEnabled(account, requestType);
         return shouldEnforceCcpa && ccpa.isEnforced();
     }
 
-    private Boolean isCCPAEnabled(Account account) {
+    private Boolean isCcpaEnabled(Account account) {
         final AccountCcpaConfig accountCcpaConfig = account.getCcpa();
+        final Boolean accountCcpaEnabled = accountCcpaConfig != null ? accountCcpaConfig.getEnabled() : null;
 
-        final Boolean accountCCPAEnabled =
-                accountCcpaConfig != null ? accountCcpaConfig.getEnabled() : null;
-
-        return ObjectUtils.firstNonNull(accountCCPAEnabled, account.getEnforceCcpa(), ccpaEnforce);
+        return ObjectUtils.firstNonNull(accountCcpaEnabled, account.getEnforceCcpa(), ccpaEnforce);
     }
 
-    private boolean isCCPAEnabled(Account account, MetricName requestType) {
+    private boolean isCcpaEnabled(Account account, MetricName requestType) {
         final AccountCcpaConfig accountCcpaConfig = account.getCcpa();
-
-        final Boolean accountCCPAEnabled =
-                accountCcpaConfig != null ? accountCcpaConfig.getEnabled() : null;
+        final Boolean accountCcpaEnabled = accountCcpaConfig != null ? accountCcpaConfig.getEnabled() : null;
         if (requestType == null) {
-            return ObjectUtils.firstNonNull(accountCCPAEnabled, ccpaEnforce);
+            return ObjectUtils.firstNonNull(accountCcpaEnabled, account.getEnforceCcpa(), ccpaEnforce);
         }
 
         final EnabledForRequestType enabledForRequestType = accountCcpaConfig != null
@@ -247,7 +243,7 @@ public class PrivacyEnforcementService {
         final Boolean enabledForType = enabledForRequestType != null
                 ? enabledForRequestType.isEnabledFor(requestType)
                 : null;
-        return ObjectUtils.firstNonNull(enabledForType, accountCCPAEnabled, account.getEnforceCcpa(), ccpaEnforce);
+        return ObjectUtils.firstNonNull(enabledForType, accountCcpaEnabled, account.getEnforceCcpa(), ccpaEnforce);
     }
 
     private Map<String, BidderPrivacyResult> maskCcpa(
