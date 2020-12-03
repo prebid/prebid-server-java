@@ -258,10 +258,11 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpBannerAndVideoPosFromImpExtIfPresent() {
+    public void makeHttpRequestsShouldSetImpForBannerOnlyFromImpExtWhenVideoIsPresent() {
         // given
+        final Video requestVideo = Video.builder().pos(1).build();
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.video(Video.builder().pos(1).build()),
+                impBuilder -> impBuilder.banner(Banner.builder().pos(1).build()).video(requestVideo),
                 extBuilder -> extBuilder.position(5));
 
         // when
@@ -275,7 +276,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(Imp::getBanner, Imp::getVideo)
                 .containsOnly(tuple(
                         Banner.builder().pos(5).build(),
-                        Video.builder().pos(5).build()));
+                        requestVideo));
     }
 
     @Test
@@ -552,7 +553,7 @@ public class ConversantBidderTest extends VertxTest {
 
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().build())
+
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         extCustomizer.apply(ExtImpConversant.builder().siteId("site id")).build()))))
                 .build();
