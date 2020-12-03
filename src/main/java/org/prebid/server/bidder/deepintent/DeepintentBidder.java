@@ -1,7 +1,9 @@
 package org.prebid.server.bidder.deepintent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -55,8 +57,9 @@ public class DeepintentBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
+                final Banner updatedBanner = buildImpBanner(imp.getBanner(), imp.getId());
                 final ExtImpDeepintent extImpDeepintent = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, extImpDeepintent.getTagId()));
+                modifiedImps.add(modifyImp(imp, extImpDeepintent.getTagId(), updatedBanner));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -69,16 +72,35 @@ public class DeepintentBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
+    private Banner buildImpBanner(Banner banner, String impId) {
+        if (banner == null) {
+            throw new PreBidException(String.format("We need a Banner Object in "
+                    + "the request, imp : %s", impId));
+        }
+
+        if (banner.getW() == null && banner.getH() == null) {
+            final List<Format> bannerFormats = banner.getFormat();
+            if (CollectionUtils.isEmpty(banner.getFormat())) {
+                throw new PreBidException(String.format("At least one size is required, imp : %s", impId));
+            }
+            final Format format = bannerFormats.get(0);
+            return banner.toBuilder().w(format.getW()).h(format.getH()).build();
+        }
+
+        return banner;
+    }
+
     private ExtImpDeepintent parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), DEEPINTENT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
         }
     }
 
-    private Imp modifyImp(Imp imp, String tagId) {
+    private Imp modifyImp(Imp imp, String tagId, Banner banner) {
         return imp.toBuilder()
+                .banner(banner)
                 .tagid(tagId)
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VER)
@@ -102,20 +124,23 @@ public class DeepintentBidder implements Bidder<BidRequest> {
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+            return Result.of(extractBids(httpCall), Collections.emptyList());
         } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(HttpCall<BidRequest> httpCall) {
+        final BidResponse bidResponse;
+        try {
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage());
+        }
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(httpCall.getRequest().getPayload(), bidResponse);
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
@@ -131,9 +156,6 @@ public class DeepintentBidder implements Bidder<BidRequest> {
     private BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                if (imp.getVideo() != null && imp.getBanner() == null) {
-                    return BidType.video;
-                }
                 return BidType.banner;
             }
         }
