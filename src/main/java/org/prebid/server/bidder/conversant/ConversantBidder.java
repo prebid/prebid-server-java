@@ -27,7 +27,6 @@ import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,8 +40,8 @@ import java.util.stream.IntStream;
  */
 public class ConversantBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpConversant>> CONVERSANT_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpConversant>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpConversant>> CONVERSANT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpConversant>>() {
             };
 
     // List of API frameworks supported by the publisher
@@ -73,14 +72,13 @@ public class ConversantBidder implements Bidder<BidRequest> {
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(body)
                         .headers(HttpUtil.headers())
+                        .body(mapper.encode(outgoingRequest))
                         .payload(outgoingRequest)
                         .build()),
                 Collections.emptyList());
@@ -116,7 +114,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("Impression[%d] missing ext.bidder object", impIndex));
         }
 
-        if (StringUtils.isBlank(extImp.getSiteId())) {
+        if (StringUtils.isEmpty(extImp.getSiteId())) {
             throw new PreBidException(String.format("Impression[%d] requires ext.bidder.site_id", impIndex));
         }
         return extImp;
@@ -131,28 +129,30 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, ExtImpConversant impExt) {
-        final BigDecimal extBidfloor = impExt.getBidfloor();
-        final String extTagId = impExt.getTagId();
-        final Integer extSecure = impExt.getSecure();
-        final boolean shouldChangeSecure = extSecure != null && (imp.getSecure() == null || imp.getSecure() == 0);
-        final Banner impBanner = imp.getBanner();
-        final Integer extPosition = impExt.getPosition();
-        final Video impVideo = imp.getVideo();
+        final Banner banner = imp.getBanner();
+        final Video video = imp.getVideo();
 
         return imp.toBuilder()
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VER)
-                .banner(modifyBanner(impBanner, extPosition))
-                .bidfloor(extBidfloor != null ? extBidfloor : imp.getBidfloor())
-                .tagid(extTagId != null ? extTagId : imp.getTagid())
-                .secure(shouldChangeSecure ? extSecure : imp.getSecure())
-                .video(impVideo != null && impBanner == null ? modifyVideo(impVideo, impExt) : impVideo)
+                .bidfloor(impExt.getBidfloor())
+                .tagid(impExt.getTagId())
+                .secure(getSecure(imp, impExt))
+                .banner(modifyBanner(banner, impExt.getPosition()))
+                .video(video != null && banner == null ? modifyVideo(video, impExt) : video)
                 .build();
+    }
+
+    private static Integer getSecure(Imp imp, ExtImpConversant impExt) {
+        final Integer extSecure = impExt.getSecure();
+        final Integer impSecure = imp.getSecure();
+
+        return extSecure != null && (impSecure == null || impSecure == 0) ? extSecure : impSecure;
     }
 
     private static Banner modifyBanner(Banner impBanner, Integer extPosition) {
         return impBanner == null
-                ? impBanner
+                ? null
                 : impBanner.toBuilder()
                 .pos(isValidPosition(extPosition) ? extPosition : null)
                 .build();
@@ -160,21 +160,15 @@ public class ConversantBidder implements Bidder<BidRequest> {
 
     private static Video modifyVideo(Video video, ExtImpConversant impExt) {
         final List<String> extMimes = impExt.getMimes();
-        final Integer extMaxduration = impExt.getMaxduration();
+        final Integer extMaxDuration = impExt.getMaxduration();
         final Integer extPosition = impExt.getPosition();
-        final List<Integer> extProtocols = impExt.getProtocols();
-        final List<Integer> extApi = impExt.getApi();
         return video.toBuilder()
                 .mimes(CollectionUtils.isNotEmpty(extMimes) ? extMimes : video.getMimes())
-                .maxduration(extMaxduration != null ? extMaxduration : video.getMaxduration())
-                .pos(makePosition(extPosition, video.getPos()))
-                .api(makeApi(extApi, video.getApi()))
-                .protocols(makeProtocols(extProtocols, video.getProtocols()))
+                .maxduration(extMaxDuration != null ? extMaxDuration : video.getMaxduration())
+                .pos(isValidPosition(extPosition) ? extPosition : null)
+                .api(makeApi(impExt.getApi(), video.getApi()))
+                .protocols(makeProtocols(impExt.getProtocols(), video.getProtocols()))
                 .build();
-    }
-
-    private static Integer makePosition(Integer position, Integer videoPos) {
-        return isValidPosition(position) ? position : isValidPosition(videoPos) ? videoPos : null;
     }
 
     private static boolean isValidPosition(Integer position) {
@@ -184,13 +178,15 @@ public class ConversantBidder implements Bidder<BidRequest> {
     private static List<Integer> makeApi(List<Integer> extApi, List<Integer> videoApi) {
         final List<Integer> api = CollectionUtils.isNotEmpty(extApi) ? extApi : videoApi;
         return CollectionUtils.isNotEmpty(api)
-                ? api.stream().filter(APIS::contains).collect(Collectors.toList()) : videoApi;
+                ? api.stream().filter(APIS::contains).collect(Collectors.toList())
+                : videoApi;
     }
 
     private static List<Integer> makeProtocols(List<Integer> extProtocols, List<Integer> videoProtocols) {
         final List<Integer> protocols = CollectionUtils.isNotEmpty(extProtocols) ? extProtocols : videoProtocols;
         return CollectionUtils.isNotEmpty(protocols)
-                ? protocols.stream().filter(PROTOCOLS::contains).collect(Collectors.toList()) : videoProtocols;
+                ? protocols.stream().filter(PROTOCOLS::contains).collect(Collectors.toList())
+                : videoProtocols;
     }
 
     @Override
@@ -230,8 +226,8 @@ public class ConversantBidder implements Bidder<BidRequest> {
 
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId) && imp.getVideo() != null) {
-                return BidType.video;
+            if (imp.getId().equals(impId)) {
+                return imp.getVideo() != null ? BidType.video : BidType.banner;
             }
         }
         return BidType.banner;

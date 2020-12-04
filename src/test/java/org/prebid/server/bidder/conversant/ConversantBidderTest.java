@@ -337,26 +337,6 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotChangeVideoPosFromImpExtIfNotInRange() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.video(Video.builder().pos(7).build()),
-                extBuilder -> extBuilder.position(9));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getVideo)
-                .extracting(Video::getPos)
-                .containsExactly(7);
-    }
-
-    @Test
     public void makeHttpRequestsShouldNotSetVideoPosIfNotInRange() {
         // given
         final BidRequest bidRequest = givenBidRequest(
