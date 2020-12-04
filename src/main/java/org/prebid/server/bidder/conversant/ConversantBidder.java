@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -164,7 +165,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final List<Integer> extProtocols = impExt.getProtocols();
         final List<Integer> extApi = impExt.getApi();
         return video.toBuilder()
-                .mimes(extMimes != null ? extMimes : video.getMimes())
+                .mimes(CollectionUtils.isNotEmpty(extMimes) ? extMimes : video.getMimes())
                 .maxduration(extMaxduration != null ? extMaxduration : video.getMaxduration())
                 .pos(makePosition(extPosition, video.getPos()))
                 .api(makeApi(extApi, video.getApi()))
@@ -181,9 +182,9 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static List<Integer> makeApi(List<Integer> extApi, List<Integer> videoApi) {
-        final List<Integer> protocols = CollectionUtils.isNotEmpty(extApi) ? extApi : videoApi;
-        return CollectionUtils.isNotEmpty(protocols)
-                ? protocols.stream().filter(APIS::contains).collect(Collectors.toList()) : videoApi;
+        final List<Integer> api = CollectionUtils.isNotEmpty(extApi) ? extApi : videoApi;
+        return CollectionUtils.isNotEmpty(api)
+                ? api.stream().filter(APIS::contains).collect(Collectors.toList()) : videoApi;
     }
 
     private static List<Integer> makeProtocols(List<Integer> extProtocols, List<Integer> videoProtocols) {
@@ -195,23 +196,33 @@ public class ConversantBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException | PreBidException e) {
+            return Result.withValues(extractBids(httpCall));
+        } catch (PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(HttpCall<BidRequest> httpCall) {
+        final BidResponse bidResponse;
+        try {
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("bad server response: %s. ", e.getMessage()));
+        }
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty bid request");
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(httpCall.getRequest().getPayload(), bidResponse);
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
-        return firstSeatBid.getBid().stream()
+        final List<Bid> bids = firstSeatBid.getBid();
+
+        if (CollectionUtils.isEmpty(bids)) {
+            throw new PreBidException("Empty bids array");
+        }
+        return bids.stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
