@@ -280,6 +280,63 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetPosBannerToNullIfExtPosIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().pos(23).build()),
+                extBuilder -> extBuilder.position(null));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(Banner.builder().pos(null).build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetPosBannerToNullIfExtPosIsNotValid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().pos(23).build()),
+                extBuilder -> extBuilder.position(9));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(Banner.builder().pos(null).build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetPosBannerToPosFromExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().pos(23).build()),
+                extBuilder -> extBuilder.position(7));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(Banner.builder().pos(7).build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotChangeVideoPosFromImpExtIfNotInRange() {
         // given
         final BidRequest bidRequest = givenBidRequest(

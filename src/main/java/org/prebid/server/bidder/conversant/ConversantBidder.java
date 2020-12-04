@@ -151,10 +151,10 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static Banner modifyBanner(Banner impBanner, Integer extPosition) {
-        return impBanner == null || extPosition == null
+        return impBanner == null
                 ? impBanner
                 : impBanner.toBuilder()
-                .pos(AD_POSITIONS.contains(extPosition) ? extPosition : null)
+                .pos(isValidPosition(extPosition) ? extPosition : null)
                 .build();
     }
 
