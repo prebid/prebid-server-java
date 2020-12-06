@@ -203,7 +203,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         try {
             bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("bad server response: %s. ", e.getMessage()));
+            throw new PreBidException(e.getMessage());
         }
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty bid request");

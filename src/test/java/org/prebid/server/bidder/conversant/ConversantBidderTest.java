@@ -165,7 +165,7 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpDisplaymanagerAndDisplaymanagerver() {
+    public void makeHttpRequestsShouldSetImpDisplayManagerAndDisplayManagerVer() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -182,7 +182,7 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpBidfloorFromImpExtIfPresent() {
+    public void makeHttpRequestsShouldSetImpBidFloorFromImpExtIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -505,12 +505,11 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getErrors()).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-            assertThat(error.getMessage()).contains("bad server response: Failed to decode: Unrecognized token");
-        });
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -626,7 +625,6 @@ public class ConversantBidderTest extends VertxTest {
 
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         extCustomizer.apply(ExtImpConversant.builder().siteId("site id")).build()))))
                 .build();
