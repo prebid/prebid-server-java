@@ -25,6 +25,7 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -74,6 +75,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     private AuctionRequestFactory auctionRequestFactory;
     @Mock
     private TimeoutResolver timeoutResolver;
+    @Mock
+    private IdGenerator idGenerator;
 
     private AmpRequestFactory factory;
     @Mock
@@ -105,8 +108,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));
 
-        factory = new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, ortbTypesResolver,
-                implicitParametersExtractor, fpdResolver, timeoutResolver, jacksonMapper);
+        factory = new AmpRequestFactory(false, storedRequestProcessor, auctionRequestFactory, ortbTypesResolver,
+                implicitParametersExtractor, fpdResolver, timeoutResolver, idGenerator, jacksonMapper);
     }
 
     @Test
@@ -534,6 +537,49 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getExt)
                 .containsOnly(ExtSite.of(1, null));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverriddenBidRequestIdWhenOverrideConfigIsTrue() {
+        // given
+        factory = new AmpRequestFactory(true, storedRequestProcessor, auctionRequestFactory, ortbTypesResolver,
+                implicitParametersExtractor, fpdResolver, timeoutResolver, idGenerator, jacksonMapper);
+
+        given(idGenerator.generateId()).willReturn("overriddenId");
+
+        givenBidRequest(
+                builder -> builder
+                        .id("originId")
+                        .ext(ExtRequest.empty()),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getId)
+                .containsOnly("overriddenId");
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverriddenBidRequestIdWhenIdIsOverrideTemplate() {
+        // given
+        given(idGenerator.generateId()).willReturn("overriddenId");
+
+        givenBidRequest(
+                builder -> builder
+                        .id("{{UUID}}")
+                        .ext(ExtRequest.empty()),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getId)
+                .containsOnly("overriddenId");
     }
 
     @Test

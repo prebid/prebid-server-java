@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.ccpa.Ccpa;
@@ -58,6 +59,7 @@ public class AmpRequestFactory {
     private static final String TAG_ID_REQUEST_PARAM = "tag_id";
     private static final String TARGETING_REQUEST_PARAM = "targeting";
     private static final String DEBUG_REQUEST_PARAM = "debug";
+    private static final String OVERRIDE_BID_REQUEST_ID_TEMPLATE = "{{UUID}}";
     private static final String OW_REQUEST_PARAM = "ow";
     private static final String OH_REQUEST_PARAM = "oh";
     private static final String W_REQUEST_PARAM = "w";
@@ -73,27 +75,33 @@ public class AmpRequestFactory {
     private static final int NO_LIMIT_SPLIT_MODE = -1;
     private static final String AMP_CHANNEL = "amp";
 
+    private final boolean generateBidRequestId;
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
     private final OrtbTypesResolver ortbTypesResolver;
     private final ImplicitParametersExtractor implicitParametersExtractor;
     private final FpdResolver fpdResolver;
     private final TimeoutResolver timeoutResolver;
+    private final IdGenerator idGenerator;
     private final JacksonMapper mapper;
 
-    public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
+    public AmpRequestFactory(boolean generateBidRequestId,
+                             StoredRequestProcessor storedRequestProcessor,
                              AuctionRequestFactory auctionRequestFactory,
                              OrtbTypesResolver ortbTypesResolver,
                              ImplicitParametersExtractor implicitParametersExtractor,
                              FpdResolver fpdResolver,
                              TimeoutResolver timeoutResolver,
+                             IdGenerator idGenerator,
                              JacksonMapper mapper) {
+        this.generateBidRequestId = generateBidRequestId;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.idGenerator = Objects.requireNonNull(idGenerator);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -274,6 +282,7 @@ public class AmpRequestFactory {
         ortbTypesResolver.normalizeTargeting(targetingNode, errors, implicitParametersExtractor.refererFrom(request));
         final Targeting targeting = parseTargeting(targetingNode);
 
+        final String bidRequestId = overrideBidRequestId(bidRequest.getId());
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request, targetingNode);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
@@ -282,9 +291,10 @@ public class AmpRequestFactory {
         final ExtRequest updatedExtBidRequest = overrideExtBidRequest(bidRequest.getExt(), targeting);
 
         final BidRequest result;
-        if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null
-                || updatedRegs != null || updatedExtBidRequest != null) {
+        if (ObjectUtils.anyNotNull(bidRequestId, updatedSite, updatedImp, updatedTimeout,
+                updatedUser, updatedRegs, updatedExtBidRequest)) {
             result = bidRequest.toBuilder()
+                    .id(bidRequestId != null ? bidRequestId : bidRequest.getId())
                     .site(updatedSite != null ? updatedSite : bidRequest.getSite())
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
                     .tmax(updatedTimeout != null ? updatedTimeout : bidRequest.getTmax())
@@ -327,6 +337,12 @@ public class AmpRequestFactory {
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding targeting from url: %s", e.getMessage()));
         }
+    }
+
+    private String overrideBidRequestId(String bidRequestId) {
+        return StringUtils.equals(bidRequestId, OVERRIDE_BID_REQUEST_ID_TEMPLATE) || generateBidRequestId
+                ? idGenerator.generateId()
+                : null;
     }
 
     private Site overrideSite(Site site, HttpServerRequest request) {
