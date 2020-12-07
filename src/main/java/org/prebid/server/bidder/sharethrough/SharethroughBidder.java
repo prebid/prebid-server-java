@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.sharethrough;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -35,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -234,10 +232,5 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                                 .build(),
                         DEFAULT_BID_TYPE,
                         DEFAULT_BID_CURRENCY));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,9 +64,6 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput(
-                        "Invalid MediaType. Conversant supports only Banner and Video. Ignoring ImpID=123"));
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -82,8 +78,9 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .containsOnly(BidderError.badInput("Impression[0] missing ext.bidder object"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -102,7 +99,7 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Missing site id"));
+                .containsOnly(BidderError.badInput("Impression[0] requires ext.bidder.site_id"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -168,26 +165,6 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSiteMobileFromImpExtIfPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.site(Site.builder().build()),
-                identity(),
-                extBuilder -> extBuilder.mobile(1));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getMobile)
-                .containsOnly(1);
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetImpDisplaymanagerAndDisplaymanagerver() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -201,7 +178,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
-                .containsOnly(tuple("prebid-s2s", "1.0.1"));
+                .containsOnly(tuple("prebid-s2s", "2.0.0"));
     }
 
     @Test
@@ -281,10 +258,11 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpBannerAndVideoPosFromImpExtIfPresent() {
+    public void makeHttpRequestsShouldSetImpForBannerOnlyFromImpExtWhenVideoIsPresent() {
         // given
+        final Video requestVideo = Video.builder().pos(1).build();
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.video(Video.builder().pos(1).build()),
+                impBuilder -> impBuilder.banner(Banner.builder().pos(1).build()).video(requestVideo),
                 extBuilder -> extBuilder.position(5));
 
         // when
@@ -298,7 +276,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(Imp::getBanner, Imp::getVideo)
                 .containsOnly(tuple(
                         Banner.builder().pos(5).build(),
-                        Video.builder().pos(5).build()));
+                        requestVideo));
     }
 
     @Test
@@ -486,7 +464,9 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .containsOnly(BidderError.badServerResponse("Empty bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -500,7 +480,9 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .containsOnly(BidderError.badServerResponse("Empty bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -541,11 +523,6 @@ public class ConversantBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(conversantBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
@@ -576,7 +553,7 @@ public class ConversantBidderTest extends VertxTest {
 
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().build())
+
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         extCustomizer.apply(ExtImpConversant.builder().siteId("site id")).build()))))
                 .build();

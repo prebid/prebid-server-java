@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.facebook;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -13,7 +12,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.codec.binary.Hex;
@@ -46,7 +44,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -282,13 +279,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
-        final int statusCode = response.getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            final String message = response.getHeaders().get("x-fb-an-errors");
-            return Result.withError(BidderError.badInput(
-                    String.format("Unexpected status code %d with error message '%s'", statusCode, message)));
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
@@ -350,11 +340,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
         throw new PreBidException(String.format("Invalid bid imp ID %s does not match any imp IDs from the original "
                 + "bid request", impId));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 
     @Override

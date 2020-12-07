@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -286,11 +285,6 @@ public class InvibesBidderTest extends VertxTest {
                 .extracting(BidderError::getMessage)
                 .containsOnly("Server error: someError.");
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(invibesBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static InvibesBidderResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

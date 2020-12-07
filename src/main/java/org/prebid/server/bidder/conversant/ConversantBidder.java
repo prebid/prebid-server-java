@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.conversant;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -12,7 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -30,10 +28,8 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,7 +54,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
     private static final Set<Integer> AD_POSITIONS = IntStream.range(0, 8).boxed().collect(Collectors.toSet());
 
     private static final String DISPLAY_MANAGER = "prebid-s2s";
-    private static final String DISPLAY_MANAGER_VER = "1.0.1";
+    private static final String DISPLAY_MANAGER_VER = "2.0.0";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -70,15 +66,12 @@ public class ConversantBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
         final BidRequest outgoingRequest;
         try {
-            outgoingRequest = createBidRequest(bidRequest, errors);
+            outgoingRequest = createOutgoingRequest(bidRequest);
         } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return Result.withErrors(errors);
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
@@ -89,77 +82,51 @@ public class ConversantBidder implements Bidder<BidRequest> {
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
                         .build()),
-                errors);
+                Collections.emptyList());
     }
 
-    private BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
+    private BidRequest createOutgoingRequest(BidRequest bidRequest) {
         final List<Imp> modifiedImps = new ArrayList<>();
-        Integer extMobile = null;
-        String extSiteId = null;
-
-        for (Imp imp : bidRequest.getImp()) {
-            try {
-                validateImp(imp);
-                final ExtImpConversant impExt = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, impExt));
-                if (StringUtils.isNotEmpty(impExt.getSiteId())) {
-                    extSiteId = impExt.getSiteId();
-                }
-                if (impExt.getMobile() != null) {
-                    extMobile = impExt.getMobile();
-                }
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
-        }
-        if (modifiedImps.isEmpty()) {
-            throw new PreBidException("No valid impressions");
+        final List<Imp> requestImps = bidRequest.getImp();
+        for (int i = 0; i < requestImps.size(); i++) {
+            final Imp imp = requestImps.get(i);
+            final ExtImpConversant impExt = parseImpExt(imp, i);
+            modifiedImps.add(modifyImp(imp, impExt));
         }
 
-        final Site site = bidRequest.getSite();
-        final App app = bidRequest.getApp();
-        validateSiteAppId(extSiteId, site, app);
+        final Imp firstImp = requestImps.get(0);
+        final ExtImpConversant extImp = parseImpExt(firstImp, 0);
+        final String siteId = extImp.getSiteId();
+        final Site requestSite = bidRequest.getSite();
+        final App requestApp = bidRequest.getApp();
 
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder()
-                .imp(modifiedImps);
-
-        if (site != null) {
-            if (StringUtils.isEmpty(site.getId()) || extMobile != null) {
-                final String siteId = ObjectUtils.defaultIfNull(site.getId(), extSiteId);
-                requestBuilder.site(site.toBuilder().id(siteId).mobile(extMobile).build());
-            }
-        } else if (app != null) {
-            if (StringUtils.isEmpty(app.getId())) {
-                requestBuilder.app(app.toBuilder().id(extSiteId).build());
-            }
-        }
-
-        return requestBuilder.build();
+        return bidRequest.toBuilder()
+                .site(updateSite(requestSite, siteId))
+                .app(requestSite == null ? updateApp(requestApp, siteId) : requestApp)
+                .imp(modifiedImps)
+                .build();
     }
 
-    private void validateSiteAppId(String extSiteId, Site site, App app) {
-        if (site != null && StringUtils.isEmpty(site.getId()) && StringUtils.isEmpty(extSiteId)) {
-            throw new PreBidException("Missing site id");
-        }
-
-        if (app != null && StringUtils.isEmpty(app.getId()) && StringUtils.isEmpty(extSiteId)) {
-            throw new PreBidException("Missing app id");
-        }
-    }
-
-    private static void validateImp(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("Invalid MediaType. Conversant supports only Banner and Video. "
-                    + "Ignoring ImpID=%s", imp.getId()));
-        }
-    }
-
-    private ExtImpConversant parseImpExt(Imp imp) {
+    private ExtImpConversant parseImpExt(Imp imp, int impIndex) {
+        final ExtImpConversant extImp;
         try {
-            return mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
+            extImp = mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("Impression[%d] missing ext.bidder object", impIndex));
         }
+
+        if (StringUtils.isBlank(extImp.getSiteId())) {
+            throw new PreBidException(String.format("Impression[%d] requires ext.bidder.site_id", impIndex));
+        }
+        return extImp;
+    }
+
+    private static Site updateSite(Site site, String siteId) {
+        return site == null ? null : site.toBuilder().id(siteId).build();
+    }
+
+    private static App updateApp(App app, String siteId) {
+        return app == null ? null : app.toBuilder().id(siteId).build();
     }
 
     private static Imp modifyImp(Imp imp, ExtImpConversant impExt) {
@@ -171,19 +138,22 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final Integer extPosition = impExt.getPosition();
         final Video impVideo = imp.getVideo();
 
-        final Imp.ImpBuilder impBuilder = imp.toBuilder();
-
-        if (impBanner != null && extPosition != null) {
-            impBuilder.banner(impBanner.toBuilder().pos(extPosition).build());
-        }
-
-        return impBuilder
+        return imp.toBuilder()
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VER)
+                .banner(modifyBanner(impBanner, extPosition))
                 .bidfloor(extBidfloor != null ? extBidfloor : imp.getBidfloor())
                 .tagid(extTagId != null ? extTagId : imp.getTagid())
                 .secure(shouldChangeSecure ? extSecure : imp.getSecure())
-                .video(impVideo != null ? modifyVideo(impVideo, impExt) : null)
+                .video(impVideo != null && impBanner == null ? modifyVideo(impVideo, impExt) : impVideo)
+                .build();
+    }
+
+    private static Banner modifyBanner(Banner impBanner, Integer extPosition) {
+        return impBanner == null || extPosition == null
+                ? impBanner
+                : impBanner.toBuilder()
+                .pos(AD_POSITIONS.contains(extPosition) ? extPosition : null)
                 .build();
     }
 
@@ -233,17 +203,16 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
-                : bidsFromResponse(bidRequest, bidResponse);
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            throw new PreBidException("Empty bid request");
+        }
+        return bidsFromResponse(bidRequest, bidResponse);
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        return firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
@@ -255,10 +224,5 @@ public class ConversantBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

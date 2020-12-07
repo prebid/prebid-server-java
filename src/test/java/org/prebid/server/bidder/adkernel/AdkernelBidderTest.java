@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,8 +69,8 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid imp id=123. Expected imp.banner or imp.video"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Invalid imp id=123. Expected imp.banner or imp.video"));
     }
 
     @Test
@@ -90,12 +89,13 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_input
+                && error.getMessage().startsWith("Cannot deserialize instance"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfExtZoneIdIsNull() {
+    public void makeHttpRequestsShouldReturnErrorIfExtZoneIdisEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(), extBuilder -> extBuilder.zoneId(null));
 
@@ -103,8 +103,8 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid zoneId value: null. Ignoring imp id=123"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Invalid zoneId value: null. Ignoring imp id=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -117,13 +117,13 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid zoneId value: 0. Ignoring imp id=123"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Invalid zoneId value: 0. Ignoring imp id=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfExtHostIsNull() {
+    public void makeHttpRequestsShouldReturnErrorIfExtHostisEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(), extBuilder -> extBuilder.host(null));
 
@@ -131,8 +131,8 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -145,8 +145,8 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -165,7 +165,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .returns("http://test_host/hb?zone=3426", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
@@ -208,7 +208,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner, Imp::getVideo, Imp::getAudio, Imp::getXNative)
-                .containsOnly(tuple(Banner.builder().build(), null, null, null));
+                .containsExactly(tuple(Banner.builder().build(), null, null, null));
     }
 
     @Test
@@ -228,7 +228,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner, Imp::getVideo, Imp::getAudio, Imp::getXNative)
-                .containsOnly(tuple(null, Video.builder().build(), null, null));
+                .containsExactly(tuple(null, Video.builder().build(), null, null));
     }
 
     @Test
@@ -247,7 +247,7 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
-                .containsOnly(Site.builder().publisher(null).build());
+                .containsExactly(Site.builder().publisher(null).build());
     }
 
     @Test
@@ -267,7 +267,7 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
-                .containsOnly(App.builder().publisher(null).build());
+                .containsExactly(App.builder().publisher(null).build());
     }
 
     @Test
@@ -280,13 +280,14 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseisEmpty() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
@@ -300,7 +301,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidisEmpty() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
@@ -323,8 +324,8 @@ public class AdkernelBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adkernelBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Invalid SeatBids count: 0"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Invalid SeatBids count: 0"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -343,7 +344,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -362,12 +363,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(adkernelBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     private static BidRequest givenBidRequest(

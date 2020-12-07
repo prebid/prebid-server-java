@@ -134,6 +134,7 @@ But feel free to add additional bidder's specific options.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-converter.external-rates.stale-after-ms` - how old currency rates should be to become considered stale.
 
 ## Admin Endpoints
 - `admin-endpoints.version.enabled` - if equals to `true` the endpoint will be available.

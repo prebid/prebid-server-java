@@ -19,7 +19,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Clock;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,14 +64,16 @@ public class CurrencyConversionService implements Initializable {
     @Override
     public void initialize() {
         if (externalConversionProperties != null) {
-            final Long refreshPeriod = externalConversionProperties.getRefreshPeriod();
-            final Long defaultTimeout = externalConversionProperties.getDefaultTimeout();
+            final Long refreshPeriod = externalConversionProperties.getRefreshPeriodMs();
+            final Long defaultTimeout = externalConversionProperties.getDefaultTimeoutMs();
             final HttpClient httpClient = externalConversionProperties.getHttpClient();
 
             final Vertx vertx = externalConversionProperties.getVertx();
             vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout,
                     httpClient));
             populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient);
+
+            externalConversionProperties.getMetrics().createCurrencyRatesGauge(this::isRatesStale);
         }
     }
 
@@ -108,7 +110,7 @@ public class CurrencyConversionService implements Initializable {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
             externalCurrencyRates = receivedCurrencyRates;
-            lastUpdated = ZonedDateTime.now(Clock.systemUTC());
+            lastUpdated = ZonedDateTime.now(externalConversionProperties.getClock());
         }
         return currencyConversionRates;
     }
@@ -130,7 +132,7 @@ public class CurrencyConversionService implements Initializable {
     }
 
     public Long getRefreshPeriod() {
-        return externalConversionProperties != null ? externalConversionProperties.getRefreshPeriod() : null;
+        return externalConversionProperties != null ? externalConversionProperties.getRefreshPeriodMs() : null;
     }
 
     public ZonedDateTime getLastUpdated() {
@@ -262,5 +264,16 @@ public class CurrencyConversionService implements Initializable {
             }
         }
         return conversionRate;
+    }
+
+    private boolean isRatesStale() {
+        if (lastUpdated == null) {
+            return false;
+        }
+
+        final ZonedDateTime stalenessBoundary = ZonedDateTime.now(externalConversionProperties.getClock())
+                .minus(Duration.ofMillis(externalConversionProperties.getStaleAfterMs()));
+
+        return lastUpdated.isBefore(stalenessBoundary);
     }
 }
