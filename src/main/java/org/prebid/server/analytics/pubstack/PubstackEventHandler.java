@@ -8,7 +8,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.apache.http.HttpStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
@@ -165,7 +165,7 @@ public class PubstackEventHandler {
         } else {
             final HttpClientResponse httpClientResponse = result.result();
             final int statusCode = httpClientResponse.getStatusCode();
-            if (statusCode != HttpStatus.SC_OK) {
+            if (statusCode != HttpResponseStatus.OK.code()) {
                 logger.error("[pubstack] Wrong code received {0} instead of 200", statusCode);
             }
         }

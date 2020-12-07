@@ -16,17 +16,20 @@ import org.prebid.server.analytics.pubstack.model.EventType;
 import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.analytics.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
-import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializable {
 
@@ -47,28 +50,47 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     private final long configurationRefreshDelay;
     private final long timeout;
-    private final Map<EventType, PubstackEventHandler> eventHandlers;
     private final HttpClient httpClient;
     private final JacksonMapper jacksonMapper;
     private final Vertx vertx;
+
+    private final Map<EventType, PubstackEventHandler> eventHandlers;
     private PubstackConfig pubstackConfig;
 
     public PubstackAnalyticsReporter(PubstackAnalyticsProperties pubstackAnalyticsProperties,
-                                     Map<EventType, PubstackEventHandler> eventHandlers,
                                      HttpClient httpClient,
                                      JacksonMapper jacksonMapper,
                                      Vertx vertx) {
         this.configurationRefreshDelay =
                 Objects.requireNonNull(pubstackAnalyticsProperties.getConfigurationRefreshDelayMs());
         this.timeout = Objects.requireNonNull(pubstackAnalyticsProperties.getTimeoutMs());
-        this.eventHandlers = Objects.requireNonNull(eventHandlers);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.vertx = Objects.requireNonNull(vertx);
 
+        this.eventHandlers = createEventHandlers(pubstackAnalyticsProperties, httpClient, jacksonMapper, vertx);
         this.pubstackConfig = PubstackConfig.of(pubstackAnalyticsProperties.getScopeId(),
                 pubstackAnalyticsProperties.getEndpoint(), Collections.emptyMap());
+    }
 
+    private static Map<EventType, PubstackEventHandler> createEventHandlers(
+            PubstackAnalyticsProperties pubstackAnalyticsProperties,
+            HttpClient httpClient,
+            JacksonMapper jacksonMapper,
+            Vertx vertx) {
+        return Arrays.stream(EventType.values())
+                .collect(Collectors.toMap(Function.identity(),
+                        eventType -> new PubstackEventHandler(
+                                pubstackAnalyticsProperties,
+                                false,
+                                buildEventEndpointUrl(pubstackAnalyticsProperties.getEndpoint(), eventType),
+                                jacksonMapper,
+                                httpClient,
+                                vertx)));
+    }
+
+    private static String buildEventEndpointUrl(String endpoint, EventType eventType) {
+        return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + eventType.name());
     }
 
     public <T> void processEvent(T event) {
@@ -103,8 +125,8 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         }
         final String body = response.getBody();
         try {
-            return jacksonMapper.mapper().readValue(body, PubstackConfig.class);
-        } catch (IOException e) {
+            return jacksonMapper.decodeValue(body, PubstackConfig.class);
+        } catch (DecodeException e) {
             throw new PreBidException(String.format("[pubstack] Failed to fetch config, reason: failed to parse"
                     + " response: %s", body), e);
         }

@@ -21,6 +21,7 @@ import org.prebid.server.analytics.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,8 +77,10 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         handlers.put(EventType.auction, auctionHandler);
         handlers.put(EventType.setuid, setuidHandler);
 
-        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, handlers, httpClient, jacksonMapper,
+        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper,
                 vertx);
+        // inject mocked handlers to private fields without accessor method
+        ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers", handlers);
     }
 
     @Test
@@ -186,9 +189,10 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     @Test
     public void processEventShouldCallEventHandlerForAuction() {
         // given
-        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties,
-                Collections.singletonMap(EventType.auction, auctionHandler), httpClient, jacksonMapper,
-                vertx);
+        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
+        // inject mocked handler to private fields without accessor method
+        ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
+                Collections.singletonMap(EventType.auction, auctionHandler));
         final AuctionEvent auctionEvent = AuctionEvent.builder().build();
 
         // when
@@ -201,9 +205,10 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     @Test
     public void processEventShouldCallEventHandlerForSetuid() {
         // given
-        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties,
-                Collections.singletonMap(EventType.setuid, setuidHandler), httpClient, jacksonMapper,
-                vertx);
+        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
+        // inject mocked handler to private fields without accessor method
+        ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
+                Collections.singletonMap(EventType.setuid, setuidHandler));
         final SetuidEvent setuidEvent = SetuidEvent.builder().build();
 
         // when
@@ -217,9 +222,10 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     public void processEventShouldCallEventHandlerForCookieSync() {
         // given
         final PubstackEventHandler cookieSyncHandler = mock(PubstackEventHandler.class);
-        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties,
-                Collections.singletonMap(EventType.cookiesync, cookieSyncHandler), httpClient, jacksonMapper,
-                vertx);
+        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
+        // inject mocked handler to private fields without accessor method
+        ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
+                Collections.singletonMap(EventType.cookiesync, cookieSyncHandler));
         final CookieSyncEvent cookieSyncEvent = CookieSyncEvent.builder().build();
 
         // when
@@ -233,9 +239,10 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     public void processEventShouldCallEventHandlerForAmp() {
         // given
         final PubstackEventHandler ampHandler = mock(PubstackEventHandler.class);
-        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties,
-                Collections.singletonMap(EventType.amp, ampHandler), httpClient, jacksonMapper,
-                vertx);
+        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
+        // inject mocked handler to private fields without accessor method
+        ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
+                Collections.singletonMap(EventType.amp, ampHandler));
         final AmpEvent ampEvent = AmpEvent.builder().build();
 
         // when
@@ -249,9 +256,11 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     public void processEventShouldCallEventHandlerForVideo() {
         // given
         final PubstackEventHandler videoHandler = mock(PubstackEventHandler.class);
-        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties,
-                Collections.singletonMap(EventType.video, videoHandler), httpClient, jacksonMapper,
-                vertx);
+        pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
+        // inject mocked handler to private fields without accessor method
+        ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
+                Collections.singletonMap(EventType.video, videoHandler));
+
         final VideoEvent videoEvent = VideoEvent.builder().build();
 
         // when
