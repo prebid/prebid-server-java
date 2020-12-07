@@ -58,7 +58,6 @@ public class AdoceanBidder implements Bidder<Void> {
             };
     private static final String VERSION = "1.1.0";
     private static final int MAX_URI_LENGTH = 8000;
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String MEASUREMENT_CODE_TEMPLATE = " <script> +function() { "
             + "var wu = \"%s\"; "
             + "var su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now()); "
