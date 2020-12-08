@@ -171,13 +171,12 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         final ExtUser userExt = user.getExt();
-        if (userExt == null || userExt.getData() == null || userExt.getData().isNull()) {
+        final ObjectNode extDataNode = userExt != null ? userExt.getData() : null;
+        if (extDataNode == null || extDataNode.isNull()) {
             return user;
         }
 
-        final ObjectNode extDataNode = userExt.getData();
         final SmaatoUserExtData smaatoUserExtData = convertExt(extDataNode, SmaatoUserExtData.class);
-
         final User.UserBuilder userBuilder = user.toBuilder();
 
         final String gender = smaatoUserExtData.getGender();
