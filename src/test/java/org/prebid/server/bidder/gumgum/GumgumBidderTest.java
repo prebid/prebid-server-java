@@ -137,7 +137,7 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSet() {
+    public void makeHttpRequestsShouldSetEmtyStringIfZoneIsNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
                         bidRequestBuilder.site(Site.builder().build()),
@@ -188,8 +188,7 @@ public class GumgumBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetBannerWidthAndHeightFromfirstFormatIfAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
+                impBuilder -> impBuilder.banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(450).build()))
                                 .build()));
 

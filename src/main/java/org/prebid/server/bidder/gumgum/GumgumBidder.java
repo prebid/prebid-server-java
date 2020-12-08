@@ -13,6 +13,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -159,7 +160,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     private static Site modifySite(Site site, String trackingId) {
-        return site != null ? site.toBuilder().id(Objects.toString(trackingId, "")).build() : null;
+        return site != null ? site.toBuilder().id(ObjectUtils.defaultIfNull(trackingId, "")).build() : null;
     }
 
     @Override
@@ -191,17 +192,15 @@ public class GumgumBidder implements Bidder<BidRequest> {
     private static BidderBid toBidderBid(Bid bid, BidRequest bidRequest, String currency) {
         final BidType bidType = getMediaType(bid.getImpid(), bidRequest.getImp());
         final Bid updatedBid = bidType == BidType.video
-                ? bid.toBuilder().adm(resolveAdm(bid.getAdm(), bid.getPrice())).build() : bid;
+                ? bid.toBuilder().adm(resolveAdm(bid.getAdm(), bid.getPrice())).build()
+                : bid;
         return BidderBid.of(updatedBid, bidType, currency);
     }
 
     private static BidType getMediaType(String impId, List<Imp> requestImps) {
         for (Imp imp : requestImps) {
             if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
-                return BidType.video;
+                return imp.getBanner() != null ? BidType.banner : BidType.video;
             }
         }
         return BidType.video;
