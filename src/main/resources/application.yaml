@@ -94,7 +94,6 @@ amp:
   default-timeout-ms: 900
   max-timeout-ms: 5000
   timeout-adjustment-ms: 30
-  generate-bidrequest-id: false
 setuid:
   default-timeout-ms: 2000
 vtrack:
@@ -121,6 +120,7 @@ metrics:
   accounts:
     default-verbosity: none
 settings:
+  generate-storedrequest-bidrequest-id: false
   enforce-valid-account: false
   database:
     pool-size: 20

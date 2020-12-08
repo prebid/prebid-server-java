@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
@@ -38,22 +39,30 @@ import java.util.stream.Collectors;
  */
 public class StoredRequestProcessor {
 
+    private static final String OVERRIDE_BID_REQUEST_ID_TEMPLATE = "{{UUID}}";
+
     private final long defaultTimeout;
+    private final boolean generateBidRequestId;
     private final ApplicationSettings applicationSettings;
-    private final TimeoutFactory timeoutFactory;
+    private final IdGenerator idGenerator;
     private final Metrics metrics;
+    private final TimeoutFactory timeoutFactory;
     private final JacksonMapper mapper;
-    private JsonMergeUtil jsonMergeUtil;
+    private final JsonMergeUtil jsonMergeUtil;
 
     public StoredRequestProcessor(long defaultTimeout,
+                                  boolean generateBidRequestId,
                                   ApplicationSettings applicationSettings,
+                                  IdGenerator idGenerator,
                                   Metrics metrics,
                                   TimeoutFactory timeoutFactory,
                                   JacksonMapper mapper) {
 
         this.defaultTimeout = defaultTimeout;
+        this.generateBidRequestId = generateBidRequestId;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.idGenerator = Objects.requireNonNull(idGenerator);
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
 
@@ -90,7 +99,8 @@ public class StoredRequestProcessor {
                         .compose(storedDataResult -> updateMetrics(storedDataResult, requestIds, impIds));
 
         return storedRequestsToBidRequest(storedDataFuture, bidRequest,
-                bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId);
+                bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId)
+                .map(this::generateBidRequestIdForApp);
     }
 
     private Future<StoredDataResult> updateMetrics(StoredDataResult storedDataResult, Set<String> requestIds,
@@ -114,7 +124,8 @@ public class StoredRequestProcessor {
                         .compose(storedDataResult -> updateMetrics(
                                 storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
-        return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
+        return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap())
+                .map(this::generateBidRequestId);
     }
 
     /**
@@ -225,6 +236,18 @@ public class StoredRequestProcessor {
             }
         }
         return bidRequest.toBuilder().imp(mergedImps).build();
+    }
+
+    private BidRequest generateBidRequestIdForApp(BidRequest bidRequest) {
+        return bidRequest.getApp() != null
+                ? generateBidRequestId(bidRequest)
+                : bidRequest;
+    }
+
+    private BidRequest generateBidRequestId(BidRequest bidRequest) {
+        return generateBidRequestId || StringUtils.equals(bidRequest.getId(), OVERRIDE_BID_REQUEST_ID_TEMPLATE)
+                ? bidRequest.toBuilder().id(idGenerator.generateId()).build()
+                : bidRequest;
     }
 
     /**

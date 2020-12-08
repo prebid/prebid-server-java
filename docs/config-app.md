@@ -82,7 +82,6 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
-- `amp.generate-bidrequest-id` - overrides bidrequest.id with generated uuid if true. Default value is false.
 
 ## Timeout notification
 - `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
@@ -254,6 +253,7 @@ For HTTP data source available next options:
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+- `settings.generate-storedrequest-bidrequest-id` - overrides bidrequest.id in amp or app stored request with generated uuid if true. Default value is false.
 
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.

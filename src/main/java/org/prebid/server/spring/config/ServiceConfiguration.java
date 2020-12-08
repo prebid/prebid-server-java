@@ -236,8 +236,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AmpRequestFactory ampRequestFactory(@Value("${amp.generate-bidrequest-id}") boolean generateBidRequestId,
-                                        StoredRequestProcessor storedRequestProcessor,
+    AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
                                         AuctionRequestFactory auctionRequestFactory,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
@@ -246,14 +245,12 @@ public class ServiceConfiguration {
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(
-                generateBidRequestId,
                 storedRequestProcessor,
                 auctionRequestFactory,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 fpdResolver,
                 timeoutResolver,
-                new UUIDIdGenerator(),
                 mapper);
     }
 
@@ -503,12 +500,20 @@ public class ServiceConfiguration {
     @Bean
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             ApplicationSettings applicationSettings,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
 
-        return new StoredRequestProcessor(defaultTimeoutMs, applicationSettings, metrics, timeoutFactory, mapper);
+        return new StoredRequestProcessor(
+                defaultTimeoutMs,
+                generateBidRequestId,
+                applicationSettings,
+                new UUIDIdGenerator(),
+                metrics,
+                timeoutFactory,
+                mapper);
     }
 
     @Bean

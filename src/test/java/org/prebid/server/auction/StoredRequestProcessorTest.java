@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
@@ -20,6 +21,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -63,16 +65,21 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock
+    private IdGenerator idGenerator;
+    @Mock
     private Metrics metrics;
 
     private StoredRequestProcessor storedRequestProcessor;
 
     @Before
     public void setUp() {
+        given(idGenerator.generateId()).willReturn("generated-stored-id");
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         storedRequestProcessor = new StoredRequestProcessor(
                 500,
+                false,
                 applicationSettings,
+                idGenerator,
                 metrics,
                 timeoutFactory,
                 jacksonMapper);
@@ -157,7 +164,76 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnAmpRequest() throws IOException {
+    public void processStoredRequestsShouldGenerateIdWhenAppAndFlagIsTrue() throws IOException {
+        // given
+        storedRequestProcessor = new StoredRequestProcessor(
+                500,
+                true,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())),
+                jacksonMapper);
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .app(App.builder().build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("123"))
+                        .build())));
+
+        final String storedRequestBidRequestJson = mapper.writeValueAsString(BidRequest.builder()
+                .id("stored-bid-request")
+                .build());
+
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("123", storedRequestBidRequestJson), emptyMap(),
+                                emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("generated-stored-id")
+                .app(App.builder().build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))
+                .build());
+    }
+
+    @Test
+    public void processStoredRequestsShouldGenerateIdWhenAppAndGenerateTemplateInStoredBidRequest() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .app(App.builder().build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("123"))
+                        .build())));
+
+        final String storedRequestBidRequestJson = mapper.writeValueAsString(BidRequest.builder()
+                .id("{{UUID}}")
+                .build());
+
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("123", storedRequestBidRequestJson), emptyMap(),
+                                emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .app(App.builder().build())
+                .id("generated-stored-id")
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))
+                .build());
+    }
+
+    @Test
+    public void processAmpRequestShouldReturnAmpRequest() throws IOException {
         // given
         given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(
@@ -171,6 +247,51 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
                 .id("test-request-id")
+                .build());
+    }
+
+    @Test
+    public void processAmpRequestShouldReplaceBidIdWhenGenerateIdFlagIsTrue() throws IOException {
+        // given
+        storedRequestProcessor = new StoredRequestProcessor(
+                500,
+                true,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())),
+                jacksonMapper);
+
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", mapper.writeValueAsString(
+                                BidRequest.builder().id("origin-stored-id").build())), emptyMap(), emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("generated-stored-id")
+                .build());
+    }
+
+    @Test
+    public void processAmpRequestShouldReplaceBidIdGenerateTemplateIsInStoredRequestId() throws IOException {
+        // given
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", mapper.writeValueAsString(
+                                BidRequest.builder().id("{{UUID}}").build())), emptyMap(), emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("generated-stored-id")
                 .build());
     }
 
