@@ -15,6 +15,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -172,7 +173,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
         final ExtUser userExt = user.getExt();
         final ObjectNode extDataNode = userExt != null ? userExt.getData() : null;
-        if (extDataNode == null || extDataNode.isNull()) {
+        if (extDataNode == null || extDataNode.isEmpty()) {
             return user;
         }
 
@@ -237,7 +238,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private BidderBid bidderBid(Bid bid, String currency, MultiMap headers) {
         final String bidAdm = bid.getAdm();
         if (StringUtils.isBlank(bidAdm)) {
-            throw new PreBidException("Empty ad markup");
+            throw new PreBidException(String.format("Empty ad markup in bid with id: %s", bid.getId()));
         }
 
         final String markupType = getAdMarkupType(headers, bidAdm);
@@ -353,6 +354,6 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private static int stripToZero(Integer target) {
-        return target != null ? target : 0;
+        return ObjectUtils.defaultIfNull(target, 0);
     }
 }

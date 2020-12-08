@@ -253,14 +253,14 @@ public class SmaatoBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfNoBidAdm() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))), null);
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.id("test").impid("123"))), null);
 
         // when
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Empty ad markup"));
+                .containsOnly(BidderError.badInput("Empty ad markup in bid with id: test"));
         assertThat(result.getValue()).isEmpty();
     }
 
