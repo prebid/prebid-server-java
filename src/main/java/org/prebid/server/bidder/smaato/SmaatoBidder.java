@@ -287,7 +287,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         CollectionUtils.emptyIfNull(image.getClickTrackers())
                 .forEach(tracker -> clickEvent.append(String.format(
                         "fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});",
-                        HttpUtil.encodeUrl(tracker))));
+                        HttpUtil.encodeUrl(StringUtils.stripToEmpty(tracker)))));
 
         final StringBuilder impressionTracker = new StringBuilder();
         CollectionUtils.emptyIfNull(image.getImpressionTrackers())
@@ -300,8 +300,8 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 clickEvent.toString(),
                 HttpUtil.encodeUrl(StringUtils.stripToEmpty(getIfNotNull(img, SmaatoImg::getCtaurl))),
                 StringUtils.stripToEmpty(getIfNotNull(img, SmaatoImg::getUrl)),
-                getIfNotNull(img, SmaatoImg::getW),
-                getIfNotNull(img, SmaatoImg::getH),
+                stripToZero(getIfNotNull(img, SmaatoImg::getW)),
+                stripToZero(getIfNotNull(img, SmaatoImg::getH)),
                 impressionTracker.toString());
     }
 
@@ -316,7 +316,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         CollectionUtils.emptyIfNull(richmedia.getClickTrackers())
                 .forEach(tracker -> clickEvent.append(
                         String.format("fetch(decodeURIComponent('%s'), {cache: 'no-cache'});",
-                                HttpUtil.encodeUrl(tracker))));
+                                HttpUtil.encodeUrl(StringUtils.stripToEmpty(tracker)))));
 
         final StringBuilder impressionTracker = new StringBuilder();
         CollectionUtils.emptyIfNull(richmedia.getImpressionTrackers())
@@ -351,5 +351,9 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
         return target != null ? getter.apply(target) : null;
+    }
+
+    private static int stripToZero(Integer target) {
+        return target != null ? target : 0;
     }
 }

@@ -388,6 +388,41 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnCorrectBidIfAdMarkTypeIsImgAndParametersAreEmpty() throws JsonProcessingException {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Img");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm("{\"image\":{\"img\":{\"url\":\""
+                                + "//prebid-test.smaatolabs.net/img/320x50.jpg\",\"ctaurl\":\""
+                                + "//prebid-test.smaatolabs.net/track/ctaurl/1\"},\"impressiontrackers\":[\""
+                                + "//prebid-test.smaatolabs.net/track/imp/1\",\"//prebid-test.smaatolabs.net/track/"
+                                + "imp/2\"],\"clicktrackers\":[\"//prebid-test.smaatolabs.net/track/click/1\",\""
+                                + "//prebid-test.smaatolabs.net/track/click/2\"]}}"))), headers);
+
+        // when
+        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+
+        // then
+        final Bid expectedBid = Bid.builder()
+                .impid("123")
+                .adm("<div style=\"cursor:pointer\" onclick=\"fetch(decodeURIComponent('%2F%2Fprebid-test.smaatolabs."
+                        + "net%2Ftrack%2Fclick%2F1'.replace(/\\+/g, ' ')), {cache: 'no-cache'});fetch"
+                        + "(decodeURIComponent('%2F%2Fprebid-test.smaatolabs.net%2Ftrack%2Fclick%2F2'.replace(/\\+/g,"
+                        + " ' ')), {cache: 'no-cache'});;window.open(decodeURIComponent('%2F%2Fprebid-test.smaatolabs."
+                        + "net%2Ftrack%2Fctaurl%2F1'.replace(/\\+/g, ' ')));\"><img src=\"//prebid-test.smaatolabs.net"
+                        + "/img/320x50.jpg\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/"
+                        + "track/imp/1\" alt=\"\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/"
+                        + "track/imp/2\" alt=\"\" width=\"0\" height=\"0\"/></div>")
+                .build();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnCorrectBidIfAdMarkTypeIsVideo() throws JsonProcessingException {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Video");
