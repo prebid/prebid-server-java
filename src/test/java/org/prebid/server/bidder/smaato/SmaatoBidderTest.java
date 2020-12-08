@@ -250,6 +250,21 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnErrorIfNoBidAdm() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))), null);
+
+        // when
+        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Empty ad markup"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfNotSupportedMarkupType() throws JsonProcessingException {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "anyType");
@@ -257,7 +272,7 @@ public class SmaatoBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))), headers);
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm("adm"))), headers);
 
         // when
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
@@ -284,6 +299,25 @@ public class SmaatoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput("Invalid ad markup adm"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfAdmIsInvalid() throws JsonProcessingException {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm("{\"image\": invalid"))), headers);
+
+        // when
+        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Invalid ad markup {\"image\": invalid"));
         assertThat(result.getValue()).isEmpty();
     }
 
