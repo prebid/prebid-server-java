@@ -17,7 +17,7 @@ adapters:
       vendor-id: 541
     usersync:
       url: https://cdn.deepintent.com/syncpixel.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=deepintent&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[uid]
+      redirect-url: /setuid?bidder=deepintent&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[UID]
       cookie-family-name: deepintent
-      type: redirect
+      type: iframe
       support-cors: false
