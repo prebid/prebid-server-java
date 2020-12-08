@@ -13,6 +13,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -207,6 +208,6 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     private static String resolveAdm(String bidAdm, BigDecimal price) {
-        return bidAdm != null ? bidAdm.replace("${AUCTION_PRICE}", String.valueOf(price)) : null;
+        return StringUtils.isNotBlank(bidAdm) ? bidAdm.replace("${AUCTION_PRICE}", String.valueOf(price)) : bidAdm;
     }
 }
