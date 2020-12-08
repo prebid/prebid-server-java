@@ -111,7 +111,7 @@ public class AdoceanBidderTest extends VertxTest {
                         + "in imp with id : notValidImp"));
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1"
+                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1"
                         + "&hcuserid=testBuyerUid&aosspsizes=myaozpniqismex"
                         + "%7E300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.1.0&id="
@@ -306,30 +306,8 @@ public class AdoceanBidderTest extends VertxTest {
                         .id("impId")
                         .build()))
                 .build();
-        final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(AdoceanResponseAdUnit.builder()
-                        .id("ad")
-                        .price("1")
-                        .winUrl("https://win-url.com")
-                        .statsUrl("https://stats-url.com")
-                        .code(" <!-- code 1 --> ")
-                        .currency("EUR")
-                        .width("300")
-                        .height("250")
-                        .crid("0af345b42983cc4bc0")
-                        .error("false")
-                        .build(),
-                AdoceanResponseAdUnit.builder()
-                        .id("adoceanmyaozpniqis")
-                        .price("1")
-                        .winUrl("https://win-url.com")
-                        .statsUrl("https://stats-url.com")
-                        .code(" <!-- code 1 --> ")
-                        .currency("EUR")
-                        .width("300")
-                        .height("250")
-                        .crid("0af345b42983cc4bc0")
-                        .error("false")
-                        .build());
+        final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(adoceanResponseCreator(identity()),
+                adoceanResponseCreator(response -> response.id("adoceanmyaozpniqis")));
 
         final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
 
@@ -368,30 +346,9 @@ public class AdoceanBidderTest extends VertxTest {
                         .id("impId")
                         .build()))
                 .build();
-        final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(AdoceanResponseAdUnit.builder()
-                        .id("ad")
-                        .price("1")
-                        .winUrl("https://win-url.com")
-                        .statsUrl("https://stats-url.com")
-                        .code(" <!-- code 1 --> ")
-                        .currency("EUR")
-                        .width("300")
-                        .height("250")
-                        .crid("0af345b42983cc4bc0")
-                        .error("true")
-                        .build(),
-                AdoceanResponseAdUnit.builder()
-                        .id("adoceanmyaozpniqis")
-                        .price("1")
-                        .winUrl("https://win-url.com")
-                        .statsUrl("https://stats-url.com")
-                        .code(" <!-- code 1 --> ")
-                        .currency("EUR")
-                        .width("300")
-                        .height("250")
-                        .crid("0af345b42983cc4bc0")
-                        .error("false")
-                        .build());
+        final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(
+                adoceanResponseCreator(response -> response.error("true")),
+                adoceanResponseCreator(response -> response.id("adoceanmyaozpniqis")));
 
         final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
 
@@ -401,6 +358,23 @@ public class AdoceanBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEqualTo(Collections.emptyList());
+    }
+
+    private static AdoceanResponseAdUnit adoceanResponseCreator(
+            Function<AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder,
+                    AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder> adoceanCustomizer) {
+        return adoceanCustomizer.apply(AdoceanResponseAdUnit.builder()
+                .id("ad")
+                .price("1")
+                .winUrl("https://win-url.com")
+                .statsUrl("https://stats-url.com")
+                .code(" <!-- code 1 --> ")
+                .currency("EUR")
+                .width("300")
+                .height("250")
+                .crid("0af345b42983cc4bc0")
+                .error("false"))
+                .build();
     }
 
     private static BidRequest givenBidRequest(
