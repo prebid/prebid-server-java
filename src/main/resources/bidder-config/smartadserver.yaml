@@ -16,7 +16,7 @@ adapters:
         - banner
         - video
       supported-vendors:
-      vendor-id: 328
+      vendor-id: 45
     usersync:
       url: https://ssbsync-global.smartadserver.com/api/sync?callerId=5&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
       redirect-url: /setuid?bidder=smartadserver&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[ssb_sync_pid]

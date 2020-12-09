@@ -7,12 +7,15 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
@@ -42,11 +45,6 @@ public class JdbcPeriodicRefreshService implements Initializable {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcPeriodicRefreshService.class);
 
-    private final CacheNotificationListener cacheNotificationListener;
-    private final Vertx vertx;
-    private final JdbcClient jdbcClient;
-    private final long refreshPeriod;
-
     /**
      * Example of initialize query:
      * <pre>
@@ -56,9 +54,8 @@ public class JdbcPeriodicRefreshService implements Initializable {
      * This query will be run once on startup to fetch _all_ known Stored Request data from the database.
      */
     private final String initQuery;
-
     /**
-     * Example of initialize query:
+     * Example of update query:
      * <pre>
      * SELECT id, requestData, type
      * FROM stored_requests
@@ -68,21 +65,41 @@ public class JdbcPeriodicRefreshService implements Initializable {
      * Wildcard "?" would be used to pass last update date automatically.
      */
     private final String updateQuery;
-    private final TimeoutFactory timeoutFactory;
+    private final long refreshPeriod;
     private final long timeout;
+    private final MetricName cacheType;
+    private final CacheNotificationListener cacheNotificationListener;
+    private final Vertx vertx;
+    private final JdbcClient jdbcClient;
+    private final TimeoutFactory timeoutFactory;
+    private final Metrics metrics;
+    private final Clock clock;
+
     private Instant lastUpdate;
 
-    public JdbcPeriodicRefreshService(CacheNotificationListener cacheNotificationListener,
-                                      Vertx vertx, JdbcClient jdbcClient, long refreshPeriod, String initQuery,
-                                      String updateQuery, TimeoutFactory timeoutFactory, long timeout) {
+    public JdbcPeriodicRefreshService(String initQuery,
+                                      String updateQuery,
+                                      long refreshPeriod,
+                                      long timeout,
+                                      MetricName cacheType,
+                                      CacheNotificationListener cacheNotificationListener,
+                                      Vertx vertx,
+                                      JdbcClient jdbcClient,
+                                      TimeoutFactory timeoutFactory,
+                                      Metrics metrics,
+                                      Clock clock) {
+
+        this.initQuery = Objects.requireNonNull(StringUtils.stripToNull(initQuery));
+        this.updateQuery = Objects.requireNonNull(StringUtils.stripToNull(updateQuery));
+        this.refreshPeriod = refreshPeriod;
+        this.timeout = timeout;
+        this.cacheType = Objects.requireNonNull(cacheType);
         this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
         this.vertx = Objects.requireNonNull(vertx);
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
-        this.refreshPeriod = refreshPeriod;
-        this.initQuery = Objects.requireNonNull(StringUtils.stripToNull(initQuery));
-        this.updateQuery = Objects.requireNonNull(StringUtils.stripToNull(updateQuery));
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.timeout = timeout;
+        this.metrics = Objects.requireNonNull(metrics);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     @Override
@@ -94,36 +111,52 @@ public class JdbcPeriodicRefreshService implements Initializable {
     }
 
     private void getAll() {
-        jdbcClient.executeQuery(initQuery, Collections.emptyList(), JdbcStoredDataResultMapper::map, createTimeout())
-                .map(this::save)
-                .map(ignored -> setLastUpdate(Instant.now()))
-                .recover(JdbcPeriodicRefreshService::failResponse);
+        final long startTime = clock.millis();
+
+        jdbcClient.executeQuery(
+                initQuery,
+                Collections.emptyList(),
+                JdbcStoredDataResultMapper::map,
+                createTimeout())
+                .map(storedDataResult ->
+                        handleResult(storedDataResult, Instant.now(clock), startTime, MetricName.initialize))
+                .recover(exception -> handleFailure(exception, startTime, MetricName.initialize));
     }
 
-    private Void save(StoredDataResult storedDataResult) {
+    private Void handleResult(StoredDataResult storedDataResult,
+                              Instant updateTime,
+                              long startTime,
+                              MetricName refreshType) {
+
         cacheNotificationListener.save(storedDataResult.getStoredIdToRequest(), storedDataResult.getStoredIdToImp());
+        lastUpdate = updateTime;
+
+        metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
+
         return null;
     }
 
-    private Void setLastUpdate(Instant instant) {
-        lastUpdate = instant;
-        return null;
-    }
-
-    private static Future<Void> failResponse(Throwable exception) {
+    private Future<Void> handleFailure(Throwable exception, long startTime, MetricName refreshType) {
         logger.warn("Error occurred while request to jdbc refresh service", exception);
+
+        metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
+        metrics.updateSettingsCacheRefreshErrorMetric(cacheType, refreshType);
+
         return Future.failedFuture(exception);
     }
 
     private void refresh() {
-        final Instant updateTime = Instant.now();
+        final Instant updateTime = Instant.now(clock);
+        final long startTime = clock.millis();
 
-        jdbcClient.executeQuery(updateQuery, Collections.singletonList(Date.from(lastUpdate)),
-                JdbcStoredDataResultMapper::map, createTimeout())
-                .map(this::invalidate)
-                .map(this::save)
-                .map(ignored -> setLastUpdate(updateTime))
-                .recover(JdbcPeriodicRefreshService::failResponse);
+        jdbcClient.executeQuery(
+                updateQuery,
+                Collections.singletonList(Date.from(lastUpdate)),
+                JdbcStoredDataResultMapper::map,
+                createTimeout())
+                .map(storedDataResult ->
+                        handleResult(invalidate(storedDataResult), updateTime, startTime, MetricName.update))
+                .recover(exception -> handleFailure(exception, startTime, MetricName.update));
     }
 
     private StoredDataResult invalidate(StoredDataResult storedDataResult) {

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
@@ -229,7 +230,8 @@ public class SettingsConfiguration {
     }
 
     @Configuration
-    @ConditionalOnProperty(prefix = "settings.in-memory-cache.jdbc-update",
+    @ConditionalOnProperty(
+            prefix = "settings.in-memory-cache.jdbc-update",
             name = {"refresh-rate", "timeout", "init-query", "update-query", "amp-init-query", "amp-update-query"})
     static class JdbcPeriodicRefreshServiceConfiguration {
 
@@ -248,24 +250,50 @@ public class SettingsConfiguration {
         @Autowired
         TimeoutFactory timeoutFactory;
 
+        @Autowired
+        Metrics metrics;
+
+        @Autowired
+        Clock clock;
+
         @Bean
         public JdbcPeriodicRefreshService jdbcPeriodicRefreshService(
-                SettingsCache settingsCache,
+                @Qualifier("settingsCache") SettingsCache settingsCache,
                 @Value("${settings.in-memory-cache.jdbc-update.init-query}") String initQuery,
                 @Value("${settings.in-memory-cache.jdbc-update.update-query}") String updateQuery) {
 
-            return new JdbcPeriodicRefreshService(settingsCache, vertx, jdbcClient, refreshPeriod,
-                    initQuery, updateQuery, timeoutFactory, timeout);
+            return new JdbcPeriodicRefreshService(
+                    initQuery,
+                    updateQuery,
+                    refreshPeriod,
+                    timeout,
+                    MetricName.stored_request,
+                    settingsCache,
+                    vertx,
+                    jdbcClient,
+                    timeoutFactory,
+                    metrics,
+                    clock);
         }
 
         @Bean
         public JdbcPeriodicRefreshService ampJdbcPeriodicRefreshService(
-                SettingsCache settingsCache,
+                @Qualifier("ampSettingsCache") SettingsCache ampSettingsCache,
                 @Value("${settings.in-memory-cache.jdbc-update.amp-init-query}") String ampInitQuery,
                 @Value("${settings.in-memory-cache.jdbc-update.amp-update-query}") String ampUpdateQuery) {
 
-            return new JdbcPeriodicRefreshService(settingsCache, vertx, jdbcClient, refreshPeriod,
-                    ampInitQuery, ampUpdateQuery, timeoutFactory, timeout);
+            return new JdbcPeriodicRefreshService(
+                    ampInitQuery,
+                    ampUpdateQuery,
+                    refreshPeriod,
+                    timeout,
+                    MetricName.amp_stored_request,
+                    ampSettingsCache,
+                    vertx,
+                    jdbcClient,
+                    timeoutFactory,
+                    metrics,
+                    clock);
         }
     }
 
@@ -302,13 +330,15 @@ public class SettingsConfiguration {
                 ApplicationSettingsCacheProperties cacheProperties,
                 @Qualifier("settingsCache") SettingsCache cache,
                 @Qualifier("ampSettingsCache") SettingsCache ampCache,
-                @Qualifier("videoSettingCache") SettingsCache videoCache) {
+                @Qualifier("videoSettingCache") SettingsCache videoCache,
+                Metrics metrics) {
 
             return new CachingApplicationSettings(
                     compositeApplicationSettings,
                     cache,
                     ampCache,
                     videoCache,
+                    metrics,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize());
         }
