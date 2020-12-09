@@ -91,7 +91,8 @@ public class FileApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;} with all loaded files and errors list.
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
                 ? StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList())
                 : StoredDataResult.of(
@@ -104,28 +105,16 @@ public class FileApplicationSettings implements ApplicationSettings {
                         .collect(Collectors.toList())));
     }
 
-    /**
-     * Creates {@link StoredResponseDataResult} by checking if any ids are missed in storedResponse map
-     * and adding an error to list for each missed Id
-     * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;} with all loaded files and errors list.
-     */
     @Override
-    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        return Future.succeededFuture(CollectionUtils.isEmpty(responseIds)
-                ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
-                : StoredResponseDataResult.of(
-                existingStoredIdToJson(responseIds, storedIdToSeatBid),
-                errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid)));
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        return getStoredData(accountId, requestIds, Collections.emptySet(), timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getStoredData(requestIds, Collections.emptySet(), timeout);
-    }
-
-    @Override
-    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getStoredData(requestIds, impIds, timeout);
+    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                       Timeout timeout) {
+        return getStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
@@ -142,9 +131,23 @@ public class FileApplicationSettings implements ApplicationSettings {
 
     private static Map<String, String> extractCategoriesIds(Map<String, Category> categoryToId) {
         return categoryToId.entrySet().stream()
-        .filter(catToCategory -> catToCategory.getValue() != null)
-        .collect(Collectors.toMap(Map.Entry::getKey,
-                catToCategory -> catToCategory.getValue().getId()));
+                .filter(catToCategory -> catToCategory.getValue() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        catToCategory -> catToCategory.getValue().getId()));
+    }
+
+    /**
+     * Creates {@link StoredResponseDataResult} by checking if any ids are missed in storedResponse map
+     * and adding an error to list for each missed Id
+     * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;} with all loaded files and errors list.
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return Future.succeededFuture(CollectionUtils.isEmpty(responseIds)
+                ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
+                : StoredResponseDataResult.of(
+                existingStoredIdToJson(responseIds, storedIdToSeatBid),
+                errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid)));
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {

@@ -19,7 +19,7 @@ Follow next steps to create JAR which can be deployed locally.
 
 Download or clone a project locally:
 ```bash
-git clone https://github.com/rubicon-project/prebid-server-java.git
+git clone https://github.com/prebid/prebid-server-java.git
 ```
 
 Move to project directory:

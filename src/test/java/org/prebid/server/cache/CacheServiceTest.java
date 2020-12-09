@@ -17,7 +17,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
-import org.prebid.server.cache.model.CacheIdInfo;
+import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.model.DebugHttpCall;
@@ -253,6 +253,8 @@ public class CacheServiceTest extends VertxTest {
         final Future<?> future = cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
+        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
+
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("The number of response cache objects doesn't match with bids");
@@ -437,6 +439,8 @@ public class CacheServiceTest extends VertxTest {
                 eventsContext);
 
         // then
+        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
+
         final CacheServiceResult result = future.result();
         final CacheHttpRequest request = givenCacheHttpRequest(bid);
         assertThat(result.getCacheBids()).isEmpty();
@@ -580,7 +584,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final CacheServiceResult result = future.result();
         assertThat(result.getCacheBids()).hasSize(1)
-                .containsEntry(bid, CacheIdInfo.of("uuid1", null));
+                .containsEntry(bid, CacheInfo.of("uuid1", null, null, null));
     }
 
     @Test
@@ -620,15 +624,16 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromBid() throws IOException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromBid() throws IOException {
         // when
-        cacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(builder -> builder.impid("impId1").exp(10))),
                 givenAuctionContext(bidRequestBuilder -> bidRequestBuilder
                         .imp(singletonList(givenImp(buider -> buider.id("impId1").exp(20))))),
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .bidderToBidIds(singletonMap("bidder2", singletonList("bidId2")))
+                        .cacheBidsTtl(30)
                         .build(),
                 eventsContext);
 
@@ -637,12 +642,17 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getExpiry)
                 .containsOnly(10);
+
+        final CacheServiceResult result = future.result();
+        assertThat(result.getCacheBids().values())
+                .flatExtracting(CacheInfo::getTtl)
+                .containsExactly(10);
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromImp() throws IOException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromImp() throws IOException {
         // when
-        cacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())),
                 givenAuctionContext(bidRequestBuilder -> bidRequestBuilder
                         .imp(singletonList(givenImp(buider -> buider.exp(10))))),
@@ -658,12 +668,17 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getExpiry)
                 .containsOnly(10);
+
+        final CacheServiceResult result = future.result();
+        assertThat(result.getCacheBids().values())
+                .flatExtracting(CacheInfo::getTtl)
+                .containsExactly(10);
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromRequest() throws IOException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromRequest() throws IOException {
         // when
-        cacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -678,10 +693,16 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getExpiry)
                 .containsOnly(10);
+
+        final CacheServiceResult result = future.result();
+        assertThat(result.getCacheBids().values())
+                .flatExtracting(CacheInfo::getTtl)
+                .containsExactly(10);
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromAccountBannerTtl()
+            throws IOException {
         // given
         cacheService = new CacheService(
                 CacheTtl.of(20, null),
@@ -695,7 +716,7 @@ public class CacheServiceTest extends VertxTest {
                 jacksonMapper);
 
         // when
-        cacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())),
                 givenAuctionContext(
                         accountBuilder -> accountBuilder.bannerCacheTtl(10),
@@ -711,10 +732,15 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getExpiry)
                 .containsOnly(10);
+
+        final CacheServiceResult result = future.result();
+        assertThat(result.getCacheBids().values())
+                .flatExtracting(CacheInfo::getTtl)
+                .containsExactly(10);
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(
                 CacheTtl.of(10, null),
@@ -728,7 +754,7 @@ public class CacheServiceTest extends VertxTest {
                 jacksonMapper);
 
         // when
-        cacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -742,6 +768,11 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getExpiry)
                 .containsOnly(10);
+
+        final CacheServiceResult result = future.result();
+        assertThat(result.getCacheBids().values())
+                .flatExtracting(CacheInfo::getTtl)
+                .containsExactly(10);
     }
 
     @Test
@@ -759,7 +790,7 @@ public class CacheServiceTest extends VertxTest {
                 jacksonMapper);
 
         // when
-        cacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -773,12 +804,17 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getExpiry)
                 .containsOnly(10);
+
+        final CacheServiceResult result = future.result();
+        assertThat(result.getCacheBids().values())
+                .flatExtracting(CacheInfo::getTtl)
+                .containsExactly(10);
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithNoTtl() throws IOException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithNoTtlAndSetEmptyTtl() throws IOException {
         // when
-        cacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -791,6 +827,11 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getExpiry)
+                .containsNull();
+
+        final CacheServiceResult result = future.result();
+        assertThat(result.getCacheBids().values())
+                .flatExtracting(CacheInfo::getTtl)
                 .containsNull();
     }
 
@@ -811,7 +852,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
-                .containsEntry(bid, CacheIdInfo.of("uuid1", null));
+                .containsEntry(bid, CacheInfo.of("uuid1", null, null, null));
     }
 
     @Test
@@ -833,7 +874,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
-                .containsEntry(bid, CacheIdInfo.of(null, "uuid1"));
+                .containsEntry(bid, CacheInfo.of(null, "uuid1", null, null));
     }
 
     @Test
@@ -863,8 +904,8 @@ public class CacheServiceTest extends VertxTest {
         // then
         assertThat(future.result().getCacheBids()).hasSize(2)
                 .containsOnly(
-                        entry(bid1, CacheIdInfo.of("uuid1", "videoUuid1")),
-                        entry(bid2, CacheIdInfo.of("uuid2", "videoUuid2")));
+                        entry(bid1, CacheInfo.of("uuid1", "videoUuid1", null, null)),
+                        entry(bid2, CacheInfo.of("uuid2", "videoUuid2", null, null)));
     }
 
     @Test
@@ -888,7 +929,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
-                .containsEntry(bid1, CacheIdInfo.of(null, "uuid1"));
+                .containsEntry(bid1, CacheInfo.of(null, "uuid1", null, null));
     }
 
     @Test

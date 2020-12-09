@@ -6,6 +6,7 @@ vertx:
   uploads-dir: file-uploads
   init-timeout-ms: 5000
   http-server-instances: 1
+  enable-per-client-endpoint-metrics: false
 http:
   port: 8080
   max-headers-size: 16384
@@ -75,6 +76,11 @@ auction:
   max-timeout-ms: 5000
   timeout-adjustment-ms: 30
   stored-requests-timeout-ms: 50
+  timeout-notification:
+    timeout-ms: 200
+    log-result: false
+    log-failure-only: false
+    log-sampling-rate: 0.0
   max-request-size: 262144
   id-generator-type: uuid
   generate-bid-id: false
@@ -82,6 +88,7 @@ auction:
     expected-request-time-ms: 10
     only-winning-bids: false
 video:
+  stored-request-required: false
   stored-requests-timeout-ms: 90
 amp:
   default-timeout-ms: 900
@@ -107,6 +114,7 @@ currency-converter:
     url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
     default-timeout-ms: 4000
     refresh-period-ms: 900000
+    stale-after-ms: 259200000
 metrics:
   metricType: flushingCounter
   accounts:
@@ -138,9 +146,11 @@ gdpr:
     v1:
       http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
       refresh-missing-list-period-ms: 3600000
+      deprecated: false
     v2:
       http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
+      deprecated: false
   purposes:
     p1:
       enforce-purpose: full

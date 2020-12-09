@@ -45,6 +45,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -72,17 +73,28 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        target = new VideoStoredRequestProcessor(applicationSettings, validator, false, emptyList(),
-                BidRequest.builder().build(), metrics, timeoutFactory, timeoutResolver, 2000L, "USD", jacksonMapper);
+        target = new VideoStoredRequestProcessor(
+                false,
+                emptyList(),
+                2000L,
+                "USD",
+                BidRequest.builder().build(),
+                validator,
+                applicationSettings,
+                metrics,
+                timeoutFactory,
+                timeoutResolver,
+                jacksonMapper);
     }
 
     @Test
     public void shouldReturnFailedFutureWhenFetchStoredIsFailed() {
         // given
-        given(applicationSettings.getVideoStoredData(any(), any(), any())).willReturn(Future.failedFuture("ERROR"));
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
+                Future.failedFuture("ERROR"));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), null);
 
         // then
@@ -120,17 +132,18 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
-        given(applicationSettings.getVideoStoredData(any(), any(), any())).willReturn(
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
                 Future.succeededFuture(storedDataResult));
         given(validator.validPods(any(), any())).willReturn(
                 WithPodErrors.of(singletonList(Pod.of(123, 20, STORED_POD_ID)), emptyList()));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), requestVideo);
 
         // then
-        verify(applicationSettings).getVideoStoredData(eq(singleton(STORED_REQUEST_ID)), eq(singleton(STORED_POD_ID)),
+        verify(applicationSettings).getVideoStoredData(any(), eq(singleton(STORED_REQUEST_ID)),
+                eq(singleton(STORED_POD_ID)),
                 any());
         verify(metrics).updateStoredRequestMetric(true);
         verify(metrics).updateStoredImpsMetric(true);
@@ -183,7 +196,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
         final StoredDataResult storedDataResult = StoredDataResult.of(emptyMap(), emptyMap(), emptyList());
 
-        given(applicationSettings.getVideoStoredData(any(), any(), any())).willReturn(
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
                 Future.succeededFuture(storedDataResult));
 
         final PodError podError1 = PodError.of(1, 1, singletonList("ERROR1"));
@@ -193,7 +206,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 WithPodErrors.of(emptyList(), Arrays.asList(podError1, podError2)));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), requestVideo);
 
         // then

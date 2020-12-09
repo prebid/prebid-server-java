@@ -13,14 +13,15 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +34,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class FullEnforcePurposeStrategyTest {
 
-    private static final int PURPOSE_ID = 1;
+    private static final Purpose PURPOSE = Purpose.ONE;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -65,7 +66,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(tcString.getPublisherRestrictions()).willReturn(singletonList(publisherRestriction));
 
-        given(publisherRestriction.getPurposeId()).willReturn(PURPOSE_ID);
+        given(publisherRestriction.getPurposeId()).willReturn(PURPOSE.code());
         given(publisherRestriction.getVendorIds()).willReturn(vendorIds);
         given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.UNDEFINED);
 
@@ -82,12 +83,12 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldReturnOnlyExcludedAllowedWhenMultiplePublisherRestrictionsProvided() {
         // given
         final IntIterable requireConsentIterable = mock(IntIterable.class);
-        final PublisherRestriction publisherRestriction1 = new PublisherRestriction(PURPOSE_ID,
+        final PublisherRestriction publisherRestriction1 = new PublisherRestriction(PURPOSE.code(),
                 RestrictionType.REQUIRE_CONSENT, requireConsentIterable);
         given(requireConsentIterable.spliterator()).willReturn(singletonList(1).spliterator());
 
         final IntIterable notAllowedIterable = mock(IntIterable.class);
-        final PublisherRestriction publisherRestriction2 = new PublisherRestriction(PURPOSE_ID,
+        final PublisherRestriction publisherRestriction2 = new PublisherRestriction(PURPOSE.code(),
                 RestrictionType.NOT_ALLOWED, notAllowedIterable);
         given(notAllowedIterable.spliterator()).willReturn(Arrays.asList(4, 2).spliterator());
 
@@ -111,7 +112,7 @@ public class FullEnforcePurposeStrategyTest {
                 VendorV2.empty(5));
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 Arrays.asList(requireConsentPermission, notAllowedPermission, notMentionedPermission),
                 Arrays.asList(excludedNotMentionedPermission, excludedNotAllowedPermission), true);
 
@@ -123,13 +124,13 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldReturnExpectedWhenMultiplePublisherRestrictionsProvided() {
         // given
         final IntIterable requireConsentIterable = mock(IntIterable.class);
-        final PublisherRestriction publisherRestriction1 = new PublisherRestriction(PURPOSE_ID,
+        final PublisherRestriction publisherRestriction1 = new PublisherRestriction(PURPOSE.code(),
                 RestrictionType.REQUIRE_CONSENT, requireConsentIterable);
         given(requireConsentIterable.spliterator()).willReturn(singletonList(1).spliterator());
         given(requireConsentIterable.contains(eq(1))).willReturn(true);
 
         final IntIterable notAllowedIterable = mock(IntIterable.class);
-        final PublisherRestriction publisherRestriction2 = new PublisherRestriction(PURPOSE_ID,
+        final PublisherRestriction publisherRestriction2 = new PublisherRestriction(PURPOSE.code(),
                 RestrictionType.NOT_ALLOWED, notAllowedIterable);
         given(notAllowedIterable.spliterator()).willReturn(Arrays.asList(4, 2).spliterator());
         given(notAllowedIterable.contains(eq(4))).willReturn(true);
@@ -144,20 +145,20 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission4 = VendorPermission.of(4, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission5 = VendorPermission.of(5, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl requireConsentPermission = VendorPermissionWithGvl.of(vendorPermission1,
-                VendorV2.builder().id(1).purposes(singleton(PURPOSE_ID)).build());
+                VendorV2.builder().id(1).purposes(EnumSet.of(PURPOSE)).build());
         final VendorPermissionWithGvl notAllowedPermission = VendorPermissionWithGvl.of(vendorPermission2,
-                VendorV2.builder().id(2).purposes(singleton(PURPOSE_ID)).build());
+                VendorV2.builder().id(2).purposes(EnumSet.of(PURPOSE)).build());
         final VendorPermissionWithGvl excludedNotMentionedPermission = VendorPermissionWithGvl.of(vendorPermission3,
-                VendorV2.builder().id(3).purposes(singleton(PURPOSE_ID)).build());
+                VendorV2.builder().id(3).purposes(EnumSet.of(PURPOSE)).build());
         final VendorPermissionWithGvl excludedNotAllowedPermission = VendorPermissionWithGvl.of(vendorPermission4,
-                VendorV2.builder().id(4).purposes(singleton(PURPOSE_ID)).build());
+                VendorV2.builder().id(4).purposes(EnumSet.of(PURPOSE)).build());
         final VendorPermissionWithGvl notMentionedPermission = VendorPermissionWithGvl.of(vendorPermission5,
-                VendorV2.builder().id(5).purposes(singleton(PURPOSE_ID)).build());
+                VendorV2.builder().id(5).purposes(EnumSet.of(PURPOSE)).build());
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 Arrays.asList(requireConsentPermission, notAllowedPermission, notMentionedPermission),
                 Arrays.asList(excludedNotMentionedPermission, excludedNotAllowedPermission), false);
 
@@ -170,8 +171,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowed() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(emptySet())
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -181,21 +182,21 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
     }
 
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAllowed() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(emptySet())
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -205,7 +206,7 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -218,8 +219,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowedAndVendorConsentAllowedAndEnforced() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(emptySet())
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -230,13 +231,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
         verify(allowedVendors).contains(1);
     }
 
@@ -244,8 +245,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAllowedAndVendorLIAllowedAndEnforced() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(emptySet())
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -256,13 +257,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).isEmpty();
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
         verifyZeroInteractions(purposesLI);
     }
 
@@ -270,8 +271,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(emptySet())
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -281,21 +282,21 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesLI).contains(PURPOSE_ID);
+        verify(purposesLI).contains(PURPOSE.code());
     }
 
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAndVendorLIAllowedAndEnforced() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(emptySet())
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -306,13 +307,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesLI).contains(PURPOSE_ID);
+        verify(purposesLI).contains(PURPOSE.code());
         verify(allowedVendorsLI).contains(1);
     }
 
@@ -320,8 +321,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAllowedAndVendorConsentAllowedAndEnforced() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(emptySet())
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -333,13 +334,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).isEmpty();
 
-        verify(purposesLI).contains(PURPOSE_ID);
+        verify(purposesLI).contains(PURPOSE.code());
         verifyZeroInteractions(allowedVendors);
     }
 
@@ -351,8 +352,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -364,21 +365,21 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
     }
 
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAndVendorConsentAndEnforcedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -391,13 +392,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
         verify(allowedVendors).contains(1);
     }
 
@@ -405,8 +406,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAllowedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -419,7 +420,7 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -432,8 +433,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -447,7 +448,7 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -461,8 +462,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAndVendorLIAndEnforcedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -475,21 +476,21 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).isEmpty();
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
     }
 
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAndVendorConsentAndEnforcedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -502,7 +503,7 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -515,8 +516,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAllowedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -529,7 +530,7 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -542,8 +543,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAndVendorConsentAndEnforcedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -557,7 +558,7 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -571,8 +572,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldAllowWhenInGvlPurposeAndPurposeLIAllowedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -584,21 +585,21 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesLI).contains(PURPOSE_ID);
+        verify(purposesLI).contains(PURPOSE.code());
     }
 
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeLIAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -611,13 +612,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesLI).contains(PURPOSE_ID);
+        verify(purposesLI).contains(PURPOSE.code());
         verify(allowedVendorsLI).contains(1);
     }
 
@@ -625,8 +626,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -640,7 +641,7 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -654,8 +655,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAndVendorConsentAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .purposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -669,13 +670,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).isEmpty();
 
-        verify(purposesLI).contains(PURPOSE_ID);
+        verify(purposesLI).contains(PURPOSE.code());
         verifyZeroInteractions(allowedVendors);
     }
 
@@ -687,8 +688,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldAllowWhenInGvlPurposeLIAndPurposeConsentAllowedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -700,21 +701,21 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
     }
 
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeAndVendorConsentAndEnforcedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -727,13 +728,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
         verify(allowedVendors).contains(1);
     }
 
@@ -741,8 +742,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAllowedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -755,7 +756,7 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -768,8 +769,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -783,7 +784,7 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -797,8 +798,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAndVendorLIAndEnforcedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -812,13 +813,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).isEmpty();
 
-        verify(purposesConsent).contains(PURPOSE_ID);
+        verify(purposesConsent).contains(PURPOSE.code());
         verifyZeroInteractions(allowedVendorsLI);
     }
 
@@ -826,8 +827,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndVendorConsentAndEnforcedAndFlexibleAndRequireConsent() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -841,13 +842,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).isEmpty();
 
-        verify(allowedVendors).contains(PURPOSE_ID);
+        verify(allowedVendors).contains(PURPOSE.code());
         verifyZeroInteractions(purposesLI);
     }
 
@@ -857,8 +858,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAllowedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -871,7 +872,7 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
@@ -884,8 +885,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAndVendorConsentAndEnforcedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -899,7 +900,7 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -913,8 +914,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAllowedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -926,21 +927,21 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesLI).contains(PURPOSE_ID);
+        verify(purposesLI).contains(PURPOSE.code());
     }
 
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -953,13 +954,13 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
-        verify(purposesLI).contains(PURPOSE_ID);
+        verify(purposesLI).contains(PURPOSE.code());
         verify(allowedVendorsLI).contains(1);
     }
 
@@ -967,8 +968,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAndVendorLIAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -982,7 +983,7 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -996,8 +997,8 @@ public class FullEnforcePurposeStrategyTest {
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndVendorConsentAllowedAndEnforcedAndFlexibleAndRequireLI() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
-                .legIntPurposes(singleton(PURPOSE_ID))
-                .flexiblePurposes(singleton(PURPOSE_ID))
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.of(PURPOSE))
                 .build();
 
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
@@ -1011,7 +1012,7 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -1032,11 +1033,10 @@ public class FullEnforcePurposeStrategyTest {
                 VendorV2.empty(2));
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
                 singleton(vendorPermissionWitGvl1), singleton(vendorPermissionWitGvl2), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 }
-

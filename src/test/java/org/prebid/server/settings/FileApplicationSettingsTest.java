@@ -336,7 +336,7 @@ public class FileApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(singleton("2"), emptySet(), null);
+                applicationSettings.getStoredData(null, singleton("2"), emptySet(), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
@@ -366,7 +366,7 @@ public class FileApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(emptySet(), singleton("2"), null);
+                applicationSettings.getStoredData(null, emptySet(), singleton("2"), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/imps/1.json"));
@@ -396,7 +396,7 @@ public class FileApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(singleton("1"), singleton("2"), null);
+                applicationSettings.getStoredData(null, singleton("1"), singleton("2"), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
@@ -425,7 +425,7 @@ public class FileApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getAmpStoredData(emptySet(), singleton("2"), null);
+                applicationSettings.getAmpStoredData(null, emptySet(), singleton("2"), null);
 
         // then
         assertThat(storedRequestResult.result().getErrors()).isNotNull().isEmpty();

@@ -1,6 +1,7 @@
 adapters:
   ttx:
     enabled: false
+    # Old http://ssc.33across.com/api/v1/hb
     endpoint: https://ssc.33across.com/api/v1/s2s
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
@@ -11,8 +12,10 @@ adapters:
       maintainer-email: headerbidding@33across.com
       app-media-types:
         - banner
+        - video
       site-media-types:
         - banner
+        - video
       supported-vendors:
       vendor-id: 58
     usersync:

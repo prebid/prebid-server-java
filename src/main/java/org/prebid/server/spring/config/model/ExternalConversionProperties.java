@@ -4,12 +4,14 @@ import io.vertx.core.Vertx;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.time.Clock;
 
 @Validated
 @Data
@@ -21,17 +23,26 @@ public class ExternalConversionProperties {
 
     @NotNull
     @Min(2)
-    Long defaultTimeout;
+    Long defaultTimeoutMs;
 
     @NotNull
     @Min(2)
-    Long refreshPeriod;
+    Long refreshPeriodMs;
+
+    @NotNull
+    Long staleAfterMs;
 
     @NotNull
     Vertx vertx;
 
     @NotNull
     HttpClient httpClient;
+
+    @NotNull
+    Metrics metrics;
+
+    @NotNull
+    Clock clock;
 
     @NotNull
     JacksonMapper mapper;

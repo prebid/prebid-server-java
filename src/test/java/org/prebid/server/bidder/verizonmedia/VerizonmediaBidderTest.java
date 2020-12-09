@@ -28,7 +28,6 @@ import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -324,6 +323,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                                 Imp.builder().banner(Banner.builder().build()).id("321").build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(asList(Bid.builder().impid("123").build(),
                                         Bid.builder().impid("321").build()))
@@ -337,11 +337,6 @@ public class VerizonmediaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(verizonmediaBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(
@@ -363,6 +358,7 @@ public class VerizonmediaBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

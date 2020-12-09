@@ -22,7 +22,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
@@ -38,7 +37,6 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
@@ -116,7 +114,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String PREBID_EXT = "prebid";
 
     private static final String ADSERVER_EID = "adserver.org";
@@ -143,6 +140,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
             };
+    private static final int PORTRAIT_MOBILE_SIZE_ID = 67;
+    private static final int LANDSCAPE_MOBILE_SIZE_ID = 101;
 
     private final String endpointUrl;
     private final Set<String> supportedVendors;
@@ -199,17 +198,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final HttpResponse response = httpCall.getResponse();
-        if (response.getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
-            final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidRequest, httpCall.getRequest().getPayload(), bidResponse),
                     Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -348,7 +342,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     .video(makeVideo(imp.getVideo(), extRubicon.getVideo(), extPrebid));
         } else {
             builder
-                    .banner(makeBanner(imp.getBanner(), overriddenSizes(extRubicon)))
+                    .banner(makeBanner(imp, overriddenSizes(extRubicon)))
                     .video(null);
         }
 
@@ -649,7 +643,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return overriddenSizes;
     }
 
-    private Banner makeBanner(Banner banner, List<Format> overriddenSizes) {
+    private Banner makeBanner(Imp imp, List<Format> overriddenSizes) {
+        final Banner banner = imp.getBanner();
+        final boolean isInterstitial = Objects.equals(imp.getInstl(), 1);
         final List<Format> sizes = ObjectUtils.defaultIfNull(overriddenSizes, banner.getFormat());
         if (CollectionUtils.isEmpty(sizes)) {
             throw new PreBidException("rubicon imps must have at least one imp.format element");
@@ -657,12 +653,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return banner.toBuilder()
                 .format(sizes)
-                .ext(mapper.mapper().valueToTree(makeBannerExt(sizes)))
+                .ext(mapper.mapper().valueToTree(makeBannerExt(sizes, isInterstitial)))
                 .build();
     }
 
-    private static RubiconBannerExt makeBannerExt(List<Format> sizes) {
-        final List<Integer> rubiconSizeIds = mapToRubiconSizeIds(sizes);
+    private static RubiconBannerExt makeBannerExt(List<Format> sizes, boolean isInterstitial) {
+        final List<Integer> rubiconSizeIds = mapToRubiconSizeIds(sizes, isInterstitial);
         final Integer primarySizeId = rubiconSizeIds.get(0);
         final List<Integer> altSizeIds = rubiconSizeIds.size() > 1
                 ? rubiconSizeIds.subList(1, rubiconSizeIds.size())
@@ -671,7 +667,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return RubiconBannerExt.of(RubiconBannerExtRp.of(primarySizeId, altSizeIds, "text/html"));
     }
 
-    private static List<Integer> mapToRubiconSizeIds(List<Format> sizes) {
+    private static List<Integer> mapToRubiconSizeIds(List<Format> sizes, boolean isInterstitial) {
         final List<Integer> validRubiconSizeIds = sizes.stream()
                 .map(RubiconSize::toId)
                 .filter(id -> id > 0)
@@ -679,9 +675,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
 
         if (validRubiconSizeIds.isEmpty()) {
-            throw new PreBidException("No valid sizes");
+            // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits HB-10418
+            if (isInterstitial) {
+                validRubiconSizeIds.add(resolveNotStandardSizeForInstl(sizes.get(0)));
+            } else {
+                throw new PreBidException("No valid sizes");
+            }
         }
         return validRubiconSizeIds;
+    }
+
+    private static int resolveNotStandardSizeForInstl(Format size) {
+        return size.getH() > size.getW() ? PORTRAIT_MOBILE_SIZE_ID : LANDSCAPE_MOBILE_SIZE_ID;
     }
 
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
@@ -989,7 +994,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractBids(BidRequest prebidRequest, BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(prebidRequest, bidRequest, bidResponse);
     }
@@ -1007,7 +1012,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cmpOverrideFromRequest, bidResponse))
                 .filter(RubiconBidder::validatePrice)
-                .map(bid -> BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

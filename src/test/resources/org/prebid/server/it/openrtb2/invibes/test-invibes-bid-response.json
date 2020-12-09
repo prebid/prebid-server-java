@@ -1,0 +1,19 @@
+{
+  "currency": "USD",
+  "typedBids": [
+    {
+      "bid": {
+        "id": "bid001",
+        "impid": "impId001",
+        "price": 1.3,
+        "adid": "adid001",
+        "crid": "crid001",
+        "cid": "cid001",
+        "adm": "adm001",
+        "h": 250,
+        "w": 300
+      },
+      "dealPriority": 12
+    }
+  ]
+}

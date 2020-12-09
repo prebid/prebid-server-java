@@ -28,7 +28,6 @@ import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -112,7 +111,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2");
     }
 
     @Test
@@ -130,7 +129,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.1");
+                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.2");
     }
 
     @Test
@@ -148,7 +147,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1&tp=http%3A%2F%2Fwww.example.com");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&tp=http%3A%2F%2Fwww.example.com");
     }
 
     @Test
@@ -169,7 +168,7 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.1&size=300%C3%97500");
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&sizes=300x500");
     }
 
     @Test
@@ -184,20 +183,6 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -326,11 +311,6 @@ public class AdgenerationBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(adgenerationBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(

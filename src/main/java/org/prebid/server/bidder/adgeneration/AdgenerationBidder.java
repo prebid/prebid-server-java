@@ -1,13 +1,13 @@
 package org.prebid.server.bidder.adgeneration;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -30,9 +30,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -42,9 +40,8 @@ import java.util.stream.Collectors;
  */
 public class AdgenerationBidder implements Bidder<Void> {
 
-    private static final String VERSION = "1.0.1";
+    private static final String VERSION = "1.0.2";
     private static final String DEFAULT_REQUEST_CURRENCY = "JPY";
-    private static final MultiMap HEADERS = HttpUtil.headers();
     private static final Pattern REPLACE_VAST_XML_PATTERN = Pattern.compile("/\\r?\\n/g", Pattern.CASE_INSENSITIVE);
     private static final Pattern APPEND_CHILD_TO_BODY_PATTERN = Pattern.compile("</\\s?body>",
             Pattern.CASE_INSENSITIVE);
@@ -64,7 +61,7 @@ public class AdgenerationBidder implements Bidder<Void> {
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
+            return Result.withError(BidderError.badInput("No impression in the bid request"));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -75,8 +72,9 @@ public class AdgenerationBidder implements Bidder<Void> {
                 final String extImpAdgenerationId = extImpAdgeneration.getId();
                 final String adSizes = getAdSize(imp);
                 final String currency = getCurrency(request);
-                final String uri = getUri(endpointUrl, adSizes, extImpAdgenerationId, currency, request.getSite());
-                result.add(createSingleRequest(uri));
+                final String uri = getUri(endpointUrl, adSizes, extImpAdgenerationId, currency,
+                        request.getSite(), request.getSource());
+                result.add(createSingleRequest(uri, request.getDevice()));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -100,7 +98,7 @@ public class AdgenerationBidder implements Bidder<Void> {
         return extImpAdgeneration;
     }
 
-    private String getUri(String endpointUrl, String adSize, String id, String currency, Site site) {
+    private String getUri(String endpointUrl, String adSize, String id, String currency, Site site, Source source) {
         final URIBuilder uriBuilder = new URIBuilder()
                 .setPath(endpointUrl)
                 .addParameter("posall", "SSPLOC")
@@ -113,11 +111,17 @@ public class AdgenerationBidder implements Bidder<Void> {
                 .addParameter("adapterver", VERSION);
 
         if (StringUtils.isNotBlank(adSize)) {
-            uriBuilder.addParameter("size", adSize);
+            uriBuilder.addParameter("sizes", adSize);
         }
 
-        if (site != null && StringUtils.isNotBlank(site.getPage())) {
-            uriBuilder.addParameter("tp", site.getPage());
+        final String page = site != null ? site.getPage() : null;
+        if (StringUtils.isNotBlank(page)) {
+            uriBuilder.addParameter("tp", page);
+        }
+
+        final String transactionid = source != null ? source.getTid() : null;
+        if (StringUtils.isNotBlank(transactionid)) {
+            uriBuilder.addParameter("transactionid", transactionid);
         }
 
         return uriBuilder.toString();
@@ -128,7 +132,7 @@ public class AdgenerationBidder implements Bidder<Void> {
         return CollectionUtils.isEmpty(formats)
                 ? null
                 : formats.stream()
-                .map(format -> String.format("%s×%s", format.getW(), format.getH()))
+                .map(format -> String.format("%sx%s", format.getW(), format.getH()))
                 .collect(Collectors.joining(","));
     }
 
@@ -139,30 +143,35 @@ public class AdgenerationBidder implements Bidder<Void> {
                 : currencies.contains(DEFAULT_REQUEST_CURRENCY) ? DEFAULT_REQUEST_CURRENCY : currencies.get(0);
     }
 
-    private HttpRequest<Void> createSingleRequest(String uri) {
+    private HttpRequest<Void> createSingleRequest(String uri, Device device) {
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
                 .uri(uri)
-                .headers(HEADERS)
+                .headers(resolveHeaders(device))
                 .build();
+    }
+
+    private MultiMap resolveHeaders(Device device) {
+        final MultiMap headers = HttpUtil.headers();
+
+        final String userAgent = device != null ? device.getUa() : null;
+        if (StringUtils.isNotBlank(userAgent)) {
+            headers.add("User-Agent", userAgent);
+        }
+        return headers;
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final AdgenerationResponse adgenerationResponse = decodeBodyToBidResponse(httpCall.getResponse());
             if (CollectionUtils.isEmpty(adgenerationResponse.getResults())) {
-                return Result.emptyWithError(BidderError.badServerResponse("Results object in BidResponse is empty"));
+                return Result.withError(BidderError.badServerResponse("Results object in BidResponse is empty"));
             }
 
             return resultWithBidderBids(bidRequest, adgenerationResponse);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -193,7 +202,7 @@ public class AdgenerationBidder implements Bidder<Void> {
                         .dealid(adgenerationResponse.getDealid())
                         .build();
                 final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.banner, getCurrency(bidRequest));
-                return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
+                return Result.withValue(bidderBid);
             }
         }
         return null;
@@ -228,10 +237,5 @@ public class AdgenerationBidder implements Bidder<Void> {
         return !ad.contains("<body>") || ad.lastIndexOf("</body>") == -1
                 ? ""
                 : ad.replace("<body>", "").replaceFirst("<body>", "").trim();
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -3,10 +3,12 @@ package org.prebid.server.settings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -17,6 +19,7 @@ import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -62,7 +65,6 @@ import java.util.stream.Collectors;
  */
 public class HttpApplicationSettings implements ApplicationSettings {
 
-    private static final String NOT_SUPPORTED = "Not supported";
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
     private static final TypeReference<Map<String, Category>> CATEGORY_RESPONSE_REFERENCE =
             new TypeReference<Map<String, Category>>() {
@@ -85,12 +87,62 @@ public class HttpApplicationSettings implements ApplicationSettings {
         this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
     }
 
-    /**
-     * Not supported and returns failed result.
-     */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return Future.failedFuture(new PreBidException("Not supported"));
+
+        return fetchAccountsByIds(Collections.singleton(accountId), timeout)
+                .map(accounts -> accounts.stream()
+                        .findFirst()
+                        .orElseThrow(() ->
+                                new PreBidException(String.format("Account with id : %s not found", accountId))));
+    }
+
+    private Future<Set<Account>> fetchAccountsByIds(Set<String> accountIds, Timeout timeout) {
+        if (CollectionUtils.isEmpty(accountIds)) {
+            return Future.succeededFuture(Collections.emptySet());
+        }
+        final long remainingTimeout = timeout.remaining();
+        if (timeout.remaining() <= 0) {
+            return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
+        }
+
+        return httpClient.get(accountsRequestUrlFrom(endpoint, accountIds), HttpUtil.headers(), remainingTimeout)
+                .compose(response -> processAccountsResponse(response, accountIds))
+                .recover(Future::failedFuture);
+    }
+
+    private static String accountsRequestUrlFrom(String endpoint, Set<String> accountIds) {
+        final StringBuilder url = new StringBuilder(endpoint);
+        url.append(endpoint.contains("?") ? "&" : "?");
+
+        if (!accountIds.isEmpty()) {
+            url.append("account-ids=[\"").append(joinIds(accountIds)).append("\"]");
+        }
+
+        return url.toString();
+    }
+
+    private Future<Set<Account>> processAccountsResponse(HttpClientResponse response, Set<String> accountIds) {
+        return Future.succeededFuture(
+                toAccountsResult(response.getStatusCode(), response.getBody(), accountIds));
+    }
+
+    private Set<Account> toAccountsResult(int statusCode, String body, Set<String> accountIds) {
+        if (statusCode != HttpResponseStatus.OK.code()) {
+            throw new PreBidException(String.format("Error fetching accounts %s via http: "
+                    + "unexpected response status %d", accountIds, statusCode));
+        }
+
+        final HttpAccountsResponse response;
+        try {
+            response = mapper.decodeValue(body, HttpAccountsResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Error fetching accounts %s "
+                    + "via http: failed to parse response: %s", accountIds, e.getMessage()));
+        }
+        final Map<String, Account> accounts = response.getAccounts();
+
+        return MapUtils.isNotEmpty(accounts) ? new HashSet<>(accounts.values()) : Collections.emptySet();
     }
 
     /**
@@ -106,16 +158,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
-    }
-
-    /**
-     * Not supported and returns failed result.
-     */
-    @Override
-    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        return Future.failedFuture(new PreBidException(NOT_SUPPORTED));
     }
 
     /**
@@ -123,7 +168,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
         return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
@@ -131,8 +177,17 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * Not supported and returns failed result.
      */
     @Override
-    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                       Timeout timeout) {
         return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
+    }
+
+    /**
+     * Not supported and returns failed result.
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return Future.failedFuture(new PreBidException("Not supported"));
     }
 
     @Override
@@ -187,15 +242,15 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            return failResponse(new TimeoutException("Timeout has been exceeded"), requestIds, impIds);
+            return failStoredDataResponse(new TimeoutException("Timeout has been exceeded"), requestIds, impIds);
         }
 
-        return httpClient.get(urlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), remainingTimeout)
-                .map(response -> processResponse(response, requestIds, impIds))
-                .recover(exception -> failResponse(exception, requestIds, impIds));
+        return httpClient.get(storeRequestUrlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), remainingTimeout)
+                .map(response -> processStoredDataResponse(response, requestIds, impIds))
+                .recover(exception -> failStoredDataResponse(exception, requestIds, impIds));
     }
 
-    private static String urlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
+    private static String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
         final StringBuilder url = new StringBuilder(endpoint);
         url.append(endpoint.contains("?") ? "&" : "?");
 
@@ -217,15 +272,16 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return String.join("\",\"", ids);
     }
 
-    private static Future<StoredDataResult> failResponse(Throwable throwable, Set<String> requestIds,
-                                                         Set<String> impIds) {
+    private static Future<StoredDataResult> failStoredDataResponse(Throwable throwable, Set<String> requestIds,
+                                                                   Set<String> impIds) {
         return Future.succeededFuture(
                 toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
     }
 
-    private StoredDataResult processResponse(HttpClientResponse response, Set<String> requestIds,
-                                             Set<String> impIds) {
-        return toStoredDataResult(requestIds, impIds, response.getStatusCode(), response.getBody());
+    private Future<StoredDataResult> processStoredDataResponse(HttpClientResponse response, Set<String> requestIds,
+                                                               Set<String> impIds) {
+        return Future.succeededFuture(
+                toStoredDataResult(requestIds, impIds, response.getStatusCode(), response.getBody()));
     }
 
     private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds, Set<String> impIds,
@@ -244,7 +300,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private StoredDataResult toStoredDataResult(Set<String> requestIds, Set<String> impIds,
                                                 int statusCode, String body) {
-        if (statusCode != 200) {
+        if (statusCode != HttpResponseStatus.OK.code()) {
             return toFailedStoredDataResult(requestIds, impIds, "HTTP status code %d", statusCode);
         }
 

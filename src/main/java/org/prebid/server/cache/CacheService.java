@@ -17,7 +17,7 @@ import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheHttpResponse;
-import org.prebid.server.cache.model.CacheIdInfo;
+import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.model.DebugHttpCall;
@@ -67,7 +67,7 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    public static final String BID_WURL_ATTRIBUTE = "wurl";
+    private static final String BID_WURL_ATTRIBUTE = "wurl";
 
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
@@ -333,14 +333,19 @@ public class CacheService {
     /**
      * Creates {@link CacheBid} from given {@link com.iab.openrtb.response.Bid} and determined cache ttl.
      */
-    private CacheBid toCacheBid(com.iab.openrtb.response.Bid bid, Map<String, Integer> impIdToTtl, Integer requestTtl,
-                                CacheTtl accountCacheTtl, boolean isVideoBid) {
+    private CacheBid toCacheBid(com.iab.openrtb.response.Bid bid,
+                                Map<String, Integer> impIdToTtl,
+                                Integer requestTtl,
+                                CacheTtl accountCacheTtl,
+                                boolean isVideoBid) {
         final Integer bidTtl = bid.getExp();
         final Integer impTtl = impIdToTtl.get(bid.getImpid());
         final Integer accountMediaTypeTtl = isVideoBid
-                ? accountCacheTtl.getVideoCacheTtl() : accountCacheTtl.getBannerCacheTtl();
+                ? accountCacheTtl.getVideoCacheTtl()
+                : accountCacheTtl.getBannerCacheTtl();
         final Integer mediaTypeTtl = isVideoBid
-                ? mediaTypeCacheTtl.getVideoCacheTtl() : mediaTypeCacheTtl.getBannerCacheTtl();
+                ? mediaTypeCacheTtl.getVideoCacheTtl()
+                : mediaTypeCacheTtl.getBannerCacheTtl();
         final Integer ttl = ObjectUtils.firstNonNull(bidTtl, impTtl, requestTtl, accountMediaTypeTtl, mediaTypeTtl);
 
         return CacheBid.of(bid, ttl);
@@ -384,7 +389,8 @@ public class CacheService {
 
         final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
 
-        updateCreativeMetrics(account.getId(), cachedCreatives);
+        final String accountId = account.getId();
+        updateCreativeMetrics(accountId, cachedCreatives);
 
         final String url = endpointUrl.toString();
         final String body = mapper.encode(bidCacheRequest);
@@ -393,8 +399,8 @@ public class CacheService {
         final long startTime = clock.millis();
         return httpClient.post(url, HttpUtil.headers(), body, remainingTimeout)
                 .map(response -> processResponseOpenrtb(response, httpRequest, cachedCreatives.size(), bids, videoBids,
-                        hbCacheId, account.getId(), startTime))
-                .otherwise(exception -> failResponseOpenrtb(exception, httpRequest, startTime));
+                        hbCacheId, accountId, startTime))
+                .otherwise(exception -> failResponseOpenrtb(exception, accountId, httpRequest, startTime));
     }
 
     /**
@@ -427,9 +433,14 @@ public class CacheService {
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private CacheServiceResult failResponseOpenrtb(Throwable exception, CacheHttpRequest request, long startTime) {
+    private CacheServiceResult failResponseOpenrtb(Throwable exception,
+                                                   String accountId,
+                                                   CacheHttpRequest request,
+                                                   long startTime) {
         logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
+
+        metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
 
         final DebugHttpCall httpCall = makeDebugHttpCall(endpointUrl.toString(), request, null, startTime);
         return CacheServiceResult.of(httpCall, exception, Collections.emptyMap());
@@ -683,32 +694,39 @@ public class CacheService {
     }
 
     /**
-     * Creates a map with bids as a key and {@link CacheIdInfo} as a value from obtained UUIDs.
+     * Creates a map with bids as a key and {@link CacheInfo} as a value from obtained UUIDs.
      */
-    private static Map<com.iab.openrtb.response.Bid, CacheIdInfo> toResultMap(
-            List<CacheBid> cacheBids, List<CacheBid> cacheVideoBids, List<String> uuids, String hbCacheId) {
-        final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = new HashMap<>(uuids.size());
-
-        final List<com.iab.openrtb.response.Bid> bids = cacheBids.stream()
-                .map(CacheBid::getBid).collect(Collectors.toList());
-        final List<com.iab.openrtb.response.Bid> videoBids = cacheVideoBids.stream()
-                .map(CacheBid::getBid).collect(Collectors.toList());
+    private static Map<com.iab.openrtb.response.Bid, CacheInfo> toResultMap(List<CacheBid> cacheBids,
+                                                                            List<CacheBid> cacheVideoBids,
+                                                                            List<String> uuids, String hbCacheId) {
+        final Map<com.iab.openrtb.response.Bid, CacheInfo> result = new HashMap<>(uuids.size());
 
         // here we assume "videoBids" is a sublist of "bids"
         // so, no need for a separate loop on "videoBids" if "bids" is not empty
-        if (!bids.isEmpty()) {
-            for (int i = 0; i < bids.size(); i++) {
-                final com.iab.openrtb.response.Bid bid = bids.get(i);
+        if (!cacheBids.isEmpty()) {
+            final List<com.iab.openrtb.response.Bid> videoBids = cacheVideoBids.stream()
+                    .map(CacheBid::getBid)
+                    .collect(Collectors.toList());
+
+            final int bidsSize = cacheBids.size();
+            for (int i = 0; i < bidsSize; i++) {
+                final CacheBid cacheBid = cacheBids.get(i);
+                final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
+                final Integer ttl = cacheBid.getTtl();
 
                 // determine uuid for video bid
                 final int indexOfVideoBid = videoBids.indexOf(bid);
-                final String videoBidUuid = indexOfVideoBid != -1 ? uuids.get(bids.size() + indexOfVideoBid) : null;
+                final String videoBidUuid = indexOfVideoBid != -1 ? uuids.get(bidsSize + indexOfVideoBid) : null;
+                final Integer videoTtl = indexOfVideoBid != -1 ? cacheVideoBids.get(indexOfVideoBid).getTtl() : null;
 
-                result.put(bid, CacheIdInfo.of(uuids.get(i), resolveVideoBidUuid(videoBidUuid, hbCacheId)));
+                result.put(bid, CacheInfo.of(uuids.get(i), resolveVideoBidUuid(videoBidUuid, hbCacheId), ttl,
+                        videoTtl));
             }
         } else {
-            for (int i = 0; i < videoBids.size(); i++) {
-                result.put(videoBids.get(i), CacheIdInfo.of(null, resolveVideoBidUuid(uuids.get(i), hbCacheId)));
+            for (int i = 0; i < cacheVideoBids.size(); i++) {
+                final CacheBid cacheBid = cacheVideoBids.get(i);
+                result.put(cacheBid.getBid(), CacheInfo.of(null, resolveVideoBidUuid(uuids.get(i), hbCacheId), null,
+                        cacheBid.getTtl()));
             }
         }
 
