@@ -246,7 +246,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         }
 
         return httpClient.get(storeRequestUrlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), remainingTimeout)
-                .map(response -> processStoredDataResponse(response, requestIds, impIds))
+                .compose(response -> processStoredDataResponse(response, requestIds, impIds))
                 .recover(exception -> failStoredDataResponse(exception, requestIds, impIds));
     }
 

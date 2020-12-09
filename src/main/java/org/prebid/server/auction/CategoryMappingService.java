@@ -100,7 +100,7 @@ public class CategoryMappingService {
         final String publisher = translateCategories ? includeBrandCategory.getPublisher() : null;
         final List<RejectedBid> rejectedBids = new ArrayList<>();
 
-        return makeBidderToBidCategory(bidderResponses, primaryAdServer, publisher, rejectedBids, timeout).future()
+        return makeBidderToBidCategory(bidderResponses, primaryAdServer, publisher, rejectedBids, timeout)
                 .map(bidIdToCategory -> resolveBidsCategoriesDurations(bidderResponses, bidIdToCategory, bidRequest,
                         targeting, withCategory, rejectedBids));
     }
@@ -132,7 +132,7 @@ public class CategoryMappingService {
      * Returns map with nested map, where external Map is relation between bidder to internal map,
      * which represents relation between bidId and category.
      */
-    private Promise<Map<String, Map<String, String>>> makeBidderToBidCategory(List<BidderResponse> bidderResponses,
+    private Future<Map<String, Map<String, String>>> makeBidderToBidCategory(List<BidderResponse> bidderResponses,
                                                                               String primaryAdServer,
                                                                               String publisher,
                                                                               List<RejectedBid> rejectedBids,
@@ -144,7 +144,7 @@ public class CategoryMappingService {
                 .collect(Collectors.toList()));
         compositeFuture.setHandler(event -> collectCategoryFetchResults(compositeFuture, bidderToBidsCategoriesPromise,
                 rejectedBids));
-        return bidderToBidsCategoriesPromise;
+        return bidderToBidsCategoriesPromise.future();
     }
 
     /**

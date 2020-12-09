@@ -263,7 +263,6 @@ public class TargetingKeywordsCreator {
         }
         if (StringUtils.isNotBlank(categoryDuration)) {
             keywordMap.put(HB_CATEGORY_DURATION_KEY, categoryDuration);
-
         }
 
         return keywordMap.asMap();

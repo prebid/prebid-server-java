@@ -1,10 +1,8 @@
 package org.prebid.server.settings.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class Category {
 
     String id;

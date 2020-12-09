@@ -1141,7 +1141,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getCacheBids()).hasSize(1)
-                .containsEntry(bid, CacheIdInfo.of("uuid", "randomId"));
+                .containsEntry(bid, CacheInfo.of("uuid", "randomId", null, null));
     }
 
     @Test
