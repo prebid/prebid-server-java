@@ -3,6 +3,7 @@ package org.prebid.server.bidder.deepintent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
@@ -30,7 +31,6 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class DeepintentBidderTest extends VertxTest {
 
@@ -56,18 +56,78 @@ public class DeepintentBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder
+                        .id("impId")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors()).allSatisfy(bidderError -> {
+            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getMessage()).isEqualTo("Impression id=impId, has invalid Ext");
+        });
     }
 
     @Test
-    public void shouldSetDislplayManagerAndVersionAndTagIdToRequestImp() {
+    public void makeHttpRequestsShouldReturnErrorIfImpBannerIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("impId").banner(null));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allSatisfy(bidderError -> {
+            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getMessage()).isEqualTo("We need a Banner Object in the request, imp : impId");
+        });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpBannerHasNoSizeParametersPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("impId").banner(Banner.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allSatisfy(bidderError -> {
+            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getMessage()).isEqualTo("At least one size is required, imp : impId");
+        });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetMissedBannerSizeFromBannerFormat() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .banner(Banner.builder().format(singletonList(Format.builder().w(77).h(88).build())).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        final Imp expectedImp = expectedImp(impBuilder -> impBuilder
+                .banner(Banner.builder().w(77).h(88)
+                        .format(singletonList(Format.builder().w(77).h(88).build()))
+                        .build()));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(expectedImp);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDislplayManagerAndVersionAndTagIdToRequestImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -76,12 +136,7 @@ public class DeepintentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(0);
-        final Imp expectedImp = Imp.builder()
-                .displaymanager(DISPLAY_MANAGER)
-                .displaymanagerver(DISPLAY_MANAGER_VERSION)
-                .tagid(IMP_EXT_TAG_ID)
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID))))
-                .build();
+        final Imp expectedImp = expectedImp(identity());
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
@@ -92,6 +147,7 @@ public class DeepintentBidderTest extends VertxTest {
     public void makeRequestShouldCreateRequestForEveryValidImp() {
         // given
         final Imp firstImp = Imp.builder()
+                .banner(Banner.builder().w(23).h(25).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID))))
                 .build();
         final Imp secondImp = Imp.builder()
@@ -106,11 +162,7 @@ public class DeepintentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        final Imp expectedFirstImp = firstImp.toBuilder()
-                .displaymanager(DISPLAY_MANAGER)
-                .displaymanagerver(DISPLAY_MANAGER_VERSION)
-                .tagid(IMP_EXT_TAG_ID)
-                .build();
+        final Imp expectedFirstImp = expectedImp(identity());
 
         assertThat(result.getValue())
                 .hasSize(1)
@@ -122,12 +174,11 @@ public class DeepintentBidderTest extends VertxTest {
     @Test
     public void makeRequestShouldCreateSeparateRequestForEveryImp() {
         // given
-        final Imp firstImp = Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of("firstImpTagId"))))
-                .build();
-        final Imp secondImp = Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of("secondImpTagId"))))
-                .build();
+        final Imp firstImp = givenImp(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of("firstImpTagId")))));
+        final Imp secondImp = givenImp(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of("secondImpTagId")))));
+
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
                 .build();
@@ -137,16 +188,17 @@ public class DeepintentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(0);
-        final Imp expectedFirstImp = firstImp.toBuilder()
-                .displaymanager(DISPLAY_MANAGER)
-                .displaymanagerver(DISPLAY_MANAGER_VERSION)
-                .tagid("firstImpTagId")
-                .build();
-        final Imp expectedSecondImp = secondImp.toBuilder()
-                .displaymanager(DISPLAY_MANAGER)
-                .displaymanagerver(DISPLAY_MANAGER_VERSION)
-                .tagid("secondImpTagId")
-                .build();
+        final Imp expectedFirstImp =
+                expectedImp(impBuilder ->
+                        impBuilder.ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpDeepintent.of("firstImpTagId"))))
+                                .tagid("firstImpTagId"));
+
+        final Imp expectedSecondImp =
+                expectedImp(impBuilder ->
+                        impBuilder.ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpDeepintent.of("secondImpTagId"))))
+                                .tagid("secondImpTagId"));
 
         assertThat(result.getValue())
                 .hasSize(2)
@@ -165,10 +217,10 @@ public class DeepintentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors())
-                .extracting(BidderError::getType)
-                .containsExactly(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getMessage()).contains("Failed to decode: Unrecognized token");
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+        });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -201,43 +253,6 @@ public class DeepintentBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = deepintentBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, CURRENCY));
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = deepintentBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, CURRENCY));
-    }
-
-    @Test
     public void shouldReturnErrorIfBidImpIdNotFoundInImps() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
@@ -251,7 +266,7 @@ public class DeepintentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Failed to find impression with id: notFoundId"));
+                .containsExactly(BidderError.badServerResponse("Failed to find impression with id: notFoundId"));
     }
 
     @Test
@@ -288,6 +303,17 @@ public class DeepintentBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
+                .banner(Banner.builder().w(23).h(25).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID)))))
+                .build();
+    }
+
+    private Imp expectedImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .banner(Banner.builder().w(23).h(25).build())
+                .displaymanager(DISPLAY_MANAGER)
+                .displaymanagerver(DISPLAY_MANAGER_VERSION)
+                .tagid(IMP_EXT_TAG_ID)
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID)))))
                 .build();
     }
