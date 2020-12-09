@@ -27,6 +27,7 @@ import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -257,13 +258,19 @@ public class ServiceConfiguration {
     @Bean
     VideoRequestFactory videoRequestFactory(
             @Value("${auction.max-request-size}") int maxRequestSize,
-            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             VideoStoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
-            TimeoutResolver timeoutResolver, JacksonMapper mapper) {
+            TimeoutResolver timeoutResolver,
+            JacksonMapper mapper) {
 
-        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, storedRequestProcessor,
-                auctionRequestFactory, timeoutResolver, mapper);
+        return new VideoRequestFactory(
+                maxRequestSize,
+                enforceStoredRequest,
+                storedRequestProcessor,
+                auctionRequestFactory,
+                timeoutResolver,
+                mapper);
     }
 
     @Bean
@@ -273,22 +280,31 @@ public class ServiceConfiguration {
 
     @Bean
     VideoStoredRequestProcessor videoStoredRequestProcessor(
-            ApplicationSettings applicationSettings,
-            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             BidRequest defaultVideoBidRequest,
+            ApplicationSettings applicationSettings,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             TimeoutResolver timeoutResolver,
-            @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
-            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             JacksonMapper mapper) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
-        return new VideoStoredRequestProcessor(applicationSettings, new VideoRequestValidator(), enforceStoredRequest,
-                blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
-                adServerCurrency, mapper);
+        return new VideoStoredRequestProcessor(
+                enforceStoredRequest,
+                blacklistedAccounts,
+                defaultTimeoutMs,
+                adServerCurrency,
+                defaultVideoBidRequest,
+                new VideoRequestValidator(),
+                applicationSettings,
+                metrics,
+                timeoutFactory,
+                timeoutResolver,
+                mapper);
     }
 
     @Bean
@@ -404,9 +420,28 @@ public class ServiceConfiguration {
     @Bean
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
-            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory) {
+            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
+            BidderErrorNotifier bidderErrorNotifier) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory);
+        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+    }
+
+    @Bean
+    BidderErrorNotifier bidderErrorNotifier(
+            @Value("${auction.timeout-notification.timeout-ms}") int timeoutNotificationTimeoutMs,
+            @Value("${auction.timeout-notification.log-result}") boolean logTimeoutNotificationResult,
+            @Value("${auction.timeout-notification.log-failure-only}") boolean logTimeoutNotificationFailureOnly,
+            @Value("${auction.timeout-notification.log-sampling-rate}") double logTimeoutNotificationSamplingRate,
+            HttpClient httpClient,
+            Metrics metrics) {
+
+        return new BidderErrorNotifier(
+                timeoutNotificationTimeoutMs,
+                logTimeoutNotificationResult,
+                logTimeoutNotificationFailureOnly,
+                logTimeoutNotificationSamplingRate,
+                httpClient,
+                metrics);
     }
 
     @Bean
@@ -579,13 +614,24 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "currency-converter.external-rates", name = "enabled", havingValue = "true")
     ExternalConversionProperties externalConversionProperties(
             @Value("${currency-converter.external-rates.url}") String currencyServerUrl,
-            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeout,
-            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriod,
+            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeoutMs,
+            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriodMs,
+            @Value("${currency-converter.external-rates.stale-after-ms}") long staleAfterMs,
             Vertx vertx,
             HttpClient httpClient,
+            Metrics metrics,
+            Clock clock,
             JacksonMapper mapper) {
 
-        return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient,
+        return new ExternalConversionProperties(
+                currencyServerUrl,
+                defaultTimeoutMs,
+                refreshPeriodMs,
+                staleAfterMs,
+                vertx,
+                httpClient,
+                metrics,
+                clock,
                 mapper);
     }
 

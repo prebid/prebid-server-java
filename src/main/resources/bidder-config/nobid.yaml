@@ -1,0 +1,25 @@
+adapters:
+  nobid:
+    enabled: false
+    endpoint: https://ads.servenobid.com/ortb_adreq?tek=pbs&ver=1
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: developers@nobid.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 816
+    usersync:
+      url: https://ads.servenobid.com/getsync?tek=pbs&ver=1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+      redirect-url: /setuid?bidder=nobid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: nobid
+      type: redirect
+      support-cors: false

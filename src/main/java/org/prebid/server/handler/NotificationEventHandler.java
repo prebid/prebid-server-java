@@ -90,6 +90,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
             getAccountById(eventRequest.getAccountId())
                     .setHandler(async -> handleEvent(async, eventRequest, context));
+        } else {
+            respondWithOkStatus(context, eventRequest.getFormat() == EventRequest.Format.image);
         }
     }
 

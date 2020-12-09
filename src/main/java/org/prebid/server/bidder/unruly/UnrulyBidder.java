@@ -1,13 +1,13 @@
 package org.prebid.server.bidder.unruly;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -113,14 +112,14 @@ public class UnrulyBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
@@ -142,10 +141,5 @@ public class UnrulyBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException(String.format("Failed to find impression %s", impId));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

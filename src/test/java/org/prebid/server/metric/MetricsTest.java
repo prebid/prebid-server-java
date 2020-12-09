@@ -1017,6 +1017,46 @@ public class MetricsTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    public void shouldCreateCurrencyRatesGaugeMetric() {
+        // when
+        metrics.createCurrencyRatesGauge(() -> true);
+
+        // then
+        assertThat(metricRegistry.gauge("currency-rates.stale.count", () -> null).getValue()).isEqualTo(1L);
+    }
+
+    @Test
+    public void updateSettingsCacheRefreshTimeShouldUpdateTimer() {
+        // when
+        metrics.updateSettingsCacheRefreshTime(MetricName.stored_request, MetricName.initialize, 123L);
+
+        // then
+        assertThat(metricRegistry
+                .timer("settings.cache.stored-request.refresh.initialize.db_query_time")
+                .getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void updateSettingsCacheRefreshErrorMetricShouldIncrementMetric() {
+        // when
+        metrics.updateSettingsCacheRefreshErrorMetric(MetricName.stored_request, MetricName.initialize);
+
+        // then
+        assertThat(metricRegistry.counter("settings.cache.stored-request.refresh.initialize.err").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void updateSettingsCacheEventMetricShouldIncrementMetric() {
+        // when
+        metrics.updateSettingsCacheEventMetric(MetricName.account, MetricName.hit);
+
+        // then
+        assertThat(metricRegistry.counter("settings.cache.account.hit").getCount()).isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

@@ -32,6 +32,7 @@ public class Metrics extends UpdatableMetrics {
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
     private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
     private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
+    private final Function<MetricName, SettingsCacheMetrics> settingsCacheMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
@@ -44,6 +45,9 @@ public class Metrics extends UpdatableMetrics {
     private final PrivacyMetrics privacyMetrics;
     private final Map<MetricName, CircuitBreakerMetrics> circuitBreakerMetrics;
     private final CacheMetrics cacheMetrics;
+    private final TimeoutNotificationMetrics timeoutNotificationMetrics;
+    private final CurrencyRatesMetrics currencyRatesMetrics;
+    private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -58,6 +62,7 @@ public class Metrics extends UpdatableMetrics {
         bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
                 metricRegistry, counterType, cardinality);
         circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
+        settingsCacheMetricsCreator = type -> new SettingsCacheMetrics(metricRegistry, counterType, type);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
@@ -67,6 +72,9 @@ public class Metrics extends UpdatableMetrics {
         privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
         circuitBreakerMetrics = new HashMap<>();
         cacheMetrics = new CacheMetrics(metricRegistry, counterType);
+        timeoutNotificationMetrics = new TimeoutNotificationMetrics(metricRegistry, counterType);
+        currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
+        settingsCacheMetrics = new HashMap<>();
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -103,6 +111,14 @@ public class Metrics extends UpdatableMetrics {
 
     CacheMetrics cache() {
         return cacheMetrics;
+    }
+
+    CurrencyRatesMetrics currencyRates() {
+        return currencyRatesMetrics;
+    }
+
+    SettingsCacheMetrics forSettingsCacheType(MetricName type) {
+        return settingsCacheMetrics.computeIfAbsent(type, settingsCacheMetricsCreator);
     }
 
     public void updateSafariRequestsMetric(boolean isSafari) {
@@ -452,6 +468,30 @@ public class Metrics extends UpdatableMetrics {
     public void updateCacheCreativeSize(String accountId, int creativeSize) {
         cache().updateHistogram(MetricName.creative_size, creativeSize);
         forAccount(accountId).cache().updateHistogram(MetricName.creative_size, creativeSize);
+    }
+
+    public void updateTimeoutNotificationMetric(boolean success) {
+        if (success) {
+            timeoutNotificationMetrics.incCounter(MetricName.ok);
+        } else {
+            timeoutNotificationMetrics.incCounter(MetricName.failed);
+        }
+    }
+
+    public void createCurrencyRatesGauge(BooleanSupplier stateSupplier) {
+        currencyRates().createGauge(MetricName.stale, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+    }
+
+    public void updateSettingsCacheRefreshTime(MetricName cacheType, MetricName refreshType, long timeElapsed) {
+        forSettingsCacheType(cacheType).forRefreshType(refreshType).updateTimer(MetricName.db_query_time, timeElapsed);
+    }
+
+    public void updateSettingsCacheRefreshErrorMetric(MetricName cacheType, MetricName refreshType) {
+        forSettingsCacheType(cacheType).forRefreshType(refreshType).incCounter(MetricName.err);
+    }
+
+    public void updateSettingsCacheEventMetric(MetricName cacheType, MetricName event) {
+        forSettingsCacheType(cacheType).incCounter(event);
     }
 
     private String resolveMetricsBidderName(String bidder) {

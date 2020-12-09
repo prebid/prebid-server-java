@@ -1,14 +1,14 @@
 package org.prebid.server.bidder.adocean;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -38,7 +38,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,11 +91,11 @@ public class AdoceanBidder implements Bidder<Void> {
                 }
                 httpRequests.add(createSingleRequest(request, imp, extImpAdocean, consentString, slaveSizes));
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(httpRequests, Collections.emptyList());
+        return Result.withValues(httpRequests);
     }
 
     private ExtImpAdocean parseImpExt(Imp imp) {
@@ -110,7 +109,6 @@ public class AdoceanBidder implements Bidder<Void> {
     private boolean addRequestAndCheckIfDuplicates(List<HttpRequest<Void>> httpRequests, ExtImpAdocean extImpAdocean,
                                                    String impid, Map<String, String> slaveSizes, Integer test) {
         for (HttpRequest<Void> request : httpRequests) {
-            final List<NameValuePair> params = null;
             try {
                 final URIBuilder uriBuilder = new URIBuilder(request.getUri());
                 final List<NameValuePair> queryParams = uriBuilder.getQueryParams();
@@ -140,7 +138,7 @@ public class AdoceanBidder implements Bidder<Void> {
                         queryParams.add(new BasicNameValuePair("aosspsizes", String.join("-", sizeValues)));
                     }
 
-                    final String url = HttpUtil.encodeUrl(String.valueOf(params));
+                    final String url = HttpUtil.encodeUrl(String.valueOf(queryParams));
                     if (url.length() < MAX_URI_LENGTH) {
                         return true;
                     }
@@ -230,36 +228,29 @@ public class AdoceanBidder implements Bidder<Void> {
 
     private static MultiMap getHeaders(BidRequest request) {
         final MultiMap headers = HttpUtil.headers();
-        if (request.getDevice() != null) {
-            addHeader(headers, "User-Agent", request.getDevice().getUa());
-            addHeader(headers, "X-Forwarded-For", request.getDevice().getIp());
-            addHeader(headers, "X-Forwarded-For", request.getDevice().getIpv6());
+
+        final Device device = request.getDevice();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
         }
 
-        if (request.getSite() != null) {
-            addHeader(headers, "Referer", request.getSite().getPage());
+        final Site site = request.getSite();
+        if (site != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
         }
+
         return headers;
-    }
-
-    private static void addHeader(MultiMap headers, String header, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            headers.add(header, value);
-        }
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         final List<NameValuePair> params;
         try {
             params = URLEncodedUtils.parse(new URI(httpCall.getRequest().getUri()), StandardCharsets.UTF_8);
         } catch (URISyntaxException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final Map<String, String> auctionIds = params != null ? params.stream()
@@ -271,7 +262,7 @@ public class AdoceanBidder implements Bidder<Void> {
         try {
             adoceanResponses = getAdoceanResponseAdUnitList(httpCall.getResponse().getBody());
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError
+            return Result.withError(BidderError
                     .badServerResponse("Failed to decode: No content to map due to end-of-input"));
         }
 
@@ -283,7 +274,7 @@ public class AdoceanBidder implements Bidder<Void> {
                         getBidCurrency(adoceanResponse)))
                 .collect(Collectors.toList());
 
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.withValues(bidderBids);
     }
 
     private static Bid createBid(Map<String, String> auctionIds, AdoceanResponseAdUnit adoceanResponse) {
@@ -314,10 +305,5 @@ public class AdoceanBidder implements Bidder<Void> {
         } catch (IOException ex) {
             throw new PreBidException(ex.getMessage());
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

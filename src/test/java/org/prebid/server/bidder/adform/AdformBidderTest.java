@@ -33,7 +33,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Base64;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -248,11 +247,10 @@ public class AdformBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidderBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidderBidIfResponseIsBannerAndBannerIsPresent() throws JsonProcessingException {
         // given
         final String adformResponse = mapper.writeValueAsString(AdformBid.builder().banner("admBanner")
-                .response("banner").winCur("currency").dealId("dealId").height(300).width(400).winCrid("gross")
-                .winBid(BigDecimal.ONE).build());
+                .response("banner").winCur("currency").build());
 
         final HttpCall<Void> httpCall = givenHttpCall(adformResponse);
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("id").build())).build();
@@ -263,8 +261,41 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).containsOnly(BidderBid.of(
-                Bid.builder().id("id").impid("id").price(BigDecimal.ONE).adm("admBanner").w(400).h(300).dealid("dealId")
-                        .crid("gross").build(), BidType.banner, "currency"));
+                Bid.builder().id("id").impid("id").adm("admBanner").build(), BidType.banner, "currency"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfResponseEqualsVastContent() throws JsonProcessingException {
+        // given
+        final String adformResponse = mapper.writeValueAsString(
+                AdformBid.builder().winCur("currency").vastContent("admVastContent").response("vast_content").build());
+
+        final HttpCall<Void> httpCall = givenHttpCall(adformResponse);
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("id").build())).build();
+
+        // when
+        final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).containsOnly(BidderBid.of(Bid.builder().id("id").impid("id")
+                .adm("admVastContent").build(), BidType.video, "currency"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyResultIfVastContentOrBannerIsNotPresent() throws JsonProcessingException {
+        // given
+        final String adformResponse = mapper.writeValueAsString(AdformBid.builder().build());
+
+        final HttpCall<Void> httpCall = givenHttpCall(adformResponse);
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("id").build())).build();
+
+        // when
+        final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -304,7 +335,7 @@ public class AdformBidderTest extends VertxTest {
                                 .consent("consent")
                                 .digitrust(ExtUserDigiTrust.of("id", 123, 1))
                                 .eids(asList(ExtUserEid.of("test.com", "some_user_id",
-                                                singletonList(ExtUserEidUid.of("uId", 1, null)), null),
+                                        singletonList(ExtUserEidUid.of("uId", 1, null)), null),
                                         ExtUserEid.of("test.com", "some_user_id",
                                                 singletonList(ExtUserEidUid.of("uId", 2, null)), null),
                                         ExtUserEid.of("test.net", "some_user_id",

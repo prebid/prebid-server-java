@@ -14,7 +14,7 @@ adapters:
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 14
+      vendor-id: 0
     usersync:
       url: https://cr-p31.ladsp.jp/cookiesender/31?r=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ru=
       redirect-url: /setuid?bidder=logicad&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID

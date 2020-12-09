@@ -3,13 +3,37 @@
 This document describes all metrics collected and submitted to configured backends by the Prebid Server.
 
 ## System metrics
+Other available metrics not mentioned here can found at 
+[Vert.x Dropwizard Metrics](https://vertx.io/docs/vertx-dropwizard-metrics/java/#_the_metrics) page.
+
+### HTTP server metrics
 - `vertx.http.servers.[IP]:[PORT].open-netsockets.count` - current number of open connections
 
 where:
 - `[IP]` should be equal to IP address of bound network interface on cluster node for Prebid Server (for example: `0.0.0.0`)
 - `[PORT]` should be equal to `http.port` configuration property
 
-Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.io/docs/vertx-dropwizard-metrics/java/#_the_metrics) page.
+### HTTP client metrics
+- `vertx.http.clients.connections.{min,max,mean,p95,p99}` - how long connections live
+- `vertx.http.clients.connections.{m1_rate,m5_rate,m15_rate,mean_rate}` - rate of the connection occurrences
+- `vertx.http.clients.requests.{min,max,mean,p95,p99}` - request time
+- `vertx.http.clients.requests.{m1_rate,m5_rate,m15_rate,mean_rate}` - request rate
+
+If HTTP client per destination endpoint metrics enabled:
+- `vertx.http.clients.endpoint.[ENDPOINT]:[PORT].queue-delay.{min,max,mean,p95,p99}` - wait time of a pending request in the queue
+- `vertx.http.clients.endpoint.[ENDPOINT]:[PORT].queue-size.count` - actual queue size
+- `vertx.http.clients.endpoint.[ENDPOINT]:[PORT].open-netsockets.count` - actual number of open sockets to the endpoint
+- `vertx.http.clients.endpoint.[ENDPOINT]:[PORT].usage.{min,max,mean,p95,p99}` - time of the delay between the request starts and the response ends
+- `vertx.http.clients.endpoint.[ENDPOINT]:[PORT].in-use` - actual number of in-flight requests
+- `vertx.http.clients.endpoint.[ENDPOINT]:[PORT].ttfb` - wait time between the request ended and its response begins
+
+### Database pool metrics
+- `vertx.pools.datasouce.[DATASOURCE].queue-delay.{min,max,mean,p95,p99}` - duration of the delay to obtain the resource, i.e the wait time in the queue
+- `vertx.pools.datasouce.[DATASOURCE].queue-size.counter` - the actual number of waiters in the queue
+- `vertx.pools.datasouce.[DATASOURCE].usage.{min,max,mean,p95,p99}` - duration of the usage of the resource
+- `vertx.pools.datasouce.[DATASOURCE].in-use.counter` - actual number of resources used
+
+where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 
 ## General auction metrics
 - `app_requests` - number of requests received from applications
@@ -37,6 +61,12 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `circuit.breaker.http.existing` - number of http client circuit breakers existing currently for all hosts
 - `circuit-breaker.db.opened` - state of the database circuit breaker: `1` means opened (database is unavailable), `0` - closed
 - `circuit-breaker.geo.opened` - state of the geo location circuit breaker: `1` means opened (geo location resource is unavailable), `0` - closed
+- `timeout_notification.ok` - number of times bidders were successfully notified about timeouts
+- `timeout_notification.failed` - number of unsuccessful attempts to notify bidders about timeouts
+- `currency-rates.stale` - a flag indicating if currency rates obtained from external source are fresh (`0`) or stale (`1`)
+- `settings.cache.(stored-request|amp-stored-request).refresh.(initialize|update).db_query_time` - timer tracking how long was settings cache population
+- `settings.cache.(stored-request|amp-stored-request).refresh.(initialize|update).err` - number of errors during settings cache population
+- `settings.cache.account.(hit|miss)` - number of times account was found or was missing in cache
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID
@@ -64,7 +94,7 @@ Following metrics are collected and submitted if account is configured with `det
 - `account.<account-id>.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
 - `account.<account-id>.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
 - `account.<account-id>.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
-- `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId` ([UnauthorizedAccountException.java](https://github.com/rubicon-project/prebid-server-java/blob/master/src/main/java/org/prebid/server/exception/UnauthorizedAccountException.java))
+- `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
 
 ## General Prebid Cache metrics
 - `prebid_cache.requests.ok` - timer tracking how long did successful cache requests take

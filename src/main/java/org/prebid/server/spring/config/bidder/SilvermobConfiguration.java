@@ -1,7 +1,7 @@
-package org.prebid.server.spring.config;
+package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.inmobi.InmobiBidder;
+import org.prebid.server.bidder.silvermob.SilvermobBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
@@ -20,10 +20,10 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/inmobi.yaml", factory = YamlPropertySourceFactory.class)
-public class InmobiConfiguration {
+@PropertySource(value = "classpath:/bidder-config/silvermob.yaml", factory = YamlPropertySourceFactory.class)
+public class SilvermobConfiguration {
 
-    private static final String BIDDER_NAME = "inmobi";
+    private static final String BIDDER_NAME = "silvermob";
 
     @Value("${external-url}")
     @NotBlank
@@ -33,24 +33,24 @@ public class InmobiConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
-    @Qualifier("inmobiConfigurationProperties")
+    @Qualifier("silvermobConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
-    @Bean("inmobiConfigurationProperties")
-    @ConfigurationProperties("adapters.inmobi")
+    @Bean("silvermobConfigurationProperties")
+    @ConfigurationProperties("adapters.silvermob")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps inmobiBidderDeps() {
+    BidderDeps silvermobBidderDeps() {
         final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new InmobiBidder(configProperties.getEndpoint(), mapper))
+                .bidderCreator(() -> new SilvermobBidder(configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }
