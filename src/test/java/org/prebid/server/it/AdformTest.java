@@ -116,7 +116,7 @@ public class AdformTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"adform":"AF-UID"}}
+                // this uids cookie value stands for {"uids":{"adform":"AF-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImFkZm9ybSI6IkFGLVVJRCJ9fQ==")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/adform/test-auction-adform-request.json"))

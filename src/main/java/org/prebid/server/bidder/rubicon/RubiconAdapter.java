@@ -107,7 +107,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     @Override
     public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
                                                                  PreBidRequestContext preBidRequestContext) {
-        final MultiMap headers = headers()
+        final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.AUTHORIZATION_HEADER, authHeader)
                 .add(HttpUtil.USER_AGENT_HEADER, PREBID_SERVER_USER_AGENT);
 

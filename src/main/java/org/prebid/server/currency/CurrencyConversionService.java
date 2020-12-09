@@ -72,6 +72,8 @@ public class CurrencyConversionService implements Initializable {
             vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout,
                     httpClient));
             populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient);
+
+            externalConversionProperties.getMetrics().createCurrencyRatesGauge(this::isRatesStale);
         }
     }
 
@@ -137,8 +139,24 @@ public class CurrencyConversionService implements Initializable {
         return ZonedDateTime.now(externalConversionProperties.getClock());
     }
 
+    public boolean isExternalRatesActive() {
+        return externalConversionProperties != null;
+    }
+
+    public String getCurrencyServerUrl() {
+        return currencyServerUrl;
+    }
+
+    public Long getRefreshPeriod() {
+        return externalConversionProperties != null ? externalConversionProperties.getRefreshPeriodMs() : null;
+    }
+
     public ZonedDateTime getLastUpdated() {
         return lastUpdated;
+    }
+
+    public Map<String, Map<String, BigDecimal>> getExternalCurrencyRates() {
+        return externalCurrencyRates;
     }
 
     /**
@@ -172,7 +190,9 @@ public class CurrencyConversionService implements Initializable {
                 adServerCurrency, effectiveBidCurrency);
 
         if (conversionRate == null) {
-            throw new PreBidException("no currency conversion available");
+            throw new PreBidException(
+                    String.format("Unable to convert bid currency %s to desired ad server currency %s",
+                            effectiveBidCurrency, adServerCurrency));
         }
 
         return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
@@ -260,5 +280,16 @@ public class CurrencyConversionService implements Initializable {
             }
         }
         return conversionRate;
+    }
+
+    private boolean isRatesStale() {
+        if (lastUpdated == null) {
+            return false;
+        }
+
+        final ZonedDateTime stalenessBoundary = ZonedDateTime.now(externalConversionProperties.getClock())
+                .minus(Duration.ofMillis(externalConversionProperties.getStaleAfterMs()));
+
+        return lastUpdated.isBefore(stalenessBoundary);
     }
 }

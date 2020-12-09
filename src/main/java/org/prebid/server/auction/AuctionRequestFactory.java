@@ -131,7 +131,7 @@ public class AuctionRequestFactory {
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
-        this.adServerCurrency = validateCurrency(adServerCurrency);
+        this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -154,10 +154,6 @@ public class AuctionRequestFactory {
      * Validates ISO-4217 currency code.
      */
     private static String validateCurrency(String code) {
-        if (StringUtils.isBlank(code)) {
-            return code;
-        }
-
         try {
             Currency.getInstance(code);
         } catch (IllegalArgumentException e) {
@@ -257,7 +253,7 @@ public class AuctionRequestFactory {
      * updated by values derived from headers and other request attributes.
      */
     private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest) {
-        return storedRequestProcessor.processStoredRequests(bidRequest)
+        return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
                 .map(this::validateRequest)
                 .map(interstitialProcessor::process);
@@ -355,13 +351,20 @@ public class AuctionRequestFactory {
         logWarnIfNoIp(resolvedIp, resolvedIpv6);
 
         final String ua = device != null ? device.getUa() : null;
+        final Integer dnt = resolveDntHeader(request);
 
         if (!Objects.equals(deviceIp, resolvedIp)
                 || !Objects.equals(deviceIpv6, resolvedIpv6)
-                || StringUtils.isBlank(ua)) {
+                || StringUtils.isBlank(ua) || dnt != null) {
 
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
-            builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
+
+            if (StringUtils.isBlank(ua)) {
+                builder.ua(paramsExtractor.uaFrom(request));
+            }
+            if (dnt != null) {
+                builder.dnt(dnt);
+            }
 
             builder
                     .ip(resolvedIp)
@@ -371,6 +374,11 @@ public class AuctionRequestFactory {
         }
 
         return null;
+    }
+
+    private Integer resolveDntHeader(HttpServerRequest request) {
+        final String dnt = request.getHeader(HttpUtil.DNT_HEADER.toString());
+        return StringUtils.equalsAny(dnt, "0", "1") ? Integer.valueOf(dnt) : null;
     }
 
     private String sanitizeIp(String ip, IpAddress.IP version) {

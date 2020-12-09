@@ -79,7 +79,7 @@ public class LifestreetTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"lifestreet":"LS-UID"}}
+                // this uids cookie value stands for {"uids":{"lifestreet":"LS-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImxpZmVzdHJlZXQiOiJMUy1VSUQifX0=")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/lifestreet/test-auction-lifestreet-request.json"))

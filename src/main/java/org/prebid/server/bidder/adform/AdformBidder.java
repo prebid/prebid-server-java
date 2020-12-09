@@ -2,7 +2,6 @@ package org.prebid.server.bidder.adform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -34,7 +33,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -78,7 +76,7 @@ public class AdformBidder implements Bidder<Void> {
         final List<BidderError> errors = extImpAdformsResult.getErrors();
 
         if (extImpAdforms.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final String currency = resolveRequestCurrency(request.getCur());
@@ -147,14 +145,9 @@ public class AdformBidder implements Bidder<Void> {
                     httpResponse.getBody(),
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, AdformBid.class));
         } catch (JsonProcessingException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-        return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
+        return Result.withValues(toBidderBid(adformBids, bidRequest.getImp()));
     }
 
     /**
@@ -298,24 +291,43 @@ public class AdformBidder implements Bidder<Void> {
 
         for (int i = 0; i < adformBids.size(); i++) {
             final AdformBid adformBid = adformBids.get(i);
-            if (StringUtils.isEmpty(adformBid.getBanner()) || !Objects.equals(adformBid.getResponse(), BANNER)) {
+            final String adm = resolveAdm(adformBid);
+            if (StringUtils.isBlank(adm)) {
                 continue;
             }
+            final BidType bidType = resolveBidType(adformBid.getResponse());
             final Imp imp = imps.get(i);
             bidderBids.add(BidderBid.of(Bid.builder()
                             .id(imp.getId())
                             .impid(imp.getId())
                             .price(adformBid.getWinBid())
-                            .adm(adformBid.getBanner())
+                            .adm(adm)
                             .w(adformBid.getWidth())
                             .h(adformBid.getHeight())
                             .dealid(adformBid.getDealId())
                             .crid(adformBid.getWinCrid())
                             .build(),
-                    BidType.banner,
+                    bidType,
                     currency));
         }
 
         return bidderBids;
+    }
+
+    private String resolveAdm(AdformBid adformBid) {
+        if (Objects.equals(adformBid.getResponse(), "banner")) {
+            return adformBid.getBanner();
+        }
+
+        if (Objects.equals(adformBid.getResponse(), "vast_content")) {
+            return adformBid.getVastContent();
+        }
+
+        return "";
+    }
+
+    private BidType resolveBidType(String response) {
+        return Objects.equals(response, BANNER)
+                ? BidType.banner : BidType.video;
     }
 }

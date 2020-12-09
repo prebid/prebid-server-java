@@ -15,6 +15,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `vertx.http-server-instances` - how many http server instances should be created. 
 This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
+- `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
 ## HTTP
 - `http.port` - the port to listen on.
@@ -24,7 +25,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Client
-- `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
+- `http-client.max-pool-size` - set the maximum pool size for outgoing connections (per host).
+- `http-client.idle-timeout-ms` - set the maximum time idle connections could exist before being reaped
+- `http-client.pool-cleaner-period-ms` - set how often idle connections will be closed removed from pool
 - `http-client.connect-timeout-ms` - set the connect timeout.
 - `http-client.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make http client more robust.
 - `http-client.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
@@ -80,6 +83,12 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
+## Timeout notification
+- `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
+- `auction.timeout-notification.log-result` - causes bidder timeout notification result to be logged
+- `auction.timeout-notification.log-failure-only` - causes only bidder timeout notification failures to be logged
+- `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
+
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
@@ -125,6 +134,7 @@ But feel free to add additional bidder's specific options.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-converter.external-rates.stale-after-ms` - how old currency rates should be to become considered stale.
 - `currency-converter.external-rates.stale-period-ms` - stale period after which the latest external currency rates get discarded.
 
 ## Admin Endpoints
@@ -304,10 +314,11 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.special-features.sfN.enforce` - if equals to `true`, special feature will be enforced for purpose. Default `true`
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
+- `gdpr.vendorlist.default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
-- `gdpr.vendorlist.vN.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.vN.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
 - `gdpr.vendorlist.vN.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
+- `gdpr.vendorlist.vN.deprecated` - Flag to show is this vendor list is deprecated or not.
 - `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 
 ## CCPA

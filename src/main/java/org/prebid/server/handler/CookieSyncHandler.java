@@ -387,44 +387,48 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                                  Set<String> biddersRejectedByTcf,
                                                  Set<String> biddersRejectedByCcpa,
                                                  Privacy privacy) {
-        final BidderUsersyncStatus result;
+
         final boolean isNotAlias = !bidderCatalog.isAlias(bidder);
 
         if (isNotAlias && !bidderCatalog.isValidName(bidder)) {
-            result = bidderStatusBuilder(bidder)
+            return bidderStatusBuilder(bidder)
                     .error("Unsupported bidder")
                     .build();
         } else if (isNotAlias && !bidderCatalog.isActive(bidder)) {
-            result = bidderStatusBuilder(bidder)
+            return bidderStatusBuilder(bidder)
                     .error(String.format("%s is not configured properly on this Prebid Server deploy. "
                             + "If you believe this should work, contact the company hosting the service "
                             + "and tell them to check their configuration.", bidder))
                     .build();
         } else if (isNotAlias && biddersRejectedByTcf.contains(bidder)) {
-            result = bidderStatusBuilder(bidder)
+            return bidderStatusBuilder(bidder)
                     .error(REJECTED_BY_TCF)
                     .build();
         } else if (isNotAlias && biddersRejectedByCcpa.contains(bidder)) {
-            result = bidderStatusBuilder(bidder)
+            return bidderStatusBuilder(bidder)
                     .error(REJECTED_BY_CCPA)
                     .build();
         } else {
             final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
+
+            if (StringUtils.isEmpty(usersyncer.getUsersyncUrl())) {
+                // there is nothing to sync
+                return null;
+            }
+
             final UsersyncInfo hostBidderUsersyncInfo = hostBidderUsersyncInfo(context, privacy, usersyncer);
 
             if (hostBidderUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {
-                result = bidderStatusBuilder(bidder)
+                return bidderStatusBuilder(bidder)
                         .noCookie(true)
                         .usersync(ObjectUtils.defaultIfNull(
                                 hostBidderUsersyncInfo,
                                 UsersyncInfoAssembler.from(usersyncer).withPrivacy(privacy).assemble()))
                         .build();
-            } else {
-                result = null;
             }
         }
 
-        return result;
+        return null;
     }
 
     private static BidderUsersyncStatus.BidderUsersyncStatusBuilder bidderStatusBuilder(String bidder) {

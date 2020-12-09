@@ -16,7 +16,7 @@ adapters:
         - banner
         - video
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 82
     usersync:
       url:
       redirect-url:

@@ -2,7 +2,6 @@ package org.prebid.server.bidder.yieldlab;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -12,7 +11,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.ObjectUtils;
@@ -52,7 +51,7 @@ public class YieldlabBidder implements Bidder<Void> {
             new TypeReference<ExtPrebid<?, ExtImpYieldlab>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "EUR";
+    private static final String BID_CURRENCY = "EUR";
     private static final String AD_SLOT_ID_SEPARATOR = ",";
     private static final String AD_SIZE_SEPARATOR = "x";
     private static final String CREATIVE_ID = "%s%s%s";
@@ -69,45 +68,51 @@ public class YieldlabBidder implements Bidder<Void> {
 
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
-        final List<ExtImpYieldlab> extImps = collectImpExt(request.getImp());
-        final ExtImpYieldlab modifiedExtImp = constructExtImp(extImps);
+        final ExtImpYieldlab modifiedExtImp = constructExtImp(request.getImp());
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<Void>builder()
-                        .method(HttpMethod.GET)
-                        .uri(makeUrl(modifiedExtImp, request))
-                        .body(null)
-                        .headers(getHeaders(request))
-                        .payload(null)
-                        .build()), Collections.emptyList());
+        return Result.withValue(HttpRequest.<Void>builder()
+                .method(HttpMethod.GET)
+                .uri(makeUrl(modifiedExtImp, request))
+                .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
+                .build());
+    }
+
+    private ExtImpYieldlab constructExtImp(List<Imp> imps) {
+        final List<ExtImpYieldlab> extImps = collectImpExt(imps);
+
+        final List<String> adSlotIds = extImps.stream()
+                .map(ExtImpYieldlab::getAdslotId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        final Map<String, String> targeting = extImps.stream()
+                .map(ExtImpYieldlab::getTargeting)
+                .filter(Objects::nonNull)
+                .flatMap(map -> map.entrySet().stream())
+                .filter(entry -> entry.getKey() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        final String adSlotIdsParams = adSlotIds.stream().sorted().collect(Collectors.joining(AD_SLOT_ID_SEPARATOR));
+        return ExtImpYieldlab.builder().adslotId(adSlotIdsParams).targeting(targeting).build();
     }
 
     private List<ExtImpYieldlab> collectImpExt(List<Imp> imps) {
-        return imps.stream()
-                .map(this::parseImpExt)
-                .collect(Collectors.toList());
+        final List<ExtImpYieldlab> extImps = new ArrayList<>();
+        for (Imp imp : imps) {
+            final ExtImpYieldlab extImpYieldlab = parseImpExt(imp);
+            if (extImpYieldlab != null) {
+                extImps.add(extImpYieldlab);
+            }
+        }
+        return extImps;
     }
 
     private ExtImpYieldlab parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), YIELDLAB_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            return null;
         }
-    }
-
-    private ExtImpYieldlab constructExtImp(List<ExtImpYieldlab> extImps) {
-        final List<String> adSlotIds = extImps.stream()
-                .map(ExtImpYieldlab::getAdslotId)
-                .collect(Collectors.toList());
-
-        final Map<String, String> targeting = extImps.stream()
-                .map(ExtImpYieldlab::getTargeting)
-                .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        final String adSlotIdsParams = adSlotIds.stream().sorted().collect(Collectors.joining(AD_SLOT_ID_SEPARATOR));
-        return ExtImpYieldlab.builder().adslotId(adSlotIdsParams).targeting(targeting).build();
     }
 
     private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request) {
@@ -130,18 +135,18 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final Device device = request.getDevice();
         if (device != null) {
-            uriBuilder.addParameter("yl_rtb_ifa", device.getIfa())
-                    .addParameter("yl_rtb_devicetype", String.format("%s", device.getDevicetype()));
+            uriBuilder.addParameter("yl_rtb_ifa", device.getIfa());
 
-            final Integer connectiontype = device.getConnectiontype();
-            if (connectiontype != null) {
-                uriBuilder.addParameter("yl_rtb_connectiontype", String.format("%s", connectiontype));
+            uriBuilder.addParameter("yl_rtb_devicetype", resolveNumberParameter(device.getDevicetype()));
+            final Integer connectionType = device.getConnectiontype();
+            if (connectionType != null) {
+                uriBuilder.addParameter("yl_rtb_connectiontype", device.getConnectiontype().toString());
             }
 
             final Geo geo = device.getGeo();
             if (geo != null) {
-                uriBuilder.addParameter("lat", String.format("%s", geo.getLat()))
-                        .addParameter("lon", String.format("%s", geo.getLon()));
+                uriBuilder.addParameter("lat", resolveNumberParameter(geo.getLat()));
+                uriBuilder.addParameter("lon", resolveNumberParameter(geo.getLon()));
             }
         }
 
@@ -164,7 +169,7 @@ public class YieldlabBidder implements Bidder<Void> {
     /**
      * Determines debug flag from {@link BidRequest} or {@link ExtRequest}.
      */
-    private boolean isDebugEnabled(BidRequest bidRequest) {
+    private static boolean isDebugEnabled(BidRequest bidRequest) {
         if (Objects.equals(bidRequest.getTest(), 1)) {
             return true;
         }
@@ -184,40 +189,37 @@ public class YieldlabBidder implements Bidder<Void> {
         return uriBuilder.toString().replace("?", "");
     }
 
-    private String getGdprParameter(Regs regs) {
+    private static String getGdprParameter(Regs regs) {
         if (regs != null) {
             final Integer gdpr = regs.getExt() != null ? regs.getExt().getGdpr() : null;
             if (gdpr != null && (gdpr == 0 || gdpr == 1)) {
-                return String.valueOf(gdpr);
+                return gdpr.toString();
             }
         }
         return "";
     }
 
-    private String getConsentParameter(User user) {
+    private static String getConsentParameter(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         return ObjectUtils.defaultIfNull(consent, "");
     }
 
-    private static MultiMap getHeaders(BidRequest request) {
-        final MultiMap headers = HttpUtil.headers();
-        final Site site = request.getSite();
+    private static MultiMap resolveHeaders(Site site, Device device, User user) {
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
+                .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
         if (site != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER.toString(), site.getPage());
         }
 
-        final Device device = request.getDevice();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
         }
 
-        final User user = request.getUser();
-        if (user != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.COOKIE_HEADER.toString(),
-                    String.format("id=%s", user.getBuyeruid()));
+        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
+            headers.add(HttpUtil.COOKIE_HEADER.toString(), String.format("id=%s", user.getBuyeruid()));
         }
 
         return headers;
@@ -225,67 +227,59 @@ public class YieldlabBidder implements Bidder<Void> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return Result.emptyWithError(BidderError.badInput("Invalid request."));
-        } else if (statusCode != HttpResponseStatus.OK.code()) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    statusCode)));
-        }
-
         final List<YieldlabResponse> yieldlabResponses;
         try {
             yieldlabResponses = decodeBodyToBidList(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        final List<ExtImpYieldlab> extImps = collectImpExt(bidRequest.getImp());
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (int i = 0; i < yieldlabResponses.size(); i++) {
-            final YieldlabResponse yieldlabResponse = yieldlabResponses.get(i);
-            final String[] sizeParts = yieldlabResponse.getAdSize().split(AD_SIZE_SEPARATOR);
-            final int width;
-            final int height;
-            if (sizeParts.length != 2) {
-                width = 0;
-                height = 0;
-            } else {
-                width = StringUtils.isNumeric(sizeParts[0]) ? Integer.parseInt(sizeParts[0]) : 0;
-                height = StringUtils.isNumeric(sizeParts[1]) ? Integer.parseInt(sizeParts[1]) : 0;
+            final BidderBid bidderBid;
+            try {
+                bidderBid = resolveBidderBid(yieldlabResponses, i, bidRequest);
+            } catch (PreBidException e) {
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
 
-            final ExtImpYieldlab filteredExtImp = filterExtImp(yieldlabResponse.getId(), extImps);
-            if (filteredExtImp == null) {
-                return Result.emptyWithError(BidderError.badInput("Invalid extension"));
+            if (bidderBid != null) {
+                bidderBids.add(bidderBid);
             }
-            final Imp currentImp = bidRequest.getImp().get(i);
-            final Bid.BidBuilder updatedBid = Bid.builder()
-                    .id(String.valueOf(yieldlabResponse.getId()))
-                    .price(BigDecimal.valueOf(yieldlabResponse.getPrice() / 100))
-                    .impid(currentImp.getId())
-                    .dealid(String.valueOf(yieldlabResponse.getPid()))
-                    .crid(makeCreativeId(bidRequest, yieldlabResponse, filteredExtImp))
-                    .w(width)
-                    .h(height);
-
-            BidType bidType;
-            if (currentImp.getVideo() != null) {
-                bidType = BidType.video;
-                updatedBid.nurl(makeNurl(bidRequest, filteredExtImp, yieldlabResponse));
-            } else if (currentImp.getBanner() != null) {
-                bidType = BidType.banner;
-                updatedBid.adm(makeAdm(bidRequest, filteredExtImp, yieldlabResponse));
-            } else {
-                continue;
-            }
-
-            final BidderBid bidderBid = BidderBid.of(updatedBid.build(), bidType, DEFAULT_BID_CURRENCY);
-            bidderBids.add(bidderBid);
         }
         return Result.of(bidderBids, Collections.emptyList());
+    }
+
+    private BidderBid resolveBidderBid(List<YieldlabResponse> yieldlabResponses,
+                                       int currentImpIndex, BidRequest bidRequest) {
+        final YieldlabResponse yieldlabResponse = yieldlabResponses.get(currentImpIndex);
+
+        final ExtImpYieldlab matchedExtImp = getMatchedExtImp(yieldlabResponse.getId(), bidRequest.getImp());
+        if (matchedExtImp == null) {
+            throw new PreBidException("Invalid extension");
+        }
+
+        final Imp currentImp = bidRequest.getImp().get(currentImpIndex);
+        if (currentImp == null) {
+            throw new PreBidException(String.format("Imp not present for id %s", currentImpIndex));
+        }
+        final Bid.BidBuilder updatedBid = Bid.builder();
+
+        BidType bidType;
+        if (currentImp.getVideo() != null) {
+            bidType = BidType.video;
+            updatedBid.nurl(makeNurl(bidRequest, matchedExtImp, yieldlabResponse));
+        } else if (currentImp.getBanner() != null) {
+            bidType = BidType.banner;
+            updatedBid.adm(makeAdm(bidRequest, matchedExtImp, yieldlabResponse));
+        } else {
+            return null;
+        }
+
+        addBidParams(yieldlabResponse, bidRequest, updatedBid)
+                .impid(currentImp.getId());
+
+        return BidderBid.of(updatedBid.build(), bidType, BID_CURRENCY);
     }
 
     private List<YieldlabResponse> decodeBodyToBidList(HttpCall<Void> httpCall) {
@@ -294,28 +288,66 @@ public class YieldlabBidder implements Bidder<Void> {
                     httpCall.getResponse().getBody(),
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, YieldlabResponse.class));
         } catch (DecodeException | JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
         }
     }
 
-    private ExtImpYieldlab filterExtImp(Integer responseId, List<ExtImpYieldlab> extImps) {
-        return extImps.stream()
+    private ExtImpYieldlab getMatchedExtImp(Integer responseId, List<Imp> imps) {
+        return collectImpExt(imps).stream()
                 .filter(ext -> ext.getAdslotId().equals(String.valueOf(responseId)))
                 .findFirst()
                 .orElse(null);
     }
 
-    private String makeCreativeId(BidRequest bidRequest, YieldlabResponse yieldlabResponse, ExtImpYieldlab extImp) {
+    private Bid.BidBuilder addBidParams(YieldlabResponse yieldlabResponse, BidRequest bidRequest,
+                                        Bid.BidBuilder updatedBid) {
+        final ExtImpYieldlab matchedExtImp = getMatchedExtImp(yieldlabResponse.getId(), bidRequest.getImp());
+
+        if (matchedExtImp == null) {
+            throw new PreBidException("Invalid extension");
+        }
+
+        updatedBid.id(resolveNumberParameter(yieldlabResponse.getId()))
+                .price(resolvePrice(yieldlabResponse.getPrice()))
+                .dealid(resolveNumberParameter(yieldlabResponse.getPid()))
+                .crid(makeCreativeId(bidRequest, yieldlabResponse, matchedExtImp))
+                .w(resolveSizeParameter(yieldlabResponse.getAdSize(), true))
+                .h(resolveSizeParameter(yieldlabResponse.getAdSize(), false));
+
+        return updatedBid;
+    }
+
+    private static BigDecimal resolvePrice(Double price) {
+        return price != null ? BigDecimal.valueOf(price / 100) : null;
+    }
+
+    private static String resolveNumberParameter(Number param) {
+        return param != null ? String.valueOf(param) : null;
+    }
+
+    private static String makeCreativeId(BidRequest bidRequest, YieldlabResponse yieldlabResponse,
+                                         ExtImpYieldlab extImp) {
         // for passing validation tests
         final int weekNumber = isDebugEnabled(bidRequest) ? 35 : Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
         return String.format(CREATIVE_ID, extImp.getAdslotId(), yieldlabResponse.getPid(), weekNumber);
+    }
+
+    private static Integer resolveSizeParameter(String adSize, boolean isWidth) {
+        final String[] sizeParts = adSize.split(AD_SIZE_SEPARATOR);
+
+        if (sizeParts.length != 2) {
+            return 0;
+        }
+        final int sizeIndex = isWidth ? 0 : 1;
+        return StringUtils.isNumeric(sizeParts[sizeIndex]) ? Integer.parseInt(sizeParts[sizeIndex]) : 0;
     }
 
     private String makeAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
         return String.format(AD_SOURCE_BANNER, makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
 
-    private String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
+    private static String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab,
+                                   YieldlabResponse yieldlabResponse) {
         // for passing validation tests
         final String timestamp = isDebugEnabled(bidRequest) ? "200000" : String.valueOf(Instant.now().getEpochSecond());
 
@@ -338,10 +370,5 @@ public class YieldlabBidder implements Bidder<Void> {
 
         return String.format(AD_SOURCE_URL, extImpYieldlab.getAdslotId(), extImpYieldlab.getSupplyId(),
                 yieldlabResponse.getAdSize(), uriBuilder.toString().replace("?", ""));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.validation.annotation.Validated;
 
@@ -28,6 +29,9 @@ public class ExternalConversionProperties {
     @Min(2)
     Long refreshPeriodMs;
 
+    @NotNull
+    Long staleAfterMs;
+
     @Min(2)
     Long stalePeriodMs;
 
@@ -36,6 +40,9 @@ public class ExternalConversionProperties {
 
     @NotNull
     HttpClient httpClient;
+
+    @NotNull
+    Metrics metrics;
 
     @NotNull
     Clock clock;
