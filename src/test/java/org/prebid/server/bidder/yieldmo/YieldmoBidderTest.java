@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -17,23 +18,27 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yieldmo.ExtImpYieldmo;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class YieldmoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-
+    private static final String PLACEMENT_VALUE = "placementId";
     private YieldmoBidder yieldmoBidder;
 
     @Before
@@ -49,8 +54,8 @@ public class YieldmoBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
@@ -59,6 +64,42 @@ public class YieldmoBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExtPlacementFromYieldmoPlacement() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(Function.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+
+        final YieldmoImpExt expectedExt = YieldmoImpExt.of(PLACEMENT_VALUE);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsOnly(mapper.valueToTree(expectedExt));
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnCorrectHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(Function.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
 
     @Test
@@ -178,7 +219,7 @@ public class YieldmoBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of("placementId")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(PLACEMENT_VALUE)))))
                 .build();
     }
 

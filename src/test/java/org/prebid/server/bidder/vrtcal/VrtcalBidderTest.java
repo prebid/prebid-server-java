@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -17,14 +18,17 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.vrtcal.ExtImpVrtcal;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class VrtcalBidderTest extends VertxTest {
@@ -46,10 +50,8 @@ public class VrtcalBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))).build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vrtcalBidder.makeHttpRequests(bidRequest);
@@ -63,13 +65,8 @@ public class VrtcalBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpVrtcal.of("JustAnUnusedVrtcalParam"))))
-                        .build()))
-                .id("request_id")
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vrtcalBidder.makeHttpRequests(bidRequest);
@@ -79,6 +76,23 @@ public class VrtcalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsOnly(bidRequest);
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnCorrectHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(Function.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = vrtcalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
 
     @Test
@@ -138,6 +152,25 @@ public class VrtcalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().build(), banner, "USD"));
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))))
+                .build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
