@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.dmx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -24,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 
@@ -32,7 +32,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -96,22 +95,58 @@ public class DmxBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyImpIfBannerFormatIsNotEmpty() {
         // given
+        final Imp givenImp = Imp.builder()
+                .id("id")
+                .bidfloor(BigDecimal.ONE)
+                .banner(Banner.builder()
+                        .format(singletonList(Format.builder().w(300).h(500).build()))
+                        .build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpDmx.builder()
+                                .tagId("tagId")
+                                .dmxId("dmxId")
+                                .memberId("memberId")
+                                .publisherId("publisherId")
+                                .sellerId("sellerId")
+                                .build())))
+                .build();
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder()
-                                .id("id")
-                                .banner(Banner.builder()
-                                        .format(singletonList(Format.builder().w(300).h(500).build()))
-                                        .build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpDmx.builder()
-                                                .tagId("tagId")
-                                                .dmxId("dmxId")
-                                                .memberId("memberId")
-                                                .publisherId("publisherId")
-                                                .sellerId("sellerId")
-                                                .build())))
-                                .build()))
+                .imp(singletonList(givenImp))
+                .user(User.builder().id("userId").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Imp expectedImp = givenImp.toBuilder()
+                .tagid("dmxId")
+                .secure(1)
+                .build();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(expectedImp);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldWriteTagIdToImpIfItIsPresentAndDmxIsMissing() {
+        // given
+        final Imp givenImp = Imp.builder()
+                .banner(Banner.builder()
+                        .format(singletonList(Format.builder().build()))
+                        .build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpDmx.builder()
+                                .tagId("tagId")
+                                .dmxId("")
+                                .memberId("memberId")
+                                .publisherId("publisherId")
+                                .build())))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp))
                 .user(User.builder().id("userId").build())
                 .build();
 
@@ -120,19 +155,11 @@ public class DmxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final JsonNode expectedImpExt = mapper.valueToTree(ExtPrebid.of(null,
-                ExtImpDmx.builder()
-                        .tagId("tagId")
-                        .dmxId("dmxId")
-                        .memberId("memberId")
-                        .publisherId("publisherId")
-                        .sellerId("sellerId")
-                        .build()));
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getId, Imp::getTagid, Imp::getExt, Imp::getSecure)
-                .containsOnly(tuple("id", "dmxId", expectedImpExt, 1));
+                .extracting(Imp::getTagid)
+                .containsExactly("tagId");
     }
 
     @Test
