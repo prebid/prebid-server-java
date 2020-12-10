@@ -77,11 +77,11 @@ public class BetweenBidder implements Bidder<BidRequest> {
 
     }
 
-    private Integer resolveSecure(Site site) {
+    private static Integer resolveSecure(Site site) {
         return site != null && StringUtils.isNotBlank(site.getPage()) && site.getPage().startsWith("https") ? 1 : 0;
     }
 
-    private void validateImp(Imp imp) {
+    private static void validateImp(Imp imp) {
         final Banner banner = imp.getBanner();
         if (imp.getBanner() == null) {
             throw new PreBidException("Request needs to include a Banner object");
@@ -110,7 +110,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
         return extImpBetween;
     }
 
-    private Imp modifyImp(Imp imp, Integer secure, BigDecimal bidFloor, String bidFloorCur) {
+    private static Imp modifyImp(Imp imp, Integer secure, BigDecimal bidFloor, String bidFloorCur) {
         final Banner resolvedBanner = resolveBanner(imp.getBanner());
 
         return imp.toBuilder()
@@ -121,7 +121,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Banner resolveBanner(Banner banner) {
+    private static Banner resolveBanner(Banner banner) {
         if (banner.getW() == null && banner.getH() == null) {
             final List<Format> bannerFormat = banner.getFormat();
             final Format firstFormat = bannerFormat.get(0);
@@ -179,14 +179,14 @@ public class BetweenBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)

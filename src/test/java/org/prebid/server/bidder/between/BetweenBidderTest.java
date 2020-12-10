@@ -59,11 +59,10 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullHostParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .id("1")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("", "pubId", null, null)))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
-                .id("2")
+                .id("456")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId", null, null)))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -76,8 +75,10 @@ public class BetweenBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(2)
                 .containsExactly(
-                        BidderError.badInput("required BetweenSSP parameter host is missing in impression with id: 1"),
-                        BidderError.badInput("required BetweenSSP parameter host is missing in impression with id: 2"));
+                        BidderError.badInput("required BetweenSSP parameter host is "
+                                + "missing in impression with id: 123"),
+                        BidderError.badInput("required BetweenSSP parameter host is "
+                                + "missing in impression with id: 456"));
     }
 
     @Test
@@ -139,7 +140,6 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullPublisherIdParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "", null, null)))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
@@ -155,7 +155,7 @@ public class BetweenBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(2)
-                .containsExactly(
+                .containsExactlyInAnyOrder(
                         BidderError.badInput("required BetweenSSP parameter publisher_id "
                                 + "is missing in impression with id: 123"),
                         BidderError.badInput("required BetweenSSP parameter publisher_id "
