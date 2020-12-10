@@ -2,7 +2,7 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId1",
+      "id": "test-imp-id",
       "native": {
         "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}}]}"
       },
@@ -36,16 +36,6 @@
   "ext": {
     "prebid": {
       "debug": 1,
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "aliases": {
         "appnexusAlias": "appnexus",
         "conversantAlias": "conversant"

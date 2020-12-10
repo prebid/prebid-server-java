@@ -14,7 +14,12 @@
       "ext": {
         "adform": {
           "mid": 15,
-          "priceType": "gross"
+          "priceType": "gross",
+          "mkv": "color:red",
+          "mkw": "red",
+          "cdims": "300x600",
+          "minp": 2.5,
+          "url": "https://adform.com?a=b"
         }
       }
     }
@@ -41,16 +46,6 @@
   },
   "ext": {
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

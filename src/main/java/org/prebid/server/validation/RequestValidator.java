@@ -171,8 +171,8 @@ public class RequestValidator {
             validateDevice(bidRequest.getDevice());
             validateUser(bidRequest.getUser(), aliases, warnings);
             validateRegs(bidRequest.getRegs(), warnings);
-        } catch (ValidationException ex) {
-            return ValidationResult.error(ex.getMessage());
+        } catch (ValidationException e) {
+            return ValidationResult.error(e.getMessage());
         }
         return warnings.isEmpty() ? ValidationResult.success() : ValidationResult.warning(warnings);
     }
@@ -403,7 +403,7 @@ public class RequestValidator {
             }
 
             final String tcfConsent = extUser.getConsent();
-            if (StringUtils.isNotBlank(tcfConsent) && !TcfDefinerService.isGdprConsentValid(tcfConsent)) {
+            if (StringUtils.isNotBlank(tcfConsent) && !TcfDefinerService.isConsentStringValid(tcfConsent)) {
                 warnings.add(String.format("Tcf consent string has invalid format: %s", tcfConsent));
             }
 

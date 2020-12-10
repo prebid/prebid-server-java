@@ -9,7 +9,8 @@
       },
       "ext": {
         "bidder": {
-          "adunit": "unit1"
+          "adunit": "unit1",
+          "client": "testClient"
         }
       }
     }
@@ -78,7 +79,10 @@
           "ttlseconds": 120
         }
       },
-        "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

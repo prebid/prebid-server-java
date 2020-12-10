@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -75,13 +76,8 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 
     /**
@@ -127,7 +123,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             } catch (EncodeException e) {
                 errors.add(BidderError.badInput(
                         String.format("error while encoding bidRequest, err: %s", e.getMessage())));
-                return Result.of(Collections.emptyList(), errors);
+                return Result.withErrors(errors);
             }
             httpRequests.add(HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
@@ -184,8 +180,8 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
-                ? Result.of(Collections.emptyList(), Collections.emptyList())
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Result.empty()
                 : createBiddersBid(bidResponse, imps);
     }
 

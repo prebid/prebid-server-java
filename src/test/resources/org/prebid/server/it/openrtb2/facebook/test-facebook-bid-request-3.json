@@ -10,14 +10,9 @@
       "tagid": "pub3_placement3"
     }
   ],
-  "site": {
-    "domain": "example.com",
-    "page": "http://www.example.com",
+  "app": {
     "publisher": {
       "id": "pub3"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "device": {

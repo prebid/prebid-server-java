@@ -14,7 +14,7 @@
         "h": 600
       },
       "displaymanager": "prebid-s2s",
-      "displaymanagerver": "1.0.1",
+      "displaymanagerver": "2.0.0",
       "ext": {
         "bidder": {
           "site_id": "siteId2"
@@ -90,7 +90,10 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

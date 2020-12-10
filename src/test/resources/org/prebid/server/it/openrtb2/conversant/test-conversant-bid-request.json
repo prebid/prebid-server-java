@@ -14,7 +14,7 @@
         "h": 600
       },
       "displaymanager": "prebid-s2s",
-      "displaymanagerver": "1.0.1",
+      "displaymanagerver": "2.0.0",
       "ext": {
         "bidder": {
           "site_id": "siteId"
@@ -31,7 +31,7 @@
         "h": 600
       },
       "displaymanager": "prebid-s2s",
-      "displaymanagerver": "1.0.1",
+      "displaymanagerver": "2.0.0",
       "ext": {
         "bidder": {
           "site_id": "siteId"
@@ -85,16 +85,6 @@
   },
   "ext": {
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -114,7 +104,10 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

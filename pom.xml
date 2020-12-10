@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.40.0-SNAPSHOT</version>
+    <version>1.52.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -14,7 +14,7 @@
     </organization>
 
     <scm>
-        <developerConnection>scm:git:git@github.com:rubicon-project/prebid-server-java.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:prebid/prebid-server-java.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -35,10 +35,11 @@
         <commons.collections.version>4.1</commons.collections.version>
         <commons.compress.version>1.19</commons.compress.version>
         <httpclient.version>4.5.5</httpclient.version>
+        <ipaddress.version>5.3.1</ipaddress.version>
         <jackson.version>2.10.0</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.9</jsonpatch.version>
-        <mysql.version>6.0.6</mysql.version>
+        <mysql.version>8.0.16</mysql.version>
         <postgresql.version>42.1.4</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
         <psl.version>2.2.0</psl.version>
@@ -50,11 +51,11 @@
         <maxmind-client.version>2.12.0</maxmind-client.version>
 
         <!-- test dependencies versions -->
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <mockito.version>2.23.4</mockito.version>
         <assertj.version>3.8.0</assertj.version>
         <wiremock.version>2.26.3</wiremock.version>
-        <jetty.version>9.4.28.v20200408</jetty.version>
+        <jetty.version>9.4.35.v20201120</jetty.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
 
@@ -133,6 +134,11 @@
             <version>${vertx.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-auth-common</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
@@ -157,6 +163,11 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.seancfoley</groupId>
+            <artifactId>ipaddress</artifactId>
+            <version>${ipaddress.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -222,6 +233,11 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
+            <version>${metrics.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-jvm</artifactId>
             <version>${metrics.version}</version>
         </dependency>
         <dependency>

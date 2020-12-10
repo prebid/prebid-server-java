@@ -14,10 +14,13 @@ import java.util.Map;
 @Builder
 @Value
 public class ExtImpOpenx {
+
     String unit;
 
     @JsonProperty("delDomain")
     String delDomain;
+
+    String platform;
 
     @JsonProperty("customFloor")
     BigDecimal customFloor;

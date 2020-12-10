@@ -39,8 +39,11 @@ public class AdformTest extends IntegrationTest {
                 .withQueryParam("adid", equalTo("ifaId"))
                 .withQueryParam("gdpr", equalTo("0"))
                 .withQueryParam("gdpr_consent", equalTo("BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"))
-                // bWlkPTE1JnJjdXI9VVNE is Base64 encoded "mid=15&rcur=USD"
-                .withQueryParam("bWlkPTE1JnJjdXI9VVNE", equalTo(""))
+                .withQueryParam("url", equalTo("https://adform.com?a=b"))
+                // bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
+                // "mid=15&rcur=USD&mkv=color:red&mkw=red&cdims=300X600&minp=2.50"
+                .withQueryParam("bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA",
+                        equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
@@ -87,7 +90,7 @@ public class AdformTest extends IntegrationTest {
                 .withQueryParam("ip", equalTo("193.168.244.1"))
                 .withQueryParam("adid", equalTo("ifaId"))
                 .withQueryParam("gdpr", equalTo("1"))
-                .withQueryParam("gdpr_consent", equalTo("consent1"))
+                .withQueryParam("gdpr_consent", equalTo("BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"))
                 .withQueryParam("pt", equalTo("gross"))
                 // bWlkPTE1JnJjdXI9VVNE is Base64 encoded "mid=15&rcur=USD"
                 .withQueryParam("bWlkPTE1JnJjdXI9VVNE", equalTo(""))
@@ -113,7 +116,7 @@ public class AdformTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"adform":"AF-UID"}}
+                // this uids cookie value stands for {"uids":{"adform":"AF-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImFkZm9ybSI6IkFGLVVJRCJ9fQ==")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/adform/test-auction-adform-request.json"))
