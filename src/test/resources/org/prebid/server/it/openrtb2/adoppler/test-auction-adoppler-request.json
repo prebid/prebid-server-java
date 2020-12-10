@@ -9,7 +9,8 @@
       },
       "ext": {
         "adoppler": {
-          "adunit": "unit1"
+          "adunit": "unit1",
+          "client": "testClient"
         }
       }
     }

@@ -6,26 +6,27 @@ import com.iabtcf.v2.RestrictionType;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
-    public Collection<VendorPermission> allowedByTypeStrategy(int purposeId,
+    public Collection<VendorPermission> allowedByTypeStrategy(Purpose purpose,
                                                               TCString vendorConsent,
                                                               Collection<VendorPermissionWithGvl> vendorsForPurpose,
                                                               Collection<VendorPermissionWithGvl> excludedVendors,
                                                               boolean isEnforceVendors) {
 
         final List<PublisherRestriction> publisherRestrictions = vendorConsent.getPublisherRestrictions().stream()
-                .filter(publisherRestriction -> publisherRestriction.getPurposeId() == purposeId)
+                .filter(publisherRestriction -> publisherRestriction.getPurposeId() == purpose.code())
                 .collect(Collectors.toList());
 
         final List<VendorPermission> allowedExcluded = allowedExcludedVendorPermission(excludedVendors,
@@ -36,7 +37,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
         final List<VendorPermission> allowedVendorPermissions = vendorPermissionToRestriction.entrySet().stream()
                 .filter(permissionAndRestriction ->
-                        isAllowedByPublisherRestrictionAndFlexible(purposeId, isEnforceVendors,
+                        isAllowedByPublisherRestrictionAndFlexible(purpose, isEnforceVendors,
                                 permissionAndRestriction.getKey(), vendorConsent, permissionAndRestriction.getValue()))
                 .map(Map.Entry::getKey)
                 .map(VendorPermissionWithGvl::getVendorPermission)
@@ -79,6 +80,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
     private RestrictionType restrictionType(VendorPermissionWithGvl vendorPermissionWithGvl,
                                             Collection<PublisherRestriction> publisherRestrictions) {
+
         final VendorPermission vendorPermission = vendorPermissionWithGvl.getVendorPermission();
         final Integer vendorId = vendorPermission.getVendorId();
 
@@ -90,23 +92,24 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
     }
 
     /**
-     * Purpose is flexible when {@link VendorV2} flexiblePurposes contains it id.
+     * Purpose is flexible when {@link VendorV2} flexiblePurposes contains it.
      * When it is not flexible:
      * We check purposeConsent and vendorConsent when it is contained in GVL purposes;
      * We check purposesLITransparency and vendorLegitimateInterest when it is contained in GVL LegIntPurposes.
      * <p><br>
-     * If it flexible we check by {@link RestrictionType}:
+     * If it is flexible we check by {@link RestrictionType}:
      * <li>For REQUIRE_CONSENT we check by purposeConsent and vendorConsent</li>
      * <li>For REQUIRE_LEGITIMATE_INTEREST we check by purposesLITransparency and vendorLegitimateInterest</li>
      * <li>For UNDEFINED we check by purposeConsent and vendorConsent
      * or purposesLITransparency and vendorLegitimateInterest</li>
      * <p>
      */
-    private boolean isAllowedByPublisherRestrictionAndFlexible(int purposeId,
+    private boolean isAllowedByPublisherRestrictionAndFlexible(Purpose purpose,
                                                                boolean isEnforceVendor,
                                                                VendorPermissionWithGvl vendorPermissionWithGvl,
                                                                TCString tcString,
                                                                RestrictionType restrictionType) {
+
         if (restrictionType.equals(RestrictionType.NOT_ALLOWED)) {
             return false;
         }
@@ -114,37 +117,39 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
         final Integer vendorId = vendorPermissionWithGvl.getVendorPermission().getVendorId();
         final VendorV2 vendorGvl = vendorPermissionWithGvl.getVendorV2();
 
-        final Set<Integer> flexiblePurposes = vendorGvl.getFlexiblePurposes();
-        final boolean isFlexible = CollectionUtils.isNotEmpty(flexiblePurposes) && flexiblePurposes.contains(purposeId);
+        final EnumSet<Purpose> flexiblePurposes = vendorGvl.getFlexiblePurposes();
+        final boolean isFlexible = CollectionUtils.isNotEmpty(flexiblePurposes) && flexiblePurposes.contains(purpose);
 
-        final Set<Integer> gvlPurposes = vendorGvl.getPurposes();
-        if (gvlPurposes != null && gvlPurposes.contains(purposeId)) {
+        final EnumSet<Purpose> gvlPurposes = vendorGvl.getPurposes();
+        if (gvlPurposes != null && gvlPurposes.contains(purpose)) {
             return isFlexible
-                    ? isAllowedByRestrictionTypePurpose(purposeId, vendorId, isEnforceVendor, tcString, restrictionType)
-                    : isAllowedBySimpleConsent(purposeId, vendorId, isEnforceVendor, tcString);
+                    ? isAllowedByRestrictionTypePurpose(purpose, vendorId, isEnforceVendor, tcString, restrictionType)
+                    : isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
         }
 
-        final Set<Integer> legIntGvlPurposes = vendorGvl.getLegIntPurposes();
-        if (legIntGvlPurposes != null && legIntGvlPurposes.contains(purposeId)) {
+        final EnumSet<Purpose> legIntGvlPurposes = vendorGvl.getLegIntPurposes();
+        if (legIntGvlPurposes != null && legIntGvlPurposes.contains(purpose)) {
             return isFlexible
-                    ? isAllowedByRestrictionTypePurpose(purposeId, vendorId, isEnforceVendor, tcString, restrictionType)
-                    : isAllowedByLegitimateInterest(purposeId, vendorId, isEnforceVendor, tcString);
+                    ? isAllowedByRestrictionTypePurpose(purpose, vendorId, isEnforceVendor, tcString, restrictionType)
+                    : isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
         }
+
         return false;
     }
 
-    private boolean isAllowedByRestrictionTypePurpose(int purposeId,
+    private boolean isAllowedByRestrictionTypePurpose(Purpose purpose,
                                                       Integer vendorId,
                                                       boolean isEnforceVendor,
                                                       TCString tcString,
                                                       RestrictionType restrictionType) {
+
         switch (restrictionType) {
             case REQUIRE_CONSENT:
-                return isAllowedBySimpleConsent(purposeId, vendorId, isEnforceVendor, tcString);
+                return isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
             case REQUIRE_LEGITIMATE_INTEREST:
-                return isAllowedByLegitimateInterest(purposeId, vendorId, isEnforceVendor, tcString);
+                return isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
             case UNDEFINED:
-                return isAllowedBySimpleConsentOrLegitimateInterest(purposeId, vendorId, isEnforceVendor, tcString);
+                return isAllowedBySimpleConsentOrLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
             default:
                 return false;
         }

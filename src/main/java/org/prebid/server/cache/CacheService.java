@@ -382,7 +382,8 @@ public class CacheService {
 
         final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
 
-        updateCreativeMetrics(account.getId(), cachedCreatives);
+        final String accountId = account.getId();
+        updateCreativeMetrics(accountId, cachedCreatives);
 
         final String url = endpointUrl.toString();
         final String body = mapper.encode(bidCacheRequest);
@@ -391,8 +392,8 @@ public class CacheService {
         final long startTime = clock.millis();
         return httpClient.post(url, HttpUtil.headers(), body, remainingTimeout)
                 .map(response -> processResponseOpenrtb(
-                        response, httpRequest, cachedCreatives.size(), bids, videoBids, account.getId(), startTime))
-                .otherwise(exception -> failResponseOpenrtb(exception, httpRequest, startTime));
+                        response, httpRequest, cachedCreatives.size(), bids, videoBids, accountId, startTime))
+                .otherwise(exception -> failResponseOpenrtb(exception, accountId, httpRequest, startTime));
     }
 
     /**
@@ -424,9 +425,14 @@ public class CacheService {
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private CacheServiceResult failResponseOpenrtb(Throwable exception, CacheHttpRequest request, long startTime) {
+    private CacheServiceResult failResponseOpenrtb(Throwable exception,
+                                                   String accountId,
+                                                   CacheHttpRequest request,
+                                                   long startTime) {
         logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
+
+        metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
 
         final DebugHttpCall httpCall = makeDebugHttpCall(endpointUrl.toString(), request, null, startTime);
         return CacheServiceResult.of(httpCall, exception, Collections.emptyMap());
