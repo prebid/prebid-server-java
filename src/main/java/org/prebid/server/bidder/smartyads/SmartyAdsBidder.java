@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -29,6 +31,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Between {@link Bidder} implementation.
+ */
 public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartyAds>> SMARTYADS_EXT_TYPE_REFERENCE =
@@ -37,6 +42,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
     private static final String URL_HOST_MACRO = "{{Host}}";
     private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";
     private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final int FIRST_SEAT_BID_INDEX = 0;
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -48,7 +54,6 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
 
         ExtImpSmartyAds extImpSmartyAds = null;
@@ -63,22 +68,33 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
-        return Result.of(Collections.singletonList(
+        return Result.withValues(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(resolveUrl(extImpSmartyAds))
                         .headers(resolveHeaders(request.getDevice()))
                         .payload(outgoingRequest)
                         .body(mapper.encode(outgoingRequest))
-                        .build()), errors);
+                        .build()));
     }
 
     private ExtImpSmartyAds parseImpExt(Imp imp) {
+        final ExtImpSmartyAds extImpSmartyAds;
         try {
-            return mapper.mapper().convertValue(imp.getExt(), SMARTYADS_EXT_TYPE_REFERENCE).getBidder();
+            extImpSmartyAds = mapper.mapper().convertValue(imp.getExt(), SMARTYADS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("ext.bidder not provided");
         }
+        if (StringUtils.isBlank(extImpSmartyAds.getHost())) {
+            throw new PreBidException("host is a required ext.bidder param");
+        }
+        if (StringUtils.isBlank(extImpSmartyAds.getAccountId())) {
+            throw new PreBidException("accountId is a required ext.bidder param");
+        }
+        if (StringUtils.isBlank(extImpSmartyAds.getSourceId())) {
+            throw new PreBidException("sourceId is a required ext.bidder param");
+        }
+        return extImpSmartyAds;
     }
 
     private static Imp updateImp(Imp imp) {
@@ -88,11 +104,11 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
     private String resolveUrl(ExtImpSmartyAds extImp) {
         return endpointUrl
                 .replace(URL_HOST_MACRO, extImp.getHost())
-                .replace(URL_SOURCE_ID_MACRO, extImp.getSourceId())
-                .replace(URL_ACCOUNT_ID_MACRO, extImp.getAccountId());
+                .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(extImp.getSourceId()))
+                .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImp.getAccountId()));
     }
 
-    private MultiMap resolveHeaders(Device device) {
+    private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
@@ -112,29 +128,42 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
-        } catch (DecodeException | PreBidException e) {
+            return Result.of(extractBids(httpCall), Collections.emptyList());
+        } catch (PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Collections.emptyList();
+    private List<BidderBid> extractBids(HttpCall<BidRequest> httpCall) {
+        final BidResponse bidResponse;
+        try {
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException("Bad Server Response");
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        if (bidResponse == null) {
+            throw new PreBidException("Bad Server Response");
+        }
+        if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            throw new PreBidException("Empty SeatBid array");
+        }
+        return bidsFromResponse(httpCall.getRequest().getPayload(), bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
-        return firstSeatBid.getBid().stream()
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(FIRST_SEAT_BID_INDEX);
+        final List<Bid> bidsFromSeat = firstSeatBid.getBid();
+        if (CollectionUtils.isEmpty(bidsFromSeat)) {
+            return Collections.emptyList();
+        }
+
+        return bidsFromSeat.stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    protected BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getVideo() != null) {

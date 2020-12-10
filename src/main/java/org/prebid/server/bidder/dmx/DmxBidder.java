@@ -156,20 +156,16 @@ public class DmxBidder implements Bidder<BidRequest> {
 
         final String tagId = extImp.getTagId();
         if (StringUtils.isNotBlank(tagId)) {
-            updatedImp = Imp.builder()
-                    .id(imp.getId())
+            updatedImp = imp.toBuilder()
                     .tagid(tagId)
-                    .ext(imp.getExt())
                     .secure(SECURE)
                     .build();
         }
 
         final String dmxId = extImp.getDmxId();
         if (StringUtils.isNotBlank(dmxId)) {
-            updatedImp = Imp.builder()
-                    .id(imp.getId())
+            updatedImp = imp.toBuilder()
                     .tagid(dmxId)
-                    .ext(imp.getExt())
                     .secure(SECURE)
                     .build();
         }
