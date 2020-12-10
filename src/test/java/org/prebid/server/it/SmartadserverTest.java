@@ -27,7 +27,7 @@ public class SmartadserverTest extends IntegrationTest {
         // Smartadserver bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-exchange/api/bid"))
                 .withQueryParam("callerId", equalTo("5"))
-                    .withRequestBody(equalToJson(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-request-1.json")))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-request-1.json")))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-response-1.json"))));
 
@@ -52,7 +52,7 @@ public class SmartadserverTest extends IntegrationTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/smartadserver/test-auction-smartadserver-response.json",
                 response, singletonList("smartadserver"));
-        
+
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
