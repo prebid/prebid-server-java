@@ -11,9 +11,6 @@ public enum BidType {
     xNative;
 
     public String getName() {
-        if (this == xNative) {
-            return "native";
-        }
-        return this.name();
+        return this == xNative ? "native" : this.name();
     }
 }

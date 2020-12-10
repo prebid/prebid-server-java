@@ -279,10 +279,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
-                .extracting(ExtRequestTargeting::getIncludewinners, ExtRequestTargeting::getPricegranularity)
-                // assert that includeWinners was set with default value and priceGranularity remained unchanged
-                .containsExactly(
-                        tuple(true, mapper.createObjectNode().put("foo", "bar")));
+                .extracting(ExtRequestTargeting::getIncludewinners)
+                .containsExactly(true);
     }
 
     @Test
@@ -328,10 +326,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
-                .extracting(ExtRequestTargeting::getIncludeformat, ExtRequestTargeting::getPricegranularity)
-                // assert that includeFormat was set with default value and priceGranularity remained unchanged
-                .containsExactly(
-                        tuple(false, mapper.createObjectNode().put("foo", "bar")));
+                .extracting(ExtRequestTargeting::getIncludeformat)
+                .containsExactly(false);
     }
 
     @Test
