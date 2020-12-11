@@ -67,9 +67,11 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static java.util.function.UnaryOperator.identity;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -646,6 +648,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
         verify(tcfDefinerService).resultForBidderNames(eq(singleton(BIDDER_NAME)), any(), any(), any());
+
+        verify(metrics).updateAuctionTcfMetrics(eq(BIDDER_NAME), any(), eq(true), anyBoolean(), anyBoolean(),
+                anyBoolean());
     }
 
     @Test
@@ -730,6 +735,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
         verify(tcfDefinerService).resultForBidderNames(eq(singleton(BIDDER_NAME)), any(), any(), any());
+
+        verify(metrics).updateAuctionTcfMetrics(eq(BIDDER_NAME), any(), anyBoolean(), eq(true), anyBoolean(),
+                anyBoolean());
     }
 
     @Test
@@ -820,6 +828,118 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldSendAnalyticsBlockedMetricIfRestrictedByPrivacyEnforcement() {
+        // given
+        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
+        privacyEnforcementAction.setBlockAnalyticsReport(true);
+
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(BIDDER_NAME, 1)), identity());
+        final PrivacyContext privacyContext = givenPrivacyContext("0", Ccpa.EMPTY, 0);
+        final AuctionContext context = auctionContext(bidRequest, privacyContext);
+
+        // when
+        privacyEnforcementService.mask(context, emptyMap(), singletonList(BIDDER_NAME), aliases);
+
+        // then
+        verify(metrics).updateAuctionTcfMetrics(eq(BIDDER_NAME), any(), anyBoolean(), anyBoolean(), eq(true),
+                anyBoolean());
+    }
+
+    @Test
+    public void shouldNotSendRelatedMetricsIfBlockBidderRequestEnforcementIsPresent() {
+        // given
+        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
+        privacyEnforcementAction.setBlockBidderRequest(true); // has highest priority
+        privacyEnforcementAction.setRemoveUserIds(true);
+        privacyEnforcementAction.setMaskGeo(true);
+        privacyEnforcementAction.setBlockAnalyticsReport(true);
+
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
+
+        final ExtUser extUser = notMaskedExtUser();
+        final User user = notMaskedUser(extUser);
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .device(notMaskedDevice()));
+        final PrivacyContext privacyContext = givenPrivacyContext("0", Ccpa.EMPTY, 0);
+
+        final AuctionContext context = auctionContext(bidRequest, privacyContext);
+
+        // when
+        privacyEnforcementService.mask(context, bidderToUser, singletonList(BIDDER_NAME), aliases);
+
+        // then
+        verify(metrics).updateAuctionTcfMetrics(eq(BIDDER_NAME), any(), eq(false), eq(false), eq(false),
+                eq(true));
+    }
+
+    @Test
+    public void shouldNotSendUserIdRemovedMetricIfNoPrivateUserInformation() {
+        // given
+        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
+        privacyEnforcementAction.setRemoveUserIds(true);
+
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
+
+        final ExtUser extUser = ExtUser.builder().consent("consent").build();
+        final User user = User.builder().gender("gender").ext(extUser).build();
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user));
+        final PrivacyContext privacyContext = givenPrivacyContext("0", Ccpa.EMPTY, 0);
+
+        final AuctionContext context = auctionContext(bidRequest, privacyContext);
+
+        // when
+        privacyEnforcementService.mask(context, bidderToUser, singletonList(BIDDER_NAME), aliases);
+
+        // then
+        verify(metrics).updateAuctionTcfMetrics(eq(BIDDER_NAME), any(), eq(false), anyBoolean(), anyBoolean(),
+                anyBoolean());
+    }
+
+    @Test
+    public void shouldNotSendGeoMaskedMetricIfNoPrivateGeoInformation() {
+        // given
+        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
+        privacyEnforcementAction.setMaskGeo(true);
+
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .device(Device.builder().model("blackberry").build()));
+        final PrivacyContext privacyContext = givenPrivacyContext("0", Ccpa.EMPTY, 0);
+
+        final AuctionContext context = auctionContext(bidRequest, privacyContext);
+
+        // when
+        privacyEnforcementService.mask(context, emptyMap(), singletonList(BIDDER_NAME), aliases);
+
+        // then
+        verify(metrics).updateAuctionTcfMetrics(eq(BIDDER_NAME), any(), eq(false), anyBoolean(), anyBoolean(),
+                anyBoolean());
+    }
+
+    @Test
     public void shouldRerunEmptyResultWhenTcfDefinerServiceRestrictRequest() {
         // given
         given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any()))
@@ -846,7 +966,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .result();
 
         // then
-
         final BidderPrivacyResult expectedBidderPrivacy = BidderPrivacyResult.builder()
                 .requestBidder(BIDDER_NAME)
                 .blockedRequestByTcf(true)
@@ -1227,7 +1346,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .user(notMaskedUser())
                 .device(notMaskedDevice())
                 .build();
-        assertThat(result).hasSize(3).containsOnly(expectedBidder1Masked, expectedBidder2Masked, expectedBidder3Masked);
+        assertThat(result).hasSize(3)
+                .containsOnly(expectedBidder1Masked, expectedBidder2Masked, expectedBidder3Masked);
 
         final HashSet<String> bidderNames = new HashSet<>(asList(bidder1Name, bidder2Name, bidder3Name));
         verify(tcfDefinerService).resultForBidderNames(eq(bidderNames), any(), any(), any());
@@ -1383,7 +1503,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     private static <T> List<Imp> givenSingleImp(T ext) {
-        return singletonList(givenImp(ext, UnaryOperator.identity()));
+        return singletonList(givenImp(ext, identity()));
     }
 
     private static <T> Imp givenImp(T ext, UnaryOperator<Imp.ImpBuilder> impBuilderCustomizer) {
