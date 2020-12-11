@@ -24,7 +24,7 @@
     "language": "en",
     "ifa": "ifaId",
     "ua": "Android Chrome/60",
-    "ip" : "127.0.0.1"
+    "ip": "127.0.0.1"
   },
   "site": {
     "page": "http://www.example.com",
@@ -47,10 +47,6 @@
   "ext": {
     "prebid": {
       "debug": 1,
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -73,11 +69,6 @@
   },
   "user": {
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },
