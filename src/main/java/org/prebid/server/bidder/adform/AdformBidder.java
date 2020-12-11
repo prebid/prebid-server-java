@@ -60,7 +60,7 @@ public class AdformBidder implements Bidder<Void> {
         this.mapper = Objects.requireNonNull(mapper);
 
         this.requestUtil = new AdformRequestUtil();
-        this.httpUtil = new AdformHttpUtil(mapper);
+        this.httpUtil = new AdformHttpUtil();
     }
 
     /**
@@ -98,8 +98,8 @@ public class AdformBidder implements Bidder<Void> {
                         .secure(getSecure(imps))
                         .gdprApplies(requestUtil.getGdprApplies(request.getRegs()))
                         .consent(requestUtil.getConsent(extUser))
-                        .currency(currency)
                         .eids(requestUtil.getEids(extUser, mapper))
+                        .currency(currency)
                         .url(getUrl(extImpAdforms))
                         .build());
 
@@ -108,8 +108,7 @@ public class AdformBidder implements Bidder<Void> {
                 getUserAgent(device),
                 getIp(device),
                 getReferer(request.getSite()),
-                getUserId(user),
-                requestUtil.getAdformDigitrust(extUser));
+                getUserId(user));
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()

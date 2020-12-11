@@ -26,7 +26,6 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -198,9 +197,7 @@ public class DmxBidder implements Bidder<BidRequest> {
             }
             final ExtUser userExt = user.getExt();
             if (userExt != null) {
-                final ExtUserDigiTrust digitrust = userExt.getDigitrust();
-                if (CollectionUtils.isNotEmpty(userExt.getEids()) || (digitrust != null
-                        && StringUtils.isNotBlank(digitrust.getId()))) {
+                if (CollectionUtils.isNotEmpty(userExt.getEids())) {
                     anyHasId = true;
                 }
             }
