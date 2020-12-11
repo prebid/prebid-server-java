@@ -529,7 +529,7 @@ public class AuctionRequestFactory {
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
 
-            return ExtRequest.of(prebidBuilder
+            return ExtRequest.of(ext.getProperties(), prebidBuilder
                     .aliases(ObjectUtils.defaultIfNull(updatedAliases,
                             getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
