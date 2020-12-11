@@ -66,13 +66,15 @@ public class PrivacyEnforcementService {
     private final IpAddressHelper ipAddressHelper;
     private final Metrics metrics;
     private final boolean ccpaEnforce;
+    private final boolean lmtEnforce;
 
     public PrivacyEnforcementService(BidderCatalog bidderCatalog,
                                      PrivacyExtractor privacyExtractor,
                                      TcfDefinerService tcfDefinerService,
                                      IpAddressHelper ipAddressHelper,
                                      Metrics metrics,
-                                     boolean ccpaEnforce) {
+                                     boolean ccpaEnforce,
+                                     boolean lmtEnforce) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.privacyExtractor = Objects.requireNonNull(privacyExtractor);
@@ -80,12 +82,13 @@ public class PrivacyEnforcementService {
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.metrics = Objects.requireNonNull(metrics);
         this.ccpaEnforce = ccpaEnforce;
+        this.lmtEnforce = lmtEnforce;
     }
 
     Future<PrivacyContext> contextFromBidRequest(
-            BidRequest bidRequest, Account account, MetricName requestType, Timeout timeout) {
+            BidRequest bidRequest, Account account, MetricName requestType, Timeout timeout, List<String> errors) {
 
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest);
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
         final Device device = bidRequest.getDevice();
         final String ipAddress = device != null ? device.getIp() : null;
@@ -389,7 +392,7 @@ public class PrivacyEnforcementService {
                     requestBlocked);
         }
 
-        if (isLmtEnabled(device)) {
+        if (lmtEnforce && isLmtEnabled(device)) {
             metrics.updatePrivacyLmtMetric();
         }
 
@@ -427,7 +430,7 @@ public class PrivacyEnforcementService {
             Map<String, User> bidderToUser,
             Device device) {
 
-        final boolean isLmtEnabled = isLmtEnabled(device);
+        final boolean isLmtEnabled = lmtEnforce && isLmtEnabled(device);
         return bidderToUser.entrySet().stream()
                 .filter(entry -> bidders.contains(entry.getKey()))
                 .map(bidderUserEntry -> createBidderPrivacyResult(

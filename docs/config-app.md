@@ -323,6 +323,9 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 ## CCPA
 - `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
 
+## LMT
+- `lmt.enforce` - if equals to `true` enforces to check lmt policy, otherwise ignore lmt verification.
+
 ## Geo Location
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.
 - `geolocation.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make geo location client more robust.
