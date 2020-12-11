@@ -198,7 +198,7 @@ public class AuctionRequestFactory {
 
         return accountFrom(bidRequest, timeout, routingContext)
                 .compose(account -> privacyEnforcementService.contextFromBidRequest(
-                        bidRequest, account, requestTypeMetric, timeout)
+                        bidRequest, account, requestTypeMetric, timeout, errors)
                         .map(privacyContext -> AuctionContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
