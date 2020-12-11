@@ -34,7 +34,7 @@ public class TelariaTest extends IntegrationTest {
                 .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withHeader("Accept-Encoding", equalTo("gzip"))
                 .withHeader("Accept-Language", equalTo("en"))
-                .withHeader("Content-Length", equalTo("677"))
+                .withHeader("Content-Length", equalTo("633"))
                 .withHeader("DNT", equalTo("2"))
                 .withHeader("Host", equalTo("localhost:8090"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/telaria/test-telaria-bid-request-1.json")))

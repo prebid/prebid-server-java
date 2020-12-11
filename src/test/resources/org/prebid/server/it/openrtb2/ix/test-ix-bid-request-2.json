@@ -42,11 +42,6 @@
   "user": {
     "buyeruid": "IE-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },
