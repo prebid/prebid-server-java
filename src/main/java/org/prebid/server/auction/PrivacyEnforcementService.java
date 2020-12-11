@@ -410,7 +410,7 @@ public class PrivacyEnforcementService {
             return true;
         }
         final ExtUser extUser = user.getExt();
-        return extUser != null && (CollectionUtils.isNotEmpty(extUser.getEids()) || extUser.getDigitrust() != null);
+        return extUser != null && (CollectionUtils.isNotEmpty(extUser.getEids()));
     }
 
     /**
