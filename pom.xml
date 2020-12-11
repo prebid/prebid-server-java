@@ -20,31 +20,6 @@
         <tag>HEAD</tag>
     </scm>
 
-    <repositories>
-        <repository>
-            <id>marfeel-private</id>
-            <name>Marfeel Maven Release Repository</name>
-            <url>http://repositories.marfeel.com:60081/nexus/content/repositories/marfeel_private/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>marfeel-snapshot-private</id>
-            <url>http://repositories.marfeel.com:60081/nexus/content/repositories/marfeel_snapshot_private/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <updatePolicy>never</updatePolicy>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -708,11 +683,12 @@
     <distributionManagement>
         <repository>
             <id>marfeel-private</id>
-            <url>http://repositories.marfeel.com:60081/nexus/content/repositories/marfeel_private</url>
+            <url>${repo-url-private}</url>
         </repository>
         <snapshotRepository>
             <id>marfeel-snapshot-private</id>
-            <url>http://repositories.marfeel.com:60081/nexus/content/repositories/marfeel_snapshot_private</url>
+            <url>${repo-url-snapshot-private}</url>
         </snapshotRepository>
     </distributionManagement>
+
 </project>
