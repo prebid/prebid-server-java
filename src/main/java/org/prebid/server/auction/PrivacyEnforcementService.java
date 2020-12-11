@@ -82,9 +82,9 @@ public class PrivacyEnforcementService {
     }
 
     Future<PrivacyContext> contextFromBidRequest(
-            BidRequest bidRequest, Account account, MetricName requestType, Timeout timeout) {
+            BidRequest bidRequest, Account account, MetricName requestType, Timeout timeout, List<String> errors) {
 
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest);
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
         final Device device = bidRequest.getDevice();
         final String ipAddress = device != null ? device.getIp() : null;

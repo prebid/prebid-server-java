@@ -53,6 +53,7 @@ import org.prebid.server.settings.model.Account;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -131,7 +132,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
-                bidRequest, Account.empty("account"), null, null);
+                bidRequest, Account.empty("account"), null, null, new ArrayList<>());
 
         // then
         FutureAssertion.assertThat(privacyContext).succeededWith(
@@ -165,7 +166,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
-                bidRequest, Account.empty(accountId), requestType, null);
+                bidRequest, Account.empty(accountId), requestType, null, new ArrayList<>());
 
         // then
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
@@ -207,7 +208,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
-                bidRequest, Account.empty("account"), MetricName.openrtb2web, null);
+                bidRequest, Account.empty("account"), MetricName.openrtb2web, null, new ArrayList<>());
 
         // then
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
