@@ -48,7 +48,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -390,11 +389,6 @@ public class RequestValidator {
                                 + "name nor an alias in request.ext.prebid.aliases", bidder);
                     }
                 }
-            }
-
-            final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-            if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
-                throw new ValidationException("request.user contains a digitrust object that is not valid");
             }
 
             final List<ExtUserEid> eids = extUser.getEids();
