@@ -1663,7 +1663,7 @@ public class RequestValidatorTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .eids(singletonList(ExtUserEid.of("source", null,
-                                        singletonList(ExtUserEidUid.of(null, null)), null)))
+                                        singletonList(ExtUserEidUid.of(null, null, null)), null)))
                                 .build())
                         .build())
                 .build();
@@ -1684,9 +1684,9 @@ public class RequestValidatorTest extends VertxTest {
                         .ext(ExtUser.builder()
                                 .eids(asList(
                                         ExtUserEid.of("source", null,
-                                                singletonList(ExtUserEidUid.of("id1", null)), null),
+                                                singletonList(ExtUserEidUid.of("id1", null, null)), null),
                                         ExtUserEid.of("source", null,
-                                                singletonList(ExtUserEidUid.of("id2", null)), null)))
+                                                singletonList(ExtUserEidUid.of("id2", null, null)), null)))
                                 .build())
                         .build())
                 .build();

@@ -1,8 +1,10 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
@@ -26,7 +28,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -47,11 +49,13 @@ public abstract class VendorListService<T, V> {
 
     private static final String JSON_SUFFIX = ".json";
     private static final String VERSION_PLACEHOLDER = "{VERSION}";
-    private static final Integer EXPIRE_DAY_CACHE_DURATION = 5;
 
     private final String cacheDir;
     private final String endpointTemplate;
     private final int defaultTimeoutMs;
+    private final long refreshMissingListPeriodMs;
+    private final boolean deprecated;
+    private final Vertx vertx;
     private final FileSystem fileSystem;
     private final HttpClient httpClient;
     private final Metrics metrics;
@@ -63,13 +67,20 @@ public abstract class VendorListService<T, V> {
      * This is memory/performance optimized model slice:
      * map of vendor list version -> map of vendor ID -> Vendors
      */
-    protected final Map<Integer, Map<Integer, V>> cache;
+    private final Map<Integer, Map<Integer, V>> cache;
+
+    private final Map<Integer, V> fallbackVendorList;
+    private final Set<Integer> versionsToFallback;
 
     public VendorListService(String cacheDir,
                              String endpointTemplate,
                              int defaultTimeoutMs,
+                             long refreshMissingListPeriodMs,
+                             boolean deprecated,
                              Integer gdprHostVendorId,
+                             String fallbackVendorListPath,
                              BidderCatalog bidderCatalog,
+                             Vertx vertx,
                              FileSystem fileSystem,
                              HttpClient httpClient,
                              Metrics metrics,
@@ -78,6 +89,9 @@ public abstract class VendorListService<T, V> {
         this.cacheDir = Objects.requireNonNull(cacheDir);
         this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
         this.defaultTimeoutMs = defaultTimeoutMs;
+        this.refreshMissingListPeriodMs = refreshMissingListPeriodMs;
+        this.deprecated = deprecated;
+        this.vertx = Objects.requireNonNull(vertx);
         this.fileSystem = Objects.requireNonNull(fileSystem);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
@@ -87,22 +101,51 @@ public abstract class VendorListService<T, V> {
 
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
         cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
+
+        fallbackVendorList = StringUtils.isNotBlank(fallbackVendorListPath)
+                ? readFallbackVendorList(fallbackVendorListPath) : null;
+        if (deprecated) {
+            validateFallbackVendorListIfDeprecatedVersion();
+        }
+        versionsToFallback = fallbackVendorList != null
+                ? ConcurrentHashMap.newKeySet() : null;
+    }
+
+    private void validateFallbackVendorListIfDeprecatedVersion() {
+        if (Objects.isNull(fallbackVendorList)) {
+            throw new PreBidException("No fallback vendorList for deprecated version present");
+        }
     }
 
     /**
-     * Creates if doesn't exists and checks write permissions for the given directory.
+     * Returns a map with vendor ID as a key and a set of purposes as a value for given vendor list version.
      */
-    private static void createAndCheckWritePermissionsFor(FileSystem fileSystem, String dir) {
-        final FileProps props = fileSystem.existsBlocking(dir) ? fileSystem.propsBlocking(dir) : null;
-        if (props == null || !props.isDirectory()) {
-            try {
-                fileSystem.mkdirsBlocking(dir);
-            } catch (FileSystemException e) {
-                throw new PreBidException(String.format("Cannot create directory: %s", dir), e);
-            }
-        } else if (!Files.isWritable(Paths.get(dir))) {
-            throw new PreBidException(String.format("No write permissions for directory: %s", dir));
+    public Future<Map<Integer, V>> forVersion(int version) {
+        if (version <= 0) {
+            return Future.failedFuture(
+                    String.format("TCF %d vendor list for version %d not valid.", getTcfVersion(), version));
         }
+
+        final Map<Integer, V> idToVendor = cache.get(version);
+        if (idToVendor != null) {
+            return Future.succeededFuture(idToVendor);
+        }
+
+        final int tcf = getTcfVersion();
+
+        if (shouldFallback(version)) {
+            metrics.updatePrivacyTcfVendorListFallbackMetric(tcf);
+
+            return Future.succeededFuture(fallbackVendorList);
+        }
+
+        metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
+
+        logger.info("TCF {0} vendor list for version {1} not found, started downloading.", tcf, version);
+        fetchNewVendorListFor(version);
+
+        return Future.failedFuture(
+                String.format("TCF %d vendor list for version %d not fetched yet, try again later.", tcf, version));
     }
 
     /**
@@ -137,13 +180,28 @@ public abstract class VendorListService<T, V> {
     }
 
     /**
+     * Creates if doesn't exists and checks write permissions for the given directory.
+     */
+    private static void createAndCheckWritePermissionsFor(FileSystem fileSystem, String dir) {
+        final FileProps props = fileSystem.existsBlocking(dir) ? fileSystem.propsBlocking(dir) : null;
+        if (props == null || !props.isDirectory()) {
+            try {
+                fileSystem.mkdirsBlocking(dir);
+            } catch (FileSystemException e) {
+                throw new PreBidException(String.format("Cannot create directory: %s", dir), e);
+            }
+        } else if (!Files.isWritable(Paths.get(dir))) {
+            throw new PreBidException(String.format("No write permissions for directory: %s", dir));
+        }
+    }
+
+    /**
      * Creates the cache from previously downloaded vendor lists.
      */
     private Map<Integer, Map<Integer, V>> createCache(FileSystem fileSystem, String cacheDir) {
         final Map<String, String> versionToFileContent = readFileSystemCache(fileSystem, cacheDir);
 
         final Map<Integer, Map<Integer, V>> cache = Caffeine.newBuilder()
-                .expireAfterWrite(EXPIRE_DAY_CACHE_DURATION, TimeUnit.DAYS)
                 .<Integer, Map<Integer, V>>build()
                 .asMap();
 
@@ -167,28 +225,19 @@ public abstract class VendorListService<T, V> {
                         filename -> fileSystem.readFileBlocking(filename).toString()));
     }
 
-    /**
-     * Returns a map with vendor ID as a key and a set of purposes as a value for given vendor list version.
-     */
-    public Future<Map<Integer, V>> forVersion(int version) {
-        if (version <= 0) {
-            return Future.failedFuture(
-                    String.format("TCF %d vendor list for version %d not valid.", getTcfVersion(), version));
+    private Map<Integer, V> readFallbackVendorList(String fallbackVendorListPath) {
+        final String vendorListContent = fileSystem.readFileBlocking(fallbackVendorListPath).toString();
+        final T vendorList = toVendorList(vendorListContent);
+        if (!isValid(vendorList)) {
+            throw new PreBidException(String.format(
+                    "Fallback vendor list parsed but has invalid data: %s", vendorListContent));
         }
 
-        final Map<Integer, V> idToVendor = cache.get(version);
-        if (idToVendor != null) {
-            return Future.succeededFuture(idToVendor);
-        } else {
-            final int tcf = getTcfVersion();
-            metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
+        return filterVendorIdToVendors(vendorList);
+    }
 
-            logger.info("TCF {0} vendor list for version {1} not found, started downloading.", tcf, version);
-            fetchNewVendorListFor(version);
-
-            return Future.failedFuture(
-                    String.format("TCF %d vendor list for version %d not fetched yet, try again later.", tcf, version));
-        }
+    private boolean shouldFallback(int version) {
+        return deprecated || (versionsToFallback != null && versionsToFallback.contains(version));
     }
 
     /**
@@ -211,7 +260,11 @@ public abstract class VendorListService<T, V> {
      */
     private VendorListResult<T> processResponse(HttpClientResponse response, int version) {
         final int statusCode = response.getStatusCode();
-        if (statusCode != 200) {
+
+        if (statusCode == HttpResponseStatus.NOT_FOUND.code()) {
+            throw new MissingVendorListException(String.format(
+                    "Remote server could not found vendor list with version %d", version));
+        } else if (statusCode != HttpResponseStatus.OK.code()) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
@@ -254,9 +307,13 @@ public abstract class VendorListService<T, V> {
         cache.put(version, filterVendorIdToVendors(vendorListResult.getVendorList()));
 
         final int tcf = getTcfVersion();
+
         metrics.updatePrivacyTcfVendorListOkMetric(tcf);
 
         logger.info("Created new TCF {0} vendor list for version {1}", tcf, version);
+
+        stopUsingFallbackForVersion(version);
+
         return null;
     }
 
@@ -265,6 +322,7 @@ public abstract class VendorListService<T, V> {
      */
     private Void handleError(Throwable exception, int version) {
         final int tcf = getTcfVersion();
+
         metrics.updatePrivacyTcfVendorListErrorMetric(tcf);
 
         if (logger.isDebugEnabled()) {
@@ -275,7 +333,27 @@ public abstract class VendorListService<T, V> {
                     tcf, version, exception.getMessage());
         }
 
+        startUsingFallbackForVersion(version);
+
         return null;
+    }
+
+    private void startUsingFallbackForVersion(int version) {
+        if (versionsToFallback == null) {
+            return;
+        }
+
+        versionsToFallback.add(version);
+
+        vertx.setTimer(refreshMissingListPeriodMs, ignored -> fetchNewVendorListFor(version));
+    }
+
+    private void stopUsingFallbackForVersion(int version) {
+        if (versionsToFallback == null) {
+            return;
+        }
+
+        versionsToFallback.remove(version);
     }
 
     @AllArgsConstructor(staticName = "of")
@@ -287,5 +365,12 @@ public abstract class VendorListService<T, V> {
         String vendorListAsString;
 
         T vendorList;
+    }
+
+    private static class MissingVendorListException extends RuntimeException {
+
+        MissingVendorListException(String message) {
+            super(message);
+        }
     }
 }

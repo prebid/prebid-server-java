@@ -100,7 +100,8 @@
           "USD": {
             "EUR": 0.8110
           }
-        }
+        },
+        "usepbsrates": false
       },
       "aliases": {
         "appnexusAlias": "appnexus"
@@ -125,7 +126,11 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "integration": "dmbjs",
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

@@ -18,6 +18,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.rubicon.proto.RubiconParams;
 import org.prebid.server.cookie.UidsCookie;
@@ -67,6 +68,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
+    private IpAddressHelper ipAddressHelper;
+    @Mock
     private ApplicationSettings applicationSettings;
     @Mock
     private UidsCookieService uidsCookieService;
@@ -98,6 +101,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         factory = new PreBidRequestContextFactory(
                 timeoutResolver,
                 paramsExtractor,
+                ipAddressHelper,
                 applicationSettings,
                 uidsCookieService,
                 timeoutFactory,
@@ -118,7 +122,9 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         given(paramsExtractor.refererFrom(any())).willReturn("http://www.example.com");
         given(paramsExtractor.domainFrom(anyString())).willReturn("example.com");
-        given(paramsExtractor.ipFrom(any())).willReturn("192.168.244.1");
+        given(paramsExtractor.ipFrom(any())).willReturn(singletonList("192.168.244.1"));
+        given(ipAddressHelper.toIpAddress(eq("192.168.244.1")))
+                .willReturn(IpAddress.of("192.168.244.1", IpAddress.IP.v4));
         given(paramsExtractor.uaFrom(any())).willReturn("userAgent");
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 

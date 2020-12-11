@@ -18,7 +18,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
@@ -39,7 +38,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -102,19 +100,6 @@ public class VideoHandlerTest extends VertxTest {
 
         videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter,
                 metrics, clock, jacksonMapper);
-    }
-
-    @Test
-    public void shouldSetRequestTypeMetricToAuctionContext() {
-        // given
-        given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
-
-        // when
-        videoHandler.handle(routingContext);
-
-        // then
-        assertThat(captureAuctionContext().getRequestTypeMetric()).isNotNull();
     }
 
     @Test
@@ -257,13 +242,5 @@ public class VideoHandlerTest extends VertxTest {
                 .build();
 
         return WithPodErrors.of(auctionContext, errors);
-    }
-
-    private static HttpContext givenHttpContext() {
-        return HttpContext.builder()
-                .queryParams(emptyMap())
-                .headers(emptyMap())
-                .cookies(emptyMap())
-                .build();
     }
 }

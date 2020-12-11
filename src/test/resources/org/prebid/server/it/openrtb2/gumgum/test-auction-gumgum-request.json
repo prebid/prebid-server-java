@@ -41,8 +41,17 @@
         "mimes": [
           "video/mp4"
         ],
+        "minduration": 1,
+        "maxduration": 2,
+        "protocols": [
+          1,
+          2
+        ],
         "w": 640,
-        "h": 480
+        "h": 480,
+        "startdelay": 1,
+        "placement": 1,
+        "linearity": 1
       },
       "ext": {
         "gumgum": {
@@ -73,16 +82,6 @@
   },
   "ext": {
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -104,6 +103,7 @@
     }
   },
   "user": {
+    "buyeruid" : "GUM-UID",
     "ext": {
       "consent": "consentValue",
       "digitrust": {

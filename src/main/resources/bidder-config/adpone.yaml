@@ -14,7 +14,7 @@ adapters:
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 16
+      vendor-id: 799
     usersync:
       url: https://usersync.adpone.com/csync?redir=
       redirect-url: /setuid?bidder=adpone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={uid}

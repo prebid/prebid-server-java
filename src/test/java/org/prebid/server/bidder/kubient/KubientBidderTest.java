@@ -17,11 +17,11 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
 
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -44,11 +44,48 @@ public class KubientBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = kubientBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfEmptyZoneId() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKubient.of(null))))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = kubientBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("zoneid is empty"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKubient.of("zoneId"))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -113,8 +150,7 @@ public class KubientBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = kubientBidder.makeBids(httpCall, null);
@@ -132,8 +168,7 @@ public class KubientBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("12"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("12"))));
 
         // when
         final Result<List<BidderBid>> result = kubientBidder.makeBids(httpCall, null);
@@ -143,13 +178,9 @@ public class KubientBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(kubientBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
@@ -159,7 +190,6 @@ public class KubientBidderTest extends VertxTest {
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+                HttpResponse.of(200, null, body), null);
     }
 }
