@@ -477,6 +477,7 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
+            HttpInteractionLogger httpInteractionLogger,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -492,6 +493,7 @@ public class ServiceConfiguration {
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 mapper);
@@ -632,8 +634,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpInteractionLogger httpInteractionLogger() {
-        return new HttpInteractionLogger();
+    HttpInteractionLogger httpInteractionLogger(JacksonMapper mapper) {
+        return new HttpInteractionLogger(mapper);
     }
 
     @Bean
