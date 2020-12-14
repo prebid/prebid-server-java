@@ -193,6 +193,8 @@ gdpr:
   purpose-one-treatment-interpretation: ignore
 ccpa:
   enforce: true
+lmt:
+  enforce: true
 geolocation:
   enabled: false
   type: maxmind

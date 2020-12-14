@@ -524,10 +524,11 @@ public class ServiceConfiguration {
             TcfDefinerService tcfDefinerService,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
-            @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+            @Value("${ccpa.enforce}") boolean ccpaEnforce,
+            @Value("${lmt.enforce}") boolean lmtEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce, lmtEnforce);
     }
 
     @Bean
@@ -607,6 +608,7 @@ public class ServiceConfiguration {
     @Bean
     CurrencyConversionService currencyConversionService(
             @Autowired(required = false) ExternalConversionProperties externalConversionProperties) {
+
         return new CurrencyConversionService(externalConversionProperties);
     }
 
@@ -617,6 +619,7 @@ public class ServiceConfiguration {
             @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeoutMs,
             @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriodMs,
             @Value("${currency-converter.external-rates.stale-after-ms}") long staleAfterMs,
+            @Value("${currency-converter.external-rates.stale-period-ms:#{null}}") Long stalePeriodMs,
             Vertx vertx,
             HttpClient httpClient,
             Metrics metrics,
@@ -628,6 +631,7 @@ public class ServiceConfiguration {
                 defaultTimeoutMs,
                 refreshPeriodMs,
                 staleAfterMs,
+                stalePeriodMs,
                 vertx,
                 httpClient,
                 metrics,

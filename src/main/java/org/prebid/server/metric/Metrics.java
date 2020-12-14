@@ -320,24 +320,24 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAuctionTcfMetrics(String bidder,
                                         MetricName requestType,
-                                        boolean useridRemoved,
+                                        boolean userIdRemoved,
                                         boolean geoMasked,
-                                        boolean requestBlocked,
-                                        boolean analyticsBlocked) {
+                                        boolean analyticsBlocked,
+                                        boolean requestBlocked) {
 
         final TcfMetrics tcf = forAdapter(resolveMetricsBidderName(bidder)).requestType(requestType).tcf();
 
-        if (useridRemoved) {
+        if (userIdRemoved) {
             tcf.incCounter(MetricName.userid_removed);
         }
         if (geoMasked) {
             tcf.incCounter(MetricName.geo_masked);
         }
-        if (requestBlocked) {
-            tcf.incCounter(MetricName.request_blocked);
-        }
         if (analyticsBlocked) {
             tcf.incCounter(MetricName.analytics_blocked);
+        }
+        if (requestBlocked) {
+            tcf.incCounter(MetricName.request_blocked);
         }
     }
 
@@ -364,6 +364,11 @@ public class Metrics extends UpdatableMetrics {
 
     public void updatePrivacyTcfInvalidMetric() {
         privacy().tcf().incCounter(MetricName.invalid);
+    }
+
+    public void updatePrivacyTcfRequestsMetric(int version) {
+        final UpdatableMetrics versionMetrics = version == 2 ? privacy().tcf().v2() : privacy().tcf().v1();
+        versionMetrics.incCounter(MetricName.requests);
     }
 
     public void updatePrivacyTcfGeoMetric(int version, Boolean inEea) {

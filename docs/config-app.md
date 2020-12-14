@@ -137,6 +137,7 @@ But feel free to add additional bidder's specific options.
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
 - `currency-converter.external-rates.stale-after-ms` - how old currency rates should be to become considered stale.
+- `currency-converter.external-rates.stale-period-ms` - stale period after which the latest external currency rates get discarded.
 
 ## Admin Endpoints
 - `admin-endpoints.version.enabled` - if equals to `true` the endpoint will be available.
@@ -324,6 +325,9 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 
 ## CCPA
 - `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
+
+## LMT
+- `lmt.enforce` - if equals to `true` enforces to check lmt policy, otherwise ignore lmt verification.
 
 ## Geo Location
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.

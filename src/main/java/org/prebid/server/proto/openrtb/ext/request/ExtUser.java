@@ -31,14 +31,6 @@ public class ExtUser extends FlexibleExtension {
     String consent;
 
     /**
-     * DigiTrust breaks the typical Prebid Server convention of namespacing "global" options inside "ext.prebid.*"
-     * to match the recommendation from the broader digitrust community.
-     * <p>
-     * For more info, see: https://github.com/digi-trust/dt-cdn/wiki/OpenRTB-extension#openrtb-2x
-     */
-    ExtUserDigiTrust digitrust;
-
-    /**
      * Standardized User IDs.
      */
     List<ExtUserEid> eids;

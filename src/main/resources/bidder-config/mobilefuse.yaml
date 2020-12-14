@@ -1,7 +1,7 @@
 adapters:
   mobilefuse:
     enabled: false
-    endpoint: http://mfx-us-east.mobilefuse.com/openrtb?pub_id=
+    endpoint: http://mfx.mobilefuse.com/openrtb?pub_id=
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
