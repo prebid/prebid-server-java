@@ -523,10 +523,11 @@ public class ServiceConfiguration {
             TcfDefinerService tcfDefinerService,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
-            @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+            @Value("${ccpa.enforce}") boolean ccpaEnforce,
+            @Value("${lmt.enforce}") boolean lmtEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce, lmtEnforce);
     }
 
     @Bean

@@ -38,11 +38,13 @@ import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
@@ -237,6 +239,8 @@ public class TcfDefinerServiceTest {
         assertThat(result.result().getConsent()).isNotNull();
 
         verifyZeroInteractions(geoLocationService);
+        verify(metrics).updatePrivacyTcfRequestsMetric(1);
+        verify(metrics).updatePrivacyTcfGeoMetric(1, null);
     }
 
     @Test
@@ -380,6 +384,23 @@ public class TcfDefinerServiceTest {
 
         // then
         verify(metrics).updatePrivacyTcfInvalidMetric();
+    }
+
+    @Test
+    public void resultForVendorIdsShouldNotSetTcfRequestsAndTcfGeoMetricsWhenConsentIsNotValid() {
+        // given
+        given(tcf2Service.permissionsFor(any(), any())).willReturn(Future.succeededFuture());
+
+        // when
+        tcfDefinerService.resultForVendorIds(singleton(1), TcfContext.builder()
+                .gdpr("1")
+                .consent(TCStringEmpty.create())
+                .ipAddress("ip")
+                .build());
+
+        // then
+        verify(metrics, never()).updatePrivacyTcfRequestsMetric(anyInt());
+        verify(metrics, never()).updatePrivacyTcfGeoMetric(anyInt(), any());
     }
 
     @Test

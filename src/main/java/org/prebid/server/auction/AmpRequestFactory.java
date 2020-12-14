@@ -249,8 +249,7 @@ public class AmpRequestFactory {
     /**
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
-    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request,
-                                          List<String> errors) {
+    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request, List<String> errors) {
         final String requestConsentParam = request.getParam(CONSENT_PARAM);
         final String requestGdprConsentParam = request.getParam(GDPR_CONSENT_PARAM);
         final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
