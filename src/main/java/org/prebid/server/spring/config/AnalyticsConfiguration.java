@@ -18,7 +18,7 @@ import java.util.List;
 public class AnalyticsConfiguration {
 
     @Bean
-    AnalyticsReporterDelegator compositeAnalyticsReporter(
+    AnalyticsReporterDelegator analyticsReporterDelegator(
             @Autowired(required = false) List<AnalyticsReporter> delegates,
             Vertx vertx,
             PrivacyEnforcementService privacyEnforcementService) {

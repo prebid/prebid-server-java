@@ -52,7 +52,7 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     }
 
     @Override
-    public int reporterVendorId() {
+    public int vendorId() {
         return 0;
     }
 

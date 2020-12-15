@@ -207,7 +207,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
             final Set<String> biddersToSync = biddersToSync(cookieSyncRequest);
 
-            allowedForHostVendorId(tcfContext)
+            isAllowedForHostVendorId(tcfContext)
                     .compose(isCookieSyncAllowed ->
                             prepareRejectedBidders(isCookieSyncAllowed, biddersToSync, cookieSyncContext))
                     .setHandler(rejectedBiddersResult ->
@@ -264,10 +264,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     /**
      * If host vendor id is null, host allowed to sync cookies.
      */
-    private Future<Boolean> allowedForHostVendorId(TcfContext tcfContext) {
+    private Future<Boolean> isAllowedForHostVendorId(TcfContext tcfContext) {
         return gdprHostVendorId == null
                 ? Future.succeededFuture(true)
-                : tcfDefinerService.resultForVendorIds(vendorIds, tcfContext)
+                : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
                 .map(this::isCookieSyncAllowed);
     }
 

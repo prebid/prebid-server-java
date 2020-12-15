@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of the Composite design pattern that dispatches event processing to all enabled reporters.
+ * Class dispatches event processing to all enabled reporters.
  */
 public class AnalyticsReporterDelegator {
 
@@ -35,7 +35,7 @@ public class AnalyticsReporterDelegator {
         this.vertx = Objects.requireNonNull(vertx);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
 
-        reporterVendorIds = delegates.stream().map(AnalyticsReporter::reporterVendorId).collect(Collectors.toSet());
+        reporterVendorIds = delegates.stream().map(AnalyticsReporter::vendorId).collect(Collectors.toSet());
     }
 
     public <T> void processEvent(T event) {
@@ -56,7 +56,7 @@ public class AnalyticsReporterDelegator {
             final Map<Integer, PrivacyEnforcementAction> privacyEnforcementActionMap =
                     privacyEnforcementMapResult.result();
             for (AnalyticsReporter analyticsReporter : delegates) {
-                final int reporterVendorId = analyticsReporter.reporterVendorId();
+                final int reporterVendorId = analyticsReporter.vendorId();
                 // resultForVendorIds is guaranteed returning for each provided value except null,
                 // but to be sure lets use getOrDefault
                 final PrivacyEnforcementAction reporterPrivacyAction = privacyEnforcementActionMap

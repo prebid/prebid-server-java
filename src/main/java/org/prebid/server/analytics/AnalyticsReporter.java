@@ -14,7 +14,7 @@ public interface AnalyticsReporter {
     <T> void processEvent(T event);
 
     /**
-     * Method for defying analytics reporter ID for TCF checks.
+     * Method for defining analytics reporter ID for TCF checks.
      */
-    int reporterVendorId();
+    int vendorId();
 }

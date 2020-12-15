@@ -52,10 +52,10 @@ public class AnalyticsReporterDelegatorTest {
     @Before
     public void setUp() {
         firstReporter = mock(AnalyticsReporter.class);
-        given(firstReporter.reporterVendorId()).willReturn(FIRST_REPORTER_ID);
+        given(firstReporter.vendorId()).willReturn(FIRST_REPORTER_ID);
 
         secondReporter = mock(AnalyticsReporter.class);
-        given(secondReporter.reporterVendorId()).willReturn(SECOND_REPORTER_ID);
+        given(secondReporter.vendorId()).willReturn(SECOND_REPORTER_ID);
 
         target = new AnalyticsReporterDelegator(asList(firstReporter, secondReporter), vertx,
                 privacyEnforcementService);

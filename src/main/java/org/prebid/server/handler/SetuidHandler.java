@@ -139,9 +139,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             }
 
             isAllowedForHostVendorId(tcfContext)
-                    .setHandler(
-                            isCookieAllowedResult -> respondByVendorIdsResult(isCookieAllowedResult, setuidContext));
-
+                    .setHandler(setuidAllowedResult -> respondByVendorIdsResult(setuidAllowedResult, setuidContext));
         } else {
             final Throwable error = setuidContextResult.cause();
             handleErrors(error, routingContext, null);
@@ -164,14 +162,17 @@ public class SetuidHandler implements Handler<RoutingContext> {
         return null;
     }
 
+    /**
+     * If host vendor id is null, host allowed to setuid.
+     */
     private Future<Boolean> isAllowedForHostVendorId(TcfContext tcfContext) {
         return gdprHostVendorId == null
                 ? Future.succeededFuture(true)
                 : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                .map(this::isCookieAllowed);
+                .map(this::isSetuidAllowed);
     }
 
-    private Boolean isCookieAllowed(TcfResponse<Integer> hostTcfResponseToSetuidContext) {
+    private Boolean isSetuidAllowed(TcfResponse<Integer> hostTcfResponseToSetuidContext) {
         // allow cookie only if user is not in GDPR scope or vendor passed GDPR check
         final boolean notInGdprScope = BooleanUtils.isFalse(hostTcfResponseToSetuidContext.getUserInGdprScope());
 

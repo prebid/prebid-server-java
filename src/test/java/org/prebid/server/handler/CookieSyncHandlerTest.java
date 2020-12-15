@@ -649,14 +649,14 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, null, false, emptyList(),
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
-                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
-                jacksonMapper));
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+
+        final Uids uids = Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build();
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(uids, jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
@@ -669,7 +669,6 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willReturn(BidderInfo.create(true, null, null,
                         null, null, 2, true, true, false));
 
-        givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
         // when
@@ -760,8 +759,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
-        // TODO CHECK
-        givenTcfServiceReturningVendorIdResult(emptySet());
+        givenTcfServiceReturningBlockedVendorIdResult(set(1));
         givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
@@ -1205,19 +1203,24 @@ public class CookieSyncHandlerTest extends VertxTest {
 
     private void givenTcfServiceReturningVendorIdResult(Set<Integer> vendorIds) {
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds), null)));
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds, false), null)));
+    }
+
+    private void givenTcfServiceReturningBlockedVendorIdResult(Set<Integer> vendorIds) {
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds, true), null)));
     }
 
     private void givenTcfServiceReturningBidderNamesResult(Set<String> bidderNames) {
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(bidderNames), null)));
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(bidderNames, false), null)));
     }
 
-    private static <T> Map<T, PrivacyEnforcementAction> actions(Set<T> keys) {
+    private static <T> Map<T, PrivacyEnforcementAction> actions(Set<T> keys, boolean blockPixelSync) {
         return keys.stream()
                 .collect(Collectors.toMap(
                         identity(),
-                        vendorId -> PrivacyEnforcementAction.builder().blockPixelSync(false).build()));
+                        vendorId -> PrivacyEnforcementAction.builder().blockPixelSync(blockPixelSync).build()));
     }
 
     private static Buffer givenRequestBody(CookieSyncRequest request) {
