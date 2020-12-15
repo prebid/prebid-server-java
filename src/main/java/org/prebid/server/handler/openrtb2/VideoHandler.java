@@ -13,9 +13,7 @@ import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
@@ -71,7 +69,8 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         videoRequestFactory.fromRequest(routingContext, startTime)
-                .map(contextToErrors -> updateAuctionContextWithPodErrors(contextToErrors, videoEventBuilder))
+                .map(contextToErrors -> addToEvent(
+                        contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
 
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
                         .map(bidResponse -> Tuple2.of(bidResponse, contextToErrors)))
@@ -82,19 +81,6 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
                 .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
                         startTime));
-    }
-
-    private WithPodErrors<AuctionContext> updateAuctionContextWithPodErrors(
-            WithPodErrors<AuctionContext> contextToErrors, VideoEvent.VideoEventBuilder eventBuilder) {
-
-        final AuctionContext typeMetricAuctionContext = contextToErrors.getData().toBuilder()
-                .requestTypeMetric(REQUEST_TYPE_METRIC)
-                .build();
-
-        addToEvent(typeMetricAuctionContext, eventBuilder::auctionContext, typeMetricAuctionContext);
-
-        return WithPodErrors.of(typeMetricAuctionContext, contextToErrors.getPodErrors());
-
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

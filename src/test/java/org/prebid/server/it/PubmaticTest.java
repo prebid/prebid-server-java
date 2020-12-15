@@ -78,7 +78,7 @@ public class PubmaticTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"pubmatic":"PM-UID"}}
+                // this uids cookie value stands for {"uids":{"pubmatic":"PM-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7InB1Ym1hdGljIjoiUE0tVUlEIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/pubmatic/test-auction-pubmatic-request.json"))

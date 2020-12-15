@@ -20,7 +20,10 @@
       "ext": {
         "telaria": {
           "adCode": "my-adcode",
-          "seatCode": "my-seatcode"
+          "seatCode": "my-seatcode",
+          "extra": {
+            "custom": "1234"
+          }
         }
       }
     }
@@ -88,12 +91,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {

@@ -50,6 +50,18 @@ public class IpAddressHelperTest {
     }
 
     @Test
+    public void maskIpv4ShouldZeroLastOctet() {
+        assertThat(ipAddressHelper.maskIpv4("192.168.34.56"))
+                .isEqualTo("192.168.34.0");
+    }
+
+    @Test
+    public void maskIpv4ShouldReturnInputIfIpIsNotValid() {
+        final String ip = "abc";
+        assertThat(ipAddressHelper.maskIpv4(ip)).isSameAs(ip);
+    }
+
+    @Test
     public void anonymizeIpv6ShouldFillDiscardedBitsWithZero() {
         assertThat(ipAddressHelper.anonymizeIpv6("1111:2222:3333:4444:5555:6666:7777:8888"))
                 .isEqualTo("1111:2222:3333:4400::");
@@ -82,8 +94,38 @@ public class IpAddressHelperTest {
     }
 
     @Test
+    public void toIpAddressShouldReturnNullIfIpIsV4AndMulticast() {
+        assertThat(ipAddressHelper.toIpAddress("224.0.0.0/4")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV4AndZero() {
+        assertThat(ipAddressHelper.toIpAddress("0.0.0.0")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV4AndMax() {
+        assertThat(ipAddressHelper.toIpAddress("255.255.255.255")).isNull();
+    }
+
+    @Test
     public void toIpAddressShouldReturnNullIfIpIsV6AndLocal() {
         assertThat(ipAddressHelper.toIpAddress("fc00:0000:0000:0000:0000:0000:0000:0001")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV6AndMulticast() {
+        assertThat(ipAddressHelper.toIpAddress("ff00::/64")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV6AndZero() {
+        assertThat(ipAddressHelper.toIpAddress("0000:0000:0000:0000:0000:0000:0000:0000")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV6AndMax() {
+        assertThat(ipAddressHelper.toIpAddress("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")).isNull();
     }
 
     @Test

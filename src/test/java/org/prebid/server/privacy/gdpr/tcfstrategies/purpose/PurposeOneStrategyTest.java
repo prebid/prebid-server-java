@@ -26,13 +26,13 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 public class PurposeOneStrategyTest {
 
-    private static final int PURPOSE_ID = 1;
+    private static final org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose PURPOSE =
+            org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -84,7 +84,7 @@ public class PurposeOneStrategyTest {
     @Test
     public void getPurposeIdShouldReturnExpectedValue() {
         // when and then
-        assertThat(target.getPurposeId()).isEqualTo(PURPOSE_ID);
+        assertThat(target.getPurpose()).isEqualTo(PURPOSE);
     }
 
     @Test
@@ -104,7 +104,7 @@ public class PurposeOneStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
-        given(noEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(noEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Arrays.asList(vendorPermission1, vendorPermission2));
 
         // when
@@ -119,7 +119,7 @@ public class PurposeOneStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(noEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString,
+        verify(noEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString,
                 Arrays.asList(vendorPermissionWitGvl1, vendorPermissionWitGvl3), singletonList(vendorPermissionWitGvl2),
                 false);
     }
@@ -141,7 +141,7 @@ public class PurposeOneStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
-        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Arrays.asList(vendorPermission1, vendorPermission2));
 
         // when
@@ -156,7 +156,7 @@ public class PurposeOneStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString,
+        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString,
                 Arrays.asList(vendorPermissionWitGvl1, vendorPermissionWitGvl3), singletonList(vendorPermissionWitGvl2),
                 false);
     }
@@ -180,7 +180,7 @@ public class PurposeOneStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
-        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(vendorPermissions);
 
         // when
@@ -194,7 +194,7 @@ public class PurposeOneStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, emptyList(),
+        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, emptyList(),
                 vendorPermissionsWithGvl, true);
     }
 
@@ -216,7 +216,7 @@ public class PurposeOneStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
-        given(fullEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(fullEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(vendorPermissions);
 
         // when
@@ -230,7 +230,7 @@ public class PurposeOneStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, emptyList(),
+        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, emptyList(),
                 vendorPermissionsWithGvl, true);
     }
 
@@ -252,7 +252,7 @@ public class PurposeOneStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
-        given(fullEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(fullEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(vendorPermissions)
                 .willReturn(emptyList());
 
@@ -267,9 +267,9 @@ public class PurposeOneStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, emptyList(),
+        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, emptyList(),
                 vendorPermissionsWithGvl, true);
-        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPermissionsWithGvl,
+        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, vendorPermissionsWithGvl,
                 emptyList(), true);
     }
 
@@ -291,9 +291,9 @@ public class PurposeOneStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
-        given(noEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(noEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(vendorPermissions);
-        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(emptyList());
 
         // when
@@ -307,9 +307,9 @@ public class PurposeOneStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(noEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, emptyList(),
+        verify(noEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, emptyList(),
                 vendorPermissionsWithGvl, true);
-        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPermissionsWithGvl,
+        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, vendorPermissionsWithGvl,
                 emptyList(), true);
     }
 

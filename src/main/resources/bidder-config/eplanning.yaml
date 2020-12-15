@@ -1,7 +1,7 @@
 adapters:
   eplanning:
     enabled: false
-    endpoint: https://ads.us.e-planning.net/hb/1
+    endpoint: http://rtb.e-planning.net/pbs/1
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true

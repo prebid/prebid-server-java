@@ -1,0 +1,26 @@
+[
+  {
+    "id": "adoceanmyaozpniqismex",
+    "price": "10",
+    "winurl": "https://win-url.com",
+    "statsUrl": "https://stats-url.com",
+    "code": " <!-- code 1 --> ",
+    "currency": "EUR",
+    "width": "300",
+    "height": "250",
+    "crid": "0af345b42983cc4bc0",
+    "error": "false"
+  },
+  {
+    "id": "adoceanmyaozpniqismexs",
+    "price": "12",
+    "winurl": "https://win-url.com",
+    "statsUrl": "https://stats-url.com",
+    "code": " <!-- code 1 --> ",
+    "currency": "EUR",
+    "width": "300",
+    "height": "250",
+    "crid": "0af345b42983cc4bc0",
+    "error": "false"
+  }
+]

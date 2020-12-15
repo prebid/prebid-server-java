@@ -2,7 +2,6 @@ package org.prebid.server.bidder.adform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -34,7 +33,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -62,7 +60,7 @@ public class AdformBidder implements Bidder<Void> {
         this.mapper = Objects.requireNonNull(mapper);
 
         this.requestUtil = new AdformRequestUtil();
-        this.httpUtil = new AdformHttpUtil(mapper);
+        this.httpUtil = new AdformHttpUtil();
     }
 
     /**
@@ -78,7 +76,7 @@ public class AdformBidder implements Bidder<Void> {
         final List<BidderError> errors = extImpAdformsResult.getErrors();
 
         if (extImpAdforms.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final String currency = resolveRequestCurrency(request.getCur());
@@ -91,6 +89,8 @@ public class AdformBidder implements Bidder<Void> {
                         .keyValues(getKeyValues(extImpAdforms))
                         .keyWords(getKeyWords(extImpAdforms))
                         .priceTypes(getPriceType(extImpAdforms))
+                        .cdims(getCdims(extImpAdforms))
+                        .minPrices(getMinPrices(extImpAdforms))
                         .endpointUrl(endpointUrl)
                         .tid(getTid(request.getSource()))
                         .ip(getIp(device))
@@ -98,7 +98,9 @@ public class AdformBidder implements Bidder<Void> {
                         .secure(getSecure(imps))
                         .gdprApplies(requestUtil.getGdprApplies(request.getRegs()))
                         .consent(requestUtil.getConsent(extUser))
+                        .eids(requestUtil.getEids(extUser, mapper))
                         .currency(currency)
+                        .url(getUrl(extImpAdforms))
                         .build());
 
         final MultiMap headers = httpUtil.buildAdformHeaders(
@@ -106,8 +108,7 @@ public class AdformBidder implements Bidder<Void> {
                 getUserAgent(device),
                 getIp(device),
                 getReferer(request.getSite()),
-                getUserId(user),
-                requestUtil.getAdformDigitrust(extUser));
+                getUserId(user));
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
@@ -143,14 +144,9 @@ public class AdformBidder implements Bidder<Void> {
                     httpResponse.getBody(),
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, AdformBid.class));
         } catch (JsonProcessingException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-        return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
+        return Result.withValues(toBidderBid(adformBids, bidRequest.getImp()));
     }
 
     /**
@@ -210,6 +206,20 @@ public class AdformBidder implements Bidder<Void> {
     }
 
     /**
+     * Converts {@link ExtImpAdform} {@link List} to cdims {@link List}.
+     */
+    private List<String> getCdims(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getCdims).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link ExtImpAdform} {@link List} to minPrices {@link List}.
+     */
+    private List<Double> getMinPrices(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getMinPrice).collect(Collectors.toList());
+    }
+
+    /**
      * Retrieves referer from {@link Site}.
      */
     private String getReferer(Site site) {
@@ -260,6 +270,17 @@ public class AdformBidder implements Bidder<Void> {
     }
 
     /**
+     * Finds not blank url from {@link ExtImpAdform}.
+     */
+    private String getUrl(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream()
+                .map(ExtImpAdform::getUrl)
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .orElse("");
+    }
+
+    /**
      * Converts {@link AdformBid} to {@link List} of {@link BidderBid}.
      */
     private List<BidderBid> toBidderBid(List<AdformBid> adformBids, List<Imp> imps) {
@@ -269,24 +290,43 @@ public class AdformBidder implements Bidder<Void> {
 
         for (int i = 0; i < adformBids.size(); i++) {
             final AdformBid adformBid = adformBids.get(i);
-            if (StringUtils.isEmpty(adformBid.getBanner()) || !Objects.equals(adformBid.getResponse(), BANNER)) {
+            final String adm = resolveAdm(adformBid);
+            if (StringUtils.isBlank(adm)) {
                 continue;
             }
+            final BidType bidType = resolveBidType(adformBid.getResponse());
             final Imp imp = imps.get(i);
             bidderBids.add(BidderBid.of(Bid.builder()
                             .id(imp.getId())
                             .impid(imp.getId())
                             .price(adformBid.getWinBid())
-                            .adm(adformBid.getBanner())
+                            .adm(adm)
                             .w(adformBid.getWidth())
                             .h(adformBid.getHeight())
                             .dealid(adformBid.getDealId())
                             .crid(adformBid.getWinCrid())
                             .build(),
-                    BidType.banner,
+                    bidType,
                     currency));
         }
 
         return bidderBids;
+    }
+
+    private String resolveAdm(AdformBid adformBid) {
+        if (Objects.equals(adformBid.getResponse(), "banner")) {
+            return adformBid.getBanner();
+        }
+
+        if (Objects.equals(adformBid.getResponse(), "vast_content")) {
+            return adformBid.getVastContent();
+        }
+
+        return "";
+    }
+
+    private BidType resolveBidType(String response) {
+        return Objects.equals(response, BANNER)
+                ? BidType.banner : BidType.video;
     }
 }
