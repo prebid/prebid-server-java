@@ -110,7 +110,7 @@ public class ConversantTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"conversant":"CV-UID"}}
+                // this uids cookie value stands for {"uids":{"conversant":"CV-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImNvbnZlcnNhbnQiOiJDVi1VSUQifX0=")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/conversant/test-auction-conversant-request.json"))

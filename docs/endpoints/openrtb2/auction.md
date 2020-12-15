@@ -116,7 +116,6 @@ The only exception here is the top-level `BidResponse`, because it's bidder-inde
 
 Exceptions are made for extensions with "standard" recommendations:
 
-- `request.user.ext.digitrust` -- To support Digitrust support
 - `request.regs.ext.gdpr` and `request.user.ext.consent` -- To support GDPR
 - `request.site.ext.amp` -- To identify AMP as the request source
 - `request.app.ext.source` and `request.app.ext.version` -- To support identifying the displaymanager/SDK in mobile apps. If given, we expect these to be strings.
@@ -683,11 +682,7 @@ Prebid Server adapters can support the [Prebid.js User ID modules](http://prebid
                 "source": "pubcommon",
                 "id":"11111111"
             }
-            ],
-            "digitrust": {
-                "id": "11111111111",
-                "keyv": 4
-            }
+            ]
         }
     }
 }
@@ -768,8 +763,8 @@ This supports publishers who want to sell different impressions to different bid
 This endpoint returns a 400 if the request contains deprecated properties (e.g. `imp.wmin`, `imp.hmax`).
 
 The error message in the response should describe how to "fix" the request to make it legal.
-If the message is unclear, please [log an issue](https://github.com/rubicon-project/prebid-server-java/issues)
-or [submit a pull request](https://github.com/rubicon-project/prebid-server-java/pulls) to improve it.
+If the message is unclear, please [log an issue](https://github.com/prebid/prebid-server-java/issues)
+or [submit a pull request](https://github.com/prebid/prebid-server-java/pulls) to improve it.
 
 #### Determining Bid Security (http/https)
 

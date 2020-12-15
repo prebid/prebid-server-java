@@ -107,7 +107,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.activeBidders = activeBidders(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
-        this.gdprHostVendorId = gdprHostVendorId;
+        this.gdprHostVendorId = validateHostVendorId(gdprHostVendorId);
         this.defaultCoopSync = defaultCoopSync;
         this.listOfCoopSyncBidders = CollectionUtils.isNotEmpty(listOfCoopSyncBidders)
                 ? listOfCoopSyncBidders
@@ -121,6 +121,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static Set<String> activeBidders(BidderCatalog bidderCatalog) {
         return bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet());
+    }
+
+    private static Integer validateHostVendorId(Integer gdprHostVendorId) {
+        if (gdprHostVendorId == null) {
+            logger.warn("gdpr.host-vendor-id not specified. Will skip host company GDPR checks");
+        }
+        return gdprHostVendorId;
     }
 
     private static Set<String> flatMapToSet(List<Collection<String>> listOfStringLists) {
@@ -200,8 +207,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
             final Set<String> biddersToSync = biddersToSync(cookieSyncRequest);
 
-            tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                    .map(this::isCookieSyncAllowed)
+            allowedForHostVendorId(tcfContext)
                     .compose(isCookieSyncAllowed ->
                             prepareRejectedBidders(isCookieSyncAllowed, biddersToSync, cookieSyncContext))
                     .setHandler(rejectedBiddersResult ->
@@ -255,6 +261,25 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return new HashSet<>(requestBidders);
     }
 
+    /**
+     * If host vendor id is null, host allowed to sync cookies.
+     */
+    private Future<Boolean> allowedForHostVendorId(TcfContext tcfContext) {
+        return gdprHostVendorId == null
+                ? Future.succeededFuture(true)
+                : tcfDefinerService.resultForVendorIds(vendorIds, tcfContext)
+                .map(this::isCookieSyncAllowed);
+    }
+
+    private Boolean isCookieSyncAllowed(TcfResponse<Integer> hostTcfResponse) {
+        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = hostTcfResponse.getActions();
+        final PrivacyEnforcementAction hostActions = vendorIdToAction != null
+                ? vendorIdToAction.get(gdprHostVendorId)
+                : null;
+
+        return hostActions != null && !hostActions.isBlockPixelSync();
+    }
+
     private Set<String> addAllCoopSyncBidders(List<String> bidders) {
         final Set<String> updatedBidders = new HashSet<>(setOfCoopSyncBidders);
         updatedBidders.addAll(bidders);
@@ -295,15 +320,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private String bidderNameFor(String bidder) {
         return bidderCatalog.isAlias(bidder) ? bidderCatalog.nameByAlias(bidder) : bidder;
-    }
-
-    private Boolean isCookieSyncAllowed(TcfResponse<Integer> hostTcfResponse) {
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = hostTcfResponse.getActions();
-        final PrivacyEnforcementAction hostActions = vendorIdToAction != null
-                ? vendorIdToAction.get(gdprHostVendorId)
-                : null;
-
-        return hostActions != null && !hostActions.isBlockPixelSync();
     }
 
     private Future<RejectedBidders> prepareRejectedBidders(Boolean isCookieSyncAllowed,

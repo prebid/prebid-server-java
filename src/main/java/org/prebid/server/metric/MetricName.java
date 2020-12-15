@@ -5,21 +5,20 @@ public enum MetricName {
     // connection
     connection_accept_errors,
 
-    // database
-    db_circuitbreaker_opened,
-    db_circuitbreaker_closed,
-    db_query_time,
+    // circuit breaker
+    db,
+    geo,
+    http,
+    opened,
+    existing,
 
-    // http client
-    httpclient_circuitbreaker_opened,
-    httpclient_circuitbreaker_closed,
+    // database
+    db_query_time,
 
     // geo location
     geolocation_requests,
     geolocation_successful,
     geolocation_fail,
-    geolocation_circuitbreaker_opened,
-    geolocation_circuitbreaker_closed,
 
     // auction
     requests,
@@ -44,9 +43,13 @@ public enum MetricName {
     amp,
     video,
     legacy,
+    cookiesync,
+    setuid,
+
 
     // request and adapter statuses
     ok,
+    failed,
     nobid,
     gotbids,
     badinput,
@@ -98,7 +101,19 @@ public enum MetricName {
     creative_size,
 
     //account.*.requests.
-    rejected;
+    rejected,
+
+    //currency rates
+    stale,
+
+    // settings cache
+    stored_request("stored-request"),
+    amp_stored_request("amp-stored-request"),
+    account,
+    initialize,
+    update,
+    hit,
+    miss;
 
     private final String name;
 

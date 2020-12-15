@@ -93,7 +93,7 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(null,
+        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(1,
                 PrivacyEnforcementAction.allowAll());
 
         tcfContext = TcfContext.builder().gdpr("GDPR").build();
@@ -122,7 +122,7 @@ public class SetuidHandlerTest extends VertxTest {
                 bidderCatalog,
                 privacyEnforcementService,
                 tcfDefinerService,
-                null,
+                1,
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory);
@@ -482,6 +482,42 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+        verify(httpResponse).end();
+
+        final String uidsCookie = getUidsCookie();
+        final Uids decodedUids = decodeUids(uidsCookie);
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
+    }
+
+    @Test
+    public void shouldSkipTcfChecksAndRespondWithCookieIfHostVendorIdNotDefined() throws IOException {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
+                bidderCatalog, privacyEnforcementService, tcfDefinerService, null, analyticsReporter, metrics,
+                new TimeoutFactory(clock));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), null)));
+
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
+
+        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(tcfDefinerService, never()).resultForVendorIds(anySet(), any());
         verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).end();
 

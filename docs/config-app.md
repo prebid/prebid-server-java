@@ -15,6 +15,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `vertx.http-server-instances` - how many http server instances should be created. 
 This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
+- `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
 ## HTTP
 - `http.port` - the port to listen on.
@@ -82,6 +83,12 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
+## Timeout notification
+- `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
+- `auction.timeout-notification.log-result` - causes bidder timeout notification result to be logged
+- `auction.timeout-notification.log-failure-only` - causes only bidder timeout notification failures to be logged
+- `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
+
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
@@ -127,6 +134,8 @@ But feel free to add additional bidder's specific options.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-converter.external-rates.stale-after-ms` - how old currency rates should be to become considered stale.
+- `currency-converter.external-rates.stale-period-ms` - stale period after which the latest external currency rates get discarded.
 
 ## Admin Endpoints
 - `admin-endpoints.version.enabled` - if equals to `true` the endpoint will be available.
@@ -309,10 +318,14 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
 - `gdpr.vendorlist.vN.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
 - `gdpr.vendorlist.vN.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
+- `gdpr.vendorlist.vN.deprecated` - Flag to show is this vendor list is deprecated or not.
 - `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 
 ## CCPA
 - `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
+
+## LMT
+- `lmt.enforce` - if equals to `true` enforces to check lmt policy, otherwise ignore lmt verification.
 
 ## Geo Location
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.

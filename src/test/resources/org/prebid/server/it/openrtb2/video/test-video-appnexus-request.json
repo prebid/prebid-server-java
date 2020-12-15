@@ -23,13 +23,8 @@
     "page": "prebid.com"
   },
   "user": {
-    "buyeruids": {
-      "appnexus": "unique_id_an",
-      "rubicon": "unique_id_rubi"
-    },
-    "gdpr": {
-      "consentrequired": false,
-      "consentstring": "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"
+    "ext": {
+      "consent": "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"
     },
     "yob": 1991,
     "gender": "F",
@@ -37,11 +32,12 @@
   },
   "regs": {
     "ext": {
+      "gdpr": 1,
       "us_privacy": "1YNN"
     }
   },
   "tmax": 5000,
-  "device11": {
+  "device": {
     "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.13 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2",
     "ip": "123.145.167.10",
     "devicetype": 1,

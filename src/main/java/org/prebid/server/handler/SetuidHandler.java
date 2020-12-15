@@ -76,7 +76,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
-        this.gdprHostVendorId = gdprHostVendorId;
+        this.gdprHostVendorId = validateHostVendorId(gdprHostVendorId);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -86,6 +86,13 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .map(bidderCatalog::usersyncerByName)
                 .map(Usersyncer::getCookieFamilyName)
                 .collect(Collectors.toSet());
+    }
+
+    private static Integer validateHostVendorId(Integer gdprHostVendorId) {
+        if (gdprHostVendorId == null) {
+            logger.warn("gdpr.host-vendor-id not specified. Will skip host company GDPR checks");
+        }
+        return gdprHostVendorId;
     }
 
     @Override
@@ -131,8 +138,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 return;
             }
 
-            tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                    .map(this::isCookieAllowed)
+            isAllowedForHostVendorId(tcfContext)
                     .setHandler(
                             isCookieAllowedResult -> respondByVendorIdsResult(isCookieAllowedResult, setuidContext));
 
@@ -156,6 +162,13 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         return null;
+    }
+
+    private Future<Boolean> isAllowedForHostVendorId(TcfContext tcfContext) {
+        return gdprHostVendorId == null
+                ? Future.succeededFuture(true)
+                : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
+                .map(this::isCookieAllowed);
     }
 
     private Boolean isCookieAllowed(TcfResponse<Integer> hostTcfResponseToSetuidContext) {
