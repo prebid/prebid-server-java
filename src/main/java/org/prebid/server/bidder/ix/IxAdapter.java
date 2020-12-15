@@ -66,7 +66,7 @@ public class IxAdapter extends OpenrtbAdapter {
         }
 
         return requests.stream()
-                .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl, bidRequest, headers()))
+                .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl, bidRequest, HttpUtil.headers()))
                 .collect(Collectors.toList());
     }
 

@@ -4,6 +4,7 @@ package com.iab.openrtb.request.ntv;
  * Options for the various bid response protocols that could be supported by an exchange.
  */
 public enum Protocol {
+
     /**
      * VAST 1.0
      */

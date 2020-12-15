@@ -6,6 +6,7 @@ vertx:
   uploads-dir: file-uploads
   init-timeout-ms: 5000
   http-server-instances: 1
+  enable-per-client-endpoint-metrics: false
 http:
   port: 8080
   max-headers-size: 16384
@@ -22,7 +23,7 @@ admin-endpoints:
     protected: true
   currency-rates:
     enabled: false
-    path: /currency-rates
+    path: /currency/rates
     on-application-port: false
     protected: true
   storedrequest:
@@ -40,13 +41,20 @@ admin-endpoints:
     path: /cache/invalidate
     on-application-port: false
     protected: true
-  logger-level-modifier:
+  logging-httpinteraction:
     enabled: false
-    path: /admin
+    path: /logging/httpinteraction
+    on-application-port: false
+    protected: true
+  logging-changelevel:
+    enabled: false
+    path: /logging/changelevel
     on-application-port: false
     protected: true
 http-client:
   max-pool-size: 4000
+  idle-timeout-ms: 0
+  pool-cleaner-period-ms: 1000
   connect-timeout-ms: 2500
   use-compression: false
   max-redirects: 0
@@ -61,12 +69,18 @@ default-timeout-ms: 900
 max-timeout-ms: 5000
 timeout-adjustment-ms: 30
 auction:
+  ad-server-currency: USD
   blacklisted-accounts:
   blacklisted-apps:
   default-timeout-ms: 900
   max-timeout-ms: 5000
   timeout-adjustment-ms: 30
   stored-requests-timeout-ms: 50
+  timeout-notification:
+    timeout-ms: 200
+    log-result: false
+    log-failure-only: false
+    log-sampling-rate: 0.0
   max-request-size: 262144
   id-generator-type: uuid
   generate-bid-id: false
@@ -74,6 +88,7 @@ auction:
     expected-request-time-ms: 10
     only-winning-bids: false
 video:
+  stored-request-required: false
   stored-requests-timeout-ms: 90
 amp:
   default-timeout-ms: 900
@@ -88,14 +103,18 @@ cookie-sync:
   coop-sync:
     default: true
   default-timeout-ms: 2000
-logger-level-modifier:
-  enabled: false
+logging:
+  http-interaction:
+    max-limit: 10000
+  change-level:
+    max-duration-ms: 60000
 currency-converter:
   external-rates:
     enabled: true
     url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
     default-timeout-ms: 4000
     refresh-period-ms: 900000
+    stale-after-ms: 259200000
 metrics:
   metricType: flushingCounter
   accounts:
@@ -123,14 +142,15 @@ gdpr:
   default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
+    default-timeout-ms: 2000
     v1:
       http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
-      http-default-timeout-ms: 2000
       refresh-missing-list-period-ms: 3600000
+      deprecated: false
     v2:
       http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
-      http-default-timeout-ms: 2000
       refresh-missing-list-period-ms: 3600000
+      deprecated: false
   purposes:
     p1:
       enforce-purpose: full
@@ -169,6 +189,8 @@ gdpr:
       enforce: true
   purpose-one-treatment-interpretation: ignore
 ccpa:
+  enforce: true
+lmt:
   enforce: true
 geolocation:
   enabled: false

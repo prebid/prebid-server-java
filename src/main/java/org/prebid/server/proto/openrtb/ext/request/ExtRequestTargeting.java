@@ -1,10 +1,8 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.json.MissingJsonNodeToNullDeserializer;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 
 import java.util.List;
@@ -19,7 +17,6 @@ public class ExtRequestTargeting {
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.pricegranularity
      */
-    @JsonDeserialize(using = MissingJsonNodeToNullDeserializer.class)
     JsonNode pricegranularity;
 
     /**
@@ -46,6 +43,11 @@ public class ExtRequestTargeting {
      * Defines the contract for bidrequest.ext.prebid.targeting.includebidderkeys
      */
     Boolean includebidderkeys;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.targeting.includeformat
+     */
+    Boolean includeformat;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.truncateattrchars
