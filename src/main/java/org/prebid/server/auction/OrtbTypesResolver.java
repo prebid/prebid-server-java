@@ -12,7 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.util.JsonMergeUtil;
+import org.prebid.server.json.JsonMerger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,11 +69,11 @@ public class OrtbTypesResolver {
     }
 
     private final JacksonMapper jacksonMapper;
-    private final JsonMergeUtil jsonMergeUtil;
+    private final JsonMerger jsonMerger;
 
-    public OrtbTypesResolver(JacksonMapper jacksonMapper) {
+    public OrtbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
-        this.jsonMergeUtil = new JsonMergeUtil(jacksonMapper);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
     /**
@@ -254,7 +254,7 @@ public class OrtbTypesResolver {
         final JsonNode extData = containerNode.path(EXT).path(DATA);
         final JsonNode ext = containerNode.get(EXT);
         if (!extData.isNull() && !extData.isMissingNode()) {
-            final JsonNode resolvedExtData = jsonMergeUtil.merge(extData, data);
+            final JsonNode resolvedExtData = jsonMerger.merge(extData, data);
             ((ObjectNode) ext).set(DATA, resolvedExtData);
         } else {
             copyDataToExtData(containerNode, containerName, nodePrefix, warnings, data);
