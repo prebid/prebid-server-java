@@ -41,10 +41,12 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -76,6 +78,7 @@ public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
+    private static final String ASTERISK = "*";
     private static final Locale LOCALE = Locale.US;
     private static final String DOCUMENTATION = "https://iabtechlab.com/wp-content/uploads/2016/07/"
             + "OpenRTB-Native-Ads-Specification-Final-1.2.pdf";
@@ -129,6 +132,7 @@ public class RequestValidator {
                 validateBidAdjustmentFactors(
                         ObjectUtils.defaultIfNull(extRequestPrebid.getBidadjustmentfactors(), Collections.emptyMap()),
                         aliases);
+                validateExtBidPrebidData(extRequestPrebid.getData(), aliases);
             }
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
@@ -199,6 +203,54 @@ public class RequestValidator {
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %s",
                         bidder, format(adjustmentFactor));
             }
+        }
+    }
+
+    private void validateExtBidPrebidData(ExtRequestPrebidData data, Map<String, String> aliases)
+            throws ValidationException {
+        if (data != null) {
+            validateEidPermissions(data.getEidPermissions(), aliases);
+        }
+    }
+
+    private void validateEidPermissions(List<ExtRequestPrebidDataEidPermissions> eidPermissions,
+                                        Map<String, String> aliases) throws ValidationException {
+        if (eidPermissions != null) {
+            for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
+                validateEidPermission(eidPermission, aliases);
+            }
+        }
+    }
+
+    private void validateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission, Map<String, String> aliases)
+            throws ValidationException {
+        if (eidPermission == null) {
+            throw new ValidationException("request.ext.prebid.data.eidPermissions[] can't be null");
+        }
+        validateEidPermissionSource(eidPermission.getSource());
+        validateEidPermissionBidders(eidPermission.getBidders(), aliases);
+    }
+
+    private void validateEidPermissionBidders(List<String> bidders,
+                                              Map<String, String> aliases) throws ValidationException {
+
+        if (CollectionUtils.isEmpty(bidders)) {
+            throw new ValidationException("request.ext.prebid.data.eidPermissions[].bidders[] required values"
+                    + " but was empty or null");
+        }
+
+        for (String bidder : bidders) {
+            if (!bidderCatalog.isValidName(bidder) && !bidderCatalog.isValidName(aliases.get(bidder))
+                    && ObjectUtils.notEqual(bidder, ASTERISK)) {
+                throw new ValidationException(
+                        "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode : %s", bidder);
+            }
+        }
+    }
+
+    private void validateEidPermissionSource(String source) throws ValidationException {
+        if (StringUtils.isEmpty(source)) {
+            throw new ValidationException("Missing required value request.ext.prebid.data.eidPermissions[].source");
         }
     }
 
