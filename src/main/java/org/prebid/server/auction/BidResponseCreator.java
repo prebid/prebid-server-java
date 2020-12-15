@@ -836,7 +836,8 @@ public class BidResponseCreator {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(bidType, targeting, isApp,
                     bidRequest, account);
 
-            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
+            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, bidType.getName(),
+                    videoCacheId);
         } else {
             targetingKeywords = null;
         }
@@ -1053,6 +1054,7 @@ public class BidResponseCreator {
                 parsePriceGranularity(priceGranularity),
                 targeting.getIncludewinners(),
                 targeting.getIncludebidderkeys(),
+                BooleanUtils.isTrue(targeting.getIncludeformat()),
                 isApp,
                 resolveTruncateAttrChars(targeting, account),
                 cacheHost,
