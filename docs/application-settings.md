@@ -21,6 +21,8 @@ There are two ways to configure application settings: database and file. This do
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow. Values: ignore, no-access-allowed, access-allowed.
 - `analytics-sampling-factor` - Analytics sampling factor value. 
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
+- `default-integration` - Default integration to assume.
+- `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
 
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
@@ -28,7 +30,7 @@ Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not
 p1        | Access device                   | Stops usersync for given vendor and stops settings cookie on `/seuid`
 p2        | Select basic ads                | Verify consent for each vendor as appropriate for the enforcement method before calling a bid adapter. If consent is not granted, log a metric and skip it.
 p3        | Personalized ads profile        | n\a
-p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, user.ext.digitrust, device.if attributes and call the adapter.
+p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, device.if attributes and call the adapter.
 p5        | Personalized content profile    | n\a
 p6        | Select personalized content     | n\a
 p7        | Measure ad performance          | Verify consent for each analytics module. If consent is not grantet skip it.
@@ -63,6 +65,10 @@ accounts:
     enforceCcpa: true
     analyticsSamplingFactor: 1
     truncateTargetAttr: 40
+    defaultIntegration: web
+    analytics-config:
+      auction-events:
+        amp: true
     gdpr:
       enabled: true
       integration-enabled:
@@ -179,13 +185,15 @@ Query to create accounts_account table:
 `tcf_config` json DEFAULT NULL,
 `analytics_sampling_factor` tinyint(4) DEFAULT NULL,
 `truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
+`default_integration` varchar(64) DEFAULT NULL,
+`analytics_config` varchar(512) DEFAULT NULL,
 `status` enum('active','inactive') DEFAULT 'active',
 `updated_by` int(11) DEFAULT NULL,
 `updated_by_user` varchar(64) DEFAULT NULL,
 `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
 UNIQUE KEY `uuid` (`uuid`))
-ENGINE=InnoDB AUTO_INCREMENT=1726 DEFAULT CHARSET=utf8'
+ENGINE=InnoDB DEFAULT CHARSET=utf8'
 ```
 
 where tcf_config column is json with next format
@@ -303,7 +311,7 @@ where tcf_config column is json with next format
 
 Query used to get an account:
 ```
-SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr 
+SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config 
 FROM accounts_account where uuid = ?
 LIMIT 1
 

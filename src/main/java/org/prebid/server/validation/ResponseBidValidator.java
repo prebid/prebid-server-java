@@ -2,18 +2,21 @@ package org.prebid.server.validation;
 
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
+import java.util.Currency;
 
 /**
  * Validator for response {@link Bid} object.
  */
 public class ResponseBidValidator {
 
-    public ValidationResult validate(Bid bid) {
+    public ValidationResult validate(BidderBid bidderBid) {
         try {
-            validateFieldsFor(bid);
+            validateFieldsFor(bidderBid.getBid());
+            validateCurrency(bidderBid.getBidCurrency());
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
         }
@@ -35,12 +38,30 @@ public class ResponseBidValidator {
         }
 
         final BigDecimal price = bid.getPrice();
-        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ValidationException("Bid \"%s\" does not contain a positive 'price'", bidId);
+        if (price == null) {
+            throw new ValidationException("Bid \"%s\" does not contain a 'price'", bidId);
+        }
+
+        if (price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException("Bid \"%s\" `price `has negative value", bidId);
+        }
+
+        if (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(bid.getDealid())) {
+            throw new ValidationException("Non deal bid \"%s\" has 0 price", bidId);
         }
 
         if (StringUtils.isEmpty(bid.getCrid())) {
             throw new ValidationException("Bid \"%s\" missing creative ID", bidId);
+        }
+    }
+
+    private static void validateCurrency(String currency) {
+        try {
+            if (StringUtils.isNotBlank(currency)) {
+                Currency.getInstance(currency);
+            }
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format("BidResponse currency is not valid: %s", currency), e);
         }
     }
 }

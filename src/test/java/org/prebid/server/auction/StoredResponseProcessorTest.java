@@ -439,6 +439,33 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
+    public void getStoredResponseResultShouldReturnFailedFutureWhenBidsAreEmptyInStoredSeatBid()
+            throws JsonProcessingException {
+        // given
+        final List<Imp> imps = singletonList(Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder().storedAuctionResponse(ExtStoredAuctionResponse.of("1")).build(),
+                        null)))
+                .build());
+
+        given(applicationSettings.getStoredResponses(any(), any()))
+                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(singletonMap("responseId",
+                        mapper.writeValueAsString(singletonList(SeatBid.builder()
+                                .seat("seat")
+                                .build()))),
+                        emptyList())));
+
+        // when
+        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
+                aliases, timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .hasMessage("There must be at least one bid in stored response seatBid");
+    }
+
+    @Test
     public void getStoredResponseResultShouldReturnFailedFutureSeatBidsCantBeParsed() {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId")
@@ -558,7 +585,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
                 emptyList()), 100));
 
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(null, BidType.video, null, null, null, null, null);
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().type(BidType.video).build();
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
                 .seat("rubicon").bid(singletonList(Bid.builder().ext(mapper.createObjectNode()

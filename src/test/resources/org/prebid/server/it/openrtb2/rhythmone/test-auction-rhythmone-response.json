@@ -19,6 +19,7 @@
           ],
           "w": 640,
           "h": 480,
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",

@@ -55,7 +55,7 @@ public class FpdResolverTest extends VertxTest {
                 .keywords("keywords")
                 .customdata("customdata")
                 .geo(Geo.builder().country("country").build())
-                .data(Collections.singletonList(Data.of("id", null, null, null)))
+                .data(Collections.singletonList(Data.builder().id("id").build()))
                 .build();
 
         final User fpdUser = User.builder()
@@ -67,7 +67,7 @@ public class FpdResolverTest extends VertxTest {
                 .keywords("fpdkeywords")
                 .customdata("fpdcustomdata")
                 .geo(Geo.builder().country("fpdcountry").build())
-                .data(Collections.singletonList(Data.of("fpdid", null, null, null)))
+                .data(Collections.singletonList(Data.builder().id("fpdid").build()))
                 .build();
 
         // when
@@ -83,7 +83,7 @@ public class FpdResolverTest extends VertxTest {
                 .language("language")
                 .customdata("customdata")
                 .geo(Geo.builder().country("country").build())
-                .data(Collections.singletonList(Data.of("id", null, null, null)))
+                .data(Collections.singletonList(Data.builder().id("id").build()))
                 .ext(ExtUser.builder().data(mapper.createObjectNode()
                         .set("geo", mapper.createObjectNode().put("country", "fpdcountry"))).build())
                 .build());
@@ -440,7 +440,7 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldCreateExtImpContextDataIfExtImpContextIsNullAndKeepOtherFields() {
         // given
-        final ObjectNode extImp = mapper.createObjectNode().set("prebid", mapper.createObjectNode());
+        final ObjectNode extImp = mapper.createObjectNode().put("prebid", 1).put("rubicon", 2);
         final ObjectNode targeting = mapper.createObjectNode()
                 .put("site", "site").put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2");
 
@@ -448,7 +448,7 @@ public class FpdResolverTest extends VertxTest {
         final ObjectNode result = fpdResolver.resolveImpExt(extImp, targeting);
 
         // then
-        final ObjectNode expectedResult = mapper.createObjectNode().set("prebid", mapper.createObjectNode());
+        final ObjectNode expectedResult = mapper.createObjectNode().put("prebid", 1).put("rubicon", 2);
         assertThat(result).isEqualTo(expectedResult.set("context", mapper.createObjectNode()
                 .set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue")
                         .put("fpdAttr", "fpdValue2"))));
@@ -556,11 +556,9 @@ public class FpdResolverTest extends VertxTest {
     public void resolveBidRequestExtShouldAddBidderConfig() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(null);
-        final Targeting targeting = Targeting.of(Collections.emptyList(),
-                mapper.createObjectNode().put("id", "id")
-                        .set("data", mapper.createObjectNode().put("siteData", "siteData")),
-                mapper.createObjectNode().put("id", "id")
-                        .set("data", mapper.createObjectNode().put("userData", "userData")));
+        final ObjectNode siteNode = mapper.valueToTree(Site.builder().id("id").build());
+        final ObjectNode userNode = mapper.valueToTree(User.builder().id("id").build());
+        final Targeting targeting = Targeting.of(Collections.emptyList(), siteNode, userNode);
 
         // when
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, targeting);
@@ -569,11 +567,7 @@ public class FpdResolverTest extends VertxTest {
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
                         Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                                mapper.valueToTree(Site.builder().id("id").ext(ExtSite.of(null,
-                                        mapper.createObjectNode().put("siteData", "siteData"))).build()), null,
-                                mapper.valueToTree(User.builder().id("id").ext(
-                                        ExtUser.builder().data(mapper.createObjectNode().put("userData", "userData"))
-                                                .build()).build())))))).build()));
+                                siteNode, null, userNode))))).build()));
     }
 
     @Test

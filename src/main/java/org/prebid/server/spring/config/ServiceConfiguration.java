@@ -27,6 +27,7 @@ import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -41,7 +42,8 @@ import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.manager.AdminManager;
+import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -50,6 +52,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
+import org.prebid.server.util.VersionInfo;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -73,6 +76,7 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -125,8 +129,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    OrtbTypesResolver ortbTypesResolver() {
-        return new OrtbTypesResolver();
+    OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper) {
+        return new OrtbTypesResolver(jacksonMapper);
     }
 
     @Bean
@@ -181,10 +185,9 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
-            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
-            @Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
@@ -195,13 +198,12 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
+            PrivacyEnforcementService privacyEnforcementService,
+            IdGenerator idGenerator,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
         final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
-        final IdGenerator idGenerator = idGeneratorType == IdGeneratorType.uuid
-                ? new UUIDIdGenerator()
-                : new NoneIdGenerator();
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -222,19 +224,22 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 mapper);
     }
 
-    private static List<String> splitCommaSeparatedString(String listString) {
-        return Stream.of(listString.split(","))
-                .map(String::trim)
-                .collect(Collectors.toList());
+    @Bean
+    IdGenerator idGenerator(@Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType) {
+        return idGeneratorType == IdGeneratorType.uuid
+                ? new UUIDIdGenerator()
+                : new NoneIdGenerator();
     }
 
     @Bean
     AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
                                         AuctionRequestFactory auctionRequestFactory,
                                         OrtbTypesResolver ortbTypesResolver,
+                                        ImplicitParametersExtractor implicitParametersExtractor,
                                         FpdResolver fpdResolver,
                                         TimeoutResolver timeoutResolver,
                                         JacksonMapper mapper) {
@@ -243,6 +248,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 auctionRequestFactory,
                 ortbTypesResolver,
+                implicitParametersExtractor,
                 fpdResolver,
                 timeoutResolver,
                 mapper);
@@ -251,13 +257,19 @@ public class ServiceConfiguration {
     @Bean
     VideoRequestFactory videoRequestFactory(
             @Value("${auction.max-request-size}") int maxRequestSize,
-            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             VideoStoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
-            TimeoutResolver timeoutResolver, JacksonMapper mapper) {
+            TimeoutResolver timeoutResolver,
+            JacksonMapper mapper) {
 
-        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, storedRequestProcessor,
-                auctionRequestFactory, timeoutResolver, mapper);
+        return new VideoRequestFactory(
+                maxRequestSize,
+                enforceStoredRequest,
+                storedRequestProcessor,
+                auctionRequestFactory,
+                timeoutResolver,
+                mapper);
     }
 
     @Bean
@@ -267,22 +279,31 @@ public class ServiceConfiguration {
 
     @Bean
     VideoStoredRequestProcessor videoStoredRequestProcessor(
-            ApplicationSettings applicationSettings,
-            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             BidRequest defaultVideoBidRequest,
+            ApplicationSettings applicationSettings,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             TimeoutResolver timeoutResolver,
-            @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
-            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             JacksonMapper mapper) {
 
         final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
 
-        return new VideoStoredRequestProcessor(applicationSettings, new VideoRequestValidator(), enforceStoredRequest,
-                blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
-                adServerCurrency, mapper);
+        return new VideoStoredRequestProcessor(
+                enforceStoredRequest,
+                blacklistedAccounts,
+                defaultTimeoutMs,
+                adServerCurrency,
+                defaultVideoBidRequest,
+                new VideoRequestValidator(),
+                applicationSettings,
+                metrics,
+                timeoutFactory,
+                timeoutResolver,
+                mapper);
     }
 
     @Bean
@@ -311,11 +332,7 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "false",
             matchIfMissing = true)
     BasicHttpClient basicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
-
-        return createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
-                httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
-                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
+        return createBasicHttpClient(vertx, httpClientProperties);
     }
 
     @Bean
@@ -335,36 +352,35 @@ public class ServiceConfiguration {
             @Qualifier("httpClientCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
-        final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
-                httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
-                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
+        final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
+
         return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
                 circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(), clock);
     }
 
-    private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs,
-                                                         boolean useCompression, int maxRedirects, boolean ssl,
-                                                         String jksPath, String jksPassword) {
-
+    private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
         final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(maxPoolSize)
-                .setTryUseCompression(useCompression)
-                .setConnectTimeout(connectTimeoutMs)
+                .setMaxPoolSize(httpClientProperties.getMaxPoolSize())
+                .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
+                .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
+                .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
+                .setTryUseCompression(httpClientProperties.getUseCompression())
+                .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
-                .setMaxRedirects(maxRedirects + 1);
+                .setMaxRedirects(httpClientProperties.getMaxRedirects() + 1);
 
-        if (ssl) {
+        if (httpClientProperties.getSsl()) {
             final JksOptions jksOptions = new JksOptions()
-                    .setPath(jksPath)
-                    .setPassword(jksPassword);
+                    .setPath(httpClientProperties.getJksPath())
+                    .setPassword(httpClientProperties.getJksPassword());
 
             options
                     .setSsl(true)
                     .setKeyStoreOptions(jksOptions);
         }
+
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));
     }
 
@@ -403,9 +419,28 @@ public class ServiceConfiguration {
     @Bean
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
-            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory) {
+            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
+            BidderErrorNotifier bidderErrorNotifier) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory);
+        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+    }
+
+    @Bean
+    BidderErrorNotifier bidderErrorNotifier(
+            @Value("${auction.timeout-notification.timeout-ms}") int timeoutNotificationTimeoutMs,
+            @Value("${auction.timeout-notification.log-result}") boolean logTimeoutNotificationResult,
+            @Value("${auction.timeout-notification.log-failure-only}") boolean logTimeoutNotificationFailureOnly,
+            @Value("${auction.timeout-notification.log-sampling-rate}") double logTimeoutNotificationSamplingRate,
+            HttpClient httpClient,
+            Metrics metrics) {
+
+        return new BidderErrorNotifier(
+                timeoutNotificationTimeoutMs,
+                logTimeoutNotificationResult,
+                logTimeoutNotificationFailureOnly,
+                logTimeoutNotificationSamplingRate,
+                httpClient,
+                metrics);
     }
 
     @Bean
@@ -416,13 +451,17 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             @Value("${auction.generate-bid-id}") boolean generateBidId,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
+            Clock clock,
             JacksonMapper mapper) {
 
-        if (truncateAttrChars < 0 || truncateAttrChars > 255) {
-            throw new IllegalArgumentException("settings.targeting.truncate-attr-chars must be between 0 and 255");
-        }
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, generateBidId,
+        return new BidResponseCreator(
+                cacheService,
+                bidderCatalog,
+                eventsService,
+                storedRequestProcessor,
+                generateBidId,
                 truncateAttrChars,
+                clock,
                 mapper);
     }
 
@@ -480,14 +519,15 @@ public class ServiceConfiguration {
     @Bean
     PrivacyEnforcementService privacyEnforcementService(
             BidderCatalog bidderCatalog,
+            PrivacyExtractor privacyExtractor,
             TcfDefinerService tcfDefinerService,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
-            @Value("${geolocation.enabled}") boolean useGeoLocation,
-            @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+            @Value("${ccpa.enforce}") boolean ccpaEnforce,
+            @Value("${lmt.enforce}") boolean lmtEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, useGeoLocation, ccpaEnforce);
+                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce, lmtEnforce);
     }
 
     @Bean
@@ -502,6 +542,11 @@ public class ServiceConfiguration {
                                               JacksonMapper mapper) {
 
         return new HttpAdapterConnector(httpClient, privacyExtractor, clock, mapper);
+    }
+
+    @Bean
+    VersionInfo versionInfo(JacksonMapper jacksonMapper) {
+        return VersionInfo.create("git-revision.json", jacksonMapper);
     }
 
     @Bean
@@ -558,6 +603,7 @@ public class ServiceConfiguration {
     @Bean
     CurrencyConversionService currencyConversionService(
             @Autowired(required = false) ExternalConversionProperties externalConversionProperties) {
+
         return new CurrencyConversionService(externalConversionProperties);
     }
 
@@ -565,18 +611,42 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "currency-converter.external-rates", name = "enabled", havingValue = "true")
     ExternalConversionProperties externalConversionProperties(
             @Value("${currency-converter.external-rates.url}") String currencyServerUrl,
-            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeout,
-            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriod,
+            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeoutMs,
+            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriodMs,
+            @Value("${currency-converter.external-rates.stale-after-ms}") long staleAfterMs,
+            @Value("${currency-converter.external-rates.stale-period-ms:#{null}}") Long stalePeriodMs,
             Vertx vertx,
             HttpClient httpClient,
+            Metrics metrics,
+            Clock clock,
             JacksonMapper mapper) {
 
-        return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient,
+        return new ExternalConversionProperties(
+                currencyServerUrl,
+                defaultTimeoutMs,
+                refreshPeriodMs,
+                staleAfterMs,
+                stalePeriodMs,
+                vertx,
+                httpClient,
+                metrics,
+                clock,
                 mapper);
     }
 
     @Bean
-    AdminManager adminManager() {
-        return new AdminManager();
+    HttpInteractionLogger httpInteractionLogger() {
+        return new HttpInteractionLogger();
+    }
+
+    @Bean
+    LoggerControlKnob loggerControlKnob(Vertx vertx) {
+        return new LoggerControlKnob(vertx);
+    }
+
+    private static List<String> splitCommaSeparatedString(String listString) {
+        return Stream.of(listString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
     }
 }
