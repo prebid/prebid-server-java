@@ -1054,7 +1054,7 @@ public class BidResponseCreator {
                 parsePriceGranularity(priceGranularity),
                 targeting.getIncludewinners(),
                 targeting.getIncludebidderkeys(),
-                BooleanUtils.toBooleanDefaultIfNull(targeting.getIncludeformat(), false),
+                BooleanUtils.isTrue(targeting.getIncludeformat()),
                 isApp,
                 resolveTruncateAttrChars(targeting, account),
                 cacheHost,
