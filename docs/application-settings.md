@@ -30,7 +30,7 @@ Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not
 p1        | Access device                   | Stops usersync for given vendor and stops settings cookie on `/seuid`
 p2        | Select basic ads                | Verify consent for each vendor as appropriate for the enforcement method before calling a bid adapter. If consent is not granted, log a metric and skip it.
 p3        | Personalized ads profile        | n\a
-p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, user.ext.digitrust, device.if attributes and call the adapter.
+p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, device.if attributes and call the adapter.
 p5        | Personalized content profile    | n\a
 p6        | Select personalized content     | n\a
 p7        | Measure ad performance          | Verify consent for each analytics module. If consent is not grantet skip it.

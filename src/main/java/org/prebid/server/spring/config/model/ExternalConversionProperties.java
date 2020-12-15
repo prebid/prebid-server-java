@@ -32,6 +32,9 @@ public class ExternalConversionProperties {
     @NotNull
     Long staleAfterMs;
 
+    @Min(2)
+    Long stalePeriodMs;
+
     @NotNull
     Vertx vertx;
 
