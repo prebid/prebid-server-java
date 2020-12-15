@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -226,7 +225,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .deviceOs("nokia")
                         .isMobile(1)
                         .user(User.builder().id("userId").buyeruid("buid").build())
-                        .adapterVersion("0.8.0")
+                        .adapterVersion("0.9.0")
                         .adapterName("BF_PREBID_S2S")
                         .ip("192.168.255.255")
                         .requestId("153")
@@ -277,20 +276,6 @@ public class BeachfrontBidderTest extends VertxTest {
                                                 .bidfloor(BigDecimal.ONE).build()))
                                         .build())
                                 .build());
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenResponseBodyIsEmpty() {
-        // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, null);
-
-        // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Received a null response from beachfront"));
     }
 
     @Test
@@ -431,12 +416,6 @@ public class BeachfrontBidderTest extends VertxTest {
                                 .build(), BidType.video, "USD"));
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        // given, when and then
-        assertThat(beachfrontBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer) {
@@ -464,6 +443,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

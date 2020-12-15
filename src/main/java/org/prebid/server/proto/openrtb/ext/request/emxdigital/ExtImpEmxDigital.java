@@ -9,6 +9,7 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtImpEmxDigital {
+
     String tagid;
 
     String bidfloor;

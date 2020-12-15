@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.telaria;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -8,14 +9,13 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
-import io.vertx.core.MultiMap;
-import org.prebid.server.VertxTest;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -23,7 +23,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smartrtb.SmartrtbBidder;
+import org.prebid.server.bidder.telaria.model.TelariaRequestExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 
 import java.util.List;
@@ -31,7 +33,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -121,13 +122,60 @@ public class TelariaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTelaria.of("adCode", null)))));
+                                ExtImpTelaria.of("adCode", null, mapper.createObjectNode())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Telaria: Seat Code required"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotChangeExtIfExtExtraIsMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTelaria.of("adCode", "seatCode", mapper.createObjectNode())))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldChangeRequestExtIfExtImpExtraIsNotEmpty() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        Imp.builder()
+                                .video(Video.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                        ExtImpTelaria.of("adCode", "seatCode",
+                                                mapper.createObjectNode().put("custom", "1234")))))
+                                .build()))
+                .site(Site.builder().build())
+                .app(App.builder().build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtRequest.empty(), TelariaRequestExt.of(mapper.createObjectNode().put("custom", "1234"))));
     }
 
     @Test
@@ -251,25 +299,6 @@ public class TelariaBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(telariaBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
@@ -288,12 +317,13 @@ public class TelariaBidderTest extends VertxTest {
                 .id("123")
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpTelaria.of("adCode", "seatCode")))))
+                        ExtImpTelaria.of("adCode", "seatCode", null)))))
                 .build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();

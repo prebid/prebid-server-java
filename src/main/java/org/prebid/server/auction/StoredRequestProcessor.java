@@ -90,7 +90,7 @@ public class StoredRequestProcessor {
      * fetched jsons from source. In case any error happen during the process, returns failedFuture with
      * InvalidRequestException {@link InvalidRequestException} as cause.
      */
-    Future<BidRequest> processStoredRequests(BidRequest bidRequest) {
+    Future<BidRequest> processStoredRequests(String accountId, BidRequest bidRequest) {
         final Map<BidRequest, String> bidRequestToStoredRequestId;
         final Map<Imp, String> impToStoredRequestId;
         try {
@@ -110,7 +110,7 @@ public class StoredRequestProcessor {
         }
 
         final Future<StoredDataResult> storedDataFuture =
-                applicationSettings.getStoredData(requestIds, impIds, timeout(bidRequest))
+                applicationSettings.getStoredData(accountId, requestIds, impIds, timeout(bidRequest))
                         .compose(storedDataResult -> updateMetrics(storedDataResult, requestIds, impIds));
 
         return storedRequestsToBidRequest(
@@ -120,12 +120,11 @@ public class StoredRequestProcessor {
     /**
      * Fetches AMP request from the source.
      */
-    Future<BidRequest> processAmpRequest(String ampRequestId) {
+    Future<BidRequest> processAmpRequest(String accountId, String ampRequestId) {
         final BidRequest bidRequest = defaultBidRequest != null ? defaultBidRequest : BidRequest.builder().build();
-
         final Future<StoredDataResult> ampStoredDataFuture =
                 applicationSettings.getAmpStoredData(
-                        Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
+                        accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
                         .compose(storedDataResult -> updateMetrics(
                                 storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
@@ -135,14 +134,15 @@ public class StoredRequestProcessor {
     /**
      * Fetches stored request.video and map existing values to imp.id.
      */
-    Future<VideoStoredDataResult> videoStoredDataResult(List<Imp> imps, List<String> errors, Timeout timeout) {
+    Future<VideoStoredDataResult> videoStoredDataResult(String accountId, List<Imp> imps, List<String> errors,
+                                                        Timeout timeout) {
         final Map<String, String> storedIdToImpId =
                 mapStoredRequestHolderToStoredRequestId(imps, this::getStoredRequestFromImp)
                         .entrySet().stream()
                         .collect(Collectors.toMap(Map.Entry::getValue,
                                 impIdToStoredId -> impIdToStoredId.getKey().getId()));
 
-        return applicationSettings.getStoredData(Collections.emptySet(), storedIdToImpId.keySet(), timeout)
+        return applicationSettings.getStoredData(accountId, Collections.emptySet(), storedIdToImpId.keySet(), timeout)
                 .map(storedDataResult -> makeVideoStoredDataResult(storedDataResult, storedIdToImpId, errors));
     }
 

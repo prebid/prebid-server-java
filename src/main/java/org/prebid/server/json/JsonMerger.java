@@ -64,4 +64,12 @@ public class JsonMerger {
                     String.format("Can't convert merging result class %s", classToCast.getName()));
         }
     }
+
+    public JsonNode merge(JsonNode originalObject, JsonNode mergingObject) {
+        try {
+            return JsonMergePatch.fromJson(originalObject).apply(mergingObject);
+        } catch (JsonPatchException e) {
+            throw new InvalidRequestException("Couldn't create merge patch for json nodes");
+        }
+    }
 }

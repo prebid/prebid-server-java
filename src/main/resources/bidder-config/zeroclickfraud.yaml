@@ -21,7 +21,7 @@ adapters:
       vendor-id: 0
     usersync:
       url: https://s.0cf.io/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-      redirect-url: /setuid?bidder=zeroclickfraud&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=${uid}
+      redirect-url: /setuid?bidder=zeroclickfraud&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${uid}
       cookie-family-name: zeroclickfraud
-      type: redirect
+      type: iframe
       support-cors: false

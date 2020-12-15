@@ -116,7 +116,6 @@ The only exception here is the top-level `BidResponse`, because it's bidder-inde
 
 Exceptions are made for extensions with "standard" recommendations:
 
-- `request.user.ext.digitrust` -- To support Digitrust support
 - `request.regs.ext.gdpr` and `request.user.ext.consent` -- To support GDPR
 - `request.site.ext.amp` -- To identify AMP as the request source
 - `request.app.ext.source` and `request.app.ext.version` -- To support identifying the displaymanager/SDK in mobile apps. If given, we expect these to be strings.
@@ -165,6 +164,7 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
         },
         "includewinners": false, // Optional param defaulting to true
         "includebidderkeys": false // Optional param defaulting to true
+        "includeformat": false // Optional param defaulting to false
       }
     }
   }
@@ -178,6 +178,8 @@ For backwards compatibility the following strings will also be allowed as price 
 `currency` is used for conversion between bid currency returned by bidder and adServer currency defined in request or prebid server configuration. If AdServer currency was not defined neither in request or config, prebid server will not fire request for bidders in such case. Currency support works in pair with custom price granularity, which should be defined for specific currency in request.  Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 One of "includewinners" or "includebidderkeys" must be true (both default to true if unset). If both were false, then no targeting keys would be set, which is better configured by omitting targeting altogether.
+
+The parameter "includeformat" indicates the type of the bid (banner, video, etc) for multiformat requests. It will add the key `hb_format` and/or `hb_format_{bidderName}` as per "includewinners" and "includebidderkeys" above.
 
 MediaType PriceGranularity - when a single OpenRTB request contains multiple impressions with different mediatypes, or a single impression supports multiple formats, the different mediatypes may need different price granularities. If `mediatypepricegranularity` is present, `pricegranularity` would only be used for any mediatypes not specified. 
 
@@ -683,11 +685,7 @@ Prebid Server adapters can support the [Prebid.js User ID modules](http://prebid
                 "source": "pubcommon",
                 "id":"11111111"
             }
-            ],
-            "digitrust": {
-                "id": "11111111111",
-                "keyv": 4
-            }
+            ]
         }
     }
 }
@@ -768,8 +766,8 @@ This supports publishers who want to sell different impressions to different bid
 This endpoint returns a 400 if the request contains deprecated properties (e.g. `imp.wmin`, `imp.hmax`).
 
 The error message in the response should describe how to "fix" the request to make it legal.
-If the message is unclear, please [log an issue](https://github.com/rubicon-project/prebid-server-java/issues)
-or [submit a pull request](https://github.com/rubicon-project/prebid-server-java/pulls) to improve it.
+If the message is unclear, please [log an issue](https://github.com/prebid/prebid-server-java/issues)
+or [submit a pull request](https://github.com/prebid/prebid-server-java/pulls) to improve it.
 
 #### Determining Bid Security (http/https)
 
