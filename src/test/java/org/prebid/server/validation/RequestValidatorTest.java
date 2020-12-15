@@ -1653,7 +1653,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnAnyErrorWhenEidSourceIsNotUnique() {
+    public void validateShouldReturnErrorWhenEidSourceIsNotUnique() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
@@ -1671,7 +1671,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).containsExactly("request.user.ext.eids must contain unique sources");
     }
 
     @Test
