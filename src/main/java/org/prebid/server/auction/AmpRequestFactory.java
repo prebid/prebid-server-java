@@ -18,7 +18,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -637,7 +636,7 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
-        final boolean includeFormat = !isTargetingNull && BooleanUtils.toBoolean(targeting.getIncludeformat());
+        final Boolean includeFormat = !isTargetingNull ? targeting.getIncludeformat() : null;
 
         return ExtRequestTargeting.builder()
                 .pricegranularity(outgoingPriceGranularityNode)

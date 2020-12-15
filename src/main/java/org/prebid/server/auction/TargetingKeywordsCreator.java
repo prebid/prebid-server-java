@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -265,7 +266,7 @@ public class TargetingKeywordsCreator {
             keywordMap.put(HB_CACHE_HOST_KEY, cacheHost);
             keywordMap.put(HB_CACHE_PATH_KEY, cachePath);
         }
-        if (StringUtils.isNotBlank(format) && includeFormat) {
+        if (StringUtils.isNotBlank(format) && BooleanUtils.toBooleanDefaultIfNull(includeFormat, false)) {
             keywordMap.put(HB_FORMAT_KEY, format);
         }
         if (StringUtils.isNotBlank(dealId)) {

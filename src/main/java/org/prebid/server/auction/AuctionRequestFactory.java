@@ -603,7 +603,7 @@ public class AuctionRequestFactory {
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
-                    .includeformat(isIncludeFormatNull ? false : targeting.getIncludeformat())
+                    .includeformat(targeting.getIncludeformat())
                     .build();
         } else {
             result = null;

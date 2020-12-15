@@ -919,28 +919,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetDefaultIncludeFormatIfIncludeFormatIsMissed() {
-        // given
-        givenBidRequest(BidRequest.builder()
-                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.builder().build())
-                        .build()))
-                .build());
-
-        // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(singletonList(request))
-                .extracting(BidRequest::getExt)
-                .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getTargeting)
-                .extracting(ExtRequestTargeting::getIncludeformat)
-                .containsOnly(false);
-    }
-
-    @Test
     public void shouldSetDefaultIncludeBidderKeysToFalseIfIncludeBidderKeysIsMissedAndWinningonlyIsTrue() {
         // given
         givenBidRequest(BidRequest.builder()

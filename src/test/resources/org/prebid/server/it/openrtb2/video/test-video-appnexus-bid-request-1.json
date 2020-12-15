@@ -297,8 +297,7 @@
           "precision": 2
         },
         "includewinners": true,
-        "includebidderkeys": true,
-        "includeformat" : false
+        "includebidderkeys": true
       },
       "cache": {
         "vastxml": {}
