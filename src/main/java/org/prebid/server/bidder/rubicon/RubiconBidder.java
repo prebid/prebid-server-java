@@ -947,14 +947,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
         final List<ExtUserEid> liverampEids = MapUtils.emptyIfNull(sourceToUserEidExt).get(LIVERAMP_EID);
         for (ExtUserEid extUserEid : CollectionUtils.emptyIfNull(liverampEids)) {
-            final ExtUserEidUid eidUid = extUserEid != null
-                    ? CollectionUtils.emptyIfNull(extUserEid.getUids()).stream().findFirst().orElse(null)
-                    : null;
-
-            final String id = eidUid != null ? eidUid.getId() : null;
-            if (StringUtils.isNotEmpty(id)) {
-                return id;
-            }
+            return extUserEid.getUids().stream()
+                    .map(ExtUserEidUid::getId)
+                    .filter(StringUtils::isNotEmpty)
+                    .findFirst()
+                    .orElse(null);
         }
         return null;
     }
