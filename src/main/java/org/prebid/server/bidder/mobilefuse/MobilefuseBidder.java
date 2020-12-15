@@ -52,7 +52,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .findFirst();
 
-        if (firstExtImpMobilefuse.isEmpty()) {
+        if (!firstExtImpMobilefuse.isPresent()) {
             return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
         }
 
@@ -61,7 +61,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .findFirst();
 
-        if (requestImp.isEmpty()) {
+        if (!requestImp.isPresent()) {
             return Result.withError(BidderError.badInput("No valid imps"));
         }
 
