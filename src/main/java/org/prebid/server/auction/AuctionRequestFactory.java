@@ -590,11 +590,9 @@ public class AuctionRequestFactory {
                 && targeting.getPricegranularity().isTextual();
         final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
         final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
-        final boolean isIncludeFormatNull = isTargetingNotNull && targeting.getIncludeformat() == null;
 
         final ExtRequestTargeting result;
-        if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull
-                || isIncludeFormatNull) {
+        if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
             result = ExtRequestTargeting.builder()
                     .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
                             isPriceGranularityTextual, impMediaTypes))
