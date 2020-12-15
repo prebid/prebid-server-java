@@ -190,7 +190,6 @@ public class AmpRequestFactory {
             setDefaultTargeting = targeting == null
                     || targeting.getIncludewinners() == null
                     || targeting.getIncludebidderkeys() == null
-                    || targeting.getIncludeformat() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
 
             final ExtRequestPrebidCache cache = prebid.getCache();
