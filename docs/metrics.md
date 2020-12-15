@@ -38,8 +38,6 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 ## General auction metrics
 - `app_requests` - number of requests received from applications
 - `no_cookie_requests` - number of requests without `uids` cookie or with one that didn't contain at least one live UID
-- `safari_requests` - number of requests received from Safari browser
-- `safari_no_cookie_requests` - number of requests received from Safari browser without `uids` cookie or with one that didn't contain at least one live UID
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
 - `imps_banner` - number of banner impressions

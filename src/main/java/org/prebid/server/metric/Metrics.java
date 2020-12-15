@@ -121,21 +121,11 @@ public class Metrics extends UpdatableMetrics {
         return settingsCacheMetrics.computeIfAbsent(type, settingsCacheMetricsCreator);
     }
 
-    public void updateSafariRequestsMetric(boolean isSafari) {
-        if (isSafari) {
-            incCounter(MetricName.safari_requests);
-        }
-    }
-
-    public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, boolean isSafari,
-                                                            int numImps) {
+    public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, int numImps) {
         if (isApp) {
             incCounter(MetricName.app_requests);
         } else if (!liveUidsPresent) {
             incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                incCounter(MetricName.safari_no_cookie_requests);
-            }
         }
         incCounter(MetricName.imps_requested, numImps);
     }

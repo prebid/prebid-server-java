@@ -24,8 +24,6 @@ public enum MetricName {
     requests,
     app_requests,
     no_cookie_requests,
-    safari_requests,
-    safari_no_cookie_requests,
     request_time,
     prices,
     imps_requested,
