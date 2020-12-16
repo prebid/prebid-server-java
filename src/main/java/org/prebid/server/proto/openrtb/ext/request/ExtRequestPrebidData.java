@@ -18,6 +18,6 @@ public class ExtRequestPrebidData {
      */
     List<String> bidders;
 
-    @JsonProperty("eidPermissions")
+    @JsonProperty("eidpermissions")
     List<ExtRequestPrebidDataEidPermissions> eidPermissions;
 }
