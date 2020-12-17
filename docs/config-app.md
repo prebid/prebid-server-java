@@ -63,6 +63,9 @@ Removes and downloads file again if depending service cant process probably corr
 - `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
 - `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 
+## Default bid request
+- `default-request.file.path` - path to a JSON file containing the default request
+
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.

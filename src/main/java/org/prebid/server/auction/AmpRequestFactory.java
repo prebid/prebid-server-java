@@ -634,11 +634,14 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
+        final Boolean includeFormat = !isTargetingNull ? targeting.getIncludeformat() : null;
+
         return ExtRequestTargeting.builder()
                 .pricegranularity(outgoingPriceGranularityNode)
                 .mediatypepricegranularity(mediaTypePriceGranularity)
                 .includewinners(includeWinners)
                 .includebidderkeys(includeBidderKeys)
+                .includeformat(includeFormat)
                 .build();
     }
 }

@@ -342,28 +342,16 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateSafariRequestsMetricShouldIncrementMetric() {
-        // when
-        metrics.updateSafariRequestsMetric(true);
-        metrics.updateSafariRequestsMetric(false);
-
-        // then
-        assertThat(metricRegistry.counter("safari_requests").getCount()).isOne();
-    }
-
-    @Test
     public void updateAppAndNoCookieAndImpsRequestedMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(true, false, false, 1);
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(false, false, false, 2);
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(false, false, true, 1);
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(false, true, false, 1);
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(true, false, 1);
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(false, false, 2);
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(false, true, 1);
 
         // then
         assertThat(metricRegistry.counter("app_requests").getCount()).isOne();
-        assertThat(metricRegistry.counter("no_cookie_requests").getCount()).isEqualTo(2);
-        assertThat(metricRegistry.counter("safari_no_cookie_requests").getCount()).isOne();
-        assertThat(metricRegistry.counter("imps_requested").getCount()).isEqualTo(5);
+        assertThat(metricRegistry.counter("no_cookie_requests").getCount()).isOne();
+        assertThat(metricRegistry.counter("imps_requested").getCount()).isEqualTo(4);
     }
 
     @Test

@@ -170,8 +170,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
+        final List<Imp> imps = extractValidImps(bidRequest, errors);
+        if (CollectionUtils.isEmpty(imps)) {
+            errors.add(BidderError.of("There are no valid impressions to create bid request to rubicon bidder",
+                    BidderError.Type.bad_input));
+            return Result.of(Collections.emptyList(), errors);
+        }
         final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt =
-                parseRubiconImpExts(bidRequest.getImp(), errors);
+                parseRubiconImpExts(imps, errors);
         final String impLanguage = firstImpExtLanguage(impToImpExt.values());
 
         for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt : impToImpExt.entrySet()) {
@@ -224,6 +230,44 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(rubiconTargeting -> !CollectionUtils.isEmpty(rubiconTargeting.getValues()))
                 .collect(Collectors.toMap(RubiconTargeting::getKey, t -> t.getValues().get(0)))
                 : Collections.emptyMap();
+    }
+
+    private List<Imp> extractValidImps(BidRequest bidRequest, List<BidderError> errors) {
+        final Map<Boolean, List<Imp>> isValidToImps = bidRequest.getImp().stream()
+                .collect(Collectors.groupingBy(RubiconBidder::isValidType));
+
+        isValidToImps.getOrDefault(false, Collections.emptyList()).stream()
+                .map(this::impTypeErrorMessage)
+                .forEach(errors::add);
+
+        return isValidToImps.getOrDefault(true, Collections.emptyList());
+    }
+
+    private static boolean isValidType(Imp imp) {
+        return imp.getVideo() != null || imp.getBanner() != null;
+    }
+
+    private BidderError impTypeErrorMessage(Imp imp) {
+        final BidType type = resolveExpectedBidType(imp);
+        return BidderError.of(
+                String.format("Impression with id %s rejected with invalid type `%s`." + " Allowed types are banner and"
+                        + " video.", imp.getId(), type != null ? type.name() : "unknown"), BidderError.Type.bad_input);
+    }
+
+    private static BidType resolveExpectedBidType(Imp imp) {
+        if (imp.getBanner() != null) {
+            return BidType.banner;
+        }
+        if (imp.getVideo() != null) {
+            return BidType.video;
+        }
+        if (imp.getAudio() != null) {
+            return BidType.audio;
+        }
+        if (imp.getXNative() != null) {
+            return BidType.xNative;
+        }
+        return null;
     }
 
     private static MultiMap headers(String xapiUsername, String xapiPassword) {
@@ -903,14 +947,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
         final List<ExtUserEid> liverampEids = MapUtils.emptyIfNull(sourceToUserEidExt).get(LIVERAMP_EID);
         for (ExtUserEid extUserEid : CollectionUtils.emptyIfNull(liverampEids)) {
-            final ExtUserEidUid eidUid = extUserEid != null
-                    ? CollectionUtils.emptyIfNull(extUserEid.getUids()).stream().findFirst().orElse(null)
-                    : null;
-
-            final String id = eidUid != null ? eidUid.getId() : null;
-            if (StringUtils.isNotEmpty(id)) {
-                return id;
-            }
+            return extUserEid.getUids().stream()
+                    .map(ExtUserEidUid::getId)
+                    .filter(StringUtils::isNotEmpty)
+                    .findFirst()
+                    .orElse(null);
         }
         return null;
     }
