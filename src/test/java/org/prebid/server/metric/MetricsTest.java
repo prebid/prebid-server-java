@@ -561,6 +561,36 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateSizeValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updateSizeValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.err);
+        metrics.updateSizeValidationMetrics(INVALID_BIDDER, ACCOUNT_ID, MetricName.err);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.size.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.size.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.size.err").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updateSecureValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updateSecureValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.err);
+        metrics.updateSecureValidationMetrics(INVALID_BIDDER, ACCOUNT_ID, MetricName.err);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.secure.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.secure.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.secure.err").getCount()).isEqualTo(2);
+    }
+
+    @Test
     public void updateCookieSyncRequestMetricShouldIncrementMetric() {
         // when
         metrics.updateCookieSyncRequestMetric();

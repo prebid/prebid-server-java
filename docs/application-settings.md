@@ -23,6 +23,7 @@ There are two ways to configure application settings: database and file. This do
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `default-integration` - Default integration to assume.
 - `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
+- `bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners.
 
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
@@ -187,6 +188,7 @@ Query to create accounts_account table:
 `truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
 `default_integration` varchar(64) DEFAULT NULL,
 `analytics_config` varchar(512) DEFAULT NULL,
+`bid_validations` json DEFAULT NULL,
 `status` enum('active','inactive') DEFAULT 'active',
 `updated_by` int(11) DEFAULT NULL,
 `updated_by_user` varchar(64) DEFAULT NULL,
@@ -198,7 +200,7 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8'
 
 where tcf_config column is json with next format
 
-```
+```json
 {
   "enabled": true,
    "integration-enabled": {
@@ -206,8 +208,8 @@ where tcf_config column is json with next format
       "web": true,
       "app": true,
       "amp": true
-   }
-  "purpose-one-treatment-interpretation": "ignore"
+   },
+  "purpose-one-treatment-interpretation": "ignore",
   "purposes": {
     "p1": {
       "enforce-purpose": "full",
@@ -309,9 +311,17 @@ where tcf_config column is json with next format
 }
 ```
 
+and bid_validations column is json with next format
+
+```json
+{
+  "banner-creative-max-size": "enforce"
+}
+```
+
 Query used to get an account:
 ```
-SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config 
+SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations 
 FROM accounts_account where uuid = ?
 LIMIT 1
 

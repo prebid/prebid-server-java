@@ -17,6 +17,7 @@ class AdapterMetrics extends UpdatableMetrics {
     private final RequestMetrics requestMetrics;
     private final Function<String, BidTypeMetrics> bidTypeMetricsCreator;
     private final Map<String, BidTypeMetrics> bidTypeMetrics;
+    private final ResponseMetrics responseMetrics;
 
     AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String adapterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
@@ -29,6 +30,7 @@ class AdapterMetrics extends UpdatableMetrics {
         requestTypeMetrics = new HashMap<>();
         requestMetrics = new RequestMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
         bidTypeMetrics = new HashMap<>();
+        responseMetrics = new ResponseMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
     }
 
     AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String account, String adapterType) {
@@ -44,6 +46,7 @@ class AdapterMetrics extends UpdatableMetrics {
         requestTypeMetrics = null;
         bidTypeMetricsCreator = null;
         bidTypeMetrics = null;
+        responseMetrics = null;
     }
 
     private static String createAdapterPrefix(String adapterType) {
@@ -68,5 +71,9 @@ class AdapterMetrics extends UpdatableMetrics {
 
     BidTypeMetrics forBidType(String bidType) {
         return bidTypeMetrics.computeIfAbsent(bidType, bidTypeMetricsCreator);
+    }
+
+    ResponseMetrics response() {
+        return responseMetrics;
     }
 }

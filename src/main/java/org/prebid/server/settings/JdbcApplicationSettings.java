@@ -13,6 +13,7 @@ import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -97,9 +98,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return jdbcClient.executeQuery("SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl,"
-                        + " events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr,"
-                        + " default_integration, analytics_config FROM accounts_account where uuid = ? LIMIT 1",
+        return jdbcClient.executeQuery("SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, "
+                        + "events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, "
+                        + "default_integration, analytics_config, bid_validations "
+                        + "FROM accounts_account where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.builder()
                         .id(row.getString(0))
@@ -113,6 +115,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .truncateTargetAttr(row.getInteger(8))
                         .defaultIntegration(row.getString(9))
                         .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
+                        .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
