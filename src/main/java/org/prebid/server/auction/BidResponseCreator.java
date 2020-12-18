@@ -72,7 +72,6 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -100,6 +99,7 @@ public class BidResponseCreator {
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final BidResponseReducer bidResponseReducer;
     private final boolean generateBidId;
     private final int truncateAttrChars;
     private final Clock clock;
@@ -113,6 +113,7 @@ public class BidResponseCreator {
                               BidderCatalog bidderCatalog,
                               EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
+                              BidResponseReducer bidResponseReducer,
                               boolean generateBidId,
                               int truncateAttrChars,
                               Clock clock,
@@ -122,6 +123,7 @@ public class BidResponseCreator {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.bidResponseReducer = Objects.requireNonNull(bidResponseReducer);
         this.generateBidId = generateBidId;
         this.truncateAttrChars = validateTruncateAttrChars(truncateAttrChars);
         this.clock = Objects.requireNonNull(clock);
@@ -194,7 +196,9 @@ public class BidResponseCreator {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
-        bidderResponses.forEach(BidResponseCreator::removeRedundantBids);
+        final List<BidderResponse> updatedBidderResponses = bidderResponses.stream()
+                .map(bidResponseReducer::removeRedundantBids)
+                .collect(Collectors.toList());
 
         ExtRequestTargeting targeting = targeting(bidRequest);
         final Set<Bid> winningBids = newOrEmptySet(targeting);
@@ -202,12 +206,12 @@ public class BidResponseCreator {
 
         // determine winning bids only if targeting is present
         if (targeting != null) {
-            populateWinningBids(bidderResponses, winningBids, winningBidsByBidder);
+            populateWinningBids(updatedBidderResponses, winningBids, winningBidsByBidder);
         }
 
         final Set<Bid> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly()
                 ? winningBids
-                : bidderResponses.stream().flatMap(BidResponseCreator::getBids).collect(Collectors.toSet());
+                : updatedBidderResponses.stream().flatMap(BidResponseCreator::getBids).collect(Collectors.toSet());
 
         final EventsContext eventsContext = EventsContext.builder()
                 .enabledForAccount(eventsEnabledForAccount(auctionContext))
@@ -217,14 +221,14 @@ public class BidResponseCreator {
                 .build();
 
         return toBidsWithCacheIds(
-                bidderResponses,
+                updatedBidderResponses,
                 bidsToCache,
                 auctionContext,
                 cacheInfo,
                 eventsContext)
                 .compose(cacheResult -> videoStoredDataResult(auctionContext)
                         .map(videoStoredDataResult -> toBidResponse(
-                                bidderResponses,
+                                updatedBidderResponses,
                                 auctionContext,
                                 targeting,
                                 winningBids,
@@ -276,39 +280,6 @@ public class BidResponseCreator {
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null,
                 ExtBidResponsePrebid.of(auctionTimestamp));
-    }
-
-    private static void removeRedundantBids(BidderResponse bidderResponse) {
-        final List<BidderBid> responseBidderBids = bidderResponse.getSeatBid().getBids();
-        if (responseBidderBids.size() < 2) { // no reason for removing if only one bid was responded
-            return;
-        }
-
-        final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
-                .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
-
-        final Set<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
-                .map(BidResponseCreator::mostValuableBid)
-                .collect(Collectors.toSet());
-
-        responseBidderBids.clear();
-        responseBidderBids.addAll(mostValuableBids);
-    }
-
-    private static BidderBid mostValuableBid(List<BidderBid> bidderBids) {
-        if (bidderBids.size() == 1) {
-            return bidderBids.get(0);
-        }
-
-        final List<BidderBid> dealBidderBids = bidderBids.stream()
-                .filter(bidderBid -> StringUtils.isNotBlank(bidderBid.getBid().getDealid()))
-                .collect(Collectors.toList());
-
-        List<BidderBid> processedBidderBids = dealBidderBids.isEmpty() ? bidderBids : dealBidderBids;
-
-        return processedBidderBids.stream()
-                .max(Comparator.comparing(bidderBid -> bidderBid.getBid().getPrice(), Comparator.naturalOrder()))
-                .orElse(bidderBids.get(0));
     }
 
     /**
