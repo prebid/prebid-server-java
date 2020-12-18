@@ -21,6 +21,7 @@ class AccountMetrics extends UpdatableMetrics {
     private final Map<MetricName, RequestTypeMetrics> requestTypeMetrics;
     private final RequestMetrics requestsMetrics;
     private final CacheMetrics cacheMetrics;
+    private final ResponseMetrics responseMetrics;
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
@@ -32,6 +33,7 @@ class AccountMetrics extends UpdatableMetrics {
         requestTypeMetrics = new HashMap<>();
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(account));
         cacheMetrics = new CacheMetrics(metricRegistry, counterType, createPrefix(account));
+        responseMetrics = new ResponseMetrics(metricRegistry, counterType, createPrefix(account));
     }
 
     private static String createPrefix(String account) {
@@ -56,5 +58,9 @@ class AccountMetrics extends UpdatableMetrics {
 
     CacheMetrics cache() {
         return cacheMetrics;
+    }
+
+    ResponseMetrics response() {
+        return responseMetrics;
     }
 }

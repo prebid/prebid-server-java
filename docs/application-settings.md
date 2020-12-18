@@ -23,6 +23,7 @@ There are two ways to configure application settings: database and file. This do
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `default-integration` - Default integration to assume.
 - `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
+- `bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners.
 
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
@@ -30,7 +31,7 @@ Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not
 p1        | Access device                   | Stops usersync for given vendor and stops settings cookie on `/seuid`
 p2        | Select basic ads                | Verify consent for each vendor as appropriate for the enforcement method before calling a bid adapter. If consent is not granted, log a metric and skip it.
 p3        | Personalized ads profile        | n\a
-p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, user.ext.digitrust, device.if attributes and call the adapter.
+p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, device.if attributes and call the adapter.
 p5        | Personalized content profile    | n\a
 p6        | Select personalized content     | n\a
 p7        | Measure ad performance          | Verify consent for each analytics module. If consent is not grantet skip it.
@@ -48,14 +49,14 @@ In file based approach all configuration stores in .yaml files, path to which ar
 
 ### Configuration in application.yaml
 
-```
+```yaml
 settings:
   filesystem:
     settings-filename: <directory to yaml file with settings>
 ```
 ### File format
 
-```
+```yaml
 accounts:
   - id: 14062
     bannerCacheTtl: 100
@@ -151,7 +152,6 @@ accounts:
       purpose-one-treatment-interpretation: ignore
 ```
 
-  
 ## Database application setting
 
 In database approach account properties are stored in database table.
@@ -160,12 +160,12 @@ SQL query for retrieving account is configurable and can be specified in [applic
 Requirements for the SQL query stated below.
 
 ### Configuration in application.yaml
-```
+
+```yaml
 settings:
   database:
-    type: <mysql or postgres>
     pool-size: 20
-    type: mysql
+    type: <mysql or postgres>
     host: <host>
     port: <port>
     account-query: <SQL query for account>
@@ -201,8 +201,8 @@ TCF configuration column format:
       "web": true,
       "app": true,
       "amp": true
-   }
-  "purpose-one-treatment-interpretation": "ignore"
+   },
+  "purpose-one-treatment-interpretation": "ignore",
   "purposes": {
     "p1": {
       "enforce-purpose": "full",
@@ -304,8 +304,17 @@ TCF configuration column format:
 }
 ```
 
+and bid_validations column is json with next format
+
+```json
+{
+  "banner-creative-max-size": "enforce"
+}
+```
+
 
 Analytics configuration column format:
+
 ```json
 {
   "auction-events": {
@@ -320,28 +329,37 @@ Analytics configuration column format:
 
 Query to create accounts_account table:
 
-```
+```sql
 'CREATE TABLE `accounts_account` (
-`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-`uuid` varchar(40) NOT NULL,
-`price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
-`granularityMultiplier` decimal(9,3) DEFAULT NULL,
-`banner_cache_ttl` int(11) DEFAULT NULL,
-`video_cache_ttl` int(11) DEFAULT NULL,
-`events_enabled` bit(1) DEFAULT NULL,
-`enforce_ccpa` bit(1) DEFAULT NULL,
-`tcf_config` json DEFAULT NULL,
-`analytics_sampling_factor` tinyint(4) DEFAULT NULL,
-`truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `uuid` varchar(40) NOT NULL,
+    `price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
+    `granularityMultiplier` decimal(9,3) DEFAULT NULL,
+    `banner_cache_ttl` int(11) DEFAULT NULL,
+    `video_cache_ttl` int(11) DEFAULT NULL,
+    `events_enabled` bit(1) DEFAULT NULL,
+    `enforce_ccpa` bit(1) DEFAULT NULL,
+    `enforce_gdpr` bit(1) DEFAULT NULL,
+    `tcf_config` json DEFAULT NULL,
+    `analytics_sampling_factor` tinyint(4) DEFAULT NULL,
+    `truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
+    `default_integration` varchar(64) DEFAULT NULL,
+    `analytics_config` varchar(512) DEFAULT NULL,
+    `bid_validations` json DEFAULT NULL,
+    `status` enum('active','inactive') DEFAULT 'active',
+    `updated_by` int(11) DEFAULT NULL,
+    `updated_by_user` varchar(64) DEFAULT NULL,
+    `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
 UNIQUE KEY `uuid` (`uuid`))
-ENGINE=InnoDB AUTO_INCREMENT=1726 DEFAULT CHARSET=utf8'
+ENGINE=InnoDB DEFAULT CHARSET=utf8'
 ```
 
 Query used to get an account:
-```
+
+```sql
 SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 
-analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config 
+    analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations 
 FROM accounts_account where uuid = %ACCOUNT_ID%
 LIMIT 1
 ```

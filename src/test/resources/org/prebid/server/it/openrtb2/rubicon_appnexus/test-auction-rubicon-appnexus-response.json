@@ -628,11 +628,6 @@
         },
         "user": {
           "ext": {
-            "digitrust": {
-              "id": "id",
-              "keyv": 123,
-              "pref": 0
-            },
             "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
             "eids": [
               {

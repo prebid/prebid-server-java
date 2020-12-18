@@ -13,6 +13,7 @@ import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -121,6 +122,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .truncateTargetAttr(row.getInteger(8))
                         .defaultIntegration(row.getString(9))
                         .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
+                        .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));

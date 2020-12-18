@@ -29,6 +29,8 @@ public class Account {
 
     AccountAnalyticsConfig analyticsConfig;
 
+    AccountBidValidationConfig bidValidations;
+
     public static Account empty(String id) {
         return Account.builder()
                 .id(id)

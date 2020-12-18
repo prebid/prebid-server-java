@@ -73,7 +73,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -189,7 +188,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveSite(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(fpdResolver.resolveApp(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
 
-        given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
+        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
         given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
@@ -943,8 +942,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .allSatisfy(map -> assertThat(map).isNull());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void shouldTolerateResponseBidValidationErrors() throws JsonProcessingException {
+    public void shouldTolerateResponseBidValidationErrors() {
         // given
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
                 givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build()))));
@@ -956,20 +956,67 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(responseBidValidator.validate(any()))
-                .willReturn(ValidationResult.error("bid validation error"));
-
-        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.error(
+                singletonList("bid validation warning"),
                 "bid validation error"));
-        givenBidResponseCreator(singletonMap("bidder1", bidderErrors));
+
+        givenBidResponseCreator(singletonList(Bid.builder().build()));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getErrors()).hasSize(1)
-                .containsOnly(entry("bidder1", bidderErrors));
+        final ArgumentCaptor<List<BidderResponse>> bidderResponsesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(bidderResponsesCaptor.capture(), any(), any(), anyBoolean());
+        final List<BidderResponse> bidderResponses = bidderResponsesCaptor.getValue();
+
+        assertThat(bidderResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .isEmpty();
+        assertThat(bidderResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getErrors)
+                .containsOnly(
+                        BidderError.generic("bid validation warning"),
+                        BidderError.generic("bid validation error"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldTolerateResponseBidValidationWarnings() {
+        // given
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success(
+                singletonList("bid validation warning")));
+
+        givenBidResponseCreator(singletonList(Bid.builder().build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final ArgumentCaptor<List<BidderResponse>> bidderResponsesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(bidderResponsesCaptor.capture(), any(), any(), anyBoolean());
+        final List<BidderResponse> bidderResponses = bidderResponsesCaptor.getValue();
+
+        assertThat(bidderResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .hasSize(1);
+        assertThat(bidderResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getErrors)
+                .containsOnly(BidderError.generic("bid validation warning"));
     }
 
     @Test
@@ -986,7 +1033,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(responseBidValidator.validate(any()))
+        given(responseBidValidator.validate(any(), any(), any(), any()))
                 .willReturn(ValidationResult.error("BidResponse currency is not valid: USDD"));
 
         final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
@@ -1317,9 +1364,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
-        final ExtUserDigiTrust extUserDigiTrust = ExtUserDigiTrust.of("dId", 23, 222);
         final List<ExtUserEid> eids = singletonList(ExtUserEid.of("eId", "id", emptyList(), null));
-        final ExtUser extUser = ExtUser.builder().data(dataNode).digitrust(extUserDigiTrust).eids(eids).build();
+        final ExtUser extUser = ExtUser.builder().data(dataNode).eids(eids).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -1343,7 +1389,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
-        final ExtUser maskedExtUser = ExtUser.builder().digitrust(extUserDigiTrust).eids(eids).build();
+        final ExtUser maskedExtUser = ExtUser.builder().eids(eids).build();
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
@@ -1394,9 +1440,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
-        final ExtUserDigiTrust extUserDigiTrust = ExtUserDigiTrust.of("dId", 23, 222);
         final List<ExtUserEid> eids = singletonList(ExtUserEid.of("eId", "id", emptyList(), null));
-        final ExtUser extUser = ExtUser.builder().data(dataNode).digitrust(extUserDigiTrust).eids(eids).build();
+        final ExtUser extUser = ExtUser.builder().data(dataNode).eids(eids).build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -1418,7 +1463,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
-        final ExtUser expectedExtUser = ExtUser.builder().digitrust(extUserDigiTrust).eids(eids).build();
+        final ExtUser expectedExtUser = ExtUser.builder().eids(eids).build();
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)

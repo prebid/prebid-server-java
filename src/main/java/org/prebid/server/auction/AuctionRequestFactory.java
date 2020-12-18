@@ -49,8 +49,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -200,7 +198,7 @@ public class AuctionRequestFactory {
 
         return accountFrom(bidRequest, timeout, routingContext)
                 .compose(account -> privacyEnforcementService.contextFromBidRequest(
-                        bidRequest, account, requestTypeMetric, timeout)
+                        bidRequest, account, requestTypeMetric, timeout, errors)
                         .map(privacyContext -> AuctionContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
@@ -278,7 +276,6 @@ public class AuctionRequestFactory {
         final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
 
         final User user = bidRequest.getUser();
-        final User populatedUser = populateUser(user);
 
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source);
@@ -299,14 +296,13 @@ public class AuctionRequestFactory {
         final ExtRequest populatedExt = populateRequestExt(
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps));
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
+        if (populatedDevice != null || populatedSite != null || populatedSource != null
                 || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
                 || populatedExt != null) {
 
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : device)
                     .site(populatedSite != null ? populatedSite : site)
-                    .user(populatedUser != null ? populatedUser : user)
                     .source(populatedSource != null ? populatedSource : source)
                     .imp(populatedImps != null ? populatedImps : imps)
                     .at(resolvedAt != null ? resolvedAt : at)
@@ -451,33 +447,6 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
-     */
-    private User populateUser(User user) {
-        final ExtUser ext = userExtOrNull(user);
-
-        if (ext != null) {
-            return user.toBuilder().ext(ext).build();
-        }
-        return null;
-    }
-
-    /**
-     * Returns updated {@link ExtUser} or null if no updates needed.
-     */
-    private ExtUser userExtOrNull(User user) {
-        final ExtUser extUser = user != null ? user.getExt() : null;
-
-        final ExtUserDigiTrust digitrust = extUser != null ? extUser.getDigitrust() : null;
-        if (digitrust != null && digitrust.getPref() == null) {
-            return extUser.toBuilder()
-                    .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
-                    .build();
-        }
-        return null;
-    }
-
-    /**
      * Returns {@link Source} with updated source.tid or null if nothing changed.
      */
     private Source populateSource(Source source) {
@@ -601,6 +570,7 @@ public class AuctionRequestFactory {
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
+                    .includeformat(targeting.getIncludeformat())
                     .build();
         } else {
             result = null;

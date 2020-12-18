@@ -280,14 +280,19 @@ public class BidResponseCreator {
 
     private static void removeRedundantBids(BidderResponse bidderResponse) {
         final List<BidderBid> responseBidderBids = bidderResponse.getSeatBid().getBids();
+        if (responseBidderBids.size() < 2) { // no reason for removing if only one bid was responded
+            return;
+        }
+
         final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
                 .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
 
-        final List<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
+        final Set<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
                 .map(BidResponseCreator::mostValuableBid)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
-        responseBidderBids.retainAll(mostValuableBids);
+        responseBidderBids.clear();
+        responseBidderBids.addAll(mostValuableBids);
     }
 
     private static BidderBid mostValuableBid(List<BidderBid> bidderBids) {
@@ -831,7 +836,8 @@ public class BidResponseCreator {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(bidType, targeting, isApp,
                     bidRequest, account);
 
-            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
+            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, bidType.getName(),
+                    videoCacheId);
         } else {
             targetingKeywords = null;
         }
@@ -1048,6 +1054,7 @@ public class BidResponseCreator {
                 parsePriceGranularity(priceGranularity),
                 targeting.getIncludewinners(),
                 targeting.getIncludebidderkeys(),
+                BooleanUtils.isTrue(targeting.getIncludeformat()),
                 isApp,
                 resolveTruncateAttrChars(targeting, account),
                 cacheHost,
