@@ -46,8 +46,7 @@ public class AvocetTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/avocet/test-auction-avocet-response.json",
-                response, singletonList("avocet"));
+                "openrtb2/avocet/test-auction-avocet-response.json", response, singletonList("avocet"));
 
         final String actualStr = response.asString();
 

@@ -3,10 +3,12 @@ package org.prebid.server.validation;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
 import java.util.Currency;
+import java.util.Objects;
 
 /**
  * Validator for response {@link Bid} object.
@@ -16,6 +18,7 @@ public class ResponseBidValidator {
     public ValidationResult validate(BidderBid bidderBid) {
         try {
             validateFieldsFor(bidderBid.getBid());
+            validateTypeSpecific(bidderBid);
             validateCurrency(bidderBid.getBidCurrency());
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
@@ -52,6 +55,14 @@ public class ResponseBidValidator {
 
         if (StringUtils.isEmpty(bid.getCrid())) {
             throw new ValidationException("Bid \"%s\" missing creative ID", bidId);
+        }
+    }
+
+    private static void validateTypeSpecific(BidderBid bidderBid) throws ValidationException {
+        final Bid bid = bidderBid.getBid();
+        final boolean isVastSpecificAbsent = bid.getAdm() == null && bid.getNurl() == null;
+        if (Objects.equals(bidderBid.getType(), BidType.video) && isVastSpecificAbsent) {
+            throw new ValidationException("Bid \"%s\" with video type missing adm and nurl", bid.getId());
         }
     }
 

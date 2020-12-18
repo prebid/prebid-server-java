@@ -8,9 +8,9 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
@@ -103,22 +103,49 @@ public class ResponseBidValidatorTest {
     }
 
     @Test
+    public void validateShouldFailedIfVideoBidHasNoNurlAndAdm() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.adm(null).nurl(null), BidType.video));
+
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Bid \"bidId1\" with video type missing adm and nurl");
+    }
+
+    @Test
+    public void validateShouldReturnSuccessfulResultForValidVideoBidWithNurl() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.adm(null), BidType.video));
+
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
+    public void validateShouldReturnSuccessfulResultForValidVideoBidWithAdm() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.nurl(null), BidType.video));
+
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
     public void validateShouldReturnSuccessfulResultForValidBid() {
         final ValidationResult result = responseBidValidator.validate(givenBid(identity()));
 
         assertThat(result.hasErrors()).isFalse();
     }
 
-    private static BidderBid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer, BidType mediaType) {
+    private static BidderBid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer, BidType mediaType) {
         final Bid.BidBuilder bidBuilder = Bid.builder()
                 .id("bidId1")
+                .adm("adm1")
+                .nurl("nurl")
                 .impid("impId1")
                 .crid("crid1")
                 .price(BigDecimal.ONE);
         return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), mediaType, "USD");
     }
 
-    private static BidderBid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidderBid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return givenBid(bidCustomizer, null);
     }
 }
