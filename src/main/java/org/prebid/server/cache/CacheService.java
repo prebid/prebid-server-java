@@ -291,7 +291,7 @@ public class CacheService {
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final Integer bidTtl = bid.getExp();
         final Imp correspondingImp = bidInfo.getCorrespondingImp();
-        final Integer impTtl = correspondingImp != null ? correspondingImp.getExp() : null;
+        final Integer impTtl = correspondingImp.getExp();
         final Integer accountMediaTypeTtl = isVideoBid
                 ? accountCacheTtl.getVideoCacheTtl()
                 : accountCacheTtl.getBannerCacheTtl();

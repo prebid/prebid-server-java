@@ -11,7 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -27,7 +26,6 @@ import java.util.Currency;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.Objects;
 
 /**
  * Validator for response {@link Bid} object.

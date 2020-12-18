@@ -31,7 +31,6 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
-import org.prebid.server.vast.VastModifier;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheInfo;
@@ -68,6 +67,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
+import org.prebid.server.vast.VastModifier;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -277,11 +277,13 @@ public class BidResponseCreator {
     }
 
     private static Imp correspondingImp(Bid bid, List<Imp> imps) {
+        final String impId = bid.getImpid();
         return imps.stream()
-                .filter(imp -> bid.getImpid().equals(imp.getId()))
+                .filter(imp -> Objects.equals(impId, imp.getId()))
                 .findFirst()
-                // TODO good place to add metric on missing corresponding imp
-                .orElse(null);
+                // Should never occur. See ResponseBidValidator
+                .orElseThrow(
+                        () -> new PreBidException(String.format("Bid with impId %s doesn't have matched imp", impId)));
     }
 
     /**
