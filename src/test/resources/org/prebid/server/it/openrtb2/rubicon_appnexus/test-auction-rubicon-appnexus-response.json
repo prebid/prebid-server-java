@@ -271,6 +271,7 @@
           "crid": "crid1",
           "w": 300,
           "h": 250,
+          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
@@ -627,11 +628,6 @@
         },
         "user": {
           "ext": {
-            "digitrust": {
-              "id": "id",
-              "keyv": 123,
-              "pref": 0
-            },
             "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
             "eids": [
               {

@@ -134,7 +134,7 @@ adapters:
           - IAB26-3
           - IAB26-4
         imp_battr: [1, 3, 8, 9, 10, 13, 14, 17]
-        bid_floor: 0.3
+        bid_floor: 0.65
       - id: adthrive
         badv:
           - 100sofrecipes.com

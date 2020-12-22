@@ -1,0 +1,20 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "adm": "<b>hi</b>",
+          "crid": "test_banner_crid",
+          "cid": "test_cid",
+          "impid": "impId001",
+          "id": "1",
+          "price": 0.01,
+          "ext": {
+            "format": "BANNER"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -30,6 +30,8 @@ public class Account {
 
     AccountAnalyticsConfig analyticsConfig;
 
+    AccountBidValidationConfig bidValidations;
+
     AccountStatus status;
 
     public Account merge(Account another) {
@@ -46,6 +48,7 @@ public class Account {
                 .truncateTargetAttr(ObjectUtils.firstNonNull(truncateTargetAttr, another.truncateTargetAttr))
                 .defaultIntegration(ObjectUtils.firstNonNull(defaultIntegration, another.defaultIntegration))
                 .analyticsConfig(ObjectUtils.firstNonNull(analyticsConfig, another.analyticsConfig))
+                .bidValidations(ObjectUtils.firstNonNull(bidValidations, another.bidValidations))
                 .status(ObjectUtils.firstNonNull(status, another.status))
                 .build();
     }

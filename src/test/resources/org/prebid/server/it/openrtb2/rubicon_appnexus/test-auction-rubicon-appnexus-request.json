@@ -278,10 +278,6 @@
   "user": {
     "ext": {
       "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123
-      },
       "eids": [
         {
           "source": "adserver.org",

@@ -38,8 +38,12 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return delegate.getStoredData(requestIds, impIds, timeout);
+    public Future<StoredDataResult> getStoredData(String accountId,
+                                                  Set<String> requestIds,
+                                                  Set<String> impIds,
+                                                  Timeout timeout) {
+
+        return delegate.getStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
@@ -48,12 +52,20 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return delegate.getAmpStoredData(requestIds, impIds, timeout);
+    public Future<StoredDataResult> getAmpStoredData(String accountId,
+                                                     Set<String> requestIds,
+                                                     Set<String> impIds,
+                                                     Timeout timeout) {
+
+        return delegate.getAmpStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return delegate.getVideoStoredData(requestIds, impIds, timeout);
+    public Future<StoredDataResult> getVideoStoredData(String accountId,
+                                                       Set<String> requestIds,
+                                                       Set<String> impIds,
+                                                       Timeout timeout) {
+
+        return delegate.getVideoStoredData(accountId, requestIds, impIds, timeout);
     }
 }

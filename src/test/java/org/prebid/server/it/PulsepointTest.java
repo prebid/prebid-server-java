@@ -74,7 +74,7 @@ public class PulsepointTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"pulsepoint":"PP-UID"}}
+                // this uids cookie value stands for {"uids":{"pulsepoint":"PP-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7InB1bHNlcG9pbnQiOiJQUC1VSUQifX0=")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/pulsepoint/test-auction-pulsepoint-request.json"))
