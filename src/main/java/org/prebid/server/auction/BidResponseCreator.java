@@ -267,12 +267,11 @@ public class BidResponseCreator {
     }
 
     private static BidInfo toBidInfo(Bid bid, BidType type, List<Imp> imps, String bidder) {
-        final Imp imp = correspondingImp(bid, imps);
         return BidInfo.builder()
                 .bid(bid)
                 .bidType(type)
                 .bidder(bidder)
-                .correspondingImp(imp)
+                .correspondingImp(correspondingImp(bid, imps))
                 .build();
     }
 

@@ -9,6 +9,7 @@ import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class VastModifier {
@@ -17,8 +18,8 @@ public class VastModifier {
     private final EventsService eventsService;
 
     public VastModifier(BidderCatalog bidderCatalog, EventsService eventsService) {
-        this.bidderCatalog = bidderCatalog;
-        this.eventsService = eventsService;
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.eventsService = Objects.requireNonNull(eventsService);
     }
 
     public JsonNode modifyVastXml(Boolean isEventsEnabled,
