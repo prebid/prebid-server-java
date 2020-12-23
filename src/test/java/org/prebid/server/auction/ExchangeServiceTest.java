@@ -51,6 +51,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.privacy.model.PrivacyDebugLog;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
@@ -100,6 +102,7 @@ import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
@@ -622,6 +625,34 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verifyZeroInteractions(httpBidderRequester);
+    }
+
+    @Test
+    public void shouldCopyDebugMessagesToPrivacyDebugLog() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("bidder", bidder, givenEmptySeatBid());
+
+        final BidderPrivacyResult restrictedPrivacy = BidderPrivacyResult.builder()
+                .requestBidder("bidder")
+                .debugLog(singleton("privacy error"))
+                .build();
+        given(privacyEnforcementService.mask(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonList(restrictedPrivacy)));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                givenImp(singletonMap("bidder", 1), identity())),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .build())));
+
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
+
+        // when
+        exchangeService.holdAuction(auctionContext);
+
+        // then
+        assertThat(auctionContext.getPrivacyContext().getPrivacyDebugLog().getPrivacyActionsPerBidder())
+                .isEqualTo(singletonMap("bidder", singleton("privacy error")));
     }
 
     @Test
@@ -2300,6 +2331,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .timeout(timeout)
+                .privacyContext(PrivacyContext.of(null, null, null,
+                        PrivacyDebugLog.builder().privacyActionsPerBidder(new HashMap<>()).build()))
                 .build();
     }
 

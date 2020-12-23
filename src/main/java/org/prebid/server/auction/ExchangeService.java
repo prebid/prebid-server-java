@@ -39,6 +39,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.privacy.model.PrivacyDebugLog;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -358,7 +360,7 @@ public class ExchangeService {
         return privacyEnforcementService
                 .mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
-                        getBidderRequests(bidderToPrivacyResult, bidRequest, imps, biddersToConfigs));
+                        getBidderRequests(bidderToPrivacyResult, context, imps, biddersToConfigs));
     }
 
     private Map<String, ExtBidderConfigFpd> getBiddersToConfigs(ExtRequest requestExt) {
@@ -503,25 +505,33 @@ public class ExchangeService {
      * Returns shuffled list of {@link BidderRequest}.
      */
     private List<BidderRequest> getBidderRequests(List<BidderPrivacyResult> bidderPrivacyResults,
-                                                  BidRequest bidRequest,
+                                                  AuctionContext auctionContext,
                                                   List<Imp> imps,
                                                   Map<String, ExtBidderConfigFpd> biddersToConfigs) {
-
+        final BidRequest bidRequest = auctionContext.getBidRequest();
         final ExtRequest requestExt = bidRequest.getExt();
+        final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
+        final PrivacyDebugLog privacyDebugLog = privacyContext.getPrivacyDebugLog();
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(requestExt);
         final Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains = bidderToPrebidSchains(requestExt);
         final List<BidderRequest> bidderRequests = bidderPrivacyResults.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
+                .map(bidderPrivacyResult -> updatePrivacyDebugLog(bidderPrivacyResult, privacyDebugLog))
                 .map(bidderPrivacyResult -> createBidderRequest(bidderPrivacyResult, bidRequest, imps,
                         biddersToConfigs, bidderToPrebidBidders, bidderToPrebidSchains))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         Collections.shuffle(bidderRequests);
-
         return bidderRequests;
+    }
+
+    private BidderPrivacyResult updatePrivacyDebugLog(BidderPrivacyResult bidderPrivacyResult,
+                                                      PrivacyDebugLog privacyDebugLog) {
+        privacyDebugLog.addBidderLog(bidderPrivacyResult.getRequestBidder(), bidderPrivacyResult.getDebugLog());
+        return bidderPrivacyResult;
     }
 
     /**

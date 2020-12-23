@@ -41,6 +41,11 @@ import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.privacy.model.PrivacyDebugLog;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
@@ -981,7 +986,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .includewinners(true)
                         .includebidderkeys(true)
                         .includeformat(false)
-                .truncateattrchars(20)
+                        .truncateattrchars(20)
                         .build()));
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -1063,7 +1068,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .includewinners(true)
                         .includebidderkeys(true)
                         .includeformat(false)
-                .build())));
+                        .build())));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -1458,7 +1463,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .includewinners(false)
                         .includebidderkeys(true)
                         .includeformat(false)
-                .build())));
+                        .build())));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -1500,7 +1505,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .includewinners(true)
                         .includebidderkeys(false)
                         .includeformat(false)
-                .build())));
+                        .build())));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -1821,7 +1826,12 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateBidResponseDebugExtensionIfDebugIsEnabled() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+        final PrivacyDebugLog privacyDebugLog = PrivacyDebugLog.from(
+                Privacy.of(null, "tcfString", Ccpa.of("usPrivacy"), null),
+                Privacy.of("1", "tcfString", Ccpa.of("usPrivacy"), 0),
+                TcfContext.builder().build(), emptyList());
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest)
+                .toBuilder().privacyContext(PrivacyContext.of(null, null, null, privacyDebugLog)).build();
         givenCacheServiceResult(CacheServiceResult.of(
                 DebugHttpCall.builder().endpoint("http://cache-service/cache")
                         .requestUri("test.uri").responseStatus(500).build(), null, emptyMap()));
@@ -1847,6 +1857,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         entry("cache", singletonList(ExtHttpCall.builder().uri("test.uri").status(500).build())));
 
         assertThat(responseExt.getDebug().getResolvedrequest()).isEqualTo(bidRequest);
+        assertThat(responseExt.getDebug().getPrivacy()).isEqualTo(privacyDebugLog);
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }

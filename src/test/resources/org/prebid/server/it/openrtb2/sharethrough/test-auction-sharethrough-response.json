@@ -50,15 +50,15 @@
       "httpcalls": {
         "sharethrough": [
           {
-            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&us_privacy=1NYN&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt={{ TEST_FORMATTED_TIME }}&supplyId=FGMrCMMc&strVersion=8&ttduid=id&stxuid=STR-UID",
-            "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":3000,\"deadline\":\"{{ DEADLINE_FORMATTED_TIME }}\",\"bidfloor\":3.5}",
+            "uri": "http://localhost:8090/sharethrough-exchange?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&us_privacy=1NYN&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00&supplyId=FGMrCMMc&strVersion=8&ttduid=id&stxuid=STR-UID",
+            "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":3000,\"deadline\":\"2020-11-04T04:08:01+02:00\",\"bidfloor\":3.5}",
             "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\"},\"version\":0}]}",
             "status": 200
           }
         ],
         "cache": [
           {
-            "uri": "{{ cache.endpoint }}",
+            "uri": "http://localhost:8090/cache",
             "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid\",\"impid\":\"bid\",\"price\":10,\"adm\":\"<img src=\\\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\\\" />\\n\\t\\t<div data-str-native-key=\\\"abc123\\\" data-stx-response-name=\\\"str_response_bid\\\"></div>\\n\\t\\t<script>var str_response_bid = \\\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSJ9LCJ2ZXJzaW9uIjowfV19\\\"</script>\\n\\t\\t\\t<script src=\\\"//native.sharethrough.com/assets/sfp.js\\\"></script>\\n\",\"adid\":\"arid\",\"cid\":\"cmpKey\",\"crid\":\"creaKey\",\"w\":50,\"h\":50}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"a03927f1-86e1-48fb-9efc-da9104a44e39\"}]}",
             "status": 200
@@ -111,6 +111,7 @@
         },
         "user": {
           "ext": {
+            "consent": "consentValue",
             "eids": [
               {
                 "source": "adserver.org",
@@ -120,8 +121,7 @@
                   }
                 ]
               }
-            ],
-            "consent": "consentValue"
+            ]
           }
         },
         "test": 1,
@@ -171,6 +171,38 @@
             }
           }
         }
+      },
+      "privacy": {
+        "origin_privacy": {
+          "tcf": {
+            "gdpr": "0",
+            "tcf_consent_string": "consentValue",
+            "tcf_consent_version": null,
+            "in_eea": null
+          },
+          "ccpa": {
+            "us_privacy": "1NYN"
+          },
+          "coppa": {
+            "coppa": null
+          }
+        },
+        "resolved_privacy": {
+          "tcf": {
+            "gdpr": "0",
+            "tcf_consent_string": "consentValue",
+            "tcf_consent_version": 2,
+            "in_eea": null
+          },
+          "ccpa": {
+            "us_privacy": "1NYN"
+          },
+          "coppa": {
+            "coppa": 0
+          }
+        },
+        "privacy_actions_per_bidder": {},
+        "errors": []
       }
     },
     "responsetimemillis": {

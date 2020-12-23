@@ -58,7 +58,6 @@
   },
   "ext": {
     "prebid": {
-      "debug": 1,
       "currency": {
         "rates": {
           "EUR": {

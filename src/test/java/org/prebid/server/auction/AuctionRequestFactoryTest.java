@@ -1669,7 +1669,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 TcfContext.builder()
                         .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
                         .build(),
-                "ip");
+                "ip", null);
         given(privacyEnforcementService.contextFromBidRequest(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(privacyContext));
 

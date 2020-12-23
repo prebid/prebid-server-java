@@ -268,7 +268,8 @@ public class BidResponseCreator {
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
         final ExtResponseDebug extResponseDebug = debugEnabled
-                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponses, cacheResult), bidRequest)
+                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponses, cacheResult), bidRequest,
+                auctionContext.getPrivacyContext().getPrivacyDebugLog())
                 : null;
         final Map<String, List<ExtBidderError>> errors =
                 toExtBidderErrors(bidderResponses, auctionContext, cacheResult, videoStoredDataResult, bidErrors);

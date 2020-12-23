@@ -751,6 +751,57 @@
             }
           }
         }
+      },
+      "privacy": {
+        "origin_privacy": {
+          "tcf": {
+            "gdpr": null,
+            "tcf_consent_string": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
+            "tcf_consent_version": null,
+            "in_eea": null
+          },
+          "ccpa": {
+            "us_privacy": "1YNN"
+          },
+          "coppa": {
+            "coppa": null
+          }
+        },
+        "resolved_privacy": {
+          "tcf": {
+            "gdpr": "1",
+            "tcf_consent_string": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
+            "tcf_consent_version": 1,
+            "in_eea": null
+          },
+          "ccpa": {
+            "us_privacy": "1YNN"
+          },
+          "coppa": {
+            "coppa": 0
+          }
+        },
+        "privacy_actions_per_bidder": {
+          "appnexus": [
+            "Geolocation was masked in request to bidder according to TCF policy.",
+            "User ids were removed from request to bidder according to TCF policy.",
+            "Device ids were removed form request to bidder according to TCF policy.",
+            "Device IPs were masked in request to bidder according to TCF policy."
+          ],
+          "appnexusAlias": [
+            "Geolocation was masked in request to bidder according to TCF policy.",
+            "User ids were removed from request to bidder according to TCF policy.",
+            "Device ids were removed form request to bidder according to TCF policy.",
+            "Device IPs were masked in request to bidder according to TCF policy."
+          ],
+          "rubicon": [
+            "Geolocation was masked in request to bidder according to TCF policy.",
+            "User ids were removed from request to bidder according to TCF policy.",
+            "Device ids were removed form request to bidder according to TCF policy.",
+            "Device IPs were masked in request to bidder according to TCF policy."
+          ]
+        },
+        "errors": []
       }
     },
     "errors": {
