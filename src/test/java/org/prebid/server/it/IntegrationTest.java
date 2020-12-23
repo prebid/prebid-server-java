@@ -104,7 +104,8 @@ public abstract class IntegrationTest extends VertxTest {
                 .replaceAll("\\{\\{ cache.endpoint }}", cacheEndpoint)
                 .replaceAll("\\{\\{ cache.resource_url }}", cacheEndpoint + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", hostAndPort)
-                .replaceAll("\\{\\{ cache.path }}", cachePath);
+                .replaceAll("\\{\\{ cache.path }}", cachePath)
+                .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
 
         for (final String bidder : bidders) {
             result = result.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
