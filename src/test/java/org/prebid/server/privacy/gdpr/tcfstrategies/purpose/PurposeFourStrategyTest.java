@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class PurposeFourStrategyTest {
@@ -224,20 +225,20 @@ public class PurposeFourStrategyTest {
                 vendorPermissionsWithGvl, false);
 
         // then
-        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowAllPurpose());
-        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowAllPurpose());
-        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowAllPurpose());
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurposeAndNaturally());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurposeAndNaturally());
+        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurposeAndNaturally());
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, emptyList(),
+        verify(fullEnforcePurposeStrategy, times(2)).allowedByTypeStrategy(PURPOSE, tcString, emptyList(),
                 vendorPermissionsWithGvl, true);
     }
 
     @Test
-    public void processTypePurposeStrategyShouldAllowOnlyPurposeWhenThereAreNoNaturalAllowance() {
+    public void processTypePurposeStrategyShouldAllowPurposeAndNaturallyVendorExceptions() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.full, null, Arrays.asList("b1", "b2", "b3", "b5", "b7"));
+        final Purpose purpose = Purpose.of(EnforcePurpose.full, null, Arrays.asList("b1", "b2"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -249,34 +250,37 @@ public class PurposeFourStrategyTest {
                 VendorV2.empty(3));
         final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2,
                 vendorPermission3);
-        final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
-                vendorPermissionWitGvl2, vendorPermissionWitGvl3);
+        final List<VendorPermission> excludedVendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2);
 
         given(fullEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(vendorPermissions)
-                .willReturn(emptyList());
+                .willReturn(excludedVendorPermissions);
+
+        final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
         // when
         final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose,
                 vendorPermissionsWithGvl, false);
 
         // then
-        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurpose());
-        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurpose());
+        final List<VendorPermissionWithGvl> excludedVendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2);
+
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurposeAndNaturally());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurposeAndNaturally());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, emptyList(),
-                vendorPermissionsWithGvl, true);
-        verify(fullEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, vendorPermissionsWithGvl,
-                emptyList(), true);
+        verify(fullEnforcePurposeStrategy, times(2)).allowedByTypeStrategy(PURPOSE, tcString,
+                singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
     }
 
     @Test
-    public void processTypePurposeStrategyShouldAllowOnlyPurposeWhenThereAreNoNaturalAllowanceForDowngraded() {
+    public void processTypePurposeStrategyShouldAllowPurposeAndNaturallyWhenVendorPermissionsReturnedForDowngraded() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.no, null, Arrays.asList("b1", "b2", "b3", "b5", "b7"));
+        final Purpose purpose = Purpose.of(EnforcePurpose.no, null, Arrays.asList("b1", "b2"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -288,36 +292,39 @@ public class PurposeFourStrategyTest {
                 VendorV2.empty(3));
         final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2,
                 vendorPermission3);
-        final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
-                vendorPermissionWitGvl2, vendorPermissionWitGvl3);
+
+        final List<VendorPermission> excludedVendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2);
 
         given(noEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(vendorPermissions);
         given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(emptyList());
+                .willReturn(excludedVendorPermissions);
+
+        final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
         // when
         final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose,
                 vendorPermissionsWithGvl, true);
 
         // then
-        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurpose());
-        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurpose());
+        final List<VendorPermissionWithGvl> excludedVendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2);
+
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurposeAndNaturally());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurposeAndNaturally());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(noEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, emptyList(),
-                vendorPermissionsWithGvl, true);
-        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString, vendorPermissionsWithGvl,
-                emptyList(), true);
+        verify(noEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString,
+                singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
+        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE, tcString,
+                singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
     }
 
-    private static PrivacyEnforcementAction allowAllPurpose() {
-        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setMaskDeviceInfo(false);
-        privacyEnforcementAction.setRemoveUserIds(false);
-        return privacyEnforcementAction;
+    private static PrivacyEnforcementAction allowPurposeAndNaturally() {
+        return allowNatural(allowPurpose());
     }
 
     private static PrivacyEnforcementAction allowPurpose() {
@@ -325,7 +332,10 @@ public class PurposeFourStrategyTest {
     }
 
     private static PrivacyEnforcementAction allowNatural() {
-        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
+        return allowNatural(PrivacyEnforcementAction.restrictAll());
+    }
+
+    private static PrivacyEnforcementAction allowNatural(PrivacyEnforcementAction privacyEnforcementAction) {
         privacyEnforcementAction.setRemoveUserIds(false);
         privacyEnforcementAction.setMaskDeviceInfo(false);
         return privacyEnforcementAction;
