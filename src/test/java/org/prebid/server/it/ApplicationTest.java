@@ -278,8 +278,11 @@ public class ApplicationTest extends IntegrationTest {
                         + "&consent_string=1YNN");
 
         // then
-        JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),
-                JSONCompareMode.NON_EXTENSIBLE);
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "amp/test-amp-response.json",
+                response,
+                asList(RUBICON, APPNEXUS));
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
