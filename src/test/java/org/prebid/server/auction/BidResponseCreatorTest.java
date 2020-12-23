@@ -17,6 +17,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import org.apache.commons.collections4.CollectionUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -335,7 +336,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", video);
         final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder2", banner);
         verify(cacheService).cacheBidsOpenrtb(
-                eq(asList(bidInfo1, bidInfo2)),
+                argThat(argument -> CollectionUtils.isEqualCollection(argument, asList(bidInfo1, bidInfo2))),
                 same(auctionContext),
                 eq(CacheContext.builder().shouldCacheVideoBids(true).build()),
                 eq(EventsContext.builder()

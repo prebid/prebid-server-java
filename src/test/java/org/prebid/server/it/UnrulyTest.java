@@ -35,8 +35,10 @@ public class UnrulyTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/unruly/test-cache-unruly-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/unruly/test-cache-unruly-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/unruly/test-cache-unruly-request.json"), true, false))
+                .willReturn(aResponse().withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/unruly/test-cache-matcher-unruly.json")));
 
         // when
         final Response response = given(SPEC)

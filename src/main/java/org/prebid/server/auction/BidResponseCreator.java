@@ -441,8 +441,6 @@ public class BidResponseCreator {
         // do not submit non deals bids with zero price to prebid cache
         final List<BidInfo> bidsValidToBeCached = bidsToCache.stream()
                 .filter(BidResponseCreator::isValidForCaching)
-                // for test consistency
-                .sorted(Comparator.comparing(o -> o.getBid().getId()))
                 .collect(Collectors.toList());
 
         final CacheContext cacheContext = CacheContext.builder()

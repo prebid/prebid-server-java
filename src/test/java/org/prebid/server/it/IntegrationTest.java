@@ -192,7 +192,8 @@ public abstract class IntegrationTest extends VertxTest {
 
             final String newResponse;
             try {
-                newResponse = cacheResponseFromRequestJson(request.getBodyAsString(),
+                newResponse = cacheResponseFromRequestJson(
+                        request.getBodyAsString(),
                         parameters.getString("matcherName"));
             } catch (IOException e) {
                 return com.github.tomakehurst.wiremock.http.Response.response()

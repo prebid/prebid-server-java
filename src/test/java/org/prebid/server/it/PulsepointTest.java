@@ -33,8 +33,11 @@ public class PulsepointTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/pulsepoint/test-cache-pulsepoint-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/pulsepoint/test-cache-pulsepoint-response.json"))));
+                .withRequestBody(
+                        equalToJson(jsonFrom("openrtb2/pulsepoint/test-cache-pulsepoint-request.json"), true, false))
+                .willReturn(aResponse().withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/pulsepoint/test-cache-matcher-pulsepoint.json")));
 
         // when
         final Response response = given(SPEC)

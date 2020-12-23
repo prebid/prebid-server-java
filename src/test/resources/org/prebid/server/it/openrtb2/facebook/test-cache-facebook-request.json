@@ -3,19 +3,6 @@
     {
       "type": "json",
       "value": {
-        "id": "bid1",
-        "impid": "impId001",
-        "price": 9,
-        "adm": "{\"bid_id\":\"10\"}",
-        "adid": "10",
-        "crid": "10",
-        "w": 0,
-        "h": 50
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "bid2",
         "impid": "impId002",
         "price": 15,
@@ -37,6 +24,19 @@
         "crid": "10",
         "w": 0,
         "h": 0
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bid1",
+        "impid": "impId001",
+        "price": 9,
+        "adm": "{\"bid_id\":\"10\"}",
+        "adid": "10",
+        "crid": "10",
+        "w": 0,
+        "h": 50
       }
     },
     {
