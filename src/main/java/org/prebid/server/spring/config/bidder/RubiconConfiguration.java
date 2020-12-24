@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
-import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
@@ -37,9 +36,6 @@ public class RubiconConfiguration {
     @Autowired
     @Qualifier("rubiconConfigurationProperties")
     private RubiconConfigurationProperties configProperties;
-
-    @Autowired
-    private CurrencyConversionService currencyConversionService;
 
     @Bean("rubiconConfigurationProperties")
     @ConfigurationProperties("adapters.rubicon")
