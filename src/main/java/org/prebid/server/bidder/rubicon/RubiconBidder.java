@@ -101,6 +101,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -383,8 +384,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (isVideo(imp)) {
             builder
                     .banner(null)
-                    .video(makeVideo(imp.getVideo(), extRubicon.getVideo(), extPrebid,
-                            site != null ? site.getPage() : null, imp.getId()));
+                    .video(makeVideo(imp, site, extRubicon.getVideo(), extPrebid));
         } else {
             builder
                     .banner(makeBanner(imp, overriddenSizes(extRubicon)))
@@ -654,9 +654,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && video.getLinearity() != null && video.getApi() != null;
     }
 
-    private Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt,
-                            String referer, String impId) {
-
+    private Video makeVideo(Imp imp, Site site, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
+        final Video video = imp.getVideo();
+        final String impId = imp.getId();
+        final String referer = site != null ? site.getPage() : null;
         validateVideoSizeId(rubiconVideoParams, referer, impId);
         final String videoType = prebidImpExt != null && prebidImpExt.getIsRewardedInventory() != null
                 && prebidImpExt.getIsRewardedInventory() == 1 ? "rewarded" : null;
@@ -677,8 +678,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private void validateVideoSizeId(RubiconVideoParams rubiconVideoParams, String referer, String impId) {
         final Integer videoSizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
         // log only 1% of cases to monitor how often video impressions does not have size id
-        if ((videoSizeId == null || videoSizeId == 0) && System.currentTimeMillis() % 100 == 0) {
-            logger.warn("RP adapter: video request with no size_id. Referrer URL = %s, impId = %s", referer, impId);
+        if (videoSizeId == null || videoSizeId == 0) {
+            warnWithSamplingRate(String.format("RP adapter: video request with no size_id. Referrer URL = %s,"
+                    + " impId = %s", referer, impId), 0.01d);
+        }
+    }
+
+    private static void warnWithSamplingRate(String message, double samplingRate) {
+        if (ThreadLocalRandom.current().nextDouble() < samplingRate) {
+            logger.warn(message);
         }
     }
 
