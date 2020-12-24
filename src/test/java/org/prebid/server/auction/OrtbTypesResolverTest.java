@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.json.JsonMerger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class OrtbTypesResolverTest extends VertxTest {
 
-    private final OrtbTypesResolver ortbTypesResolver = new OrtbTypesResolver(jacksonMapper);
+    private final OrtbTypesResolver ortbTypesResolver =
+            new OrtbTypesResolver(jacksonMapper, new JsonMerger(jacksonMapper));
 
     @Test
     public void normalizeTargetingShouldNotChangeNodeIfItsTypeIsNotObject() {

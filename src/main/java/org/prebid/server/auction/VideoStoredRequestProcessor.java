@@ -16,6 +16,7 @@ import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -27,6 +28,7 @@ import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -36,7 +38,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
-import org.prebid.server.util.JsonMergeUtil;
 import org.prebid.server.validation.VideoRequestValidator;
 
 import java.util.ArrayList;
@@ -63,39 +64,69 @@ public class VideoStoredRequestProcessor {
     private final long defaultTimeout;
     private final String currency;
     private final BidRequest defaultBidRequest;
-    private final VideoRequestValidator validator;
     private final ApplicationSettings applicationSettings;
+    private final VideoRequestValidator validator;
     private final Metrics metrics;
-    private final TimeoutFactory timeoutFactory;
     private final TimeoutResolver timeoutResolver;
+    private final TimeoutFactory timeoutFactory;
     private final JacksonMapper mapper;
-    private final JsonMergeUtil jsonMergeUtil;
+    private final JsonMerger jsonMerger;
 
-    public VideoStoredRequestProcessor(boolean enforceStoredRequest,
-                                       List<String> blacklistedAccounts,
-                                       long defaultTimeout,
-                                       String adServerCurrency,
-                                       BidRequest defaultBidRequest,
-                                       VideoRequestValidator validator,
-                                       ApplicationSettings applicationSettings,
-                                       Metrics metrics,
-                                       TimeoutFactory timeoutFactory,
-                                       TimeoutResolver timeoutResolver,
-                                       JacksonMapper mapper) {
+    private VideoStoredRequestProcessor(boolean enforceStoredRequest,
+                                        List<String> blacklistedAccounts,
+                                        long defaultTimeout,
+                                        String adServerCurrency,
+                                        BidRequest defaultBidRequest,
+                                        ApplicationSettings applicationSettings,
+                                        VideoRequestValidator validator,
+                                        Metrics metrics,
+                                        TimeoutFactory timeoutFactory,
+                                        TimeoutResolver timeoutResolver,
+                                        JacksonMapper mapper,
+                                        JsonMerger jsonMerger) {
 
         this.enforceStoredRequest = enforceStoredRequest;
         this.blacklistedAccounts = blacklistedAccounts;
         this.defaultTimeout = defaultTimeout;
         this.currency = StringUtils.isBlank(adServerCurrency) ? DEFAULT_CURRENCY : adServerCurrency;
-        this.defaultBidRequest = Objects.requireNonNull(defaultBidRequest);
-        this.validator = Objects.requireNonNull(validator);
-        this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.metrics = Objects.requireNonNull(metrics);
-        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
-        this.mapper = Objects.requireNonNull(mapper);
+        this.defaultBidRequest = defaultBidRequest;
+        this.applicationSettings = applicationSettings;
+        this.validator = validator;
+        this.metrics = metrics;
+        this.timeoutFactory = timeoutFactory;
+        this.timeoutResolver = timeoutResolver;
+        this.mapper = mapper;
+        this.jsonMerger = jsonMerger;
+    }
 
-        jsonMergeUtil = new JsonMergeUtil(mapper);
+    public static VideoStoredRequestProcessor create(boolean enforceStoredRequest,
+                                                     List<String> blacklistedAccounts,
+                                                     long defaultTimeout,
+                                                     String adServerCurrency,
+                                                     String defaultBidRequestPath,
+                                                     FileSystem fileSystem,
+                                                     ApplicationSettings applicationSettings,
+                                                     VideoRequestValidator validator,
+                                                     Metrics metrics,
+                                                     TimeoutFactory timeoutFactory,
+                                                     TimeoutResolver timeoutResolver,
+                                                     JacksonMapper mapper,
+                                                     JsonMerger jsonMerger) {
+
+        return new VideoStoredRequestProcessor(
+                enforceStoredRequest,
+                Objects.requireNonNull(blacklistedAccounts),
+                defaultTimeout,
+                adServerCurrency,
+                readBidRequest(
+                        defaultBidRequestPath, Objects.requireNonNull(fileSystem), Objects.requireNonNull(mapper)),
+                Objects.requireNonNull(applicationSettings),
+                Objects.requireNonNull(validator),
+                Objects.requireNonNull(metrics),
+                Objects.requireNonNull(timeoutFactory),
+                Objects.requireNonNull(timeoutResolver),
+                Objects.requireNonNull(mapper),
+                Objects.requireNonNull(jsonMerger));
     }
 
     /**
@@ -114,6 +145,14 @@ public class VideoStoredRequestProcessor {
                 .map(storedData -> mergeToBidRequest(storedData, receivedRequest, storedBidRequestId))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed: %s", exception.getMessage()))));
+    }
+
+    private static BidRequest readBidRequest(
+            String defaultBidRequestPath, FileSystem fileSystem, JacksonMapper mapper) {
+
+        return StringUtils.isNotBlank(defaultBidRequestPath)
+                ? mapper.decodeValue(fileSystem.readFileBlocking(defaultBidRequestPath), BidRequest.class)
+                : null;
     }
 
     private Future<StoredDataResult> updateMetrics(StoredDataResult storedDataResult, Set<String> requestIds,
@@ -150,7 +189,7 @@ public class VideoStoredRequestProcessor {
         }
 
         return StringUtils.isNotBlank(storedRequest)
-                ? jsonMergeUtil.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
+                ? jsonMerger.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
                 : originalRequest;
     }
 
@@ -256,7 +295,9 @@ public class VideoStoredRequestProcessor {
     }
 
     private BidRequest mergeWithDefaultBidRequest(BidRequestVideo validatedVideoRequest, List<Imp> imps) {
-        final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest.toBuilder();
+        final BidRequest.BidRequestBuilder bidRequestBuilder =
+                defaultBidRequest != null ? defaultBidRequest.toBuilder() : BidRequest.builder();
+
         final Site site = validatedVideoRequest.getSite();
         if (site != null) {
             final Site.SiteBuilder siteBuilder = site.toBuilder();

@@ -63,6 +63,9 @@ Removes and downloads file again if depending service cant process probably corr
 - `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
 - `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 
+## Default bid request
+- `default-request.file.path` - path to a JSON file containing the default request
+
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
@@ -76,6 +79,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
 - `auction.id-generator-type` - if generate-bid-id is on, then this defines how the ID should be generated. Currently onlye `uuid` is supported.
+- `auction.validations.banner-creative-max-size` - enables creative max size validation for banners. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
+- `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 
 ## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
@@ -135,6 +140,7 @@ But feel free to add additional bidder's specific options.
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
 - `currency-converter.external-rates.stale-after-ms` - how old currency rates should be to become considered stale.
+- `currency-converter.external-rates.stale-period-ms` - stale period after which the latest external currency rates get discarded.
 
 ## Admin Endpoints
 - `admin-endpoints.version.enabled` - if equals to `true` the endpoint will be available.
@@ -240,6 +246,7 @@ For database data source available next options:
 - `settings.database.user` - database user.
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
+- `settings.database.account-query` - the SQL query to fetch account.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.
@@ -325,6 +332,9 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 
 ## CCPA
 - `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
+
+## LMT
+- `lmt.enforce` - if equals to `true` enforces to check lmt policy, otherwise ignore lmt verification.
 
 ## Geo Location
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.

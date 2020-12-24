@@ -12,7 +12,9 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -110,6 +112,9 @@ public class FileApplicationSettingsTest extends VertxTest {
                         + "defaultIntegration: 'web',"
                         + "analyticsConfig: {"
                         + "auction-events: {amp: 'true'}"
+                        + "},"
+                        + "bidValidations: {"
+                        + "banner-creative-max-size: 'enforce'"
                         + "}"
                         + "}"
                         + "]"));
@@ -147,6 +152,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                 .truncateTargetAttr(20)
                 .defaultIntegration("web")
                 .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
+                .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                 .build());
     }
 

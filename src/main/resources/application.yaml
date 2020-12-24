@@ -87,6 +87,9 @@ auction:
   cache:
     expected-request-time-ms: 10
     only-winning-bids: false
+  validations:
+    banner-creative-max-size: skip
+    secure-markup: skip
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
@@ -189,6 +192,8 @@ gdpr:
       enforce: true
   purpose-one-treatment-interpretation: ignore
 ccpa:
+  enforce: true
+lmt:
   enforce: true
 geolocation:
   enabled: false
