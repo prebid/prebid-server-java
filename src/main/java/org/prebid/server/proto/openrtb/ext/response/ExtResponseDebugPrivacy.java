@@ -10,6 +10,7 @@ import java.util.Map;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtResponseDebugPrivacy {
+
     Privacy originPrivacy;
 
     Privacy resolvedPrivacy;
