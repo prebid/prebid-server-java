@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.advangelists;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -43,7 +42,6 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdvangelists>> ADVANGELISTS_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpAdvangelists>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -61,7 +59,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             final Map<ExtImpAdvangelists, List<Imp>> impToExtImp = getImpToExtImp(request, errors);
             httpRequests.addAll(buildAdapterRequests(request, impToExtImp));
         } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         return Result.of(httpRequests, errors);
@@ -155,7 +153,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
 
             final String body = mapper.encode(updatedBidRequest);
             final MultiMap headers = HttpUtil.headers()
-                    .add("x-openrtb-version", "2.5");
+                    .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
             final String createdEndpoint = endpointUrl + extImpAdvangelists.getPubid();
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
@@ -198,9 +196,9 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -218,7 +216,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -233,11 +231,5 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
         }
         return BidType.banner;
     }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
-
 }
 

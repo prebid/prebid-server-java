@@ -1,7 +1,10 @@
 package org.prebid.server.auction;
 
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
@@ -10,6 +13,7 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -19,6 +23,8 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -42,10 +48,13 @@ public class VideoRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
 
-    public VideoRequestFactory(int maxRequestSize, boolean enforceStoredRequest, String escapeLogCacheRegex,
+    public VideoRequestFactory(int maxRequestSize,
+                               boolean enforceStoredRequest, String escapeLogCacheRegex,
                                VideoStoredRequestProcessor storedRequestProcessor,
-                               AuctionRequestFactory auctionRequestFactory, TimeoutResolver timeoutResolver,
+                               AuctionRequestFactory auctionRequestFactory,
+                               TimeoutResolver timeoutResolver,
                                JacksonMapper mapper) {
+
         this.enforceStoredRequest = enforceStoredRequest;
         this.maxRequestSize = maxRequestSize;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -88,6 +97,38 @@ public class VideoRequestFactory {
                         timeoutResolver)
                         .map(auctionContext -> updateContextWithDebugLog(auctionContext, cachedDebugLog))
                         .map(auctionContext -> WithPodErrors.of(auctionContext, bidRequestToPodError.getPodErrors())));
+    }
+
+    /**
+     * Extracts publisher id either from {@link BidRequestVideo}.app.publisher
+     * or {@link BidRequestVideo}.site.publisher. If neither is present returns empty string.
+     */
+    private String accountIdFrom(BidRequestVideo bidRequestVideo) {
+        final App app = bidRequestVideo.getApp();
+        final Publisher appPublisher = app != null ? app.getPublisher() : null;
+        final Site site = bidRequestVideo.getSite();
+        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+
+        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
+        final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
+        return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
+    }
+
+    /**
+     * Resolves what value should be used as a publisher id - either taken from publisher.ext.parentAccount
+     * or publisher.id in this respective priority.
+     */
+    private String resolvePublisherId(Publisher publisher) {
+        final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
+        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
+    }
+
+    /**
+     * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
+     */
+    private String parentAccountIdFromExtPublisher(ExtPublisher extPublisher) {
+        final ExtPublisherPrebid extPublisherPrebid = extPublisher != null ? extPublisher.getPrebid() : null;
+        return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
     private AuctionContext updateContextWithDebugLog(AuctionContext auctionContext,
@@ -161,7 +202,8 @@ public class VideoRequestFactory {
                                                                String storedVideoId,
                                                                Set<String> podConfigIds,
                                                                boolean debugEnabled) {
-        return storedRequestProcessor.processVideoRequest(storedVideoId, podConfigIds, bidRequestVideo)
+        return storedRequestProcessor.processVideoRequest(accountIdFrom(bidRequestVideo), storedVideoId, podConfigIds,
+                bidRequestVideo)
                 .map(bidRequestToErrors -> fillImplicitParameters(routingContext, bidRequestToErrors, debugEnabled))
                 .map(this::validateRequest);
     }
