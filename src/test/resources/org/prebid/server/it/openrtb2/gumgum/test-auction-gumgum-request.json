@@ -41,8 +41,17 @@
         "mimes": [
           "video/mp4"
         ],
+        "minduration": 1,
+        "maxduration": 2,
+        "protocols": [
+          1,
+          2
+        ],
         "w": 640,
-        "h": 480
+        "h": 480,
+        "startdelay": 1,
+        "placement": 1,
+        "linearity": 1
       },
       "ext": {
         "gumgum": {
@@ -94,13 +103,9 @@
     }
   },
   "user": {
+    "buyeruid" : "GUM-UID",
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {

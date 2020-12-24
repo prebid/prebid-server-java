@@ -12,11 +12,12 @@ adapters:
       app-media-types:
       site-media-types:
         - banner
+        - video
       supported-vendors:
       vendor-id: 61
     usersync:
       url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
       redirect-url: /setuid?bidder=gumgum&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: gumgum
-      type: redirect
+      type: iframe
       support-cors: false

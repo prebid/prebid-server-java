@@ -5,12 +5,13 @@ import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adform.model.AdformDigitrust;
-import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
 import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Base64;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -24,7 +25,7 @@ public class AdformHttpUtilTest extends VertxTest {
 
     @Before
     public void setUp() {
-        httpUtil = new AdformHttpUtil(jacksonMapper);
+        httpUtil = new AdformHttpUtil();
     }
 
     @Test
@@ -35,8 +36,7 @@ public class AdformHttpUtilTest extends VertxTest {
                 "userAgent",
                 "ip",
                 "www.example.com",
-                "buyeruid",
-                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
+                "buyeruid");
 
         // then
         assertThat(headers).hasSize(7)
@@ -47,10 +47,7 @@ public class AdformHttpUtilTest extends VertxTest {
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
                         tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.0"),
                         tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
-                        tuple(HttpUtil.COOKIE_HEADER.toString(),
-                                // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
-                                "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLC"
-                                        + "Jwcml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
+                        tuple(HttpUtil.COOKIE_HEADER.toString(), "uid=buyeruid"));
     }
 
     @Test
@@ -61,61 +58,39 @@ public class AdformHttpUtilTest extends VertxTest {
                 "userAgent",
                 "ip",
                 "",
-                "buyeruid",
-                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
+                "buyeruid");
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.REFERER_HEADER.toString());
     }
 
     @Test
-    public void buildAdformHeadersShouldNotContainCookieHeaderIfUserIdAndDigiTrustAreEmpty() {
+    public void buildAdformHeadersShouldNotContainCookieHeaderIfUserIdIsEmpty() {
         // when
         final MultiMap headers = httpUtil.buildAdformHeaders(
                 "0.1.0",
                 "userAgent",
                 "ip",
                 "referer",
-                "",
-                null);
+                "");
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.COOKIE_HEADER.toString());
     }
 
     @Test
-    public void buildAdformHeaderShouldContainCookieHeaderOnlyWithUserIdIfUserIdPresentAndDigitrustAbsent() {
+    public void buildAdformHeaderShouldContainCookieHeaderOnlyWithUserIdIfUserIdPresent() {
         // when
         final MultiMap headers = httpUtil.buildAdformHeaders(
                 "0.1.0",
                 "userAgent",
                 "ip",
                 "referer",
-                "buyeruid",
-                null);
+                "buyeruid");
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(tuple(HttpUtil.COOKIE_HEADER.toString(), "uid=buyeruid"));
-    }
-
-    @Test
-    public void buildAdformHeaderShouldContainCookieHeaderOnlyWithDigitrustIfUserIsAbsentAndDigitrustPresent() {
-        // when
-        final MultiMap headers = httpUtil.buildAdformHeaders(
-                "0.1.0",
-                "userAgent",
-                "ip",
-                "referer",
-                "",
-                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
-
-        // then
-        assertThat(headers).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpUtil.COOKIE_HEADER.toString(),
-                        // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
-                        "DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dC"
-                                + "I6dHJ1ZX19"));
     }
 
     @Test
@@ -127,6 +102,8 @@ public class AdformHttpUtilTest extends VertxTest {
                         .keyValues(asList("color:red", "age:30-40"))
                         .keyWords(asList("red", "blue"))
                         .priceTypes(singletonList("gross"))
+                        .cdims(asList("300x300,400x200", "300x200"))
+                        .minPrices(asList(23.1, null))
                         .endpointUrl("http://adx.adform.net/adx")
                         .tid("tid")
                         .ip("ip")
@@ -135,14 +112,22 @@ public class AdformHttpUtilTest extends VertxTest {
                         .consent("consent")
                         .secure(false)
                         .currency("USD")
+                        .eids("eyJ0ZXN0LmNvbSI6eyJvdGh")
+                        .url("https://adform.com?a=b")
                         .build());
 
         // then
-        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        final String expectedEncodedPart = Stream.of(
+                "mid=15&rcur=USD&mkv=color:red&mkw=red&cdims=300x300,400x200&minp=23.10",
+                "mid=16&rcur=USD&mkv=age:30-40&mkw=blue&cdims=300x200")
+                .map(s -> Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes()))
+                .collect(Collectors.joining("&"));
+
         assertThat(url).isEqualTo(
-                "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
-                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA"
-                        + "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
+                "http://adx.adform.net/adx?CC=1&adid=adId&eids=eyJ0ZXN0LmNvbSI6eyJvdGh&"
+                        + "fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
+                        + "&stid=tid&url=https%3A%2F%2Fadform.com%3Fa%3Db"
+                        + "&" + expectedEncodedPart);
     }
 
     @Test
@@ -290,5 +275,33 @@ public class AdformHttpUtilTest extends VertxTest {
         assertThat(url)
                 .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=gross&rp=4"
                         + "&stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
+    }
+
+    @Test
+    public void buildAdformUrlShouldNotContainEidsParamIfEmptyEids() {
+        // when
+        final String url = httpUtil.buildAdformUrl(
+                UrlParameters.builder()
+                        .masterTagIds(asList(15L, 16L))
+                        .keyValues(asList("color:red", "age:30-40"))
+                        .keyWords(asList("red", "blue"))
+                        .priceTypes(singletonList("gross"))
+                        .endpointUrl("http://adx.adform.net/adx")
+                        .tid("tid")
+                        .ip("ip")
+                        .advertisingId("adId")
+                        .gdprApplies("1")
+                        .consent("consent")
+                        .secure(false)
+                        .currency("USD")
+                        .eids(null)
+                        .build());
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url).isEqualTo(
+                "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA"
+                        + "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
     }
 }

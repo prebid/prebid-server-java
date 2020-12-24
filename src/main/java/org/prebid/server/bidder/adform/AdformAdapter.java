@@ -14,7 +14,6 @@ import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.adform.model.AdformBid;
-import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformParams;
 import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -53,7 +52,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         this.mapper = Objects.requireNonNull(mapper);
 
         this.requestUtil = new AdformRequestUtil();
-        this.httpUtil = new AdformHttpUtil(mapper);
+        this.httpUtil = new AdformHttpUtil();
     }
 
     /**
@@ -73,7 +72,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 HttpMethod.GET,
                 getUrl(preBidRequestContext, adformParams, extUser),
                 null,
-                headers(preBidRequestContext, requestUtil.getAdformDigitrust(extUser))));
+                headers(preBidRequestContext)));
     }
 
     @Override
@@ -128,6 +127,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .keyValues(getKeyValues(adformParams))
                         .keyWords(getKeyWords(adformParams))
                         .priceTypes(getPriceTypes(adformParams))
+                        .cdims(getCdims(adformParams))
+                        .minPrices(getMinPrices(adformParams))
                         .endpointUrl(endpointUrl)
                         .tid(ObjectUtils.defaultIfNull(preBidRequestContext.getPreBidRequest().getTid(), ""))
                         .ip(ObjectUtils.defaultIfNull(preBidRequestContext.getIp(), ""))
@@ -136,6 +137,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .gdprApplies(requestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest().getRegs()))
                         .consent(requestUtil.getConsent(extUser))
                         .currency(DEFAULT_CURRENCY)
+                        .url(getUrlFromParams(adformParams))
                         .build());
     }
 
@@ -168,16 +170,40 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     }
 
     /**
+     * Converts {@link AdformParams} {@link List} to cdims {@link List}.
+     */
+    private List<String> getCdims(List<AdformParams> adformParams) {
+        return adformParams.stream().map(AdformParams::getCdims).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link AdformParams} {@link List} to minPrices {@link List}.
+     */
+    private List<Double> getMinPrices(List<AdformParams> adformParams) {
+        return adformParams.stream().map(AdformParams::getMinPrice).collect(Collectors.toList());
+    }
+
+    /**
+     * Finds not blank url from {@link AdformParams}.
+     */
+    private String getUrlFromParams(List<AdformParams> adformParams) {
+        return adformParams.stream()
+                .map(AdformParams::getUrl)
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .orElse("");
+    }
+
+    /**
      * Creates adform headers, which stores adform request parameters
      */
-    private MultiMap headers(PreBidRequestContext preBidRequestContext, AdformDigitrust adformDigitrust) {
+    private MultiMap headers(PreBidRequestContext preBidRequestContext) {
         return httpUtil.buildAdformHeaders(
                 VERSION,
                 ObjectUtils.defaultIfNull(preBidRequestContext.getUa(), ""),
                 ObjectUtils.defaultIfNull(preBidRequestContext.getIp(), ""),
                 preBidRequestContext.getReferer(),
-                preBidRequestContext.getUidsCookie().uidFrom(cookieFamilyName),
-                adformDigitrust);
+                preBidRequestContext.getUidsCookie().uidFrom(cookieFamilyName));
     }
 
     /**

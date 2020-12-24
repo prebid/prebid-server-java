@@ -15,7 +15,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,28 +48,33 @@ public class FacebookBidderTest extends VertxTest {
     private static final String PLATFORM_ID = "101";
     private static final String APP_SECRET = "6237";
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    public static final String TIMEOUT_NOTIFICATION_URL_TEMPLATE = "https://url/?p=%s&a=%s&auction=%s&ortb_loss_code=2";
 
     private FacebookBidder facebookBidder;
 
     @Before
     public void setUp() {
-        facebookBidder = new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_SECRET, jacksonMapper);
+        facebookBidder = new FacebookBidder(
+                ENDPOINT_URL, PLATFORM_ID, APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnBlankArguments() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, " ", APP_SECRET, jacksonMapper))
+                () -> new FacebookBidder(
+                        ENDPOINT_URL, " ", APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook platform-id specified.");
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, " ", jacksonMapper))
+                () -> new FacebookBidder(
+                        ENDPOINT_URL, PLATFORM_ID, " ", TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook app-secret specified.");
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder("invalid_url", PLATFORM_ID, APP_SECRET, jacksonMapper))
+                .isThrownBy(() -> new FacebookBidder(
+                        "invalid_url", PLATFORM_ID, APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -326,7 +330,7 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsOnly(Banner.builder().h(50).w(0).build());
+                .containsOnly(Banner.builder().h(50).w(-1).build());
     }
 
     @Test
@@ -347,7 +351,7 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpBannerWhenHeightPresentedInFormat() {
+    public void makeHttpRequestsShouldModifyImpBannerWhenHeightPresentedInFormatAndInterstitialIsNotOne() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                         .banner(Banner.builder().w(0)
@@ -364,7 +368,7 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsOnly(Banner.builder().h(250).w(0).build());
+                .containsOnly(Banner.builder().h(250).w(-1).build());
     }
 
     @Test
@@ -434,33 +438,38 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReplaceSiteOrAppPublisher() {
+    public void makeHttpRequestsShouldReplaceAppPublisher() {
         // given
         final Publisher publisher = Publisher.builder().id("521").name("should_be_replaced").build();
         final BidRequest appRequest = givenBidRequest(identity(), identity(),
                 requestBuilder -> requestBuilder.app(App.builder().publisher(publisher).build()));
-        final BidRequest siteRequest = givenBidRequest(identity(), identity(),
-                requestBuilder -> requestBuilder.site(Site.builder().publisher(publisher).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> appResult = facebookBidder.makeHttpRequests(appRequest);
-        final Result<List<HttpRequest<BidRequest>>> siteResult = facebookBidder.makeHttpRequests(siteRequest);
 
         // then
         assertThat(appResult.getErrors()).isEmpty();
-        assertThat(siteResult.getErrors()).isEmpty();
 
         final Publisher expectedPublisher = Publisher.builder().id("pubId").build();
-        assertThat(siteResult.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher)
-                .containsOnly(expectedPublisher);
         assertThat(appResult.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
                 .extracting(App::getPublisher)
                 .containsOnly(expectedPublisher);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfSiteIsNotEmpty() {
+        // given
+        final BidRequest siteRequest = givenBidRequest(identity(), identity(),
+                requestBuilder -> requestBuilder.site(Site.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> siteResult = facebookBidder.makeHttpRequests(siteRequest);
+
+        // then
+        assertThat(siteResult.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Site impressions are not supported."));
     }
 
     @Test
@@ -478,22 +487,6 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(request -> mapper.convertValue(request.getExt(), FacebookExt.class))
                 .containsOnly(
                         FacebookExt.of("101", "bd49902da11ce0fe6258e56baa0a69c2f1395b2ff1efb30d4879ed9e2343a3f6"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenResponseStatusIsNotOk() {
-        // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                .add("x-fb-an-errors", "who are you?");
-        final HttpCall<BidRequest> httpCall = HttpCall.success(null, HttpResponse.of(403, headers, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Unexpected status code 403 with error message 'who are you?'"));
     }
 
     @Test
@@ -699,6 +692,24 @@ public class FacebookBidderTest extends VertxTest {
                 .containsOnly(BidType.audio);
     }
 
+    @Test
+    public void makeTimeoutNotificationShouldGenerateRequest() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(), identity()).toBuilder()
+                .app(App.builder().publisher(Publisher.builder().id("test").build()).build())
+                .build();
+        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
+                .body(mapper.writeValueAsString(bidRequest))
+                .payload(bidRequest)
+                .build();
+
+        // when
+        final HttpRequest<Void> notification = facebookBidder.makeTimeoutNotification(httpRequest);
+
+        // then
+        assertThat(notification.getUri()).isEqualTo("https://url/?p=101&a=test&auction=req1&ortb_loss_code=2");
+    }
+
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer,
@@ -731,6 +742,7 @@ public class FacebookBidderTest extends VertxTest {
 
     private static HttpCall<BidRequest> givenHttpCall(Bid... bids) throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(asList(bids))
                         .build()))

@@ -36,10 +36,34 @@
           "zone": "second_zone"
         }
       }
+    },
+    {
+      "id": "impId003",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "minduration": 1,
+        "maxduration": 2,
+        "protocols": [
+          1,
+          2
+        ],
+        "w": 640,
+        "h": 480,
+        "startdelay": 1,
+        "placement": 1,
+        "linearity": 1
+      },
+      "ext": {
+        "bidder": {
+          "zone": "third_zone"
+        }
+      }
     }
   ],
   "site": {
-    "id": "second_zone",
+    "id": "third_zone",
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
@@ -58,12 +82,8 @@
     "ifa": "ifaId"
   },
   "user": {
+    "buyeruid" : "GUM-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },
@@ -102,7 +122,10 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }
