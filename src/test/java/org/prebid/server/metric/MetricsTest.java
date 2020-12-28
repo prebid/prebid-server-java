@@ -561,6 +561,117 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateEmptyBidValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updateEmptyBidValidationMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updateEmptyBidValidationMetrics(INVALID_BIDDER, ACCOUNT_ID);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.empty-bid").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.empty-bid").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.empty-bid").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updateBidIdValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updateBidIdValidationMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updateBidIdValidationMetrics(INVALID_BIDDER, ACCOUNT_ID);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.bidid").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.bidid").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.bidid").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updateImpIdValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updateImpIdValidationMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updateImpIdValidationMetrics(INVALID_BIDDER, ACCOUNT_ID);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.impid").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.impid").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.impid").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updateCridValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updateCridValidationMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updateCridValidationMetrics(INVALID_BIDDER, ACCOUNT_ID);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.crid").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.crid").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.crid").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updatePriceEmptyValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updatePriceEmptyValidationMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updatePriceEmptyValidationMetrics(INVALID_BIDDER, ACCOUNT_ID);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.price.empty").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.price.empty").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.price.empty").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updatePriceNegativeValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updatePriceNegativeValidationMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updatePriceNegativeValidationMetrics(INVALID_BIDDER, ACCOUNT_ID);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.price.negative").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.price.negative").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.price.negative").getCount())
+                .isEqualTo(2);
+    }
+
+    @Test
+    public void updatePriceZeroNonDealValidationMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+
+        // when
+        metrics.updatePriceZeroNonDealValidationMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updatePriceZeroNonDealValidationMetrics(INVALID_BIDDER, ACCOUNT_ID);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.price.zero-non-deal").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.response.validation.price.zero-non-deal").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.response.validation.price.zero-non-deal").getCount())
+                .isEqualTo(2);
+    }
+
+    @Test
     public void updateSizeValidationMetricsShouldIncrementMetrics() {
         // given
         given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);

@@ -266,6 +266,44 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(resolveMetricsBidderName(bidder)).request().incCounter(errorMetric);
     }
 
+    public void updateEmptyBidValidationMetrics(String bidder, String accountId) {
+        updateValidationMetrics(bidder, accountId, MetricName.empty_bid);
+    }
+
+    public void updateBidIdValidationMetrics(String bidder, String accountId) {
+        updateValidationMetrics(bidder, accountId, MetricName.bidid);
+    }
+
+    public void updateImpIdValidationMetrics(String bidder, String accountId) {
+        updateValidationMetrics(bidder, accountId, MetricName.impid);
+    }
+
+    public void updateCridValidationMetrics(String bidder, String accountId) {
+        updateValidationMetrics(bidder, accountId, MetricName.crid);
+    }
+
+    private void updateValidationMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(resolveMetricsBidderName(bidder)).response().validation().incCounter(type);
+        forAccount(accountId).response().validation().incCounter(type);
+    }
+
+    public void updatePriceEmptyValidationMetrics(String bidder, String accountId) {
+        updatePriceValidationMetric(bidder, accountId, MetricName.empty);
+    }
+
+    public void updatePriceNegativeValidationMetrics(String bidder, String accountId) {
+        updatePriceValidationMetric(bidder, accountId, MetricName.negative);
+    }
+
+    public void updatePriceZeroNonDealValidationMetrics(String bidder, String accountId) {
+        updatePriceValidationMetric(bidder, accountId, MetricName.zero_non_deal);
+    }
+
+    private void updatePriceValidationMetric(String bidder, String accountId, MetricName empty) {
+        forAdapter(resolveMetricsBidderName(bidder)).response().validation().price().incCounter(empty);
+        forAccount(accountId).response().validation().price().incCounter(empty);
+    }
+
     public void updateSizeValidationMetrics(String bidder, String accountId, MetricName type) {
         forAdapter(resolveMetricsBidderName(bidder)).response().validation().size().incCounter(type);
         forAccount(accountId).response().validation().size().incCounter(type);

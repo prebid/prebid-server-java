@@ -61,7 +61,16 @@ public enum MetricName {
     networkerr,
 
     // bids validation
+    empty_bid("empty-bid"),
+    bidid,
+    impid,
+    crid,
     warn,
+
+    // bids price validation
+    empty,
+    negative,
+    zero_non_deal("zero-non-deal"),
 
     // cookie sync
     cookie_sync_requests,

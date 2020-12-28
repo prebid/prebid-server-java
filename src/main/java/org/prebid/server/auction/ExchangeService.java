@@ -166,7 +166,7 @@ public class ExchangeService {
                 .map(CompositeFuture::<BidderResponse>list)
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(
                         bidderResponses, storedResponse, bidRequest.getImp()))
-                .map(bidderResponses -> validateAndAdjustBids(bidderResponses, context, aliases))
+                .map(bidderResponses -> validateAndAdjustBids(bidderResponses, bidRequest, account, aliases))
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId, aliases))
                 // produce response from bidder results
                 .compose(bidderResponses -> bidResponseCreator.create(
@@ -825,12 +825,13 @@ public class ExchangeService {
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
-    private List<BidderResponse> validateAndAdjustBids(
-            List<BidderResponse> bidderResponses, AuctionContext auctionContext, BidderAliases aliases) {
-
+    private List<BidderResponse> validateAndAdjustBids(List<BidderResponse> bidderResponses,
+                                                       BidRequest bidRequest,
+                                                       Account account,
+                                                       BidderAliases aliases) {
         return bidderResponses.stream()
-                .map(bidderResponse -> validBidderResponse(bidderResponse, auctionContext, aliases))
-                .map(bidderResponse -> applyBidPriceChanges(bidderResponse, auctionContext.getBidRequest()))
+                .map(bidderResponse -> validBidderResponse(bidderResponse, bidRequest, account, aliases))
+                .map(bidderResponse -> applyBidPriceChanges(bidderResponse, bidRequest))
                 .collect(Collectors.toList());
     }
 
@@ -842,9 +843,8 @@ public class ExchangeService {
      * Returns input argument as the result if no errors found or creates new {@link BidderResponse} otherwise.
      */
     private BidderResponse validBidderResponse(
-            BidderResponse bidderResponse, AuctionContext auctionContext, BidderAliases aliases) {
+            BidderResponse bidderResponse, BidRequest bidRequest, Account account, BidderAliases aliases) {
 
-        final BidRequest bidRequest = auctionContext.getBidRequest();
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
 
@@ -858,9 +858,12 @@ public class ExchangeService {
         final List<BidderBid> bids = seatBid.getBids();
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
 
-        for (final BidderBid bid : bids) {
+        final String bidder = bidderResponse.getBidder();
+        final String resolvedBidder = aliases.resolveBidder(bidder);
+
+        for (BidderBid bid : bids) {
             final ValidationResult validationResult =
-                    responseBidValidator.validate(bid, bidderResponse.getBidder(), auctionContext, aliases);
+                    responseBidValidator.validate(bid, resolvedBidder, bidRequest, account);
 
             if (validationResult.hasWarnings()) {
                 addAsBidderErrors(validationResult.getWarnings(), errors);
