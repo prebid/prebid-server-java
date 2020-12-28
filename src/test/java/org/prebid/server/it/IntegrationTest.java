@@ -21,6 +21,7 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONCompare;
@@ -181,6 +182,10 @@ public abstract class IntegrationTest extends VertxTest {
         return new CustomComparator(
                 JSONCompareMode.NON_EXTENSIBLE,
                 new Customization("ext.debug.httpcalls.cache", arrayValueMatcher));
+    }
+
+    static BidCacheRequestPattern equalToBidCacheRequest(String json) {
+        return new BidCacheRequestPattern(json);
     }
 
     public static class CacheResponseTransformer extends ResponseTransformer {

@@ -109,8 +109,8 @@ public class ApplicationTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom(
-                        "openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
