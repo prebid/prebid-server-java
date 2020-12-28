@@ -1,39 +1,25 @@
 package org.prebid.server.bidder;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.util.HttpUtil;
+import lombok.Value;
 
-import java.util.Objects;
-
-@Data
-@AllArgsConstructor
+@Value(staticConstructor = "of")
 public class Usersyncer {
 
-    private String cookieFamilyName;
+    String cookieFamilyName;
 
-    private String usersyncUrl;
+    UsersyncMethod primaryMethod;
 
-    private String redirectUrl;
+    UsersyncMethod secondaryMethod;
 
-    private String type;
+    @Value(staticConstructor = "of")
+    public static class UsersyncMethod {
 
-    private boolean supportCORS;
+        String type;
 
-    public Usersyncer(String cookieFamilyName,
-                      String usersyncUrl,
-                      String redirectUrl,
-                      String externalUri,
-                      String type,
-                      boolean supportCORS) {
+        String usersyncUrl;
 
-        this.cookieFamilyName = cookieFamilyName;
-        this.usersyncUrl = Objects.requireNonNull(usersyncUrl);
-        this.redirectUrl = StringUtils.isNotBlank(redirectUrl)
-                ? HttpUtil.validateUrl(externalUri) + redirectUrl
-                : StringUtils.EMPTY;
-        this.type = type;
-        this.supportCORS = supportCORS;
+        String redirectUrl;
+
+        boolean supportCORS;
     }
 }

@@ -459,7 +459,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         } else {
             final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
 
-            if (StringUtils.isEmpty(usersyncer.getUsersyncUrl())) {
+            if (StringUtils.isEmpty(usersyncer.getPrimaryMethod().getUsersyncUrl())) {
                 // there is nothing to sync
                 return null;
             }

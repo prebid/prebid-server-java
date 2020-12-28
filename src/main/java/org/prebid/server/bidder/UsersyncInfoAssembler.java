@@ -15,10 +15,11 @@ public class UsersyncInfoAssembler {
 
     public static UsersyncInfoAssembler from(Usersyncer usersyncer) {
         final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
-        usersyncInfoAssembler.usersyncUrl = usersyncer.getUsersyncUrl();
-        usersyncInfoAssembler.redirectUrl = ObjectUtils.defaultIfNull(usersyncer.getRedirectUrl(), "");
-        usersyncInfoAssembler.type = usersyncer.getType();
-        usersyncInfoAssembler.supportCORS = usersyncer.isSupportCORS();
+        usersyncInfoAssembler.usersyncUrl = usersyncer.getPrimaryMethod().getUsersyncUrl();
+        usersyncInfoAssembler.redirectUrl = ObjectUtils.defaultIfNull(
+                usersyncer.getPrimaryMethod().getRedirectUrl(), "");
+        usersyncInfoAssembler.type = usersyncer.getPrimaryMethod().getType();
+        usersyncInfoAssembler.supportCORS = usersyncer.getPrimaryMethod().isSupportCORS();
         return usersyncInfoAssembler;
     }
 

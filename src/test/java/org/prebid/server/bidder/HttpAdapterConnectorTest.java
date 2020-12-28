@@ -117,7 +117,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector = new HttpAdapterConnector(
                 httpClient, new PrivacyExtractor(), clock, jacksonMapper);
 
-        usersyncer = new Usersyncer(null, "", "", null, null, false);
+        usersyncer = createUsersyncer("", "");
     }
 
     @Test
@@ -566,7 +566,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
-        usersyncer = new Usersyncer(null, "url1", null, null, null, false);
+        usersyncer = createUsersyncer("url1", null);
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -592,10 +592,10 @@ public class HttpAdapterConnectorTest extends VertxTest {
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
-        usersyncer = new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}"
-                + "%26gdpr_consent%3D{{gdpr_consent}}"
-                + "%26us_privacy={{us_privacy}}",
-                null, null, null, false);
+        usersyncer = createUsersyncer(
+                "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
+                        + "%26us_privacy={{us_privacy}}",
+                null);
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -815,6 +815,14 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
     private Timeout expiredTimeout() {
         return new TimeoutFactory(clock).create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
+    }
+
+    private static Usersyncer createUsersyncer(String usersyncUrl, String redirectUrl) {
+
+        return Usersyncer.of(
+                null,
+                Usersyncer.UsersyncMethod.of(null, usersyncUrl, redirectUrl, false),
+                null);
     }
 
     @AllArgsConstructor(staticName = "of")

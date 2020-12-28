@@ -19,8 +19,6 @@ public class BidderCatalogTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private Usersyncer usersyncer;
-    @Mock
     private Bidder bidder;
     @Mock
     private Adapter adapter;
@@ -170,6 +168,7 @@ public class BidderCatalogTest {
     @Test
     public void usersyncerByNameShouldReturnUsersyncerForKnownBidder() {
         // given
+        final Usersyncer usersyncer = Usersyncer.of(null, null, null);
         bidderDeps = BidderDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(emptyList())

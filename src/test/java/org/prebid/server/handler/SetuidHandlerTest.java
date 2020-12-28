@@ -111,7 +111,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("rubicon", "audienceNetwork")));
         given(bidderCatalog.isActive(any())).willReturn(true);
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                new Usersyncer(RUBICON, null, null, null, false));
+                Usersyncer.of(RUBICON, null, null));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -370,7 +370,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhdWRpZW5jZU5ldHdvcmsiOnsidWlkIjoiZmFjZWJvb2tVaWQifX19"));
 
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                new Usersyncer(FACEBOOK, null, null, null, false));
+                Usersyncer.of(FACEBOOK, null, null));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -571,7 +571,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("uid")).willReturn("0");
 
         given(bidderCatalog.usersyncerByName(any())).willReturn(
-                new Usersyncer(FACEBOOK, null, null, null, false));
+                Usersyncer.of(FACEBOOK, null, null));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
