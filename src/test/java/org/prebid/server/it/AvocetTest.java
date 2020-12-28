@@ -5,7 +5,6 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -30,7 +29,8 @@ public class AvocetTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/avocet/test-cache-avocet-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/avocet/test-cache-avocet-request.json")))
                 .willReturn(aResponse().withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName", "openrtb2/avocet/test-cache-matcher-avocet.json")));
 
@@ -51,6 +51,6 @@ public class AvocetTest extends IntegrationTest {
 
         final String actualStr = response.asString();
 
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, openrtbCacheDebugComparator());
     }
 }

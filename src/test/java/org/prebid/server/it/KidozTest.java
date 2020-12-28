@@ -42,7 +42,7 @@ public class KidozTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/kidoz/test-cache-kidoz-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(jsonFrom("openrtb2/kidoz/test-cache-kidoz-request.json")))
                 .willReturn(aResponse().withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
                                 "openrtb2/kidoz/test-cache-matcher-kidoz.json")));

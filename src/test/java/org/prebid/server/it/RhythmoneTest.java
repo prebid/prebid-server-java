@@ -33,7 +33,8 @@ public class RhythmoneTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/rhythmone/test-cache-rhythmone-request.json")))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/rhythmone/test-cache-rhythmone-request.json")))
                 .willReturn(aResponse().withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
                                 "openrtb2/rhythmone/test-cache-matcher-rhythmone.json")));

@@ -32,8 +32,8 @@ public class SynacormediaTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/synacormedia/test-cache-synacormedia-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/synacormedia/test-cache-synacormedia-request.json")))
                 .willReturn(aResponse().withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
                                 "openrtb2/synacormedia/test-cache-matcher-synacormedia.json")));

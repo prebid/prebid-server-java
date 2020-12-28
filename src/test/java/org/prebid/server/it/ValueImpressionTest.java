@@ -36,8 +36,8 @@ public class ValueImpressionTest extends IntegrationTest {
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/valueimpression/test-cache-valueimpression-request.json"), true,
-                                false))
+                        equalToBidCacheRequest(
+                                jsonFrom("openrtb2/valueimpression/test-cache-valueimpression-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",

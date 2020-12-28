@@ -44,8 +44,8 @@ public class FacebookTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/facebook/test-cache-facebook-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/facebook/test-cache-facebook-request.json")))
                 .willReturn(aResponse().withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
                                 "openrtb2/facebook/test-cache-matcher-facebook.json")));

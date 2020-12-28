@@ -38,8 +38,8 @@ public class LifestreetTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/lifestreet/test-cache-lifestreet-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/lifestreet/test-cache-lifestreet-request.json")))
                 .willReturn(aResponse().withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
                                 "openrtb2/lifestreet/test-cache-matcher-lifestreet.json")));

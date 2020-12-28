@@ -43,8 +43,8 @@ public class EngagebdrTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/engagebdr/test-cache-engagebdr-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/engagebdr/test-cache-engagebdr-request.json")))
                 .willReturn(aResponse().withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
                                 "openrtb2/engagebdr/test-cache-matcher-engagebdr.json")));

@@ -252,7 +252,8 @@ public class ApplicationTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("amp/test-cache-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("amp/test-cache-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName", "amp/test-cache-matcher-amp.json")
@@ -448,7 +449,7 @@ public class ApplicationTest extends IntegrationTest {
     public void vtrackShouldReturnJsonWithUids() throws JSONException, IOException {
         // given and when
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("vtrack/test-cache-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(jsonFrom("vtrack/test-cache-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("vtrack/test-vtrack-response.json"))));
 
         final Response response = given(SPEC)
