@@ -461,24 +461,32 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
-        if (StringUtils.isEmpty(usersyncer.getPrimaryMethod().getUsersyncUrl())) {
+        final Usersyncer.UsersyncMethod usersyncMethod = resolveUsersyncMethod(usersyncer);
+        if (usersyncMethod == null) {
             // there is nothing to sync
             return null;
         }
 
-        final String uidFromHostCookieToSet = resolveUidFromHostCookie(context, usersyncer);
-        if (uidFromHostCookieToSet == null && uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {
+        final String cookieFamilyName = usersyncer.getCookieFamilyName();
+        final String uidFromHostCookieToSet = resolveUidFromHostCookie(context, cookieFamilyName);
+        if (uidFromHostCookieToSet == null && uidsCookie.hasLiveUidFrom(cookieFamilyName)) {
             return null;
         }
 
         return bidderStatusBuilder(bidder)
                 .noCookie(true)
-                .usersync(toUsersyncInfo(usersyncer, uidFromHostCookieToSet, privacy))
+                .usersync(toUsersyncInfo(usersyncMethod, cookieFamilyName, uidFromHostCookieToSet, privacy))
                 .build();
     }
 
     private static BidderUsersyncStatus.BidderUsersyncStatusBuilder bidderStatusBuilder(String bidder) {
         return BidderUsersyncStatus.builder().bidder(bidder);
+    }
+
+    private static Usersyncer.UsersyncMethod resolveUsersyncMethod(Usersyncer usersyncer) {
+        final Usersyncer.UsersyncMethod primaryMethod = usersyncer.getPrimaryMethod();
+
+        return StringUtils.isNotEmpty(primaryMethod.getUsersyncUrl()) ? primaryMethod : null;
     }
 
     /**
@@ -492,8 +500,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * <p>
      * 3. Host-bidder uid value in uids cookie should not exist or be different from host-cookie uid value.
      */
-    private String resolveUidFromHostCookie(RoutingContext context, Usersyncer usersyncer) {
-        final String cookieFamilyName = usersyncer.getCookieFamilyName();
+    private String resolveUidFromHostCookie(RoutingContext context, String cookieFamilyName) {
         if (!Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
             return null;
         }
@@ -517,12 +524,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return hostCookieUid;
     }
 
-    private UsersyncInfo toUsersyncInfo(Usersyncer usersyncer, String uidFromHostCookieToSet, Privacy privacy) {
-        final UsersyncInfoAssembler usersyncInfoAssembler = UsersyncInfoAssembler.from(usersyncer.getPrimaryMethod());
+    private UsersyncInfo toUsersyncInfo(Usersyncer.UsersyncMethod usersyncMethod,
+                                        String cookieFamilyName,
+                                        String uidFromHostCookieToSet,
+                                        Privacy privacy) {
+
+        final UsersyncInfoAssembler usersyncInfoAssembler = UsersyncInfoAssembler.from(usersyncMethod);
 
         return (uidFromHostCookieToSet == null
                 ? usersyncInfoAssembler
-                : usersyncInfoAssembler.withUrl(toHostBidderUsersyncUrl(usersyncer, uidFromHostCookieToSet)))
+                : usersyncInfoAssembler.withUrl(toHostBidderUsersyncUrl(cookieFamilyName, uidFromHostCookieToSet)))
                 .withPrivacy(privacy)
                 .assemble();
     }
@@ -530,11 +541,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     /**
      * Returns updated usersync-url pointed directly to Prebid Server /setuid endpoint.
      */
-    private String toHostBidderUsersyncUrl(Usersyncer usersyncer, String hostCookieUid) {
+    private String toHostBidderUsersyncUrl(String cookieFamilyName, String hostCookieUid) {
         return String.format(
                 HOST_BIDDER_USERSYNC_URL_TEMPLATE,
                 externalUrl,
-                usersyncer.getCookieFamilyName(),
+                cookieFamilyName,
                 HttpUtil.encodeUrl(hostCookieUid));
     }
 
