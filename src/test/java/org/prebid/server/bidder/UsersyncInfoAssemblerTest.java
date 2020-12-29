@@ -13,7 +13,7 @@ public class UsersyncInfoAssemblerTest {
     public void assembleUsersyncInfoShouldAppendRedirectUrlToUsersyncUrl() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncer("http://url/redirect=", "http://localhost:8000redirectUrl"))
+                .from(createUsersyncMethod("http://url/redirect=", "http://localhost:8000redirectUrl"))
                 .assemble();
 
         // then
@@ -24,7 +24,7 @@ public class UsersyncInfoAssemblerTest {
     public void assembleUsersyncInfoShouldAppendEncodedRedirectUrlAndNotEncodedQueryParamsToUsersyncUrl() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncer(
+                .from(createUsersyncMethod(
                         "http://url/redirect=",
                         "http://localhost:8000/setuid?gdpr={{gdpr}}?gdpr={{gdpr}}"))
                 .assemble();
@@ -38,7 +38,7 @@ public class UsersyncInfoAssemblerTest {
     public void assembleUsersyncInfoShouldIgnoreRedirectUrlIfNotDefined() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncer("http://url/redirect=", null))
+                .from(createUsersyncMethod("http://url/redirect=", null))
                 .assemble();
 
         // then
@@ -49,7 +49,7 @@ public class UsersyncInfoAssemblerTest {
     public void assembleWithPrivacyShouldCreatePrivacyAwareUsersyncInfo() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncer(
+                .from(createUsersyncMethod(
                         "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
                                 + "%26us_privacy={{us_privacy}}",
                         null))
@@ -65,7 +65,7 @@ public class UsersyncInfoAssemblerTest {
     public void assembleWithPrivacyShouldTolerateMissingPrivacyParamsUsersyncInfo() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncer(
+                .from(createUsersyncMethod(
                         "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
                                 + "%26us_privacy%3D{{us_privacy}}",
                         null))
@@ -80,7 +80,7 @@ public class UsersyncInfoAssemblerTest {
     public void assembleWithPrivacyShouldIgnorePrivacyParamsIfTheyAreMissingInUrl() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncer("http://url?redir=a%3Db", null))
+                .from(createUsersyncMethod("http://url?redir=a%3Db", null))
                 .withPrivacy(Privacy.of("1", "consent", Ccpa.of("YNN"), null))
                 .assemble();
 
@@ -92,7 +92,7 @@ public class UsersyncInfoAssemblerTest {
     public void assembleWithPrivacyUsersyncInfoShouldPopulateWithPrivacyRedirectAndUsersyncUrl() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncer(
+                .from(createUsersyncMethod(
                         "http://url/{{gdpr}}/{{gdpr_consent}}?redir=",
                         "http://localhost:8000/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
                                 + "&us_privacy={{us_privacy}}&uid=$UID"))
@@ -109,7 +109,7 @@ public class UsersyncInfoAssemblerTest {
     public void assembleWithUrlUsersyncInfoShouldUpdateUsersyncUrl() {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
-                .from(createUsersyncer("http://url", null))
+                .from(createUsersyncMethod("http://url", null))
                 .withUrl("http://updated-url")
                 .assemble();
 
@@ -117,11 +117,7 @@ public class UsersyncInfoAssemblerTest {
         assertThat(result.getUrl()).isEqualTo("http://updated-url");
     }
 
-    private static Usersyncer createUsersyncer(String usersyncUrl, String redirectUrl) {
-
-        return Usersyncer.of(
-                null,
-                Usersyncer.UsersyncMethod.of(null, usersyncUrl, redirectUrl, false),
-                null);
+    private static Usersyncer.UsersyncMethod createUsersyncMethod(String usersyncUrl, String redirectUrl) {
+        return Usersyncer.UsersyncMethod.of(null, usersyncUrl, redirectUrl, false);
     }
 }

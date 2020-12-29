@@ -518,7 +518,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private UsersyncInfo toUsersyncInfo(Usersyncer usersyncer, String uidFromHostCookieToSet, Privacy privacy) {
-        final UsersyncInfoAssembler usersyncInfoAssembler = UsersyncInfoAssembler.from(usersyncer);
+        final UsersyncInfoAssembler usersyncInfoAssembler = UsersyncInfoAssembler.from(usersyncer.getPrimaryMethod());
 
         return (uidFromHostCookieToSet == null
                 ? usersyncInfoAssembler

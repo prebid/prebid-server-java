@@ -13,13 +13,12 @@ public class UsersyncInfoAssembler {
     private String type;
     private Boolean supportCORS;
 
-    public static UsersyncInfoAssembler from(Usersyncer usersyncer) {
+    public static UsersyncInfoAssembler from(Usersyncer.UsersyncMethod usersyncMethod) {
         final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
-        usersyncInfoAssembler.usersyncUrl = usersyncer.getPrimaryMethod().getUsersyncUrl();
-        usersyncInfoAssembler.redirectUrl = ObjectUtils.defaultIfNull(
-                usersyncer.getPrimaryMethod().getRedirectUrl(), "");
-        usersyncInfoAssembler.type = usersyncer.getPrimaryMethod().getType();
-        usersyncInfoAssembler.supportCORS = usersyncer.getPrimaryMethod().isSupportCORS();
+        usersyncInfoAssembler.usersyncUrl = usersyncMethod.getUsersyncUrl();
+        usersyncInfoAssembler.redirectUrl = ObjectUtils.defaultIfNull(usersyncMethod.getRedirectUrl(), "");
+        usersyncInfoAssembler.type = usersyncMethod.getType();
+        usersyncInfoAssembler.supportCORS = usersyncMethod.isSupportCORS();
         return usersyncInfoAssembler;
     }
 

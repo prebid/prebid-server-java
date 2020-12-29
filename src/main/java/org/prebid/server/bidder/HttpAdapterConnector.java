@@ -215,7 +215,10 @@ public class HttpAdapterConnector {
             final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest);
             bidderStatusBuilder
                     .noCookie(true)
-                    .usersync(UsersyncInfoAssembler.from(usersyncer).withPrivacy(privacy).assemble());
+                    .usersync(UsersyncInfoAssembler
+                            .from(usersyncer.getPrimaryMethod())
+                            .withPrivacy(privacy)
+                            .assemble());
         }
 
         final List<Result<List<Bid>>> bidsWithErrors = exchangeCalls.stream()
