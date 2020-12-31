@@ -21,6 +21,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.CookieSyncContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncInfoAssembler;
+import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -166,6 +167,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
                                 .cookieSyncRequest(cookieSyncRequest)
+                                .usersyncMethodChooser(
+                                        UsersyncMethodChooser.from(cookieSyncRequest.getFilterSettings()))
                                 .timeout(timeout)
                                 .account(account)
                                 .privacyContext(privacyContext)
@@ -389,13 +392,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void respondWithRejectedBidders(CookieSyncContext cookieSyncContext,
                                             Collection<String> bidders,
                                             RejectedBidders rejectedBidders) {
+
         updateCookieSyncTcfMetrics(bidders, rejectedBidders.getRejectedByTcf());
 
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
-        final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
-                .map(bidder -> bidderStatusFor(bidder, routingContext, uidsCookie, rejectedBidders, privacy))
+                .map(bidder -> bidderStatusFor(bidder, cookieSyncContext, rejectedBidders))
                 .filter(Objects::nonNull) // skip bidder with live UID
                 .collect(Collectors.toList());
 
@@ -431,10 +434,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * Creates {@link BidderUsersyncStatus} for given bidder.
      */
     private BidderUsersyncStatus bidderStatusFor(String bidder,
-                                                 RoutingContext context,
-                                                 UidsCookie uidsCookie,
-                                                 RejectedBidders rejectedBidders,
-                                                 Privacy privacy) {
+                                                 CookieSyncContext cookieSyncContext,
+                                                 RejectedBidders rejectedBidders) {
 
         final boolean isNotAlias = !bidderCatalog.isAlias(bidder);
         final Set<String> biddersRejectedByTcf = rejectedBidders.getRejectedByTcf();
@@ -461,17 +462,23 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
-        final Usersyncer.UsersyncMethod usersyncMethod = resolveUsersyncMethod(usersyncer);
+
+        final Usersyncer.UsersyncMethod usersyncMethod =
+                cookieSyncContext.getUsersyncMethodChooser().choose(usersyncer, bidder);
         if (usersyncMethod == null) {
             // there is nothing to sync
             return null;
         }
 
+        final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
+        final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
         final String cookieFamilyName = usersyncer.getCookieFamilyName();
-        final String uidFromHostCookieToSet = resolveUidFromHostCookie(context, cookieFamilyName);
+        final String uidFromHostCookieToSet = resolveUidFromHostCookie(routingContext, cookieFamilyName);
         if (uidFromHostCookieToSet == null && uidsCookie.hasLiveUidFrom(cookieFamilyName)) {
             return null;
         }
+
+        final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
 
         return bidderStatusBuilder(bidder)
                 .noCookie(true)
@@ -481,12 +488,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static BidderUsersyncStatus.BidderUsersyncStatusBuilder bidderStatusBuilder(String bidder) {
         return BidderUsersyncStatus.builder().bidder(bidder);
-    }
-
-    private static Usersyncer.UsersyncMethod resolveUsersyncMethod(Usersyncer usersyncer) {
-        final Usersyncer.UsersyncMethod primaryMethod = usersyncer.getPrimaryMethod();
-
-        return StringUtils.isNotEmpty(primaryMethod.getUsersyncUrl()) ? primaryMethod : null;
     }
 
     /**
