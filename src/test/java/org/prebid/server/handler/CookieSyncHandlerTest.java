@@ -912,7 +912,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .extracting(BidderUsersyncStatus::getUsersync)
                 .containsOnly(
                         UsersyncInfo.of("http://external-url/setuid?bidder=rubicon&gdpr=&gdpr_consent=&us_privacy="
-                                + "&uid=host%2Fcookie%2Fvalue", "redirect", false));
+                                + "&uid=host%2Fcookie%2Fvalue&f=i", "redirect", false));
     }
 
     @Test

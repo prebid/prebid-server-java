@@ -13,8 +13,6 @@ import java.util.stream.Stream;
 
 public class UsersyncMethodChooser {
 
-    private static final String IFRAME_TYPE = "iframe";
-    private static final String REDIRECT_TYPE = "redirect";
     private static final String CATCH_ALL_BIDDERS = "*";
 
     private final Map<String, CookieSyncRequest.MethodFilter> filters;
@@ -43,8 +41,8 @@ public class UsersyncMethodChooser {
 
         final Map<String, CookieSyncRequest.MethodFilter> filterMap = new HashMap<>();
 
-        filterMap.computeIfAbsent(IFRAME_TYPE, key -> filterSettings.getIframe());
-        filterMap.computeIfAbsent(REDIRECT_TYPE, key -> filterSettings.getImage());
+        filterMap.computeIfAbsent(Usersyncer.UsersyncMethod.IFRAME_TYPE, key -> filterSettings.getIframe());
+        filterMap.computeIfAbsent(Usersyncer.UsersyncMethod.REDIRECT_TYPE, key -> filterSettings.getImage());
 
         return filterMap;
     }

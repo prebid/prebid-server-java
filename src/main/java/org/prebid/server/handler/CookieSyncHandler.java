@@ -68,7 +68,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
     private static final String HOST_BIDDER_USERSYNC_URL_TEMPLATE =
-            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s";
+            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s&f=%s";
+    private static final String SETUID_RESPONSE_FORMAT_BLANK = "b";
+    private static final String SETUID_RESPONSE_FORMAT_IMAGE = "i";
 
     private final String externalUrl;
     private final long defaultTimeout;
@@ -534,7 +536,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         return (uidFromHostCookieToSet == null
                 ? usersyncInfoAssembler
-                : usersyncInfoAssembler.withUrl(toHostBidderUsersyncUrl(cookieFamilyName, uidFromHostCookieToSet)))
+                : usersyncInfoAssembler
+                .withUrl(toHostBidderUsersyncUrl(cookieFamilyName, usersyncMethod, uidFromHostCookieToSet)))
                 .withPrivacy(privacy)
                 .assemble();
     }
@@ -542,12 +545,26 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     /**
      * Returns updated usersync-url pointed directly to Prebid Server /setuid endpoint.
      */
-    private String toHostBidderUsersyncUrl(String cookieFamilyName, String hostCookieUid) {
+    private String toHostBidderUsersyncUrl(String cookieFamilyName,
+                                           Usersyncer.UsersyncMethod usersyncMethod,
+                                           String hostCookieUid) {
+
         return String.format(
                 HOST_BIDDER_USERSYNC_URL_TEMPLATE,
                 externalUrl,
                 cookieFamilyName,
-                HttpUtil.encodeUrl(hostCookieUid));
+                HttpUtil.encodeUrl(hostCookieUid),
+                setuidResponseFormatFrom(usersyncMethod));
+    }
+
+    private static String setuidResponseFormatFrom(Usersyncer.UsersyncMethod usersyncMethod) {
+        switch (usersyncMethod.getType()) {
+            case Usersyncer.UsersyncMethod.REDIRECT_TYPE:
+                return SETUID_RESPONSE_FORMAT_IMAGE;
+            case Usersyncer.UsersyncMethod.IFRAME_TYPE:
+            default:
+                return SETUID_RESPONSE_FORMAT_BLANK;
+        }
     }
 
     private void updateCookieSyncMatchMetrics(Collection<String> syncBidders,
