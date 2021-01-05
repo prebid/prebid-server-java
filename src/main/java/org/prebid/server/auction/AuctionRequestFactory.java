@@ -553,11 +553,7 @@ public class AuctionRequestFactory {
      * requestParams and impParams with impParams priority.
      */
     private JsonNode mergeBidderParams(JsonNode requestParams, JsonNode impParams) {
-        if (impParams == null) {
-            return requestParams;
-        } else {
-            return jsonMerger.merge(impParams, requestParams);
-        }
+        return impParams == null ? requestParams : jsonMerger.merge(impParams, requestParams);
     }
 
     /**
