@@ -65,6 +65,9 @@ public class JsonMerger {
         }
     }
 
+    /**
+     * Merges @param mergingObject to @originalObject, where the first object fields has priority over the last.
+     */
     public JsonNode merge(JsonNode originalObject, JsonNode mergingObject) {
         try {
             return JsonMergePatch.fromJson(originalObject).apply(mergingObject);
