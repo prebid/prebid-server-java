@@ -65,6 +65,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -101,7 +102,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -112,6 +112,8 @@ import java.util.stream.StreamSupport;
 public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
+    private static final ConditionalLogger MISSING_VIDEO_SIZE_LOGGER =
+            new ConditionalLogger("missing_video_size", logger);
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
@@ -679,14 +681,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer videoSizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
         // log only 1% of cases to monitor how often video impressions does not have size id
         if (videoSizeId == null || videoSizeId == 0) {
-            warnWithSamplingRate(String.format("RP adapter: video request with no size_id. Referrer URL = %s,"
+            MISSING_VIDEO_SIZE_LOGGER.warn(String.format("RP adapter: video request with no size_id. Referrer URL = %s,"
                     + " impId = %s", referer, impId), 0.01d);
-        }
-    }
-
-    private static void warnWithSamplingRate(String message, double samplingRate) {
-        if (ThreadLocalRandom.current().nextDouble() < samplingRate) {
-            logger.warn(message);
         }
     }
 
