@@ -81,7 +81,6 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
-    private static final String DATA = "data";
     private static final String ALL_BIDDERS_CONFIG = "*";
     private static final String GENERIC_SCHAIN_KEY = "*";
 
@@ -634,24 +633,16 @@ public class ExchangeService {
      * Creates a new imp extension for particular bidder having:
      * <ul>
      * <li>"prebid" field populated with an imp.ext.prebid field value, may be null</li>
-     * <li>"context" field populated with an imp.ext.context field value, may be null</li>
      * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
+     * <li>"context" field populated with an imp.ext.context field value, may be null</li>
+     * <li>"data" field populated with an imp.ext.data field value, may be null</li>
      * </ul>
      */
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
         final JsonNode impExtPrebid = prepareImpExtPrebid(bidder, impExt.get(PREBID_EXT));
         final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExt.get(bidder)));
 
-        final JsonNode contextNode = impExt.get(CONTEXT_EXT);
-        final boolean isContextNodePresent = contextNode != null && !contextNode.isNull();
-        if (isContextNodePresent) {
-            final JsonNode contextNodeCopy = contextNode.deepCopy();
-            if (!useFirstPartyData && contextNodeCopy.isObject()) {
-                ((ObjectNode) contextNodeCopy).remove(DATA);
-            }
-            result.set(CONTEXT_EXT, contextNodeCopy);
-        }
-        return result;
+        return fpdResolver.resolveImpExt(impExt, result, useFirstPartyData);
     }
 
     private JsonNode prepareImpExtPrebid(String bidder, JsonNode extImpPrebidNode) {
