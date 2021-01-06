@@ -125,7 +125,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_PAGE_FIELD = "page";
     private static final String FPD_REF_FIELD = "ref";
     private static final String FPD_SEARCH_FIELD = "search";
-    private static final String FPD_ADSLOT_FIELD = "adslot";
+    private static final String FPD_DATA_FIELD = "data";
     private static final String FPD_PBADSLOT_FIELD = "pbadslot";
     private static final String FPD_ADSERVER_FIELD = "adserver";
     private static final String FPD_ADSERVER_NAME_GAM = "gam";
@@ -472,7 +472,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private void mergeFirstPartyDataFromImp(Imp imp, ExtImpRubicon rubiconImpExt, ObjectNode result) {
         final ExtImpContext context = extImpContext(imp);
 
-        mergeFirstPartyDataFromContextData(context, result);
+        mergeFirstPartyDataFromData(imp, context, result);
         mergeFirstPartyDataKeywords(context, result);
         // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
         mergeCollectionAttributeIntoArray(result, rubiconImpExt, ExtImpRubicon::getKeywords, FPD_KEYWORDS_FIELD);
@@ -492,29 +492,27 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void mergeFirstPartyDataFromContextData(ExtImpContext context, ObjectNode result) {
-        if (context == null) {
-            return;
-        }
-
+    private void mergeFirstPartyDataFromData(Imp imp, ExtImpContext context, ObjectNode result) {
         // merge OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
-        final ObjectNode contextDataNode = context.getData();
+        final ObjectNode contextDataNode = context != null ? context.getData() : null;
         if (contextDataNode != null) {
             populateFirstPartyDataAttributes(contextDataNode, result);
         }
 
-        copyAdslot(context, result);
+        copyAdslot(imp, context, result);
     }
 
-    private void copyAdslot(ExtImpContext context, ObjectNode result) {
+    private void copyAdslot(Imp imp, ExtImpContext context, ObjectNode result) {
         // copy OPENRTB.imp[].ext.context.data.adslot or imp[].ext.context.adserver.adslot to
         // XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
-        final ObjectNode contextDataNode = context.getData();
+        final ObjectNode contextDataNode = context != null ? context.getData() : null;
+        final JsonNode dataNode = imp.getExt().get(FPD_DATA_FIELD);
 
         final String adSlot = ObjectUtils.firstNonNull(
-                getTextValueFromNodeByPath(contextDataNode, FPD_ADSLOT_FIELD),
                 getAdSlotFromAdServer(contextDataNode),
-                getTextValueFromNodeByPath(contextDataNode, FPD_PBADSLOT_FIELD));
+                getAdSlotFromAdServer(dataNode),
+                getTextValueFromNodeByPath(contextDataNode, FPD_PBADSLOT_FIELD),
+                getTextValueFromNodeByPath(dataNode, FPD_PBADSLOT_FIELD));
 
         if (StringUtils.isNotBlank(adSlot)) {
             final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
@@ -568,14 +566,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return nodeByPath != null && nodeByPath.isTextual() ? nodeByPath.textValue() : null;
     }
 
-    private String getAdSlotFromAdServer(ObjectNode contextDataNode) {
-        final ExtImpContextDataAdserver adServer = extImpContextDataAdserver(contextDataNode);
+    private String getAdSlotFromAdServer(JsonNode dataNode) {
+        final ExtImpContextDataAdserver adServer = extImpContextDataAdserver(dataNode);
         return adServer != null && Objects.equals(adServer.getName(), FPD_ADSERVER_NAME_GAM)
                 ? adServer.getAdslot()
                 : null;
     }
 
-    private ExtImpContextDataAdserver extImpContextDataAdserver(ObjectNode contextData) {
+    private ExtImpContextDataAdserver extImpContextDataAdserver(JsonNode contextData) {
         final JsonNode adServerNode = contextData != null ? contextData.get(FPD_ADSERVER_FIELD) : null;
         if (adServerNode == null || adServerNode.isNull()) {
             return null;
