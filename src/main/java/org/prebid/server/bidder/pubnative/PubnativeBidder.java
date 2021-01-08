@@ -146,25 +146,23 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> prepareBidderBid(imps, currency, bid))
+                .map(bid -> createBidderBid(imps, currency, bid))
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid prepareBidderBid(List<Imp> imps, String currency, Bid bid) {
+    private static BidderBid createBidderBid(List<Imp> imps, String currency, Bid bid) {
         final Imp imp = findImpById(bid.getImpid(), imps);
-        return BidderBid.of(updateBid(bid, imp), resolveBidType(imp), currency);
+        return BidderBid.of(updateBidWithSize(bid, imp), resolveBidType(imp), currency);
     }
 
-    private static Bid updateBid(Bid bid, Imp imp) {
+    private static Bid updateBidWithSize(Bid bid, Imp imp) {
         if (bid.getW() != null && bid.getH() != null) {
             return bid;
         }
 
-        Format format = null;
-        if (imp != null) {
-            format = resolveBidSizeFromImp(imp);
-        }
-
+        final Format format = imp != null && imp.getBanner() != null
+                ? resolveBidSizeFromBanner(imp.getBanner())
+                : null;
         return format != null
                 ? bid.toBuilder().w(format.getW()).h(format.getH()).build()
                 : bid;
@@ -187,12 +185,6 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         } else {
             return BidType.banner;
         }
-    }
-
-    private static Format resolveBidSizeFromImp(Imp imp) {
-        return imp != null && imp.getBanner() != null
-                ? resolveBidSizeFromBanner(imp.getBanner())
-                : null;
     }
 
     private static Format resolveBidSizeFromBanner(Banner banner) {
