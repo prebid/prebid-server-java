@@ -26,7 +26,7 @@ public class JdbcQueryTranslatorTest {
     @Mock
     private ResultSet resultSet;
 
-    private final JdbcQueryTranslator jdbcQueryTranslator = new JdbcQueryTranslator();
+    private final JdbcQueryTranslator jdbcQueryTranslator = new JdbcQueryTranslator("", "", "", "");
 
     @Test
     public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
