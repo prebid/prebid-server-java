@@ -74,10 +74,9 @@ public class SettingsConfiguration {
 
         @Bean
         JdbcApplicationSettings jdbcApplicationSettings(JdbcQueryTranslator jdbcQueryTranslator,
-                                                        JdbcClient jdbcClient,
-                                                        JacksonMapper jacksonMapper) {
+                                                        JdbcClient jdbcClient) {
 
-            return new JdbcApplicationSettings(jdbcQueryTranslator, jdbcClient, jacksonMapper);
+            return new JdbcApplicationSettings(jdbcQueryTranslator, jdbcClient);
         }
 
         @Bean
@@ -85,13 +84,15 @@ public class SettingsConfiguration {
                 @Value("${settings.database.account-query}") String accountQuery,
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
-                @Value("${settings.database.stored-responses-query}") String storedResponsesQuery) {
+                @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
+                JacksonMapper jacksonMapper) {
 
             return new JdbcQueryTranslator(
                     accountQuery,
                     storedRequestsQuery,
                     ampStoredRequestsQuery,
-                    storedResponsesQuery);
+                    storedResponsesQuery,
+                    jacksonMapper);
         }
 
         @Bean

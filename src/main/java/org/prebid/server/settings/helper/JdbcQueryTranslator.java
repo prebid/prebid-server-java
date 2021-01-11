@@ -7,7 +7,13 @@ import io.vertx.ext.sql.ResultSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.jdbc.model.SqlQuery;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredItem;
@@ -20,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -78,16 +85,20 @@ public class JdbcQueryTranslator {
      */
     private final String selectStoredResponsesQuery;
 
+    private final JacksonMapper mapper;
+
     public JdbcQueryTranslator(String selectAccountQuery,
                                String selectStoredRequestsQuery,
                                String selectAmpStoredRequestsQuery,
-                               String selectStoredResponsesQuery) {
+                               String selectStoredResponsesQuery,
+                               JacksonMapper mapper) {
 
         this.selectAccountQuery = Objects.requireNonNull(selectAccountQuery)
                 .replace(ACCOUNT_ID_PLACEHOLDER, QUERY_PARAM_PLACEHOLDER);
         this.selectStoredRequestsQuery = Objects.requireNonNull(selectStoredRequestsQuery);
         this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpStoredRequestsQuery);
         this.selectStoredResponsesQuery = Objects.requireNonNull(selectStoredResponsesQuery);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     public SqlQuery selectAccountQuery(String accountId) {
@@ -108,6 +119,27 @@ public class JdbcQueryTranslator {
 
     public SqlQuery selectStoredResponsesQuery(Set<String> responseIds) {
         return createStoredResponseQuery(selectStoredResponsesQuery, responseIds);
+    }
+
+    public Account translateQueryResultToAccount(ResultSet result) {
+        return mapToModelOrError(result, row -> Account.builder()
+                .id(row.getString(0))
+                .priceGranularity(row.getString(1))
+                .bannerCacheTtl(row.getInteger(2))
+                .videoCacheTtl(row.getInteger(3))
+                .eventsEnabled(row.getBoolean(4))
+                .enforceCcpa(row.getBoolean(5))
+                .gdpr(toModel(row.getString(6), AccountGdprConfig.class))
+                .analyticsSamplingFactor(row.getInteger(7))
+                .truncateTargetAttr(row.getInteger(8))
+                .defaultIntegration(row.getString(9))
+                .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
+                .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
+                .build());
+    }
+
+    public String translateQueryResultToAdUnitConfig(ResultSet result) {
+        return mapToModelOrError(result, row -> row.getString(0));
     }
 
     /**
@@ -235,6 +267,26 @@ public class JdbcQueryTranslator {
                 : IntStream.range(0, paramsSize)
                 .mapToObj(i -> QUERY_PARAM_PLACEHOLDER)
                 .collect(Collectors.joining(","));
+    }
+
+    /**
+     * Transforms the first row of {@link ResultSet} to required object or returns null.
+     * <p>
+     * Note: mapper should never throw exception in case of using
+     * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
+     */
+    private static <T> T mapToModelOrError(ResultSet result, Function<JsonArray, T> mapper) {
+        return result != null && CollectionUtils.isNotEmpty(result.getResults())
+                ? mapper.apply(result.getResults().get(0))
+                : null;
+    }
+
+    private <T> T toModel(String source, Class<T> targetClass) {
+        try {
+            return source != null ? mapper.decodeValue(source, targetClass) : null;
+        } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private static void addStoredItem(String accountId,

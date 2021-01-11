@@ -174,8 +174,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         timeout = new TimeoutFactory(clock).create(5000L);
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcQueryTranslator(SELECT_QUERY, SELECT_RESPONSE_QUERY),
-                jdbcClient(),
-                jacksonMapper);
+                jdbcClient());
     }
 
     @After
@@ -318,8 +317,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcQueryTranslator(SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY),
-                jdbcClient(),
-                jacksonMapper);
+                jdbcClient());
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -348,8 +346,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcQueryTranslator(SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY),
-                jdbcClient(),
-                jacksonMapper);
+                jdbcClient());
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -378,8 +375,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcQueryTranslator(SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY),
-                jdbcClient(),
-                jacksonMapper);
+                jdbcClient());
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -450,8 +446,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcQueryTranslator(SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY),
-                jdbcClient(),
-                jacksonMapper);
+                jdbcClient());
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -472,8 +467,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcQueryTranslator(SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY),
-                jdbcClient(),
-                jacksonMapper);
+                jdbcClient());
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -575,8 +569,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcQueryTranslator(SELECT_QUERY, SELECT_ONE_COLUMN_RESPONSE_QUERY),
-                jdbcClient(),
-                jacksonMapper);
+                jdbcClient());
 
         // when
         final Future<StoredResponseDataResult> storedResponseDataResultFuture =
@@ -611,7 +604,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 SELECT_ACCOUNT_QUERY,
                 selectRequestQuery,
                 selectRequestQuery,
-                selectResponseQuery);
+                selectResponseQuery,
+                jacksonMapper);
     }
 
     private JdbcClient jdbcClient() {

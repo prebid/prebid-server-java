@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.settings.model.StoredDataResult;
 
 import static java.util.Arrays.asList;
@@ -18,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.BDDMockito.given;
 
-public class JdbcQueryTranslatorTest {
+public class JdbcQueryTranslatorTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -26,7 +27,7 @@ public class JdbcQueryTranslatorTest {
     @Mock
     private ResultSet resultSet;
 
-    private final JdbcQueryTranslator jdbcQueryTranslator = new JdbcQueryTranslator("", "", "", "");
+    private final JdbcQueryTranslator jdbcQueryTranslator = new JdbcQueryTranslator("", "", "", "", jacksonMapper);
 
     @Test
     public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
