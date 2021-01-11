@@ -9,7 +9,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
+import org.prebid.server.settings.helper.JdbcQueryTranslator;
 import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
@@ -44,6 +44,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     private static final String RESPONSE_ID_PLACEHOLDER = "%RESPONSE_ID_LIST%";
     private static final String QUERY_PARAM_PLACEHOLDER = "?";
 
+    private final JdbcQueryTranslator jdbcQueryTranslator;
     private final JdbcClient jdbcClient;
     private final JacksonMapper mapper;
 
@@ -86,13 +87,15 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     private final String selectStoredResponsesQuery;
 
-    public JdbcApplicationSettings(JdbcClient jdbcClient,
+    public JdbcApplicationSettings(JdbcQueryTranslator jdbcQueryTranslator,
+                                   JdbcClient jdbcClient,
                                    JacksonMapper mapper,
                                    String selectAccountQuery,
                                    String selectStoredRequestsQuery,
                                    String selectAmpStoredRequestsQuery,
                                    String selectStoredResponsesQuery) {
 
+        this.jdbcQueryTranslator = Objects.requireNonNull(jdbcQueryTranslator);
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
         this.mapper = Objects.requireNonNull(mapper);
         this.selectAccountQuery = Objects.requireNonNull(selectAccountQuery)
@@ -236,8 +239,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                     .forEach(i -> idsQueryParameters.addAll(impIds));
 
             final String parametrizedQuery = createParametrizedQuery(query, requestIds.size(), impIds.size());
-            future = jdbcClient.executeQuery(parametrizedQuery, idsQueryParameters,
-                    result -> JdbcStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+            future = jdbcClient.executeQuery(
+                    parametrizedQuery,
+                    idsQueryParameters,
+                    result -> jdbcQueryTranslator.translateQueryResultToStoredData(
+                            result, accountId, requestIds, impIds),
                     timeout);
         }
 

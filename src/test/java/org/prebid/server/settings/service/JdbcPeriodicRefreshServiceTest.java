@@ -14,6 +14,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CacheNotificationListener;
+import org.prebid.server.settings.helper.JdbcQueryTranslator;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
@@ -43,6 +44,8 @@ public class JdbcPeriodicRefreshServiceTest {
 
     @Mock
     private CacheNotificationListener cacheNotificationListener;
+    @Mock
+    private JdbcQueryTranslator jdbcQueryTranslator;
     @Mock
     private Vertx vertx;
     @Mock
@@ -151,6 +154,7 @@ public class JdbcPeriodicRefreshServiceTest {
                 2000,
                 MetricName.stored_request,
                 cacheNotificationListener,
+                jdbcQueryTranslator,
                 vertx,
                 jdbcClient,
                 timeoutFactory,

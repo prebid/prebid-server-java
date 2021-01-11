@@ -19,6 +19,7 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.settings.helper.JdbcQueryTranslator;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
@@ -77,10 +78,12 @@ public class SettingsConfiguration {
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
+                JdbcQueryTranslator jdbcQueryTranslator,
                 JdbcClient jdbcClient,
                 JacksonMapper jacksonMapper) {
 
             return new JdbcApplicationSettings(
+                    jdbcQueryTranslator,
                     jdbcClient,
                     jacksonMapper,
                     accountQuery,
@@ -251,6 +254,9 @@ public class SettingsConfiguration {
         Vertx vertx;
 
         @Autowired
+        JdbcQueryTranslator jdbcQueryTranslator;
+
+        @Autowired
         JdbcClient jdbcClient;
 
         @Autowired
@@ -275,6 +281,7 @@ public class SettingsConfiguration {
                     timeout,
                     MetricName.stored_request,
                     settingsCache,
+                    jdbcQueryTranslator,
                     vertx,
                     jdbcClient,
                     timeoutFactory,
@@ -295,6 +302,7 @@ public class SettingsConfiguration {
                     timeout,
                     MetricName.amp_stored_request,
                     ampSettingsCache,
+                    jdbcQueryTranslator,
                     vertx,
                     jdbcClient,
                     timeoutFactory,

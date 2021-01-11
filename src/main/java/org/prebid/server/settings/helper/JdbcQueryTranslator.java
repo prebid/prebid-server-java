@@ -19,13 +19,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Utility class for mapping {@link ResultSet} to {@link StoredDataResult}.
+ * Component responsible for creating SQL queries and mapping result set results to application specific data objects.
  */
-public class JdbcStoredDataResultMapper {
+public class JdbcQueryTranslator {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcStoredDataResultMapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcQueryTranslator.class);
 
-    private JdbcStoredDataResultMapper() {
+    public JdbcQueryTranslator() {
     }
 
     /**
@@ -40,8 +40,11 @@ public class JdbcStoredDataResultMapper {
      * Note: mapper should never throws exception in case of using
      * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
      */
-    public static StoredDataResult map(ResultSet resultSet, String accountId, Set<String> requestIds,
-                                       Set<String> impIds) {
+    public StoredDataResult translateQueryResultToStoredData(ResultSet resultSet,
+                                                             String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds) {
+
         final Map<String, String> storedIdToRequest;
         final Map<String, String> storedIdToImp;
         final List<String> errors = new ArrayList<>();
@@ -112,12 +115,15 @@ public class JdbcStoredDataResultMapper {
      * @param resultSet - incoming {@link ResultSet} representing a result of SQL query.
      * @return - a {@link StoredDataResult} object.
      */
-    public static StoredDataResult map(ResultSet resultSet) {
-        return map(resultSet, null, Collections.emptySet(), Collections.emptySet());
+    public StoredDataResult translateQueryResultToStoredData(ResultSet resultSet) {
+        return translateQueryResultToStoredData(resultSet, null, Collections.emptySet(), Collections.emptySet());
     }
 
-    private static void addStoredItem(String accountId, String id, String data,
+    private static void addStoredItem(String accountId,
+                                      String id,
+                                      String data,
                                       Map<String, Set<StoredItem>> idToStoredItems) {
+
         final StoredItem storedItem = StoredItem.of(accountId, data);
 
         final Set<StoredItem> storedItems = idToStoredItems.get(id);
@@ -136,6 +142,7 @@ public class JdbcStoredDataResultMapper {
                                                              Set<String> searchIds,
                                                              Map<String, Set<StoredItem>> foundIdToStoredItems,
                                                              List<String> errors) {
+
         final Map<String, String> result = new HashMap<>();
 
         if (searchIds.isEmpty()) {

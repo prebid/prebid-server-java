@@ -22,6 +22,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.settings.helper.JdbcQueryTranslator;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
@@ -172,6 +173,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(5000L);
         jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcQueryTranslator(),
                 jdbcClient(),
                 jacksonMapper,
                 SELECT_ACCOUNT_QUERY,
@@ -319,6 +321,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getVideoStoredDataShouldReturnStoredRequests(TestContext context) {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcQueryTranslator(),
                 jdbcClient(),
                 jacksonMapper,
                 SELECT_ACCOUNT_QUERY,
@@ -352,6 +355,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcQueryTranslator(),
                 jdbcClient(),
                 jacksonMapper,
                 SELECT_ACCOUNT_QUERY,
@@ -385,6 +389,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getAmpStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcQueryTranslator(),
                 jdbcClient(),
                 jacksonMapper,
                 SELECT_ACCOUNT_QUERY,
@@ -460,6 +465,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcQueryTranslator(),
                 jdbcClient(),
                 jacksonMapper,
                 SELECT_ACCOUNT_QUERY,
@@ -485,6 +491,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getAmpStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcQueryTranslator(),
                 jdbcClient(),
                 jacksonMapper,
                 SELECT_ACCOUNT_QUERY,
@@ -591,6 +598,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getStoredResponseShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcQueryTranslator(),
                 jdbcClient(),
                 jacksonMapper,
                 SELECT_ACCOUNT_QUERY,
@@ -624,6 +632,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     singletonList("No stored responses were found for ids: 3,4")));
             async.complete();
         }));
+    }
+
+    private JdbcQueryTranslator jdbcQueryTranslator() {
+        return new JdbcQueryTranslator();
     }
 
     private JdbcClient jdbcClient() {
