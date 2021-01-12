@@ -96,6 +96,10 @@ public class SettingsConfiguration {
         }
 
         @Bean
+        @ConditionalOnProperty(
+                name = "settings.database.account-query-translator",
+                havingValue = "relational",
+                matchIfMissing = true)
         AccountQueryTranslator accountQueryTranslator(
                 @Value("${settings.database.account-query}") String accountQuery,
                 JacksonMapper jacksonMapper) {
