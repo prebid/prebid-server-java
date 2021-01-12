@@ -2,12 +2,14 @@ package org.prebid.server.settings.helper;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.ResultSet;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.settings.jdbc.AccountQueryTranslator;
 import org.prebid.server.settings.jdbc.JdbcQueryTranslator;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -30,9 +32,17 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private AccountQueryTranslator accountQueryTranslator;
+
+    private JdbcQueryTranslator jdbcQueryTranslator;
+
+    @Mock
     private ResultSet resultSet;
 
-    private final JdbcQueryTranslator jdbcQueryTranslator = new JdbcQueryTranslator("", "", "", "", jacksonMapper);
+    @Before
+    public void setUp() {
+        jdbcQueryTranslator = new JdbcQueryTranslator("", "", "", accountQueryTranslator);
+    }
 
     @Test
     public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {

@@ -7,14 +7,9 @@ import io.vertx.ext.sql.ResultSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.helper.StoredItemResolver;
 import org.prebid.server.settings.jdbc.model.SqlQuery;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountAnalyticsConfig;
-import org.prebid.server.settings.model.AccountBidValidationConfig;
-import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredItem;
@@ -39,7 +34,6 @@ public class JdbcQueryTranslator {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcQueryTranslator.class);
 
-    private static final String ACCOUNT_ID_PLACEHOLDER = "%ACCOUNT_ID%";
     private static final String REQUEST_ID_PLACEHOLDER = "%REQUEST_ID_LIST%";
     private static final String IMP_ID_PLACEHOLDER = "%IMP_ID_LIST%";
     private static final String RESPONSE_ID_PLACEHOLDER = "%RESPONSE_ID_LIST%";
@@ -47,11 +41,6 @@ public class JdbcQueryTranslator {
 
     private static final String SELECT_AD_UNIT_CONFIG_QUERY =
             "SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1";
-
-    /**
-     * Query to select account by ids.
-     */
-    private final String selectAccountQuery;
 
     /**
      * Query to select stored requests and imps by ids, for example:
@@ -87,24 +76,21 @@ public class JdbcQueryTranslator {
      */
     private final String selectStoredResponsesQuery;
 
-    private final JacksonMapper mapper;
+    private final AccountQueryTranslator accountQueryTranslator;
 
-    public JdbcQueryTranslator(String selectAccountQuery,
-                               String selectStoredRequestsQuery,
+    public JdbcQueryTranslator(String selectStoredRequestsQuery,
                                String selectAmpStoredRequestsQuery,
                                String selectStoredResponsesQuery,
-                               JacksonMapper mapper) {
+                               AccountQueryTranslator accountQueryTranslator) {
 
-        this.selectAccountQuery = Objects.requireNonNull(selectAccountQuery)
-                .replace(ACCOUNT_ID_PLACEHOLDER, QUERY_PARAM_PLACEHOLDER);
         this.selectStoredRequestsQuery = Objects.requireNonNull(selectStoredRequestsQuery);
         this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpStoredRequestsQuery);
         this.selectStoredResponsesQuery = Objects.requireNonNull(selectStoredResponsesQuery);
-        this.mapper = Objects.requireNonNull(mapper);
+        this.accountQueryTranslator = Objects.requireNonNull(accountQueryTranslator);
     }
 
     public SqlQuery selectAccountQuery(String accountId) {
-        return SqlQuery.of(selectAccountQuery, Collections.singletonList(accountId));
+        return accountQueryTranslator.selectQuery(accountId);
     }
 
     public SqlQuery selectAdUnitConfigQuery(String adUnitConfigId) {
@@ -124,20 +110,7 @@ public class JdbcQueryTranslator {
     }
 
     public Account translateQueryResultToAccount(ResultSet result) {
-        return mapToModelOrError(result, row -> Account.builder()
-                .id(row.getString(0))
-                .priceGranularity(row.getString(1))
-                .bannerCacheTtl(row.getInteger(2))
-                .videoCacheTtl(row.getInteger(3))
-                .eventsEnabled(row.getBoolean(4))
-                .enforceCcpa(row.getBoolean(5))
-                .gdpr(toModel(row.getString(6), AccountGdprConfig.class))
-                .analyticsSamplingFactor(row.getInteger(7))
-                .truncateTargetAttr(row.getInteger(8))
-                .defaultIntegration(row.getString(9))
-                .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
-                .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
-                .build());
+        return accountQueryTranslator.translateQueryResult(result);
     }
 
     public String translateQueryResultToAdUnitConfig(ResultSet result) {
@@ -310,14 +283,6 @@ public class JdbcQueryTranslator {
         return result != null && CollectionUtils.isNotEmpty(result.getResults())
                 ? mapper.apply(result.getResults().get(0))
                 : null;
-    }
-
-    private <T> T toModel(String source, Class<T> targetClass) {
-        try {
-            return source != null ? mapper.decodeValue(source, targetClass) : null;
-        } catch (DecodeException e) {
-            throw new PreBidException(e.getMessage());
-        }
     }
 
     private static void addStoredItem(String accountId,

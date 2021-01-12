@@ -23,6 +23,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.jdbc.JdbcQueryTranslator;
+import org.prebid.server.settings.jdbc.RelationalAccountQueryTranslator;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
@@ -601,11 +602,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
     private static JdbcQueryTranslator jdbcQueryTranslator(String selectRequestQuery, String selectResponseQuery) {
         return new JdbcQueryTranslator(
-                SELECT_ACCOUNT_QUERY,
                 selectRequestQuery,
                 selectRequestQuery,
                 selectResponseQuery,
-                jacksonMapper);
+                new RelationalAccountQueryTranslator(SELECT_ACCOUNT_QUERY, jacksonMapper));
     }
 
     private JdbcClient jdbcClient() {

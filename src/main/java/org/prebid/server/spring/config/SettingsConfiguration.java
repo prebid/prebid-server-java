@@ -19,7 +19,9 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.settings.jdbc.AccountQueryTranslator;
 import org.prebid.server.settings.jdbc.JdbcQueryTranslator;
+import org.prebid.server.settings.jdbc.RelationalAccountQueryTranslator;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
@@ -81,18 +83,24 @@ public class SettingsConfiguration {
 
         @Bean
         JdbcQueryTranslator jdbcQueryTranslator(
-                @Value("${settings.database.account-query}") String accountQuery,
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
-                JacksonMapper jacksonMapper) {
+                AccountQueryTranslator accountQueryTranslator) {
 
             return new JdbcQueryTranslator(
-                    accountQuery,
                     storedRequestsQuery,
                     ampStoredRequestsQuery,
                     storedResponsesQuery,
-                    jacksonMapper);
+                    accountQueryTranslator);
+        }
+
+        @Bean
+        AccountQueryTranslator accountQueryTranslator(
+                @Value("${settings.database.account-query}") String accountQuery,
+                JacksonMapper jacksonMapper) {
+
+            return new RelationalAccountQueryTranslator(accountQuery, jacksonMapper);
         }
 
         @Bean
