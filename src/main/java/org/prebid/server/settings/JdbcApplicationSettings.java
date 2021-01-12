@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.settings.helper.JdbcQueryTranslator;
+import org.prebid.server.settings.jdbc.JdbcQueryTranslator;
 import org.prebid.server.settings.jdbc.model.SqlQuery;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;

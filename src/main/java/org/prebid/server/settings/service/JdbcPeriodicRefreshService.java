@@ -10,7 +10,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CacheNotificationListener;
-import org.prebid.server.settings.helper.JdbcQueryTranslator;
+import org.prebid.server.settings.jdbc.JdbcQueryTranslator;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.jdbc.JdbcClient;

@@ -1,4 +1,4 @@
-package org.prebid.server.settings.helper;
+package org.prebid.server.settings.jdbc;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.logging.Logger;
@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.settings.helper.StoredItemResolver;
 import org.prebid.server.settings.jdbc.model.SqlQuery;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
