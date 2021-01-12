@@ -5,7 +5,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.helper.JdbcQueryTranslator;
-import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.jdbc.model.SqlQuery;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
@@ -124,7 +123,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return jdbcClient.executeQuery(
                 query.getQuery(),
                 query.getParameters(),
-                result -> JdbcStoredResponseResultMapper.map(result, responseIds),
+                result -> jdbcQueryTranslator.translateQueryResultToStoredResponseData(result, responseIds),
                 timeout);
     }
 

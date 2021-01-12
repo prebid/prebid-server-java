@@ -17,6 +17,7 @@ import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredItem;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,7 +44,7 @@ public class JdbcQueryTranslator {
     private static final String RESPONSE_ID_PLACEHOLDER = "%RESPONSE_ID_LIST%";
     private static final String QUERY_PARAM_PLACEHOLDER = "?";
 
-    private static final String SELECT_ADUNIT_CONFIG_QUERY =
+    private static final String SELECT_AD_UNIT_CONFIG_QUERY =
             "SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1";
 
     /**
@@ -106,7 +107,7 @@ public class JdbcQueryTranslator {
     }
 
     public SqlQuery selectAdUnitConfigQuery(String adUnitConfigId) {
-        return SqlQuery.of(SELECT_ADUNIT_CONFIG_QUERY, Collections.singletonList(adUnitConfigId));
+        return SqlQuery.of(SELECT_AD_UNIT_CONFIG_QUERY, Collections.singletonList(adUnitConfigId));
     }
 
     public SqlQuery selectStoredRequestsQuery(Set<String> requestIds, Set<String> impIds) {
@@ -231,6 +232,35 @@ public class JdbcQueryTranslator {
      */
     public StoredDataResult translateQueryResultToStoredData(ResultSet resultSet) {
         return translateQueryResultToStoredData(resultSet, null, Collections.emptySet(), Collections.emptySet());
+    }
+
+    public StoredResponseDataResult translateQueryResultToStoredResponseData(ResultSet resultSet,
+                                                                             Set<String> responseIds) {
+
+        final Map<String, String> storedIdToResponse = new HashMap<>(responseIds.size());
+        final List<String> errors = new ArrayList<>();
+
+        if (resultSet == null || CollectionUtils.isEmpty(resultSet.getResults())) {
+            if (responseIds.isEmpty()) {
+                errors.add("No stored responses found");
+            } else {
+                errors.add(String.format("No stored responses were found for ids: %s", String.join(",", responseIds)));
+            }
+        } else {
+            try {
+                for (JsonArray result : resultSet.getResults()) {
+                    storedIdToResponse.put(result.getString(0), result.getString(1));
+                }
+            } catch (IndexOutOfBoundsException e) {
+                errors.add("Result set column number is less than expected");
+                return StoredResponseDataResult.of(Collections.emptyMap(), errors);
+            }
+            errors.addAll(responseIds.stream().filter(id -> !storedIdToResponse.containsKey(id))
+                    .map(id -> String.format("No stored response found for id: %s", id))
+                    .collect(Collectors.toList()));
+        }
+
+        return StoredResponseDataResult.of(storedIdToResponse, errors);
     }
 
     private static SqlQuery createStoredRequestQuery(String query, Set<String> requestIds, Set<String> impIds) {

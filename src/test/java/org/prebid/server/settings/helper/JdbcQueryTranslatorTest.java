@@ -9,6 +9,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
+
+import java.util.AbstractMap;
+import java.util.HashSet;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -30,7 +34,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     private final JdbcQueryTranslator jdbcQueryTranslator = new JdbcQueryTranslator("", "", "", "", jacksonMapper);
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
         // given
         given(resultSet.getResults()).willReturn(emptyList());
 
@@ -46,7 +50,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResultForGivenIds() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResultForGivenIds() {
         // given
         given(resultSet.getResults()).willReturn(emptyList());
 
@@ -62,7 +66,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasLessColumns() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasLessColumns() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data"))));
@@ -79,7 +83,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasUnexpectedColumnType() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasUnexpectedColumnType() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data", 123))));
@@ -96,7 +100,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldSkipStoredResultWithInvalidType() {
+    public void translateToStoredDataShouldSkipStoredResultWithInvalidType() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data1", "request")),
@@ -114,7 +118,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldReturnStoredResultWithErrorForMissingId() {
+    public void translateToStoredDataShouldReturnStoredResultWithErrorForMissingId() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data1", "request"))));
@@ -132,7 +136,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorsForMissingIdsIfAccountDiffers() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorsForMissingIdsIfAccountDiffers() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data1", "request")),
@@ -152,7 +156,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdIsDefined() {
+    public void translateToStoredDataShouldReturnEmptyResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdDefined() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId1", "id1", "data1", "request")),
@@ -170,7 +174,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdIsDiffers() {
+    public void translateToStoredDataShouldReturnEmptyResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdDiffers() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId1", "id1", "data-accountId", "request")),
@@ -192,7 +196,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapShouldReturnExpectedStoredResultForGivenAccount() {
+    public void translateToStoredDataShouldReturnExpectedStoredResultForGivenAccount() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data-accountId", "request")),
@@ -213,7 +217,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
+    public void translateToStoredDataWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
         // given
         given(resultSet.getResults()).willReturn(emptyList());
 
@@ -228,7 +232,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldSkipStoredResultWithInvalidType() {
+    public void translateToStoredDataWithoutParamsShouldSkipStoredResultWithInvalidType() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data1", "request")),
@@ -245,7 +249,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasLessColumns() {
+    public void translateToStoredDataWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasLessColumns() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data"))));
@@ -261,7 +265,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasUnexpectedColumnType() {
+    public void translateToStoredDataWithoutParamsShouldReturnEmptyResultWithErrorIfResultSetHasUnexpectedColumnType() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data", 123))));
@@ -277,7 +281,7 @@ public class JdbcQueryTranslatorTest extends VertxTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnExpectedStoredResult() {
+    public void translateToStoredDataWithoutParamsShouldReturnExpectedStoredResult() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data1", "request")),
@@ -291,6 +295,84 @@ public class JdbcQueryTranslatorTest extends VertxTest {
                 .containsOnly(entry("id1", "data1"));
         assertThat(result.getStoredIdToImp()).hasSize(1)
                 .containsOnly(entry("id2", "data2"));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnEmptyStoredResponseResultWithErrorWhenResultSetIsEmpty() {
+        // given
+        given(resultSet.getResults()).willReturn(emptyList());
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, emptySet());
+
+        // then
+        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No stored responses found");
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnEmptyStoredResponseResultWithErrorIfResultSetHasLessColumns() {
+        // given
+        given(resultSet.getResults()).willReturn(singletonList(new JsonArray(singletonList("id1"))));
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, emptySet());
+
+        // then
+        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Result set column number is less than expected");
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnStoredResponseResultWithErrorForMissingID() {
+        // given
+        given(resultSet.getResults()).willReturn(singletonList(new JsonArray(asList("id1", "data"))));
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, new HashSet<>(asList("id1", "id2")));
+
+        // then
+        assertThat(result.getStoredSeatBid()).hasSize(1)
+                .containsOnly(new AbstractMap.SimpleEntry<>("id1", "data"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No stored response found for id: id2");
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnEmptyResultWithErrorIfResultSetHasEmptyResultForGivenIDs() {
+        // given
+        given(resultSet.getResults()).willReturn(emptyList());
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, singleton("id"));
+
+        // then
+        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No stored responses were found for ids: id");
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnFilledStoredResponseResultWithoutErrors() {
+        // given
+        given(resultSet.getResults()).willReturn(asList(
+                new JsonArray(asList("id1", "data1")),
+                new JsonArray(asList("id2", "data2"))));
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, new HashSet<>(asList("id1", "id2")));
+
+        // then
+        assertThat(result.getStoredSeatBid()).hasSize(2)
+                .contains(new AbstractMap.SimpleEntry<>("id1", "data1"), new AbstractMap.SimpleEntry<>("id2", "data2"));
         assertThat(result.getErrors()).isEmpty();
     }
 }
