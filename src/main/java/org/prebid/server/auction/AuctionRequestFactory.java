@@ -49,8 +49,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -131,7 +129,7 @@ public class AuctionRequestFactory {
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
-        this.adServerCurrency = validateCurrency(adServerCurrency);
+        this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -154,10 +152,6 @@ public class AuctionRequestFactory {
      * Validates ISO-4217 currency code.
      */
     private static String validateCurrency(String code) {
-        if (StringUtils.isBlank(code)) {
-            return code;
-        }
-
         try {
             Currency.getInstance(code);
         } catch (IllegalArgumentException e) {
@@ -204,7 +198,7 @@ public class AuctionRequestFactory {
 
         return accountFrom(bidRequest, timeout, routingContext)
                 .compose(account -> privacyEnforcementService.contextFromBidRequest(
-                        bidRequest, account, requestTypeMetric, timeout)
+                        bidRequest, account, requestTypeMetric, timeout, errors)
                         .map(privacyContext -> AuctionContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
@@ -257,7 +251,7 @@ public class AuctionRequestFactory {
      * updated by values derived from headers and other request attributes.
      */
     private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest) {
-        return storedRequestProcessor.processStoredRequests(bidRequest)
+        return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
                 .map(this::validateRequest)
                 .map(interstitialProcessor::process);
@@ -282,7 +276,6 @@ public class AuctionRequestFactory {
         final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
 
         final User user = bidRequest.getUser();
-        final User populatedUser = populateUser(user);
 
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source);
@@ -303,14 +296,13 @@ public class AuctionRequestFactory {
         final ExtRequest populatedExt = populateRequestExt(
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps));
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
+        if (populatedDevice != null || populatedSite != null || populatedSource != null
                 || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
                 || populatedExt != null) {
 
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : device)
                     .site(populatedSite != null ? populatedSite : site)
-                    .user(populatedUser != null ? populatedUser : user)
                     .source(populatedSource != null ? populatedSource : source)
                     .imp(populatedImps != null ? populatedImps : imps)
                     .at(resolvedAt != null ? resolvedAt : at)
@@ -355,13 +347,20 @@ public class AuctionRequestFactory {
         logWarnIfNoIp(resolvedIp, resolvedIpv6);
 
         final String ua = device != null ? device.getUa() : null;
+        final Integer dnt = resolveDntHeader(request);
 
         if (!Objects.equals(deviceIp, resolvedIp)
                 || !Objects.equals(deviceIpv6, resolvedIpv6)
-                || StringUtils.isBlank(ua)) {
+                || StringUtils.isBlank(ua) || dnt != null) {
 
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
-            builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
+
+            if (StringUtils.isBlank(ua)) {
+                builder.ua(paramsExtractor.uaFrom(request));
+            }
+            if (dnt != null) {
+                builder.dnt(dnt);
+            }
 
             builder
                     .ip(resolvedIp)
@@ -371,6 +370,11 @@ public class AuctionRequestFactory {
         }
 
         return null;
+    }
+
+    private Integer resolveDntHeader(HttpServerRequest request) {
+        final String dnt = request.getHeader(HttpUtil.DNT_HEADER.toString());
+        return StringUtils.equalsAny(dnt, "0", "1") ? Integer.valueOf(dnt) : null;
     }
 
     private String sanitizeIp(String ip, IpAddress.IP version) {
@@ -440,33 +444,6 @@ public class AuctionRequestFactory {
             result = builder.build();
         }
         return result;
-    }
-
-    /**
-     * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
-     */
-    private User populateUser(User user) {
-        final ExtUser ext = userExtOrNull(user);
-
-        if (ext != null) {
-            return user.toBuilder().ext(ext).build();
-        }
-        return null;
-    }
-
-    /**
-     * Returns updated {@link ExtUser} or null if no updates needed.
-     */
-    private ExtUser userExtOrNull(User user) {
-        final ExtUser extUser = user != null ? user.getExt() : null;
-
-        final ExtUserDigiTrust digitrust = extUser != null ? extUser.getDigitrust() : null;
-        if (digitrust != null && digitrust.getPref() == null) {
-            return extUser.toBuilder()
-                    .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
-                    .build();
-        }
-        return null;
     }
 
     /**
@@ -593,6 +570,7 @@ public class AuctionRequestFactory {
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
+                    .includeformat(targeting.getIncludeformat())
                     .build();
         } else {
             result = null;

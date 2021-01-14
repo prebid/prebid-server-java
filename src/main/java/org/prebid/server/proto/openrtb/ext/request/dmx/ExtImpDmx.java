@@ -20,9 +20,7 @@ public class ExtImpDmx {
     @JsonProperty("memberid")
     String memberId;
 
-    @JsonProperty("publisher_id")
     String publisherId;
 
-    @JsonProperty("seller_id")
     String sellerId;
 }

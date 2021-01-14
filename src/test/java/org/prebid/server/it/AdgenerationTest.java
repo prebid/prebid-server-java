@@ -34,11 +34,12 @@ public class AdgenerationTest extends IntegrationTest {
                 .withQueryParam("t", equalTo("json3"))
                 .withQueryParam("currency", equalTo("USD"))
                 .withQueryParam("sdkname", equalTo("prebidserver"))
-                .withQueryParam("size", equalTo("300×250"))
+                .withQueryParam("sizes", equalTo("300x250"))
                 .withQueryParam("tp", equalTo("http://www.example.com"))
-                .withQueryParam("adapterver", equalTo("1.0.1"))
+                .withQueryParam("adapterver", equalTo("1.0.2"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("User-Agent", equalTo("some-agent"))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
 

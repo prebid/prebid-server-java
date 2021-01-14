@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.vrtcal;
 
 import com.iab.openrtb.request.Imp;
+import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.vrtcal.ExtImpVrtcal;
@@ -8,6 +9,9 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
 
+/**
+ * Vrtcal {@link Bidder} implementation.
+ */
 public class VrtcalBidder extends OpenrtbBidder<ExtImpVrtcal> {
 
     public VrtcalBidder(String endpointUrl, JacksonMapper mapper) {
