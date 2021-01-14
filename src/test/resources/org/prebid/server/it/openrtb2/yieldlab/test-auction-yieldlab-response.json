@@ -89,6 +89,9 @@
         "ext": {
           "prebid": {
             "auctiontimestamp": 1000,
+            "channel": {
+              "name": "web"
+            },
             "cache": {
               "bids": {
               },
@@ -161,12 +164,7 @@
         "tmax": 5000,
         "user": {
           "ext": {
-            "consent": "consentValue",
-            "digitrust": {
-              "id": "id",
-              "keyv": 123,
-              "pref": 0
-            }
+            "consent": "consentValue"
           }
         }
       }

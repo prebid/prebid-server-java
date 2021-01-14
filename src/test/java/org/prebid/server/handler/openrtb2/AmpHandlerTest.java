@@ -147,20 +147,6 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetRequestTypeMetricToAuctionContext() {
-        // given
-        given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
-
-        // when
-        ampHandler.handle(routingContext);
-
-        // then
-        final AuctionContext auctionContext = captureAuctionContext();
-        assertThat(auctionContext.getRequestTypeMetric()).isNotNull();
-    }
-
-    @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
@@ -485,7 +471,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyBoolean(), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyInt());
     }
 
     @Test
@@ -507,7 +493,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), eq(true), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), anyInt());
     }
 
     @Test
@@ -525,7 +511,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), anyBoolean(), eq(1));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), eq(1));
     }
 
     @Test
@@ -769,6 +755,7 @@ public class AmpHandlerTest extends VertxTest {
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
+                .requestTypeMetric(MetricName.amp)
                 .timeout(timeout)
                 .build();
     }

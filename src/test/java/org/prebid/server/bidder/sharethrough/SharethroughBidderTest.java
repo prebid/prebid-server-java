@@ -33,13 +33,16 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -51,10 +54,14 @@ public class SharethroughBidderTest extends VertxTest {
 
     private static final long TIMEOUT = 2000L;
 
-    private static final Date TEST_TIME = new Date(1604455678999L);
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+    private static final ZonedDateTime TEST_TIME =
+            ZonedDateTime.ofInstant(Instant.ofEpochMilli(1604455678999L), ZoneId.systemDefault());
+    private static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
+            .appendPattern("yyyy-MM-dd'T'HH:mm:ssXXX")
+            .toFormatter();
     private static final String URLENCODED_TEST_FORMATTED_TIME = HttpUtil.encodeUrl(DATE_FORMAT.format(TEST_TIME));
-    private static final String DEADLINE_FORMATTED_TIME = DATE_FORMAT.format(TEST_TIME.getTime() + TIMEOUT);
+    private static final String DEADLINE_FORMATTED_TIME =
+            DATE_FORMAT.format(TEST_TIME.plusNanos(TimeUnit.MILLISECONDS.toNanos(TIMEOUT)));
 
     private SharethroughBidder sharethroughBidder;
 
@@ -290,11 +297,6 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(sharethroughBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static HttpCall<SharethroughRequestBody> givenHttpCall(SharethroughRequestBody bidRequest, String body) {

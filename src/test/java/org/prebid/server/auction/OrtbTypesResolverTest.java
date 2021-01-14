@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.json.JsonMerger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class OrtbTypesResolverTest extends VertxTest {
 
-    private final OrtbTypesResolver ortbTypesResolver = new OrtbTypesResolver(jacksonMapper);
+    private final OrtbTypesResolver ortbTypesResolver =
+            new OrtbTypesResolver(jacksonMapper, new JsonMerger(jacksonMapper));
 
     @Test
     public void normalizeTargetingShouldNotChangeNodeIfItsTypeIsNotObject() {
@@ -214,6 +216,104 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     @Test
+    public void normalizeBidRequestShouldMergeUserDataToUserExtDataAndRemoveData() {
+        // given
+        final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue"))
+                .set("ext", obj("data", obj("extDataField", "extDataValue"))));
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+
+        // then
+
+        assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue")
+                .put("dataField", "dataValue")))));
+    }
+
+    @Test
+    public void normalizeBidRequestShouldMergeSiteDataToSiteExtDataAndRemoveData() {
+        // given
+        final ObjectNode containerNode = obj("site", obj("data", obj("dataField", "dataValue"))
+                .set("ext", obj("data", obj("extDataField", "extDataValue"))));
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+
+        // then
+
+        assertThat(containerNode).isEqualTo(obj("site", obj("ext", obj("data", obj("extDataField", "extDataValue")
+                .put("dataField", "dataValue")))));
+    }
+
+    @Test
+    public void normalizeBidRequestShouldMergeAppDataToAppExtDataAndRemoveData() {
+        // given
+        final ObjectNode containerNode = obj("app", obj("data", obj("dataField", "dataValue"))
+                .set("ext", obj("data", obj("extDataField", "extDataValue"))));
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(obj("app", obj("ext", obj("data", obj("extDataField", "extDataValue")
+                .put("dataField", "dataValue")))));
+    }
+
+    @Test
+    public void normalizeBidRequestShouldNotChangeUserWhenUserDataNotDefined() {
+        // given
+        final ObjectNode containerNode = obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue"))));
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue")))));
+    }
+
+    @Test
+    public void normalizeBidRequestShouldSetDataToUserIfExtDataNotExist() {
+        // given
+        final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue"))
+                .set("ext", obj("extField", "extValue")));
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue"))
+                .put("extField", "extValue"))));
+    }
+
+    @Test
+    public void normalizeBidRequestShouldSetExtDataToUserIfExtNotExist() {
+        // given
+        final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue")));
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue")))));
+    }
+
+    @Test
+    public void normalizeBidRequestShouldSetExtDataToUserIfExtIncorrectType() {
+        // given
+        final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue"))
+                .set("ext", mapper.createArrayNode()));
+        final List<String> warnings = new ArrayList<>();
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, warnings, "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue")))));
+        assertThat(warnings).hasSize(1).containsOnly("WARNING: Incorrect type for first party data field"
+                + " bidrequest.user.ext, expected is object, but was ARRAY. Replaced with object");
+    }
+
+    @Test
     public void normalizeBidRequestShouldResolveORTBFieldsWithIdForRequestAndExcludedIdForBidderConfig() {
         // given
         final ObjectNode requestNode = mapper.createObjectNode();
@@ -289,5 +389,13 @@ public class OrtbTypesResolverTest extends VertxTest {
         assertThat(requestNode.path("ext").path("prebid").path("bidderconfig").path(0).path("config").path("fpd")
                 .path("user"))
                 .isEqualTo(mapper.createObjectNode().put("gender", "gender1").put("keywords", "keyword1,keyword2"));
+    }
+
+    private static ObjectNode obj(String fieldName, JsonNode value) {
+        return (ObjectNode) mapper.createObjectNode().set(fieldName, value);
+    }
+
+    private static ObjectNode obj(String fieldName, String value) {
+        return mapper.createObjectNode().put(fieldName, value);
     }
 }

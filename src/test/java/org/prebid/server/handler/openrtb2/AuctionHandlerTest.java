@@ -50,12 +50,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
@@ -343,8 +343,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementOkOpenrtb2AppRequestMetrics() {
         // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(builder -> builder.app(App.builder().build()))));
+        given(auctionRequestFactory.fromRequest(any(), anyLong())).willReturn(Future.succeededFuture(
+                givenAuctionContext(identity(), builder -> builder.requestTypeMetric(MetricName.openrtb2app))));
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
@@ -369,7 +369,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyBoolean(), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyInt());
     }
 
     @Test
@@ -390,7 +390,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), eq(true), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), anyInt());
     }
 
     @Test
@@ -407,7 +407,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), anyBoolean(), eq(1));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), eq(1));
     }
 
     @Test
@@ -600,13 +600,10 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
-        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
-                .requestTypeMetric(MetricName.openrtb2web)
-                .build();
 
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())
-                .auctionContext(expectedAuctionContext)
+                .auctionContext(auctionContext)
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
                 .build());
@@ -627,13 +624,10 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
-        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
-                .requestTypeMetric(MetricName.openrtb2web)
-                .build();
 
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())
-                .auctionContext(expectedAuctionContext)
+                .auctionContext(auctionContext)
                 .bidResponse(BidResponse.builder().build())
                 .status(200)
                 .errors(emptyList())
@@ -692,15 +686,24 @@ public class AuctionHandlerTest extends VertxTest {
         return captor.getValue();
     }
 
+    private AuctionContext givenAuctionContext(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return givenAuctionContext(bidRequestCustomizer, identity());
+    }
+
     private AuctionContext givenAuctionContext(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
-        final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
+
+        final BidRequest bidRequest = bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(emptyList())).build();
 
-        return AuctionContext.builder()
+        final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
-                .timeout(timeout)
+                .requestTypeMetric(MetricName.openrtb2web)
+                .timeout(this.timeout);
+
+        return auctionContextCustomizer.apply(auctionContextBuilder)
                 .build();
     }
 

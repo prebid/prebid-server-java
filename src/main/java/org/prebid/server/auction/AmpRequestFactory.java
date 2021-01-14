@@ -24,6 +24,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -105,9 +106,13 @@ public class AmpRequestFactory {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
         }
         return createBidRequest(routingContext, tagId)
-                .compose(bidRequestWithErrors ->
-                        auctionRequestFactory.toAuctionContext(routingContext, bidRequestWithErrors.getLeft(),
-                                bidRequestWithErrors.getRight(), startTime, timeoutResolver));
+                .compose(bidRequestWithErrors -> auctionRequestFactory.toAuctionContext(
+                        routingContext,
+                        bidRequestWithErrors.getLeft(),
+                        MetricName.amp,
+                        bidRequestWithErrors.getRight(),
+                        startTime,
+                        timeoutResolver));
     }
 
     /**
@@ -116,7 +121,7 @@ public class AmpRequestFactory {
      */
     private Future<Tuple2<BidRequest, List<String>>> createBidRequest(RoutingContext context, String tagId) {
         final List<String> errors = new ArrayList<>();
-        return storedRequestProcessor.processAmpRequest(tagId)
+        return storedRequestProcessor.processAmpRequest(context.request().getParam(ACCOUNT_REQUEST_PARAM), tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))
@@ -244,8 +249,7 @@ public class AmpRequestFactory {
     /**
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
-    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request,
-                                          List<String> errors) {
+    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request, List<String> errors) {
         final String requestConsentParam = request.getParam(CONSENT_PARAM);
         final String requestGdprConsentParam = request.getParam(GDPR_CONSENT_PARAM);
         final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
@@ -253,7 +257,7 @@ public class AmpRequestFactory {
         String gdprConsent = null;
         String ccpaConsent = null;
         if (StringUtils.isNotBlank(consentString)) {
-            gdprConsent = TcfDefinerService.isGdprConsentValid(consentString) ? consentString : null;
+            gdprConsent = TcfDefinerService.isConsentStringValid(consentString) ? consentString : null;
             ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
 
             if (StringUtils.isAllBlank(gdprConsent, ccpaConsent)) {
@@ -630,11 +634,14 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
+        final Boolean includeFormat = !isTargetingNull ? targeting.getIncludeformat() : null;
+
         return ExtRequestTargeting.builder()
                 .pricegranularity(outgoingPriceGranularityNode)
                 .mediatypepricegranularity(mediaTypePriceGranularity)
                 .includewinners(includeWinners)
                 .includebidderkeys(includeBidderKeys)
+                .includeformat(includeFormat)
                 .build();
     }
 }
