@@ -660,7 +660,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Video video = imp.getVideo();
         final String impId = imp.getId();
         final String referer = site != null ? site.getPage() : null;
-        validateVideoSizeId(rubiconVideoParams, referer, impId);
         final String videoType = prebidImpExt != null && prebidImpExt.getIsRewardedInventory() != null
                 && prebidImpExt.getIsRewardedInventory() == 1 ? "rewarded" : null;
 
@@ -671,19 +670,39 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
         final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+        final Integer resolvedSizeId = sizeId == null || sizeId == 0
+                ? resolveVideoSizeId(video.getPlacement(), imp.getInstl()) : sizeId;
+        validateVideoSizeId(resolvedSizeId, referer, impId);
+
         return video.toBuilder()
                 .ext(mapper.mapper().valueToTree(
-                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(sizeId), videoType)))
+                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(resolvedSizeId), videoType)))
                 .build();
     }
 
-    private void validateVideoSizeId(RubiconVideoParams rubiconVideoParams, String referer, String impId) {
-        final Integer videoSizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+    private void validateVideoSizeId(Integer resolvedSizeId, String referer, String impId) {
         // log only 1% of cases to monitor how often video impressions does not have size id
-        if (videoSizeId == null || videoSizeId == 0) {
+        if (resolvedSizeId == null) {
             MISSING_VIDEO_SIZE_LOGGER.warn(String.format("RP adapter: video request with no size_id. Referrer URL = %s,"
                     + " impId = %s", referer, impId), 0.01d);
         }
+    }
+
+    private Integer resolveVideoSizeId(Integer placement, Integer instl) {
+        if (placement != null) {
+            if (placement == 1) {
+                return 201;
+            }
+            if (placement == 3) {
+                return 203;
+            }
+        }
+
+        if (instl != null && instl == 1) {
+            return 202;
+        }
+
+        return null;
     }
 
     private static List<Format> overriddenSizes(ExtImpRubicon rubiconImpExt) {
