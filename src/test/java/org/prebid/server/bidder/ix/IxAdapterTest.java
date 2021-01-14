@@ -109,18 +109,6 @@ public class IxAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFailIfAppIsPresentInPreBidRequest() {
-        // given
-        preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder
-                .app(App.builder().build()));
-
-        // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
-                .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("ix doesn't support apps");
-    }
-
-    @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, asList(

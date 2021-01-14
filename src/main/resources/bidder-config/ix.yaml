@@ -10,8 +10,15 @@ adapters:
     meta-info:
       maintainer-email: pdu-supply-prebid@indexexchange.com
       app-media-types:
+        - banner
+        - video
+        - native
+        - audio
       site-media-types:
         - banner
+        - video
+        - native
+        - audio
       supported-vendors:
       vendor-id: 10
     usersync:
