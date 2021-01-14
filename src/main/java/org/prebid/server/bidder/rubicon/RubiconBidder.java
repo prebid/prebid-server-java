@@ -65,6 +65,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -111,6 +112,8 @@ import java.util.stream.StreamSupport;
 public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
+    private static final ConditionalLogger MISSING_VIDEO_SIZE_LOGGER =
+            new ConditionalLogger("missing_video_size", logger);
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
@@ -383,7 +386,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (isVideo(imp)) {
             builder
                     .banner(null)
-                    .video(makeVideo(imp.getVideo(), extRubicon.getVideo(), extPrebid));
+                    .video(makeVideo(imp, site, extRubicon.getVideo(), extPrebid));
         } else {
             builder
                     .banner(makeBanner(imp, overriddenSizes(extRubicon)))
@@ -653,7 +656,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && video.getLinearity() != null && video.getApi() != null;
     }
 
-    private Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
+    private Video makeVideo(Imp imp, Site site, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
+        final Video video = imp.getVideo();
+        final String impId = imp.getId();
+        final String referer = site != null ? site.getPage() : null;
+        validateVideoSizeId(rubiconVideoParams, referer, impId);
         final String videoType = prebidImpExt != null && prebidImpExt.getIsRewardedInventory() != null
                 && prebidImpExt.getIsRewardedInventory() == 1 ? "rewarded" : null;
 
@@ -668,6 +675,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .ext(mapper.mapper().valueToTree(
                         RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(sizeId), videoType)))
                 .build();
+    }
+
+    private void validateVideoSizeId(RubiconVideoParams rubiconVideoParams, String referer, String impId) {
+        final Integer videoSizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+        // log only 1% of cases to monitor how often video impressions does not have size id
+        if (videoSizeId == null || videoSizeId == 0) {
+            MISSING_VIDEO_SIZE_LOGGER.warn(String.format("RP adapter: video request with no size_id. Referrer URL = %s,"
+                    + " impId = %s", referer, impId), 0.01d);
+        }
     }
 
     private static List<Format> overriddenSizes(ExtImpRubicon rubiconImpExt) {
