@@ -274,6 +274,10 @@ settings:
     analytics-config: '{"auction-events":{"amp":true}}'
 ```
 See [application settings](application-settings.md) for full reference of available configuration parameters.
+Be aware that individual configuration values will not be merged with concrete 
+account values if they exist in account configuration but account value will completely replace the default value. For 
+example, if account configuration defines `gdpr` field, it will completely replace `settings.default-account-config.gdpr` 
+value in the final account configuration model.
 
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.

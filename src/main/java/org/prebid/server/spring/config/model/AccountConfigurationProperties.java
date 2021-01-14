@@ -7,9 +7,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountStatus;
-import org.springframework.validation.annotation.Validated;
 
-@Validated
 @Data
 @NoArgsConstructor
 public class AccountConfigurationProperties {
