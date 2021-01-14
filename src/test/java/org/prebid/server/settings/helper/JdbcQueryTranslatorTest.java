@@ -2,12 +2,20 @@ package org.prebid.server.settings.helper;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.ResultSet;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
+import org.prebid.server.settings.jdbc.AccountQueryTranslator;
+import org.prebid.server.settings.jdbc.JdbcQueryTranslator;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
+
+import java.util.AbstractMap;
+import java.util.HashSet;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -18,21 +26,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.BDDMockito.given;
 
-public class JdbcStoredDataResultMapperTest {
+public class JdbcQueryTranslatorTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private AccountQueryTranslator accountQueryTranslator;
+
+    private JdbcQueryTranslator jdbcQueryTranslator;
+
+    @Mock
     private ResultSet resultSet;
 
+    @Before
+    public void setUp() {
+        jdbcQueryTranslator = new JdbcQueryTranslator("", "", "", accountQueryTranslator);
+    }
+
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
         // given
         given(resultSet.getResults()).willReturn(emptyList());
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null, emptySet(), emptySet());
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, null, emptySet(), emptySet());
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -42,13 +61,13 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResultForGivenIds() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResultForGivenIds() {
         // given
         given(resultSet.getResults()).willReturn(emptyList());
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null,
-                singleton("reqId"), singleton("impId"));
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, null, singleton("reqId"), singleton("impId"));
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -58,14 +77,14 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasLessColumns() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasLessColumns() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "accountId",
-                singleton("reqId"), emptySet());
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, "accountId", singleton("reqId"), emptySet());
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -75,14 +94,14 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorWhenResultSetHasUnexpectedColumnType() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorWhenResultSetHasUnexpectedColumnType() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data", 123))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "accountId",
-                singleton("reqId"), emptySet());
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, "accountId", singleton("reqId"), emptySet());
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -92,15 +111,15 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldSkipStoredResultWithInvalidType() {
+    public void translateToStoredDataShouldSkipStoredResultWithInvalidType() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data1", "request")),
                 new JsonArray(asList("accountId", "id1", "data2", "invalid"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "accountId",
-                singleton("id1"), emptySet());
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, "accountId", singleton("id1"), emptySet());
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -110,14 +129,14 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnStoredResultWithErrorForMissingId() {
+    public void translateToStoredDataShouldReturnStoredResultWithErrorForMissingId() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data1", "request"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "accountId", singleton("id1"),
-                singleton("id2"));
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, "accountId", singleton("id1"), singleton("id2"));
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -128,15 +147,15 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorsForMissingIdsIfAccountDiffers() {
+    public void translateToStoredDataShouldReturnEmptyStoredResultWithErrorsForMissingIdsIfAccountDiffers() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data1", "request")),
                 new JsonArray(asList("accountId", "id2", "data2", "imp"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "otherAccountId",
-                singleton("id1"), singleton("id2"));
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, "otherAccountId", singleton("id1"), singleton("id2"));
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -148,15 +167,15 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdIsDefined() {
+    public void translateToStoredDataShouldReturnEmptyResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdDefined() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId1", "id1", "data1", "request")),
                 new JsonArray(asList("accountId2", "id1", "data2", "request"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null,
-                singleton("id1"), emptySet());
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, null, singleton("id1"), emptySet());
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -166,7 +185,7 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdIsDiffers() {
+    public void translateToStoredDataShouldReturnEmptyResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdDiffers() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId1", "id1", "data-accountId", "request")),
@@ -175,8 +194,8 @@ public class JdbcStoredDataResultMapperTest {
                 new JsonArray(asList("accountId2", "id2", "data-otherAccountId", "imp"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "otherAccountId",
-                singleton("id1"), singleton("id2"));
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, "otherAccountId", singleton("id1"), singleton("id2"));
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -188,7 +207,7 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnExpectedStoredResultForGivenAccount() {
+    public void translateToStoredDataShouldReturnExpectedStoredResultForGivenAccount() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data-accountId", "request")),
@@ -197,8 +216,8 @@ public class JdbcStoredDataResultMapperTest {
                 new JsonArray(asList("otherAccountId", "id2", "data-otherAccountId", "imp"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "accountId",
-                singleton("id1"), singleton("id2"));
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(
+                resultSet, "accountId", singleton("id1"), singleton("id2"));
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -209,12 +228,12 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
+    public void translateToStoredDataWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasEmptyResult() {
         // given
         given(resultSet.getResults()).willReturn(emptyList());
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet);
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(resultSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -224,14 +243,14 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldSkipStoredResultWithInvalidType() {
+    public void translateToStoredDataWithoutParamsShouldSkipStoredResultWithInvalidType() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data1", "request")),
                 new JsonArray(asList("accountId", "id2", "data2", "invalid"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet);
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(resultSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -241,13 +260,13 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasLessColumns() {
+    public void translateToStoredDataWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasLessColumns() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet);
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(resultSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -257,13 +276,13 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasUnexpectedColumnType() {
+    public void translateToStoredDataWithoutParamsShouldReturnEmptyResultWithErrorIfResultSetHasUnexpectedColumnType() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data", 123))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet);
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(resultSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -273,20 +292,98 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnExpectedStoredResult() {
+    public void translateToStoredDataWithoutParamsShouldReturnExpectedStoredResult() {
         // given
         given(resultSet.getResults()).willReturn(asList(
                 new JsonArray(asList("accountId", "id1", "data1", "request")),
                 new JsonArray(asList("accountId", "id2", "data2", "imp"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet);
+        final StoredDataResult result = jdbcQueryTranslator.translateQueryResultToStoredData(resultSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
                 .containsOnly(entry("id1", "data1"));
         assertThat(result.getStoredIdToImp()).hasSize(1)
                 .containsOnly(entry("id2", "data2"));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnEmptyStoredResponseResultWithErrorWhenResultSetIsEmpty() {
+        // given
+        given(resultSet.getResults()).willReturn(emptyList());
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, emptySet());
+
+        // then
+        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No stored responses found");
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnEmptyStoredResponseResultWithErrorIfResultSetHasLessColumns() {
+        // given
+        given(resultSet.getResults()).willReturn(singletonList(new JsonArray(singletonList("id1"))));
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, emptySet());
+
+        // then
+        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Result set column number is less than expected");
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnStoredResponseResultWithErrorForMissingID() {
+        // given
+        given(resultSet.getResults()).willReturn(singletonList(new JsonArray(asList("id1", "data"))));
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, new HashSet<>(asList("id1", "id2")));
+
+        // then
+        assertThat(result.getStoredSeatBid()).hasSize(1)
+                .containsOnly(new AbstractMap.SimpleEntry<>("id1", "data"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No stored response found for id: id2");
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnEmptyResultWithErrorIfResultSetHasEmptyResultForGivenIDs() {
+        // given
+        given(resultSet.getResults()).willReturn(emptyList());
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, singleton("id"));
+
+        // then
+        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("No stored responses were found for ids: id");
+    }
+
+    @Test
+    public void translateToStoredResponseDataShouldReturnFilledStoredResponseResultWithoutErrors() {
+        // given
+        given(resultSet.getResults()).willReturn(asList(
+                new JsonArray(asList("id1", "data1")),
+                new JsonArray(asList("id2", "data2"))));
+
+        // when
+        final StoredResponseDataResult result = jdbcQueryTranslator.translateQueryResultToStoredResponseData(
+                resultSet, new HashSet<>(asList("id1", "id2")));
+
+        // then
+        assertThat(result.getStoredSeatBid()).hasSize(2)
+                .contains(new AbstractMap.SimpleEntry<>("id1", "data1"), new AbstractMap.SimpleEntry<>("id2", "data2"));
         assertThat(result.getErrors()).isEmpty();
     }
 }

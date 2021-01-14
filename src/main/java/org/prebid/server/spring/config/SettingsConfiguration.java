@@ -19,6 +19,9 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.settings.jdbc.AccountQueryTranslator;
+import org.prebid.server.settings.jdbc.JdbcQueryTranslator;
+import org.prebid.server.settings.jdbc.RelationalAccountQueryTranslator;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
@@ -72,21 +75,36 @@ public class SettingsConfiguration {
     static class DatabaseSettingsConfiguration {
 
         @Bean
-        JdbcApplicationSettings jdbcApplicationSettings(
-                @Value("${settings.database.account-query}") String accountQuery,
+        JdbcApplicationSettings jdbcApplicationSettings(JdbcQueryTranslator jdbcQueryTranslator,
+                                                        JdbcClient jdbcClient) {
+
+            return new JdbcApplicationSettings(jdbcQueryTranslator, jdbcClient);
+        }
+
+        @Bean
+        JdbcQueryTranslator jdbcQueryTranslator(
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
-                JdbcClient jdbcClient,
-                JacksonMapper jacksonMapper) {
+                AccountQueryTranslator accountQueryTranslator) {
 
-            return new JdbcApplicationSettings(
-                    jdbcClient,
-                    jacksonMapper,
-                    accountQuery,
+            return new JdbcQueryTranslator(
                     storedRequestsQuery,
                     ampStoredRequestsQuery,
-                    storedResponsesQuery);
+                    storedResponsesQuery,
+                    accountQueryTranslator);
+        }
+
+        @Bean
+        @ConditionalOnProperty(
+                name = "settings.database.account-query-translator",
+                havingValue = "relational",
+                matchIfMissing = true)
+        AccountQueryTranslator accountQueryTranslator(
+                @Value("${settings.database.account-query}") String accountQuery,
+                JacksonMapper jacksonMapper) {
+
+            return new RelationalAccountQueryTranslator(accountQuery, jacksonMapper);
         }
 
         @Bean
@@ -251,6 +269,9 @@ public class SettingsConfiguration {
         Vertx vertx;
 
         @Autowired
+        JdbcQueryTranslator jdbcQueryTranslator;
+
+        @Autowired
         JdbcClient jdbcClient;
 
         @Autowired
@@ -275,6 +296,7 @@ public class SettingsConfiguration {
                     timeout,
                     MetricName.stored_request,
                     settingsCache,
+                    jdbcQueryTranslator,
                     vertx,
                     jdbcClient,
                     timeoutFactory,
@@ -295,6 +317,7 @@ public class SettingsConfiguration {
                     timeout,
                     MetricName.amp_stored_request,
                     ampSettingsCache,
+                    jdbcQueryTranslator,
                     vertx,
                     jdbcClient,
                     timeoutFactory,
