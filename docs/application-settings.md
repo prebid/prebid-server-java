@@ -24,6 +24,7 @@ There are two ways to configure application settings: database and file. This do
 - `default-integration` - Default integration to assume.
 - `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners.
+- `status` - allows to mark account as `active` or `inactive`.
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 ```
@@ -75,6 +76,7 @@ accounts:
     analytics-config:
       auction-events:
         amp: true
+    status: active
     gdpr:
       enabled: true
       integration-enabled:
