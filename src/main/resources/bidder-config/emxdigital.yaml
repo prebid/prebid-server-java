@@ -10,8 +10,11 @@ adapters:
     meta-info:
       maintainer-email: adops@emxdigital.com
       app-media-types:
+        - banner
+        - video
       site-media-types:
         - banner
+        - video
       supported-vendors:
       vendor-id: 183
     usersync:

@@ -6,7 +6,7 @@
         {
           "id": "975135373",
           "impid": "impId6",
-          "price": 4.75,
+          "price": 4.125,
           "adm": "adm6",
           "crid": "crid6",
           "w": 300,
@@ -15,10 +15,10 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb_ix": "4.70",
+                "hb_pb_ix": "4.10",
                 "hb_cache_id": "3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
                 "hb_bidder_ix": "ix",
-                "hb_pb": "4.70",
+                "hb_pb": "4.10",
                 "hb_size_ix": "300x250",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_cache_path_ix": "{{ cache.path }}",
@@ -42,7 +42,7 @@
       "group": 0
     }
   ],
-  "cur": "USD",
+  "cur": "EUR",
   "ext": {
     "responsetimemillis": {
       "ix": "{{ ix.response_time_ms }}",
