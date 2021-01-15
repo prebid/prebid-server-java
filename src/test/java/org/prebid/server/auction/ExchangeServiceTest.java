@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -1250,13 +1251,18 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldCleanImpExtContextDataWhenFirstPartyDataNotPermittedForBidder() {
         // given
-        final ObjectNode impExt = mapper.createObjectNode().put("someBidder", 1).set("context",
-                mapper.createObjectNode().put("data", "data").put("otherField", "value"));
+        final ObjectNode impExt = mapper.createObjectNode()
+                .put("someBidder", 1)
+                .set("context", mapper.createObjectNode()
+                        .put("data", "data")
+                        .put("otherField", "value"));
         final BidRequest bidRequest = givenBidRequest(singletonList(Imp.builder()
                         .id("impId")
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build()).ext(impExt).build()),
+                                .build())
+                        .ext(impExt)
+                        .build()),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(singletonList("otherBidder")))
                         .build())));
@@ -1275,13 +1281,19 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldDeepCopyImpExtContextToEachImpressionAndNotRemoveDataForAllWhenDeprecatedOnlyOneBidder() {
         // given
-        final ObjectNode impExt = mapper.createObjectNode().put("someBidder", 1).put("deprecatedBidder", 2)
-                .set("context", mapper.createObjectNode().put("data", "data").put("otherField", "value"));
+        final ObjectNode impExt = mapper.createObjectNode()
+                .put("someBidder", 1)
+                .put("deprecatedBidder", 2)
+                .set("context", mapper.createObjectNode()
+                        .put("data", "data")
+                        .put("otherField", "value"));
         final BidRequest bidRequest = givenBidRequest(singletonList(Imp.builder()
                         .id("impId")
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build()).ext(impExt).build()),
+                                .build())
+                        .ext(impExt)
+                        .build()),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(singletonList("someBidder")))
                         .build())));
@@ -1304,6 +1316,38 @@ public class ExchangeServiceTest extends VertxTest {
                         mapper.createObjectNode().put("otherField", "value"),
                         // data present for someBidder
                         mapper.createObjectNode().put("data", "data").put("otherField", "value"));
+    }
+
+    @Test
+    public void shouldPassImpExtSkanToEachImpression() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode()
+                .put("someBidder", 1)
+                .put("skan", "skanValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build())
+                        .ext(impExt)
+                        .build()),
+                identity());
+        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
+                        givenBid(Bid.builder().price(TEN).build())))));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        assertThat(bidRequestCaptor.getAllValues())
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(impExtNode -> impExtNode.get("skan"))
+                .containsOnly(new TextNode("skanValue"));
     }
 
     @Test

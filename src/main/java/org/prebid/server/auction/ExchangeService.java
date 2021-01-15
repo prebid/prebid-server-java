@@ -81,6 +81,7 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
+    private static final String SKAN_EXT = "skan";
     private static final String DATA = "data";
     private static final String ALL_BIDDERS_CONFIG = "*";
     private static final String GENERIC_SCHAIN_KEY = "*";
@@ -310,12 +311,18 @@ public class ExchangeService {
         // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
                 .flatMap(imp -> StreamUtil.asStream(imp.getExt().fieldNames())
-                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT))
+                        .filter(ExchangeService::isNotSpecialImpExtField)
                         .filter(bidder -> isValidBidder(bidder, aliases)))
                 .distinct()
                 .collect(Collectors.toList());
 
         return makeBidderRequests(bidders, context, aliases, imps);
+    }
+
+    private static boolean isNotSpecialImpExtField(String field) {
+        return !Objects.equals(field, PREBID_EXT)
+                && !Objects.equals(field, CONTEXT_EXT)
+                && !Objects.equals(field, SKAN_EXT);
     }
 
     /**
@@ -651,6 +658,11 @@ public class ExchangeService {
             }
             result.set(CONTEXT_EXT, contextNodeCopy);
         }
+
+        if (impExt.hasNonNull(SKAN_EXT)) {
+            result.set(SKAN_EXT, impExt.get(SKAN_EXT));
+        }
+
         return result;
     }
 
