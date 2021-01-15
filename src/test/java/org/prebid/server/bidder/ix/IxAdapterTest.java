@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.ix;
 
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
