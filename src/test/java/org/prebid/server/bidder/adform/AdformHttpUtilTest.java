@@ -5,8 +5,6 @@ import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adform.model.AdformDigitrust;
-import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
 import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.util.HttpUtil;
 
@@ -27,7 +25,7 @@ public class AdformHttpUtilTest extends VertxTest {
 
     @Before
     public void setUp() {
-        httpUtil = new AdformHttpUtil(jacksonMapper);
+        httpUtil = new AdformHttpUtil();
     }
 
     @Test
@@ -38,8 +36,7 @@ public class AdformHttpUtilTest extends VertxTest {
                 "userAgent",
                 "ip",
                 "www.example.com",
-                "buyeruid",
-                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
+                "buyeruid");
 
         // then
         assertThat(headers).hasSize(7)
@@ -50,10 +47,7 @@ public class AdformHttpUtilTest extends VertxTest {
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
                         tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.0"),
                         tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
-                        tuple(HttpUtil.COOKIE_HEADER.toString(),
-                                // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
-                                "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLC"
-                                        + "Jwcml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
+                        tuple(HttpUtil.COOKIE_HEADER.toString(), "uid=buyeruid"));
     }
 
     @Test
@@ -64,61 +58,39 @@ public class AdformHttpUtilTest extends VertxTest {
                 "userAgent",
                 "ip",
                 "",
-                "buyeruid",
-                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
+                "buyeruid");
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.REFERER_HEADER.toString());
     }
 
     @Test
-    public void buildAdformHeadersShouldNotContainCookieHeaderIfUserIdAndDigiTrustAreEmpty() {
+    public void buildAdformHeadersShouldNotContainCookieHeaderIfUserIdIsEmpty() {
         // when
         final MultiMap headers = httpUtil.buildAdformHeaders(
                 "0.1.0",
                 "userAgent",
                 "ip",
                 "referer",
-                "",
-                null);
+                "");
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.COOKIE_HEADER.toString());
     }
 
     @Test
-    public void buildAdformHeaderShouldContainCookieHeaderOnlyWithUserIdIfUserIdPresentAndDigitrustAbsent() {
+    public void buildAdformHeaderShouldContainCookieHeaderOnlyWithUserIdIfUserIdPresent() {
         // when
         final MultiMap headers = httpUtil.buildAdformHeaders(
                 "0.1.0",
                 "userAgent",
                 "ip",
                 "referer",
-                "buyeruid",
-                null);
+                "buyeruid");
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(tuple(HttpUtil.COOKIE_HEADER.toString(), "uid=buyeruid"));
-    }
-
-    @Test
-    public void buildAdformHeaderShouldContainCookieHeaderOnlyWithDigitrustIfUserIsAbsentAndDigitrustPresent() {
-        // when
-        final MultiMap headers = httpUtil.buildAdformHeaders(
-                "0.1.0",
-                "userAgent",
-                "ip",
-                "referer",
-                "",
-                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
-
-        // then
-        assertThat(headers).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpUtil.COOKIE_HEADER.toString(),
-                        // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
-                        "DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dC"
-                                + "I6dHJ1ZX19"));
     }
 
     @Test

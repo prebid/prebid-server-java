@@ -4,17 +4,13 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.UrlParameters;
-import org.prebid.server.json.EncodeException;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -30,10 +26,7 @@ class AdformHttpUtil {
 
     private static final Locale LOCALE = Locale.US;
 
-    private final JacksonMapper mapper;
-
-    AdformHttpUtil(JacksonMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper);
+    AdformHttpUtil() {
     }
 
     /**
@@ -43,8 +36,7 @@ class AdformHttpUtil {
                                 String userAgent,
                                 String ip,
                                 String referer,
-                                String userId,
-                                AdformDigitrust adformDigitrust) {
+                                String userId) {
 
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
@@ -59,18 +51,6 @@ class AdformHttpUtil {
         final List<String> cookieValues = new ArrayList<>();
         if (StringUtils.isNotEmpty(userId)) {
             cookieValues.add(String.format("uid=%s", userId));
-        }
-
-        if (adformDigitrust != null) {
-            try {
-                final String adformDigitrustEncoded = Base64.getUrlEncoder().withoutPadding()
-                        .encodeToString(mapper.encode(adformDigitrust).getBytes());
-                // Cookie name and structure are described here:
-                // https://github.com/digi-trust/dt-cdn/wiki/Cookies-for-Platforms
-                cookieValues.add(String.format("DigiTrust.v1.identity=%s", adformDigitrustEncoded));
-            } catch (EncodeException e) {
-                // do not add digitrust to cookie header and just ignore this exception
-            }
         }
 
         if (CollectionUtils.isNotEmpty(cookieValues)) {

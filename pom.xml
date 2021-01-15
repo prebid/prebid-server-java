@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.46.0-SNAPSHOT</version>
+    <version>1.53.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -14,7 +14,7 @@
     </organization>
 
     <scm>
-        <developerConnection>scm:git:git@github.com:rubicon-project/prebid-server-java.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:prebid/prebid-server-java.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -55,7 +55,7 @@
         <mockito.version>2.23.4</mockito.version>
         <assertj.version>3.8.0</assertj.version>
         <wiremock.version>2.26.3</wiremock.version>
-        <jetty.version>9.4.31.v20200723</jetty.version>
+        <jetty.version>9.4.35.v20201120</jetty.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
 
@@ -233,6 +233,11 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
+            <version>${metrics.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-jvm</artifactId>
             <version>${metrics.version}</version>
         </dependency>
         <dependency>

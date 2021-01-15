@@ -68,7 +68,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
                                                                  PreBidRequestContext preBidRequestContext) {
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
         final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST, endpointUrl,
-                bidRequest, headers());
+                bidRequest, HttpUtil.headers());
         return Collections.singletonList(httpRequest);
     }
 

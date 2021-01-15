@@ -1,16 +1,15 @@
 package org.prebid.server.bidder.smartadserver;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -26,11 +25,12 @@ import org.prebid.server.proto.openrtb.ext.request.smartadserver.ExtImpSmartadse
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -54,11 +54,12 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<BidRequest>> result = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpSmartadserver extImpSmartadserver = parseImpExt(imp);
-                final BidRequest updateRequest = request.toBuilder()
+                final BidRequest updatedRequest = request.toBuilder()
                         .imp(Collections.singletonList(imp))
                         .site(Site.builder()
                                 .publisher(Publisher.builder()
@@ -66,59 +67,59 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                                         .build())
                                 .build())
                         .build();
-                result.add(createSingleRequest(updateRequest, getUri()));
+                result.add(createSingleRequest(updatedRequest));
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-        return Result.of(result, Collections.emptyList());
+        return Result.of(result, errors);
     }
 
     private ExtImpSmartadserver parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), SMARTADSERVER_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException("Error parsing smartadserverExt parameters");
         }
     }
 
-    private String getUri() {
-        final URIBuilder uriBuilder = new URIBuilder()
-                .setPath(String.join("api/bid", endpointUrl))
-                .addParameter("callerId", "5");
+    private HttpRequest<BidRequest> createSingleRequest(BidRequest request) {
 
-        return uriBuilder.toString();
-    }
-
-    private HttpRequest<BidRequest> createSingleRequest(BidRequest request, String url) {
-        final BidRequest outgoingRequest = request.toBuilder().build();
-        final String body = mapper.encode(outgoingRequest);
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(url)
+                .uri(getUri())
                 .headers(HttpUtil.headers())
-                .body(body)
-                .payload(outgoingRequest)
+                .body(mapper.encode(request))
+                .payload(request)
                 .build();
+    }
+
+    private String getUri() {
+        final URI uri;
+        try {
+            uri = new URI(endpointUrl);
+        } catch (URISyntaxException e) {
+            throw new PreBidException(String.format("Malformed URL: %s.", endpointUrl));
+        }
+        return new URIBuilder(uri)
+                .setPath(String.format("%s/api/bid", StringUtils.removeEnd(uri.getPath(), "/")))
+                .addParameter("callerId", "5")
+                .toString();
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private Result<List<BidderBid>> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
         }
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
@@ -126,20 +127,9 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> toBidderBid(bidRequest, bid, bidResponse.getCur(), errors))
-                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
         return Result.of(bidderBids, errors);
-    }
-
-    private BidderBid toBidderBid(BidRequest bidRequest, Bid bid, String currency, List<BidderError> errors) {
-        try {
-            final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-            return BidderBid.of(bid, bidType, currency);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return null;
-        }
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
@@ -149,10 +139,5 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

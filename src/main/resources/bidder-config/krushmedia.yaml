@@ -1,0 +1,27 @@
+adapters:
+  krushmedia:
+    enabled: false
+    endpoint: http://ads4.krushmedia.com/?c=rtb&m=req&key={{AccountID}}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: adapter@krushmedia.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://cs.krushmedia.com/4e4abdd5ecc661643458a730b1aa927d.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+      redirect-url: /setuid?bidder=krushmedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[uid]
+      cookie-family-name: krushmedia
+      type: redirect
+      support-cors: false

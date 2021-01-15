@@ -14,7 +14,6 @@ import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.adform.model.AdformBid;
-import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformParams;
 import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -53,7 +52,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         this.mapper = Objects.requireNonNull(mapper);
 
         this.requestUtil = new AdformRequestUtil();
-        this.httpUtil = new AdformHttpUtil(mapper);
+        this.httpUtil = new AdformHttpUtil();
     }
 
     /**
@@ -73,7 +72,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 HttpMethod.GET,
                 getUrl(preBidRequestContext, adformParams, extUser),
                 null,
-                headers(preBidRequestContext, requestUtil.getAdformDigitrust(extUser))));
+                headers(preBidRequestContext)));
     }
 
     @Override
@@ -198,14 +197,13 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     /**
      * Creates adform headers, which stores adform request parameters
      */
-    private MultiMap headers(PreBidRequestContext preBidRequestContext, AdformDigitrust adformDigitrust) {
+    private MultiMap headers(PreBidRequestContext preBidRequestContext) {
         return httpUtil.buildAdformHeaders(
                 VERSION,
                 ObjectUtils.defaultIfNull(preBidRequestContext.getUa(), ""),
                 ObjectUtils.defaultIfNull(preBidRequestContext.getIp(), ""),
                 preBidRequestContext.getReferer(),
-                preBidRequestContext.getUidsCookie().uidFrom(cookieFamilyName),
-                adformDigitrust);
+                preBidRequestContext.getUidsCookie().uidFrom(cookieFamilyName));
     }
 
     /**

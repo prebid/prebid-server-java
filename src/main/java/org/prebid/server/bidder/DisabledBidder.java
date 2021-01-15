@@ -8,7 +8,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -26,7 +25,7 @@ public class DisabledBidder implements Bidder<Void> {
 
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
-        return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(errorMessage)));
+        return Result.withError(BidderError.badInput(errorMessage));
     }
 
     @Override
