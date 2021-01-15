@@ -54,7 +54,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 final ExtImpDatablocks extImpDatablocks = parseAndValidateImpExt(imp.getExt());
                 extToImps.computeIfAbsent(extImpDatablocks, ext -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -62,7 +62,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 .map(entry -> makeHttpRequest(entry, bidRequest))
                 .collect(Collectors.toList());
 
-        return Result.of(httpRequests, Collections.emptyList());
+        return Result.withValues(httpRequests);
     }
 
     private ExtImpDatablocks parseAndValidateImpExt(ObjectNode extNode) {
@@ -108,9 +108,9 @@ public class DatablocksBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -142,10 +142,5 @@ public class DatablocksBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

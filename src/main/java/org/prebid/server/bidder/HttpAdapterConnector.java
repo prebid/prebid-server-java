@@ -256,16 +256,16 @@ public class HttpAdapterConnector {
                                                           ExchangeCall<T, R> exchangeCall, Integer responseTime) {
         final BidderError error = exchangeCall.getError();
         if (error != null) {
-            return Result.emptyWithError(error);
+            return Result.withError(error);
         }
         try {
             final List<Bid> bids = adapter.extractBids(adapterRequest, exchangeCall).stream()
                     .map(bidBuilder -> bidBuilder.responseTimeMs(responseTime))
                     .map(Bid.BidBuilder::build)
                     .collect(Collectors.toList());
-            return Result.of(bids, Collections.emptyList());
+            return Result.withValues(bids);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

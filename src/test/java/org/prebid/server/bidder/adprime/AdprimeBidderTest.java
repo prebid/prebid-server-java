@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -199,11 +198,6 @@ public class AdprimeBidderTest extends VertxTest {
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(adprimeBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
@@ -229,6 +223,7 @@ public class AdprimeBidderTest extends VertxTest {
     private static BidResponse givenBidResponse(
             Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
