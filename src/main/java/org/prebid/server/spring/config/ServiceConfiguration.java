@@ -454,7 +454,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            @Value("${auction.generate-bid-id}") boolean generateBidId,
+            IdGenerator idGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
@@ -464,7 +464,7 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
-                generateBidId,
+                idGenerator,
                 truncateAttrChars,
                 clock,
                 mapper);
