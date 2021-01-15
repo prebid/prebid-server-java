@@ -570,6 +570,7 @@ public class AuctionRequestFactory {
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
+                    .includeformat(targeting.getIncludeformat())
                     .build();
         } else {
             result = null;

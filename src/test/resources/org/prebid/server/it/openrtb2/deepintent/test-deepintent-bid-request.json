@@ -12,7 +12,7 @@
       "tagid" : "possibleTagId",
       "ext": {
         "bidder": {
-          "TagID": "possibleTagId"
+          "tagId": "possibleTagId"
         }
       }
 

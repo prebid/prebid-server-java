@@ -76,16 +76,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
         // more accurately if we note the real start time, and use it to compute the auction timeout.
         final long startTime = clock.millis();
 
-        final boolean isSafari = HttpUtil.isSafari(routingContext.request().headers().get(HttpUtil.USER_AGENT_HEADER));
-        metrics.updateSafariRequestsMetric(isSafari);
-
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
                 .httpContext(HttpContext.from(routingContext));
 
         auctionRequestFactory.fromRequest(routingContext, startTime)
 
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
-                .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
+                .map(context -> updateAppAndNoCookieAndImpsMetrics(context))
 
                 .compose(context -> exchangeService.holdAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
@@ -99,13 +96,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context, boolean isSafari) {
+    private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
         final BidRequest bidRequest = context.getBidRequest();
         final UidsCookie uidsCookie = context.getUidsCookie();
 
         final List<Imp> imps = bidRequest.getImp();
         metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                isSafari, imps.size());
+                imps.size());
 
         metrics.updateImpTypesMetrics(imps);
 

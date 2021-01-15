@@ -35,9 +35,9 @@ public class VideoResponseFactoryTest extends VertxTest {
     public void shouldReturnExpectedVideoResponse() {
         // given
         final Map<String, String> targeting = new HashMap<>();
-        targeting.put("hb_uuid", "value1");
-        targeting.put("hb_pb", "hb_pb");
-        targeting.put("hb_pb_cat_dur", "hb_pb_cat_dur");
+        targeting.put("hb_uuid_appnexus", "hb_uuidVal");
+        targeting.put("hb_pb_appnexus", "hb_pbVal");
+        targeting.put("hb_pb_cat_dur_appnexus", "hb_pb_cat_durVal");
 
         final Bid bid0 = Bid.builder()
                 .impid("0_0")
@@ -73,9 +73,9 @@ public class VideoResponseFactoryTest extends VertxTest {
 
         // then
         final ExtAdPod expectedExtAdPod0 = ExtAdPod.of(0,
-                singletonList(ExtResponseVideoTargeting.of("hb_pb", "hb_pb_cat_dur", "value1")), null);
+                singletonList(ExtResponseVideoTargeting.of("hb_pbVal", "hb_pb_cat_durVal", "hb_uuidVal")), null);
         final ExtAdPod expectedExtAdPod1 = ExtAdPod.of(
-                1, singletonList(ExtResponseVideoTargeting.of("hb_pb", "hb_pb_cat_dur", "value1")), null);
+                1, singletonList(ExtResponseVideoTargeting.of("hb_pbVal", "hb_pb_cat_durVal", "hb_uuidVal")), null);
         final ExtAdPod expectedErrorExtAdPod3 = ExtAdPod.of(3, null, singletonList("Error"));
         final List<ExtAdPod> expectedAdPodResponse = Arrays.asList(expectedExtAdPod0, expectedExtAdPod1,
                 expectedErrorExtAdPod3);

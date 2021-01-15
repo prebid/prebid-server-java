@@ -44,6 +44,10 @@ public class ConditionalLogger {
         this(null, logger);
     }
 
+    public void infoWithKey(String key, String message, int limit) {
+        log(key, limit, logger -> logger.info(message));
+    }
+
     public void info(String message, int limit) {
         log(message, limit, logger -> logger.info(message));
     }
