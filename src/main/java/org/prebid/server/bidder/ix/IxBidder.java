@@ -114,9 +114,9 @@ public class IxBidder implements Bidder<BidRequest> {
                                                     Imp imp,
                                                     ExtImpIx extImpIx) {
         final ArrayList<BidRequest> modifiedBidRequests = new ArrayList<>();
-        final Site modifiedSite = modifiedSite(bidRequest.getSite(), extImpIx);
+        final Site modifiedSite = modifySite(bidRequest.getSite(), extImpIx);
 
-        final List<Imp> modifiedImps = modifiedImps(imp);
+        final List<Imp> modifiedImps = modifyImps(imp);
         for (Imp modifiedImp : modifiedImps) {
             final BidRequest modifiedBidRequest = bidRequest.toBuilder()
                     .site(modifiedSite)
@@ -128,32 +128,32 @@ public class IxBidder implements Bidder<BidRequest> {
         return modifiedBidRequests;
     }
 
-    private static Site modifiedSite(Site site, ExtImpIx extImpIx) {
+    private static Site modifySite(Site site, ExtImpIx extImpIx) {
         return site == null
                 ? null
                 : site.toBuilder()
-                        .publisher(modifiedPublisher(site.getPublisher(), extImpIx.getSiteId()))
+                        .publisher(modifyPublisher(site.getPublisher(), extImpIx.getSiteId()))
                         .build();
     }
 
-    private static Publisher modifiedPublisher(Publisher publisher, String siteId) {
+    private static Publisher modifyPublisher(Publisher publisher, String siteId) {
         return publisher == null
                 ? Publisher.builder().id(siteId).build()
                 : publisher.toBuilder().id(siteId).build();
     }
 
-    private static List<Imp> modifiedImps(Imp imp) {
+    private static List<Imp> modifyImps(Imp imp) {
         final Banner impBanner = imp.getBanner();
         if (impBanner == null) {
             return Collections.singletonList(imp);
         }
 
-        return modifiedBanners(impBanner).stream()
+        return modifyBanners(impBanner).stream()
                 .map(banner -> imp.toBuilder().banner(banner).build())
                 .collect(Collectors.toList());
     }
 
-    private static List<Banner> modifiedBanners(Banner banner) {
+    private static List<Banner> modifyBanners(Banner banner) {
         final ArrayList<Banner> modifiedBanners = new ArrayList<>();
         final List<Format> formats = getFormats(banner);
         for (Format format : formats) {
