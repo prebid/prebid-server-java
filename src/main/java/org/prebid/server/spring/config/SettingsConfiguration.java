@@ -10,16 +10,19 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
+import org.prebid.server.settings.EnrichingApplicationSettings;
 import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
+import org.prebid.server.spring.config.model.AccountConfigurationProperties;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
@@ -72,14 +75,20 @@ public class SettingsConfiguration {
 
         @Bean
         JdbcApplicationSettings jdbcApplicationSettings(
+                @Value("${settings.database.account-query}") String accountQuery,
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
-                @Value("${settings.database.stored-responses-query}") String storedResponseQuery,
+                @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
                 JdbcClient jdbcClient,
                 JacksonMapper jacksonMapper) {
 
             return new JdbcApplicationSettings(
-                    jdbcClient, jacksonMapper, storedRequestsQuery, ampStoredRequestsQuery, storedResponseQuery);
+                    jdbcClient,
+                    jacksonMapper,
+                    accountQuery,
+                    storedRequestsQuery,
+                    ampStoredRequestsQuery,
+                    storedResponsesQuery);
         }
 
         @Bean
@@ -229,7 +238,8 @@ public class SettingsConfiguration {
     }
 
     @Configuration
-    @ConditionalOnProperty(prefix = "settings.in-memory-cache.jdbc-update",
+    @ConditionalOnProperty(
+            prefix = "settings.in-memory-cache.jdbc-update",
             name = {"refresh-rate", "timeout", "init-query", "update-query", "amp-init-query", "amp-update-query"})
     static class JdbcPeriodicRefreshServiceConfiguration {
 
@@ -248,24 +258,50 @@ public class SettingsConfiguration {
         @Autowired
         TimeoutFactory timeoutFactory;
 
+        @Autowired
+        Metrics metrics;
+
+        @Autowired
+        Clock clock;
+
         @Bean
         public JdbcPeriodicRefreshService jdbcPeriodicRefreshService(
-                SettingsCache settingsCache,
+                @Qualifier("settingsCache") SettingsCache settingsCache,
                 @Value("${settings.in-memory-cache.jdbc-update.init-query}") String initQuery,
                 @Value("${settings.in-memory-cache.jdbc-update.update-query}") String updateQuery) {
 
-            return new JdbcPeriodicRefreshService(settingsCache, vertx, jdbcClient, refreshPeriod,
-                    initQuery, updateQuery, timeoutFactory, timeout);
+            return new JdbcPeriodicRefreshService(
+                    initQuery,
+                    updateQuery,
+                    refreshPeriod,
+                    timeout,
+                    MetricName.stored_request,
+                    settingsCache,
+                    vertx,
+                    jdbcClient,
+                    timeoutFactory,
+                    metrics,
+                    clock);
         }
 
         @Bean
         public JdbcPeriodicRefreshService ampJdbcPeriodicRefreshService(
-                SettingsCache settingsCache,
+                @Qualifier("ampSettingsCache") SettingsCache ampSettingsCache,
                 @Value("${settings.in-memory-cache.jdbc-update.amp-init-query}") String ampInitQuery,
                 @Value("${settings.in-memory-cache.jdbc-update.amp-update-query}") String ampUpdateQuery) {
 
-            return new JdbcPeriodicRefreshService(settingsCache, vertx, jdbcClient, refreshPeriod,
-                    ampInitQuery, ampUpdateQuery, timeoutFactory, timeout);
+            return new JdbcPeriodicRefreshService(
+                    ampInitQuery,
+                    ampUpdateQuery,
+                    refreshPeriod,
+                    timeout,
+                    MetricName.amp_stored_request,
+                    ampSettingsCache,
+                    vertx,
+                    jdbcClient,
+                    timeoutFactory,
+                    metrics,
+                    clock);
         }
     }
 
@@ -293,22 +329,44 @@ public class SettingsConfiguration {
     }
 
     @Configuration
+    static class EnrichingSettingsConfiguration {
+
+        @Bean
+        @ConfigurationProperties("settings.default-account-config")
+        AccountConfigurationProperties defaultAccountConfigurationProperties() {
+            return new AccountConfigurationProperties();
+        }
+
+        @Bean
+        EnrichingApplicationSettings enrichingApplicationSettings(
+                CompositeApplicationSettings compositeApplicationSettings,
+                AccountConfigurationProperties defaultAccountConfigurationProperties,
+                JacksonMapper mapper) {
+
+            return new EnrichingApplicationSettings(
+                    compositeApplicationSettings, defaultAccountConfigurationProperties.toAccount(mapper));
+        }
+    }
+
+    @Configuration
     static class CachingSettingsConfiguration {
 
         @Bean
         @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
         CachingApplicationSettings cachingApplicationSettings(
-                CompositeApplicationSettings compositeApplicationSettings,
+                EnrichingApplicationSettings enrichingApplicationSettings,
                 ApplicationSettingsCacheProperties cacheProperties,
                 @Qualifier("settingsCache") SettingsCache cache,
                 @Qualifier("ampSettingsCache") SettingsCache ampCache,
-                @Qualifier("videoSettingCache") SettingsCache videoCache) {
+                @Qualifier("videoSettingCache") SettingsCache videoCache,
+                Metrics metrics) {
 
             return new CachingApplicationSettings(
-                    compositeApplicationSettings,
+                    enrichingApplicationSettings,
                     cache,
                     ampCache,
                     videoCache,
+                    metrics,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize());
         }
@@ -320,8 +378,8 @@ public class SettingsConfiguration {
         @Bean
         ApplicationSettings applicationSettings(
                 @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
-                @Autowired(required = false) CompositeApplicationSettings compositeApplicationSettings) {
-            return ObjectUtils.defaultIfNull(cachingApplicationSettings, compositeApplicationSettings);
+                EnrichingApplicationSettings enrichingApplicationSettings) {
+            return ObjectUtils.defaultIfNull(cachingApplicationSettings, enrichingApplicationSettings);
         }
     }
 

@@ -50,8 +50,6 @@ import java.util.stream.Collectors;
 public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(PubmaticBidder.class);
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String PREBID = "prebid";
     private static final TypeReference<ExtPrebid<?, ExtImpPubmatic>> PUBMATIC_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubmatic>>() {
@@ -85,7 +83,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         if (modifiedImps.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         return Result.of(Collections.singletonList(makeRequest(bidRequest, modifiedImps, extImpPubmatics)), errors);
@@ -256,12 +254,12 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse);
     }
@@ -272,11 +270,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(this::bidderBid)
+                .map(bid -> bidderBid(bid, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidderBid bidderBid(Bid bid) {
+    private BidderBid bidderBid(Bid bid, String currency) {
         final List<String> bidCat = bid.getCat();
         final boolean updateBidCat = bidCat != null && bidCat.size() > 1;
         final List<String> singleElementCat = updateBidCat
@@ -291,7 +289,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .build()
                 : bid;
 
-        return BidderBid.of(updatedBid, getBidType(pubmaticBidExt), DEFAULT_BID_CURRENCY);
+        return BidderBid.of(updatedBid, getBidType(pubmaticBidExt), currency);
     }
 
     private PubmaticBidExt extractBidExt(ObjectNode bidExt) {
@@ -327,10 +325,5 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private ObjectNode updateBidExtWithExtPrebid(Integer duration, ObjectNode extBid) {
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(duration, null)).build();
         return extBid.set(PREBID, mapper.mapper().valueToTree(extBidPrebid));
-    }
-
-    @Override
-    public final Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -27,16 +27,6 @@ public class HttpUtilTest {
     private RoutingContext routingContext;
 
     @Test
-    public void isSafariShouldReturnTrue() {
-        assertThat(HttpUtil.isSafari("Useragent with Safari browser and AppleWebKit built-in.")).isTrue();
-    }
-
-    @Test
-    public void isSafariShouldReturnFalse() {
-        assertThat(HttpUtil.isSafari("Useragent with Safari browser but Chromium forked by.")).isFalse();
-    }
-
-    @Test
     public void validateUrlShouldFailOnInvalidUrl() {
         // when and then
         assertThatIllegalArgumentException()
