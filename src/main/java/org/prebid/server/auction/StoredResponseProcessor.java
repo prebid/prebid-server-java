@@ -49,7 +49,7 @@ public class StoredResponseProcessor {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
-    private static final String SKAN_EXT = "skan";
+    private static final String SKADN_EXT = "skadn";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final TypeReference<List<SeatBid>> SEATBID_LIST_TYPEREFERENCE = new TypeReference<List<SeatBid>>() {
     };
@@ -205,7 +205,7 @@ public class StoredResponseProcessor {
     private static boolean isNotSpecialImpExtField(String bidder) {
         return !Objects.equals(bidder, PREBID_EXT)
                 && !Objects.equals(bidder, CONTEXT_EXT)
-                && !Objects.equals(bidder, SKAN_EXT);
+                && !Objects.equals(bidder, SKADN_EXT);
     }
 
     private <T> Stream<T> asStream(Iterator<T> iterator) {

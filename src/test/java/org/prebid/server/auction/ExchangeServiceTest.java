@@ -1323,7 +1323,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final ObjectNode impExt = mapper.createObjectNode()
                 .put("someBidder", 1)
-                .put("skan", "skanValue");
+                .put("skadn", "skadnValue");
         final BidRequest bidRequest = givenBidRequest(
                 singletonList(Imp.builder()
                         .id("impId")
@@ -1346,8 +1346,8 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidRequestCaptor.getAllValues())
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .extracting(impExtNode -> impExtNode.get("skan"))
-                .containsOnly(new TextNode("skanValue"));
+                .extracting(impExtNode -> impExtNode.get("skadn"))
+                .containsOnly(new TextNode("skadnValue"));
     }
 
     @Test

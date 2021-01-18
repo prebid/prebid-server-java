@@ -76,7 +76,7 @@ public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
-    private static final String SKAN_EXT = "skan";
+    private static final String SKADN_EXT = "skadn";
     private static final Locale LOCALE = Locale.US;
     private static final String DOCUMENTATION = "https://iabtechlab.com/wp-content/uploads/2016/07/"
             + "OpenRTB-Native-Ads-Specification-Final-1.2.pdf";
@@ -865,7 +865,7 @@ public class RequestValidator {
     private static boolean isNotSpecialImpExtField(String field) {
         return !Objects.equals(field, PREBID_EXT)
                 && !Objects.equals(field, CONTEXT_EXT)
-                && !Objects.equals(field, SKAN_EXT);
+                && !Objects.equals(field, SKADN_EXT);
     }
 
     private static boolean hasPositiveValue(Integer value) {
