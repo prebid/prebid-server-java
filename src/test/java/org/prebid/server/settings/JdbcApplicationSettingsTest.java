@@ -233,6 +233,26 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     }
 
     @Test
+    public void getAccountByIdShouldTolerateAccountWithoutStatusDefined(TestContext context) throws SQLException {
+        // given
+        connection.createStatement()
+                .execute("insert into accounts_account (uuid, status) values ('1002', NULL);");
+
+        // when
+        final Future<Account> future = jdbcApplicationSettings.getAccountById("1002", timeout);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(account -> {
+            assertThat(account).isEqualTo(Account.builder()
+                    .id("1002")
+                    .status(null)
+                    .build());
+            async.complete();
+        }));
+    }
+
+    @Test
     public void getAdUnitConfigByIdShouldReturnConfig(TestContext context) {
         // when
         final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout);
