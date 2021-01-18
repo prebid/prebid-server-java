@@ -82,7 +82,7 @@ auction:
     log-failure-only: false
     log-sampling-rate: 0.0
   max-request-size: 262144
-  id-generator-type: uuid
+  generate-source-tid: true
   generate-bid-id: false
   cache:
     expected-request-time-ms: 10

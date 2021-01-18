@@ -11,11 +11,11 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
 
 /**
  * Class creates and holds generated bid ids per bidder per imp.
  */
+@AllArgsConstructor
 public class GeneratedBidIds {
 
     private static final String BID_IMP_ID_PATTERN = "%s-%s";
@@ -57,9 +57,9 @@ public class GeneratedBidIds {
      * Returns bidder for bidId and impId parameters.
      */
     public Optional<String> getBidderForBid(String bidId, String impId) {
+        final String uniqueBidId = makeUniqueBidId(bidId, impId);
         return bidderToBidIds.entrySet().stream()
-                .filter(bidIdToGeneratedId -> bidIdToGeneratedId.getValue()
-                        .containsKey(makeUniqueBidId(bidId, impId)))
+                .filter(bidIdToGeneratedId -> bidIdToGeneratedId.getValue().containsKey(uniqueBidId))
                 .findFirst()
                 .map(Map.Entry::getKey);
     }

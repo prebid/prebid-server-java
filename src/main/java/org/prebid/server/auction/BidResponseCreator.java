@@ -203,7 +203,7 @@ public class BidResponseCreator {
         final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 
         final GeneratedBidIds generatedBidIds = GeneratedBidIds.of(bidderResponses,
-                (ignored1, bid) -> idGenerator.getType() == IdGeneratorType.uuid
+                (ignored, bid) -> idGenerator.getType() != IdGeneratorType.none
                         ? idGenerator.generateId()
                         : bid.getId());
 
@@ -426,7 +426,7 @@ public class BidResponseCreator {
 
         final GeneratedBidIds bidderToVideoGeneratedBidIdsToModify =
                 shouldCacheVideoBids && eventsEnabledForAccount(auctionContext)
-                        ? getBidderAndVideoBidIdsToModify(bidderResponses, generatedBidIds,
+                        ? getGeneratedVideoBidIds(bidderResponses, generatedBidIds,
                         auctionContext.getBidRequest().getImp())
                         : GeneratedBidIds.empty();
 
@@ -448,7 +448,7 @@ public class BidResponseCreator {
         return bid.getDealid() != null ? price.compareTo(BigDecimal.ZERO) >= 0 : price.compareTo(BigDecimal.ZERO) > 0;
     }
 
-    private GeneratedBidIds getBidderAndVideoBidIdsToModify(
+    private GeneratedBidIds getGeneratedVideoBidIds(
             List<BidderResponse> bidderResponses,
             GeneratedBidIds generatedBidIds,
             List<Imp> imps) {
@@ -459,7 +459,7 @@ public class BidResponseCreator {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         return GeneratedBidIds.of(vastModifyAllowedResponses,
-                (s, bid) -> generatedBidIds.getGeneratedId(s, bid.getId(), bid.getImpid()));
+                (bidder, bid) -> generatedBidIds.getGeneratedId(bidder, bid.getId(), bid.getImpid()));
     }
 
     private static BidderResponse makeVideoBidsBidderResponse(BidderResponse bidderResponse, List<Imp> imps) {
@@ -880,7 +880,7 @@ public class BidResponseCreator {
         final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .bidid(idGenerator.getType() == IdGeneratorType.uuid ? generatedBidId : null)
+                .bidid(idGenerator.getType() != IdGeneratorType.none ? generatedBidId : null)
                 .type(bidType)
                 .targeting(targetingKeywords)
                 .cache(cache)
