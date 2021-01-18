@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
  * Class creates and holds generated bid ids per bidder per imp.
  */
 public class GeneratedBidIds {
+
     private static final String BID_IMP_ID_PATTERN = "%s-%s";
 
     private final Map<String, Map<String, String>> bidderToBidIds;
