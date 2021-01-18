@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,12 +10,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
 
-import java.util.Map;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 
 public class SchainResolverTest extends VertxTest {
 
@@ -28,14 +24,12 @@ public class SchainResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldResolveSchains() {
+    public void shouldResolveSchainsWhenCatchAllPresent() {
         // given
-        final ObjectNode schainExtObjectNode = mapper.createObjectNode().put("any", "any");
-
         final ExtRequestPrebidSchainSchainNode specificNodes = ExtRequestPrebidSchainSchainNode.of(
-                "asi", "sid", 1, "rid", "name", "domain", schainExtObjectNode);
+                "asi", "sid", 1, "rid", "name", "domain", null);
         final ExtRequestPrebidSchainSchain specificSchain = ExtRequestPrebidSchainSchain.of(
-                "ver", 1, singletonList(specificNodes), schainExtObjectNode);
+                "ver", 1, singletonList(specificNodes), null);
         final ExtRequestPrebidSchain schainForBidders = ExtRequestPrebidSchain.of(
                 asList("bidder1", "bidder2"), specificSchain);
 
@@ -51,14 +45,30 @@ public class SchainResolverTest extends VertxTest {
                         .build()))
                 .build();
 
-        // when
-        final Map<String, ExtRequestPrebidSchainSchain> result = schainResolver.resolve(bidRequest);
+        // when and then
+        assertThat(schainResolver.resolveForBidder("bidder1", bidRequest)).isSameAs(specificSchain);
+        assertThat(schainResolver.resolveForBidder("bidder2", bidRequest)).isSameAs(specificSchain);
+        assertThat(schainResolver.resolveForBidder("bidder3", bidRequest)).isSameAs(generalSchain);
+    }
 
-        // then
-        assertThat(result).containsOnly(
-                entry("bidder1", specificSchain),
-                entry("bidder2", specificSchain),
-                entry("*", generalSchain));
+    @Test
+    public void shouldReturnNullWhenAbsentForBidderAndNoCatchAll() {
+        // given
+        final ExtRequestPrebidSchainSchainNode specificNodes = ExtRequestPrebidSchainSchainNode.of(
+                "asi", "sid", 1, "rid", "name", "domain", null);
+        final ExtRequestPrebidSchainSchain specificSchain = ExtRequestPrebidSchainSchain.of(
+                "ver", 1, singletonList(specificNodes), null);
+        final ExtRequestPrebidSchain schainForBidders = ExtRequestPrebidSchain.of(
+                singletonList("bidder1"), specificSchain);
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .schains(singletonList(schainForBidders))
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(schainResolver.resolveForBidder("bidder2", bidRequest)).isNull();
     }
 
     @Test
@@ -76,6 +86,51 @@ public class SchainResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(schainResolver.resolve(bidRequest)).isEmpty();
+        assertThat(schainResolver.resolveForBidder("bidder", bidRequest)).isNull();
+    }
+
+    @Test
+    public void shouldInjectGlobalNodeIntoResolvedSchain() {
+        // given
+        schainResolver = SchainResolver.create(
+                "{\"asi\": \"pbshostcompany.com\", \"sid\":\"00001\"}",
+                jacksonMapper);
+
+        final ExtRequestPrebidSchainSchainNode node = ExtRequestPrebidSchainSchainNode.of(
+                "asi", "sid", 1, "rid", "name", "domain", null);
+        final ExtRequestPrebidSchainSchain schain = ExtRequestPrebidSchainSchain.of(
+                "ver", 1, singletonList(node), null);
+        final ExtRequestPrebidSchain schainEntry = ExtRequestPrebidSchain.of(
+                singletonList("bidder"), schain);
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .schains(singletonList(schainEntry))
+                        .build()))
+                .build();
+
+        // when and then
+        final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
+                "pbshostcompany.com", "00001", null, null, null, null, null);
+        final ExtRequestPrebidSchainSchain expectedSchain = ExtRequestPrebidSchainSchain.of(
+                "ver", 1, asList(node, globalNode), null);
+        assertThat(schainResolver.resolveForBidder("bidder", bidRequest)).isEqualTo(expectedSchain);
+    }
+
+    @Test
+    public void shouldReturnSchainWithGlobalNodeOnly() {
+        // given
+        schainResolver = SchainResolver.create(
+                "{\"asi\": \"pbshostcompany.com\", \"sid\":\"00001\"}",
+                jacksonMapper);
+
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when and then
+        final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
+                "pbshostcompany.com", "00001", null, null, null, null, null);
+        final ExtRequestPrebidSchainSchain expectedSchain = ExtRequestPrebidSchainSchain.of(
+                null, null, singletonList(globalNode), null);
+        assertThat(schainResolver.resolveForBidder("bidder", bidRequest)).isEqualTo(expectedSchain);
     }
 }

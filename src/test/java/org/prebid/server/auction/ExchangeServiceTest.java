@@ -189,7 +189,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveSite(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(fpdResolver.resolveApp(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
 
-        given(schainResolver.resolve(any())).willReturn(emptyMap());
+        given(schainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
@@ -495,13 +495,10 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(bidder2Name, bidder2, givenEmptySeatBid());
         givenBidder(bidder3Name, bidder3, givenEmptySeatBid());
 
-        final ObjectNode schainExtObjectNode = mapper.createObjectNode()
-                .put("any", "any");
-
         final ExtRequestPrebidSchainSchainNode specificNodes = ExtRequestPrebidSchainSchainNode.of(
-                "asi", "sid", 1, "rid", "name", "domain", schainExtObjectNode);
+                "asi", "sid", 1, "rid", "name", "domain", null);
         final ExtRequestPrebidSchainSchain specificSchain = ExtRequestPrebidSchainSchain.of(
-                "ver", 1, singletonList(specificNodes), schainExtObjectNode);
+                "ver", 1, singletonList(specificNodes), null);
         final ExtRequestPrebidSchain schainForBidders = ExtRequestPrebidSchain.of(
                 asList(bidder1Name, bidder2Name), specificSchain);
 
@@ -523,12 +520,9 @@ public class ExchangeServiceTest extends VertxTest {
                         givenImp(singletonMap(bidder3Name, 3), identity())),
                 builder -> builder.ext(extRequest));
 
-        final Map<String, ExtRequestPrebidSchainSchain> resolvedSchains = new HashMap<>();
-        resolvedSchains.put(bidder1Name, specificSchain);
-        resolvedSchains.put(bidder2Name, specificSchain);
-        resolvedSchains.put("*", generalSchain);
-
-        given(schainResolver.resolve(same(bidRequest))).willReturn(resolvedSchains);
+        given(schainResolver.resolveForBidder(eq("bidder1"), same(bidRequest))).willReturn(specificSchain);
+        given(schainResolver.resolveForBidder(eq("bidder2"), same(bidRequest))).willReturn(specificSchain);
+        given(schainResolver.resolveForBidder(eq("bidder3"), same(bidRequest))).willReturn(generalSchain);
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));

@@ -136,8 +136,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    SchainResolver schainResolver(JacksonMapper mapper) {
-        return SchainResolver.create(null, mapper);
+    SchainResolver schainResolver(
+            @Value("${auction.host-schain-node}") String globalSchainNode,
+            JacksonMapper mapper) {
+
+        return SchainResolver.create(globalSchainNode, mapper);
     }
 
     @Bean

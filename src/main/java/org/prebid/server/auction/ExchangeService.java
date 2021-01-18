@@ -82,7 +82,6 @@ public class ExchangeService {
     private static final String CONTEXT_EXT = "context";
     private static final String DATA = "data";
     private static final String ALL_BIDDERS_CONFIG = "*";
-    private static final String GENERIC_SCHAIN_KEY = "*";
 
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
@@ -499,7 +498,6 @@ public class ExchangeService {
                                                   Map<String, ExtBidderConfigFpd> biddersToConfigs) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
-        final Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains = schainResolver.resolve(bidRequest);
 
         final List<BidderRequest> bidderRequests = bidderPrivacyResults.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
@@ -510,8 +508,7 @@ public class ExchangeService {
                         bidRequest,
                         imps,
                         biddersToConfigs,
-                        bidderToPrebidBidders,
-                        bidderToPrebidSchains))
+                        bidderToPrebidBidders))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -548,8 +545,7 @@ public class ExchangeService {
                                               BidRequest bidRequest,
                                               List<Imp> imps,
                                               Map<String, ExtBidderConfigFpd> biddersToConfigs,
-                                              Map<String, JsonNode> bidderToPrebidBidders,
-                                              Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains) {
+                                              Map<String, JsonNode> bidderToPrebidBidders) {
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
         if (bidderPrivacyResult.isBlockedRequestByTcf()) {
@@ -580,7 +576,7 @@ public class ExchangeService {
                 .imp(prepareImps(bidder, imps, useFirstPartyData))
                 .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
                 .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
-                .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
+                .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidRequest.getExt()))
                 .build());
     }
@@ -688,10 +684,10 @@ public class ExchangeService {
     /**
      * Returns {@link Source} with corresponding request.ext.prebid.schains.
      */
-    private Source prepareSource(String bidder, Map<String, ExtRequestPrebidSchainSchain> bidderToSchain,
-                                 Source receivedSource) {
-        final ExtRequestPrebidSchainSchain defaultSchain = bidderToSchain.get(GENERIC_SCHAIN_KEY);
-        final ExtRequestPrebidSchainSchain bidderSchain = bidderToSchain.getOrDefault(bidder, defaultSchain);
+    private Source prepareSource(String bidder, BidRequest bidRequest) {
+        final Source receivedSource = bidRequest.getSource();
+
+        final ExtRequestPrebidSchainSchain bidderSchain = schainResolver.resolveForBidder(bidder, bidRequest);
 
         if (bidderSchain == null) {
             return receivedSource;
