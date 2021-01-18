@@ -175,6 +175,9 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     private static AccountStatus toAccountStatus(String status) {
+        if (status == null) {
+            return null;
+        }
         try {
             return AccountStatus.valueOf(status);
         } catch (IllegalArgumentException e) {
