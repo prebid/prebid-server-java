@@ -55,8 +55,6 @@ public class IxAdapter extends OpenrtbAdapter {
     @Override
     public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
                                                                  PreBidRequestContext preBidRequestContext) {
-        validatePreBidRequest(preBidRequestContext.getPreBidRequest());
-
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
         validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
@@ -68,12 +66,6 @@ public class IxAdapter extends OpenrtbAdapter {
         return requests.stream()
                 .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl, bidRequest, HttpUtil.headers()))
                 .collect(Collectors.toList());
-    }
-
-    private static void validatePreBidRequest(PreBidRequest preBidRequest) {
-        if (preBidRequest.getApp() != null) {
-            throw new PreBidException("ix doesn't support apps");
-        }
     }
 
     private List<BidRequest> makeRequests(List<AdUnitBid> adUnitBids, PreBidRequestContext preBidRequestContext) {
@@ -127,7 +119,9 @@ public class IxAdapter extends OpenrtbAdapter {
         return params;
     }
 
-    private BidRequest createBidRequest(AdUnitBid adUnitBid, IxParams ixParams, Format size,
+    private BidRequest createBidRequest(AdUnitBid adUnitBid,
+                                        IxParams ixParams,
+                                        Format size,
                                         PreBidRequestContext preBidRequestContext) {
         final Imp imp = makeImp(copyAdUnitBidWithSingleSize(adUnitBid, size), preBidRequestContext);
 
