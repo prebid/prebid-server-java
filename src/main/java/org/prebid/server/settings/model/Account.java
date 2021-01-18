@@ -36,20 +36,20 @@ public class Account {
 
     public Account merge(Account another) {
         return Account.builder()
-                .id(ObjectUtils.firstNonNull(id, another.id))
-                .priceGranularity(ObjectUtils.firstNonNull(priceGranularity, another.priceGranularity))
-                .bannerCacheTtl(ObjectUtils.firstNonNull(bannerCacheTtl, another.bannerCacheTtl))
-                .videoCacheTtl(ObjectUtils.firstNonNull(videoCacheTtl, another.videoCacheTtl))
-                .eventsEnabled(ObjectUtils.firstNonNull(eventsEnabled, another.eventsEnabled))
-                .enforceCcpa(ObjectUtils.firstNonNull(enforceCcpa, another.enforceCcpa))
-                .gdpr(ObjectUtils.firstNonNull(gdpr, another.gdpr))
-                .analyticsSamplingFactor(ObjectUtils.firstNonNull(
+                .id(ObjectUtils.defaultIfNull(id, another.id))
+                .priceGranularity(ObjectUtils.defaultIfNull(priceGranularity, another.priceGranularity))
+                .bannerCacheTtl(ObjectUtils.defaultIfNull(bannerCacheTtl, another.bannerCacheTtl))
+                .videoCacheTtl(ObjectUtils.defaultIfNull(videoCacheTtl, another.videoCacheTtl))
+                .eventsEnabled(ObjectUtils.defaultIfNull(eventsEnabled, another.eventsEnabled))
+                .enforceCcpa(ObjectUtils.defaultIfNull(enforceCcpa, another.enforceCcpa))
+                .gdpr(ObjectUtils.defaultIfNull(gdpr, another.gdpr))
+                .analyticsSamplingFactor(ObjectUtils.defaultIfNull(
                         analyticsSamplingFactor, another.analyticsSamplingFactor))
-                .truncateTargetAttr(ObjectUtils.firstNonNull(truncateTargetAttr, another.truncateTargetAttr))
-                .defaultIntegration(ObjectUtils.firstNonNull(defaultIntegration, another.defaultIntegration))
-                .analyticsConfig(ObjectUtils.firstNonNull(analyticsConfig, another.analyticsConfig))
-                .bidValidations(ObjectUtils.firstNonNull(bidValidations, another.bidValidations))
-                .status(ObjectUtils.firstNonNull(status, another.status))
+                .truncateTargetAttr(ObjectUtils.defaultIfNull(truncateTargetAttr, another.truncateTargetAttr))
+                .defaultIntegration(ObjectUtils.defaultIfNull(defaultIntegration, another.defaultIntegration))
+                .analyticsConfig(ObjectUtils.defaultIfNull(analyticsConfig, another.analyticsConfig))
+                .bidValidations(ObjectUtils.defaultIfNull(bidValidations, another.bidValidations))
+                .status(ObjectUtils.defaultIfNull(status, another.status))
                 .build();
     }
 
