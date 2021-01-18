@@ -38,7 +38,6 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
-import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
@@ -201,7 +200,7 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
             PrivacyEnforcementService privacyEnforcementService,
-            IdGenerator idGenerator,
+            IdGenerator sourceIdGenerator,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitToList(blacklistedAppsString);
@@ -225,14 +224,21 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
-                idGenerator,
+                sourceIdGenerator,
                 privacyEnforcementService,
                 mapper);
     }
 
     @Bean
-    IdGenerator idGenerator(@Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType) {
-        return idGeneratorType == IdGeneratorType.uuid
+    IdGenerator bidIdGenerator(@Value("${auction.generate-bid-id}") boolean generateBidId) {
+        return generateBidId
+                ? new UUIDIdGenerator()
+                : new NoneIdGenerator();
+    }
+
+    @Bean
+    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") boolean generateSourceTid) {
+        return generateSourceTid
                 ? new UUIDIdGenerator()
                 : new NoneIdGenerator();
     }
@@ -454,7 +460,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            @Value("${auction.generate-bid-id}") boolean generateBidId,
+            IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
@@ -464,7 +470,7 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
-                generateBidId,
+                bidIdGenerator,
                 truncateAttrChars,
                 clock,
                 mapper);

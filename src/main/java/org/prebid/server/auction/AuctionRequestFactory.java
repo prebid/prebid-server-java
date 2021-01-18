@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
-import com.iab.openrtb.request.User;
 import io.netty.buffer.ByteBufInputStream;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -275,8 +274,6 @@ public class AuctionRequestFactory {
 
         final Site site = bidRequest.getSite();
         final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
-
-        final User user = bidRequest.getUser();
 
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source);
