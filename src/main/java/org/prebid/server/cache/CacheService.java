@@ -550,9 +550,11 @@ public class CacheService {
                                   EventsContext eventsContext) {
 
         if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
-            return biddersToCacheBidIds.getBidderForBid(bid.getId(), bid.getImpid())
+            final String bidId = bid.getId();
+            final String impId = bid.getImpid();
+            return biddersToCacheBidIds.getBidderForBid(bidId, impId)
                     .map(bidder -> eventsService.winUrl(
-                            bid.getId(),
+                            biddersToCacheBidIds.getGeneratedId(bidder, bidId, impId),
                             bidder,
                             account.getId(),
                             eventsContext.getAuctionTimestamp(),
@@ -570,9 +572,10 @@ public class CacheService {
 
         if (eventsContext.isEnabledForAccount()) {
             final String bidId = bid.getId();
-            return bidderToVideoBidIdsToModify.getBidderForBid(bid.getId(), bid.getImpid())
+            final String impId = bid.getImpid();
+            return bidderToVideoBidIdsToModify.getBidderForBid(bidId, impId)
                     .map(bidder -> eventsService.vastUrlTracking(
-                            bidId,
+                            bidderToVideoBidIdsToModify.getGeneratedId(bidder, bidId, impId),
                             bidder,
                             account.getId(),
                             eventsContext.getAuctionTimestamp(),
