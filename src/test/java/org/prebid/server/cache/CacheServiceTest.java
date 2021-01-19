@@ -1058,7 +1058,7 @@ public class CacheServiceTest extends VertxTest {
                                 .build(),
                         PutObject.builder()
                                 .type("xml")
-                                .value(new TextNode("<Impression><![CDATA["+ vastUrl + "]]></Impression>"))
+                                .value(new TextNode("<Impression><![CDATA[" + vastUrl + "]]></Impression>"))
                                 .build());
     }
 
@@ -1106,7 +1106,7 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder()
                                 .type("xml")
                                 .value(new TextNode("<Impression>http:/test.com</Impression>"
-                                        + "<Impression><![CDATA["+ vastUrl + "]]></Impression>"))
+                                        + "<Impression><![CDATA[" + vastUrl + "]]></Impression>"))
                                 .build());
     }
 
