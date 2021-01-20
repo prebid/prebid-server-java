@@ -70,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Executes an OpenRTB v2.5 Auction.
@@ -849,16 +850,13 @@ public class ExchangeService {
             final ValidationResult validationResult =
                     responseBidValidator.validate(bid, bidderResponse.getBidder(), auctionContext, aliases);
 
-            if (validationResult.hasWarnings()) {
-                addAsBidderErrors(validationResult.getWarnings(), errors);
+            if (validationResult.hasWarnings() || validationResult.hasErrors()) {
+                errors.add(makeValidationBidderError(bid.getBid(), validationResult));
             }
 
-            if (validationResult.hasErrors()) {
-                addAsBidderErrors(validationResult.getErrors(), errors);
-                continue;
+            if (!validationResult.hasErrors()) {
+                validBids.add(bid);
             }
-
-            validBids.add(bid);
         }
 
         return errors.isEmpty()
@@ -866,8 +864,14 @@ public class ExchangeService {
                 : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors));
     }
 
-    private void addAsBidderErrors(List<String> messages, List<BidderError> errors) {
-        messages.stream().map(BidderError::generic).forEach(errors::add);
+    private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
+        final String bidId = bid != null ? bid.getId() : "unknown";
+        final String validationErrors = Stream.concat(
+                validationResult.getErrors().stream().map(message -> "Error: " + message),
+                validationResult.getWarnings().stream().map(message -> "Warning: " + message))
+                .collect(Collectors.joining(". "));
+        return BidderError.invalidBid(String.format("BidId `%s` validation messages: %s",
+                bidId != null ? bidId : "unknown", validationErrors));
     }
 
     /**
@@ -996,6 +1000,9 @@ public class ExchangeService {
                 break;
             case timeout:
                 errorMetric = MetricName.timeout;
+                break;
+            case invalid_bid:
+                errorMetric = MetricName.bid_validation;
                 break;
             case generic:
             default:
