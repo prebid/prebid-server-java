@@ -45,7 +45,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -188,18 +187,6 @@ public class ExchangeService {
     private static ExtRequestTargeting targeting(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         return prebid != null ? prebid.getTargeting() : null;
-    }
-
-    private static Map<String, Map<String, BigDecimal>> currencyRates(BidRequest bidRequest) {
-        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
-        return currency != null ? currency.getRates() : null;
-    }
-
-    private static Boolean usepbsrates(BidRequest bidRequest) {
-        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
-        return currency != null ? currency.getUsepbsrates() : null;
     }
 
     /**
@@ -418,7 +405,7 @@ public class ExchangeService {
 
         final Map<String, User> bidderToUser = new HashMap<>();
         for (String bidder : bidders) {
-            final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
+            final ExtBidderConfigFpd fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
@@ -591,7 +578,7 @@ public class ExchangeService {
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
 
-        final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
+        final ExtBidderConfigFpd fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
         final Site bidRequestSite = bidRequest.getSite();
@@ -903,7 +890,6 @@ public class ExchangeService {
 
         final String adServerCurrency = bidRequest.getCur().get(0);
         final BigDecimal priceAdjustmentFactor = bidAdjustmentForBidder(bidRequest, bidderResponse.getBidder());
-        final Boolean usepbsrates = usepbsrates(bidRequest);
 
         for (final BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
@@ -911,8 +897,7 @@ public class ExchangeService {
             final BigDecimal price = bid.getPrice();
             try {
                 final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                        price, currencyRates(bidRequest), adServerCurrency,
-                        StringUtils.stripToNull(bidCurrency), usepbsrates);
+                        price, bidRequest, adServerCurrency, StringUtils.stripToNull(bidCurrency));
 
                 final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
 
