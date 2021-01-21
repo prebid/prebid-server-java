@@ -15,8 +15,8 @@ adapters:
       supported-vendors:
       vendor-id: 25
     usersync:
-      url: https://ups.analytics.yahoo.com/ups/58385/occ
-      redirect-url: /setuid?bidder=verizonmedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
+      url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
+      redirect-url:
       cookie-family-name: verizonmedia
       type: redirect
       support-cors: false
