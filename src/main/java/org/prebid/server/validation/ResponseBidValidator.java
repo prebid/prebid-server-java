@@ -4,13 +4,17 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -32,8 +36,15 @@ import java.util.function.Consumer;
  */
 public class ResponseBidValidator {
 
+    private static final Logger logger = LoggerFactory.getLogger(ResponseBidValidator.class);
+    private static final ConditionalLogger SECURE_CREATIVE_LOGGER = new ConditionalLogger("secure_creatives_validation",
+            logger);
+    private static final ConditionalLogger CREATIVE_SIZE_LOGGER = new ConditionalLogger("creative_size_validation",
+            logger);
+
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
     private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
+    private static final double LOG_SAMPLING_RATE = 0.01;
 
     private final BidValidationEnforcement bannerMaxSizeEnforcement;
     private final BidValidationEnforcement secureMarkupEnforcement;
@@ -119,17 +130,23 @@ public class ResponseBidValidator {
         final Account account = auctionContext.getAccount();
 
         final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
-        if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip
-                && bannerSizeIsNotValid(bid, auctionContext.getBidRequest())) {
-
-            return singleWarningOrValidationException(
-                    bannerMaxSizeEnforcement,
-                    metricName -> metrics.updateSizeValidationMetrics(
-                            aliases.resolveBidder(bidder), account.getId(), metricName),
-                    "Bid \"%s\" has 'w' and 'h' that are not valid. Bid dimensions: '%dx%d'",
-                    bid.getId(), bid.getW(), bid.getH());
+        if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip) {
+            final BidRequest bidRequest = auctionContext.getBidRequest();
+            final Format maxSize = maxSizeForBanner(bid, bidRequest);
+            if (bannerSizeIsNotValid(bid, maxSize)) {
+                final String accountId = auctionContext.getAccount().getId();
+                return singleWarningOrValidationException(
+                        bannerMaxSizeEnforcement,
+                        metricName -> metrics.updateSizeValidationMetrics(
+                                aliases.resolveBidder(bidder), account.getId(), metricName),
+                        "BidResponse validation `%s`: bidder `%s` response triggers creative size"
+                                + " validation for bid %s, account=%s, referrer=%s, max imp size='%dx%d',"
+                                + " bid response size='%dx%d'",
+                        CREATIVE_SIZE_LOGGER,
+                        bannerMaxSizeEnforcement, bidder, bid.getId(), accountId, getReferer(bidRequest),
+                        maxSize.getW(), maxSize.getH(), bid.getW(), bid.getH());
+            }
         }
-
         return Collections.emptyList();
     }
 
@@ -141,11 +158,9 @@ public class ResponseBidValidator {
         return ObjectUtils.defaultIfNull(accountBannerMaxSizeEnforcement, bannerMaxSizeEnforcement);
     }
 
-    private static boolean bannerSizeIsNotValid(Bid bid, BidRequest bidRequest) throws ValidationException {
-        final Format maxSize = maxSizeForBanner(bid, bidRequest);
+    private static boolean bannerSizeIsNotValid(Bid bid, Format maxSize) {
         final Integer bidW = bid.getW();
         final Integer bidH = bid.getH();
-
         return bidW == null || bidW > maxSize.getW()
                 || bidH == null || bidH > maxSize.getH();
     }
@@ -154,8 +169,8 @@ public class ResponseBidValidator {
         int maxW = 0;
         int maxH = 0;
         for (final Format size : bannerFormats(bid, bidRequest)) {
-            maxW = Math.max(0, size.getW());
-            maxH = Math.max(0, size.getH());
+            maxW = Math.max(maxW, size.getW());
+            maxH = Math.max(maxH, size.getH());
         }
 
         return Format.builder().w(maxW).h(maxH).build();
@@ -177,16 +192,24 @@ public class ResponseBidValidator {
             return Collections.emptyList();
         }
 
+        final BidRequest bidRequest = auctionContext.getBidRequest();
         final Bid bid = bidderBid.getBid();
-        final Imp imp = findCorrespondingImp(auctionContext.getBidRequest(), bidderBid.getBid());
+        final Imp imp = findCorrespondingImp(bidRequest, bidderBid.getBid());
+        final String accountId = auctionContext.getAccount().getId();
+        final String referer = getReferer(bidRequest);
+        final String adm = bid.getAdm();
 
-        if (isImpSecure(imp) && markupIsNotSecure(bid)) {
+        if (isImpSecure(imp) && markupIsNotSecure(adm)) {
+            final String decodedAdm = adm != null ? StringUtils.replaceAll(adm, "%3A", ":") : null;
             return singleWarningOrValidationException(
                     secureMarkupEnforcement,
                     metricName -> metrics.updateSecureValidationMetrics(
                             aliases.resolveBidder(bidder), auctionContext.getAccount().getId(), metricName),
-                    "Bid \"%s\" has insecure creative but should be in secure context",
-                    bid.getId());
+                    "BidResponse validation `%s`: bidder `%s` response triggers secure creative validation for bid "
+                            + "%s, account=%s, referrer=%s, adm=%s",
+                    SECURE_CREATIVE_LOGGER,
+                    secureMarkupEnforcement, bidder, bid.getId(), accountId, referer, decodedAdm
+            );
         }
 
         return Collections.emptyList();
@@ -204,9 +227,7 @@ public class ResponseBidValidator {
         return Objects.equals(imp.getSecure(), 1);
     }
 
-    private static boolean markupIsNotSecure(Bid bid) {
-        final String adm = bid.getAdm();
-
+    private static boolean markupIsNotSecure(String adm) {
         return StringUtils.containsAny(adm, INSECURE_MARKUP_MARKERS)
                 || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
     }
@@ -214,17 +235,24 @@ public class ResponseBidValidator {
     private static List<String> singleWarningOrValidationException(BidValidationEnforcement enforcement,
                                                                    Consumer<MetricName> metricsRecorder,
                                                                    String message,
+                                                                   ConditionalLogger conditionalLogger,
                                                                    Object... args) throws ValidationException {
-
         switch (enforcement) {
             case enforce:
                 metricsRecorder.accept(MetricName.err);
+                conditionalLogger.warn(message, LOG_SAMPLING_RATE);
                 throw new ValidationException(message, args);
             case warn:
                 metricsRecorder.accept(MetricName.warn);
+                conditionalLogger.warn(message, LOG_SAMPLING_RATE);
                 return Collections.singletonList(String.format(message, args));
             default:
                 throw new IllegalStateException(String.format("Unexpected enforcement: %s", enforcement));
         }
+    }
+
+    private static String getReferer(BidRequest bidRequest) {
+        final Site site = bidRequest.getSite();
+        return site != null ? site.getPage() : "unknown";
     }
 }
