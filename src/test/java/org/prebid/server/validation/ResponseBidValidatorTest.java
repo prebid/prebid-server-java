@@ -25,6 +25,7 @@ import org.prebid.server.validation.model.ValidationResult;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -487,7 +488,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id("impId1")
                 .banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(100).h(200).build()))
+                        .format(asList(Format.builder().w(100).h(200).build(), Format.builder().w(50).h(50).build()))
                         .build());
 
         return BidRequest.builder()
