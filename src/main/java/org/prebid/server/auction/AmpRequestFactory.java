@@ -636,7 +636,7 @@ public class AmpRequestFactory {
 
         final Boolean includeFormat = !isTargetingNull ? targeting.getIncludeformat() : null;
 
-        return ExtRequestTargeting.builder()
+        return (isTargetingNull ? ExtRequestTargeting.builder() : targeting.toBuilder())
                 .pricegranularity(outgoingPriceGranularityNode)
                 .mediatypepricegranularity(mediaTypePriceGranularity)
                 .includewinners(includeWinners)

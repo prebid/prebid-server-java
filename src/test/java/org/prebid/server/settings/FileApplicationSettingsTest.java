@@ -13,6 +13,7 @@ import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.BidValidationEnforcement;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -109,7 +110,8 @@ public class FileApplicationSettingsTest {
                         + "},"
                         + "bidValidations: {"
                         + "banner-creative-max-size: 'enforce'"
-                        + "}"
+                        + "},"
+                        + "status: 'active'"
                         + "}"
                         + "]"));
 
@@ -146,6 +148,7 @@ public class FileApplicationSettingsTest {
                 .defaultIntegration("web")
                 .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                 .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
+                .status(AccountStatus.active)
                 .build());
     }
 

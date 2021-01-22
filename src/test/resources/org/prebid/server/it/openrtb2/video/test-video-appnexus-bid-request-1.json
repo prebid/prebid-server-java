@@ -297,7 +297,12 @@
           "precision": 2
         },
         "includewinners": true,
-        "includebidderkeys": true
+        "includebidderkeys": true,
+        "includebrandcategory": {
+          "primaryadserver": 1,
+          "publisher": "",
+          "with_category": true
+        }
       },
       "cache": {
         "vastxml": {}
@@ -305,6 +310,10 @@
       "channel": {
         "name": "web"
       }
+    },
+    "appnexus": {
+      "include_brand_category": true,
+      "brand_category_uniqueness": true
     }
   }
 }

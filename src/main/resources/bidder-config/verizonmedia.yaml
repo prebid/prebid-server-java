@@ -1,7 +1,7 @@
 adapters:
   verizonmedia:
     enabled: false
-    endpoint: https://
+    endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/MAG
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
@@ -15,7 +15,7 @@ adapters:
       supported-vendors:
       vendor-id: 25
     usersync:
-      url:
+      url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
       redirect-url:
       cookie-family-name: verizonmedia
       type: redirect
