@@ -548,36 +548,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRejectDuplicatedSchainBidders() {
-        // given
-        final String bidder1 = "bidder";
-        final String bidder2 = "bidder"; // same name
-
-        final ExtRequestPrebidSchain schainForBidder1 = ExtRequestPrebidSchain.of(
-                singletonList(bidder1), ExtRequestPrebidSchainSchain.of("ver1", null, null, null));
-        final ExtRequestPrebidSchain schainForBidder2 = ExtRequestPrebidSchain.of(
-                singletonList(bidder2), ExtRequestPrebidSchainSchain.of("ver2", null, null, null));
-
-        final ExtRequest extRequest = ExtRequest.of(
-                ExtRequestPrebid.builder()
-                        .schains(asList(schainForBidder1, schainForBidder2))
-                        .build());
-
-        final BidRequest bidRequest = givenBidRequest(asList(
-                givenImp(singletonMap(bidder1, 1), identity()),
-                givenImp(singletonMap(bidder2, 2), identity())),
-                builder -> builder.ext(extRequest));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
-        assertThat(bidRequestCaptor.getValue().getSource()).isNull();
-    }
-
-    @Test
     public void shouldReturnFailedFutureWithUnchangedMessageWhenPrivacyEnforcementServiceFails() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);

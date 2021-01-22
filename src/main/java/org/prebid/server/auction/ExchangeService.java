@@ -544,17 +544,10 @@ public class ExchangeService {
         }
 
         final Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains = new HashMap<>();
-        for (ExtRequestPrebidSchain schain : schains) {
-            final List<String> bidders = schain.getBidders();
-            if (CollectionUtils.isNotEmpty(bidders)) {
-                for (String bidder : bidders) {
-                    if (bidderToPrebidSchains.containsKey(bidder)) {
-                        bidderToPrebidSchains.remove(bidder);
-                        logger.debug("Schain bidder {0} is rejected since it was defined more than once", bidder);
-                        continue;
-                    }
-                    bidderToPrebidSchains.put(bidder, schain.getSchain());
-                }
+        for (final ExtRequestPrebidSchain schain : schains) {
+            final List<String> schainBidders = schain.getBidders();
+            if (CollectionUtils.isNotEmpty(schainBidders)) {
+                schainBidders.forEach(bidder -> bidderToPrebidSchains.put(bidder, schain.getSchain()));
             }
         }
         return bidderToPrebidSchains;
@@ -791,7 +784,8 @@ public class ExchangeService {
 
     private static BigDecimal bidAdjustmentForBidder(BidRequest bidRequest, String bidder) {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
+        final Map<String, BigDecimal> bidAdjustmentFactors =
+                prebid != null ? prebid.getBidadjustmentfactors() : null;
         return bidAdjustmentFactors != null ? bidAdjustmentFactors.get(bidder) : null;
     }
 
