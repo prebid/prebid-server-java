@@ -534,9 +534,11 @@ public class BidResponseCreatorTest extends VertxTest {
                 extBuilder -> extBuilder
                         .events(mapper.createObjectNode())
                         .integration("pbjs"));
+
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
                 contextBuilder -> contextBuilder.account(account));
+
         final ExtPrebid<ExtBidPrebid, ?> prebid = ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null);
         final Bid bid = Bid.builder()
                 .id("bidId1")
@@ -544,10 +546,13 @@ public class BidResponseCreatorTest extends VertxTest {
                 .price(BigDecimal.ONE)
                 .ext(mapper.valueToTree(prebid))
                 .build();
+
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
+
+        final String generatedBid = "de7fc739-0a6e-41ad-8961-701c30c82166";
         given(idGenerator.getType()).willReturn(IdGeneratorType.uuid);
-        given(idGenerator.generateId()).willReturn("de7fc739-0a6e-41ad-8961-701c30c82166");
+        given(idGenerator.generateId()).willReturn(generatedBid);
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
         givenCacheServiceResult(singletonMap(bid, CacheInfo.of("id", null, null, null)));
@@ -578,12 +583,10 @@ public class BidResponseCreatorTest extends VertxTest {
                     assertThat(context.isShouldCacheVideoBids()).isFalse();
                     assertThat(context.getBidderToVideoGeneratedBidIdsToModify().getBidderToBidIds()).isEmpty();
                     assertThat(context.getBidderToBidsToGeneratedIds().getBidderToBidIds())
-                            .containsAllEntriesOf(singletonMap("bidder1",
-                                    singletonMap("bidId1-impId1", "de7fc739-0a6e-41ad-8961-701c30c82166")));
+                            .containsAllEntriesOf(singletonMap("bidder1", singletonMap("bidId1-impId1", generatedBid)));
                 });
 
-        verify(eventsService).createEvent(eq("de7fc739-0a6e-41ad-8961-701c30c82166"),
-                anyString(), anyString(), anyLong(), anyString());
+        verify(eventsService).createEvent(eq(generatedBid), anyString(), anyString(), anyLong(), anyString());
     }
 
     @Test

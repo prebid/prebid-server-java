@@ -299,7 +299,8 @@ public class TargetingKeywordsCreator {
     private Map<String, String> truncateKeys(Map<String, String> keyValues) {
         return truncateAttrChars > 0
                 ? keyValues.entrySet().stream()
-                .collect(Collectors.toMap(keyValue -> truncateKey(keyValue.getKey()), Map.Entry::getValue))
+                .collect(Collectors
+                        .toMap(keyValue -> truncateKey(keyValue.getKey()), Map.Entry::getValue, (key1, key2) -> key1))
                 : keyValues;
     }
 

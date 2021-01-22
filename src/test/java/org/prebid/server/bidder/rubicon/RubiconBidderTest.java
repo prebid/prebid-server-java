@@ -421,32 +421,11 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetSizeIdTo201IfplacementIs1IfSizeIdIsNotPresent() {
+    public void shouldSetSizeIdTo201IfPlacementIs1AndSizeIdIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.instl(1).video(Video.builder().placement(1).build()),
-                builder -> builder.video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(null).build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-            .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-            .flatExtracting(BidRequest::getImp)
-            .extracting(Imp::getVideo).doesNotContainNull()
-            .extracting(Video::getExt).doesNotContainNull()
-            .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
-            .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(201), null));
-    }
-
-    @Test
-    public void shouldSetSizeIdTo203IfplacementIs3IfSizeIdIsNotPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.instl(1).video(Video.builder().placement(3).build()),
-                builder -> builder.video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(null).build()));
+                builder -> builder.video(RubiconVideoParams.builder().sizeId(null).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -459,15 +438,17 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
-                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(203), null));
+                .extracting(RubiconVideoExt::getRp)
+                .extracting(RubiconVideoExtRp::getSizeId)
+                .containsOnly(201);
     }
 
     @Test
-    public void shouldCalculateSizeIdUsingInstlIfPlacementAndSizeIdIsNotPresent() {
+    public void shouldSetSizeIdTo203IfPlacementIs3AndSizeIdIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.instl(1).video(Video.builder().placement(null).build()),
-                builder -> builder.video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(null).build()));
+                builder -> builder.instl(1).video(Video.builder().placement(3).build()),
+                builder -> builder.video(RubiconVideoParams.builder().sizeId(null).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -475,12 +456,37 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-            .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-            .flatExtracting(BidRequest::getImp)
-            .extracting(Imp::getVideo).doesNotContainNull()
-            .extracting(Video::getExt).doesNotContainNull()
-            .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
-            .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(202), null));
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
+                .extracting(RubiconVideoExt::getRp)
+                .extracting(RubiconVideoExtRp::getSizeId)
+                .containsOnly(203);
+    }
+
+    @Test
+    public void shouldSetSizeIdTo202UsingInstlFlagIfPlacementAndSizeIdAreNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.instl(1).video(Video.builder().placement(null).build()),
+                builder -> builder.video(RubiconVideoParams.builder().sizeId(null).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
+                .extracting(RubiconVideoExt::getRp)
+                .extracting(RubiconVideoExtRp::getSizeId)
+                .containsOnly(202);
     }
 
     @Test
