@@ -71,7 +71,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -142,6 +141,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private FpdResolver fpdResolver;
     @Mock
+    private SchainResolver schainResolver;
+    @Mock
     private HttpBidderRequester httpBidderRequester;
     @Mock
     private ResponseBidValidator responseBidValidator;
@@ -188,6 +189,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveSite(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(fpdResolver.resolveApp(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
 
+        given(schainResolver.resolveForBidder(anyString(), any())).willReturn(null);
+
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
@@ -208,6 +211,7 @@ public class ExchangeServiceTest extends VertxTest {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
+                schainResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -227,6 +231,7 @@ public class ExchangeServiceTest extends VertxTest {
                         storedResponseProcessor,
                         privacyEnforcementService,
                         fpdResolver,
+                        schainResolver,
                         httpBidderRequester,
                         responseBidValidator,
                         currencyService,
@@ -490,32 +495,34 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(bidder2Name, bidder2, givenEmptySeatBid());
         givenBidder(bidder3Name, bidder3, givenEmptySeatBid());
 
-        final ObjectNode schainExtObjectNode = mapper.createObjectNode().put("any", "any");
-        final ExtRequestPrebidSchainSchainNode specificNodes = ExtRequestPrebidSchainSchainNode.of("asi", "sid", 1,
-                "rid", "name", "domain", schainExtObjectNode);
-        final ExtRequestPrebidSchainSchain specificSchain = ExtRequestPrebidSchainSchain.of("ver", 1,
-                singletonList(specificNodes), schainExtObjectNode);
+        final ExtRequestPrebidSchainSchainNode specificNodes = ExtRequestPrebidSchainSchainNode.of(
+                "asi", "sid", 1, "rid", "name", "domain", null);
+        final ExtRequestPrebidSchainSchain specificSchain = ExtRequestPrebidSchainSchain.of(
+                "ver", 1, singletonList(specificNodes), null);
         final ExtRequestPrebidSchain schainForBidders = ExtRequestPrebidSchain.of(
-                asList(bidder1Name, bidder2Name),
-                specificSchain);
-        final ExtRequestPrebidSchainSchain allSchainObject = ExtRequestPrebidSchainSchain.of("ver", 1,
-                singletonList(specificNodes), schainExtObjectNode);
-        final ExtRequestPrebidSchainSchainNode generalNodes = ExtRequestPrebidSchainSchainNode.of("t", null, 0, "a",
-                null, "ads", null);
-        final ExtRequestPrebidSchainSchain generalSchain = ExtRequestPrebidSchainSchain.of("t", 123,
-                singletonList(generalNodes), null);
+                asList(bidder1Name, bidder2Name), specificSchain);
+
+        final ExtRequestPrebidSchainSchainNode generalNodes = ExtRequestPrebidSchainSchainNode.of(
+                "t", null, 0, "a", null, "ads", null);
+        final ExtRequestPrebidSchainSchain generalSchain = ExtRequestPrebidSchainSchain.of(
+                "t", 123, singletonList(generalNodes), null);
         final ExtRequestPrebidSchain allSchain = ExtRequestPrebidSchain.of(singletonList("*"), generalSchain);
+
         final ExtRequest extRequest = ExtRequest.of(
                 ExtRequestPrebid.builder()
                         .schains(asList(schainForBidders, allSchain))
                         .auctiontimestamp(1000L)
                         .build());
-
-        final BidRequest bidRequest = givenBidRequest(asList(
-                givenImp(singletonMap(bidder1Name, 1), identity()),
-                givenImp(singletonMap(bidder2Name, 2), identity()),
-                givenImp(singletonMap(bidder3Name, 3), identity())),
+        final BidRequest bidRequest = givenBidRequest(
+                asList(
+                        givenImp(singletonMap(bidder1Name, 1), identity()),
+                        givenImp(singletonMap(bidder2Name, 2), identity()),
+                        givenImp(singletonMap(bidder3Name, 3), identity())),
                 builder -> builder.ext(extRequest));
+
+        given(schainResolver.resolveForBidder(eq("bidder1"), same(bidRequest))).willReturn(specificSchain);
+        given(schainResolver.resolveForBidder(eq("bidder2"), same(bidRequest))).willReturn(specificSchain);
+        given(schainResolver.resolveForBidder(eq("bidder3"), same(bidRequest))).willReturn(generalSchain);
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -524,8 +531,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), anyBoolean());
         final BidRequest capturedBidRequest1 = bidRequest1Captor.getValue();
-        ExtSource extSource = capturedBidRequest1.getSource().getExt();
-        ExtRequestPrebidSchainSchain requestSchain1 = extSource.getSchain();
+        final ExtRequestPrebidSchainSchain requestSchain1 = capturedBidRequest1.getSource().getExt().getSchain();
         assertThat(requestSchain1).isNotNull();
         assertThat(requestSchain1).isEqualTo(specificSchain);
         assertThat(capturedBidRequest1.getExt().getPrebid().getSchains()).isNull();
@@ -533,7 +539,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), anyBoolean());
         final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue();
-        ExtRequestPrebidSchainSchain requestSchain2 = extSource.getSchain();
+        final ExtRequestPrebidSchainSchain requestSchain2 = capturedBidRequest2.getSource().getExt().getSchain();
         assertThat(requestSchain2).isNotNull();
         assertThat(requestSchain2).isEqualTo(specificSchain);
         assertThat(capturedBidRequest2.getExt().getPrebid().getSchains()).isNull();
@@ -541,9 +547,9 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidRequest> bidRequest3Captor = ArgumentCaptor.forClass(BidRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder3), bidRequest3Captor.capture(), any(), anyBoolean());
         final BidRequest capturedBidRequest3 = bidRequest3Captor.getValue();
-        ExtRequestPrebidSchainSchain requestSchain3 = extSource.getSchain();
+        final ExtRequestPrebidSchainSchain requestSchain3 = capturedBidRequest3.getSource().getExt().getSchain();
         assertThat(requestSchain3).isNotNull();
-        assertThat(requestSchain3).isEqualTo(allSchainObject);
+        assertThat(requestSchain3).isEqualTo(generalSchain);
         assertThat(capturedBidRequest3.getExt().getPrebid().getSchains()).isNull();
     }
 
@@ -1804,6 +1810,7 @@ public class ExchangeServiceTest extends VertxTest {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
+                schainResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,

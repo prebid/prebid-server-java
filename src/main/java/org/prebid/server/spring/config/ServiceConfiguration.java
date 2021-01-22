@@ -19,6 +19,7 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.SchainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -132,6 +133,14 @@ public class ServiceConfiguration {
     @Bean
     OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
         return new OrtbTypesResolver(jacksonMapper, jsonMerger);
+    }
+
+    @Bean
+    SchainResolver schainResolver(
+            @Value("${auction.host-schain-node}") String globalSchainNode,
+            JacksonMapper mapper) {
+
+        return SchainResolver.create(globalSchainNode, mapper);
     }
 
     @Bean
@@ -483,6 +492,7 @@ public class ServiceConfiguration {
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
+            SchainResolver schainResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -498,6 +508,7 @@ public class ServiceConfiguration {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
+                schainResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
