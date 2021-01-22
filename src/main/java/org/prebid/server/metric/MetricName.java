@@ -24,8 +24,6 @@ public enum MetricName {
     requests,
     app_requests,
     no_cookie_requests,
-    safari_requests,
-    safari_no_cookie_requests,
     request_time,
     prices,
     imps_requested,
@@ -61,6 +59,9 @@ public enum MetricName {
     unknown_error,
     err,
     networkerr,
+
+    // bids validation
+    warn,
 
     // cookie sync
     cookie_sync_requests,
@@ -101,7 +102,19 @@ public enum MetricName {
     creative_size,
 
     //account.*.requests.
-    rejected;
+    rejected,
+
+    //currency rates
+    stale,
+
+    // settings cache
+    stored_request("stored-request"),
+    amp_stored_request("amp-stored-request"),
+    account,
+    initialize,
+    update,
+    hit,
+    miss;
 
     private final String name;
 

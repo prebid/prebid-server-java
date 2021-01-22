@@ -1,11 +1,11 @@
-package org.prebid.server.bidder.adform.model;
+package org.prebid.server.bidder.ttx.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class AdformDigitrustPrivacy {
+public class TtxBidExt {
 
-    Boolean optout;
+    TtxBidExtTtx ttx;
 }

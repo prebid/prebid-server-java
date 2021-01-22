@@ -45,10 +45,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -1245,7 +1245,6 @@ public class RequestValidatorTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(emptyMap()))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
                                 .build())
                         .build())
                 .build();
@@ -1506,7 +1505,6 @@ public class RequestValidatorTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("unknown-bidder", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
                                 .build())
                         .build())
                 .build();
@@ -1530,7 +1528,6 @@ public class RequestValidatorTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("unknown-bidder", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
                                 .build())
                         .build())
                 .build();
@@ -1549,7 +1546,6 @@ public class RequestValidatorTest extends VertxTest {
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("rubicon", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
                                 .build())
                         .build())
                 .build();
@@ -1559,25 +1555,6 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenDigiTrustPrefNotEqualZero() {
-        // given;
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .digitrust(ExtUserDigiTrust.of(null, null, 1))
-                                .build())
-                        .build())
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user contains a digitrust object that is not valid");
     }
 
     @Test
@@ -1677,7 +1654,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenEidSourceIsNotUnique() {
+    public void validateShouldReturnErrorWhenEidSourceIsNotUnique() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
@@ -1695,8 +1672,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids must contain unique sources");
+        assertThat(result.getErrors()).containsExactly("request.user.ext.eids must contain unique sources");
     }
 
     @Test
@@ -2464,6 +2440,27 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMultipleSchainsForSameBidder() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(
+                        ExtRequestPrebid.builder()
+                                .schains(asList(
+                                        ExtRequestPrebidSchain.of(asList("bidder1", "bidder2"), null),
+                                        ExtRequestPrebidSchain.of(asList("bidder2", "bidder3"), null)))
+                                .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly("request.ext.prebid.schains contains multiple schains for bidder bidder2; "
+                        + "it must contain no more than one per bidder.");
     }
 
     @Test

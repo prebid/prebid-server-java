@@ -26,6 +26,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -278,10 +279,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
-                .extracting(ExtRequestTargeting::getIncludewinners, ExtRequestTargeting::getPricegranularity)
-                // assert that includeWinners was set with default value and priceGranularity remained unchanged
-                .containsExactly(
-                        tuple(true, mapper.createObjectNode().put("foo", "bar")));
+                .extracting(ExtRequestTargeting::getIncludewinners)
+                .containsExactly(true);
     }
 
     @Test
@@ -306,6 +305,30 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getIncludewinners)
                 .containsExactly(false);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithIncludeFormatFromStoredBidRequest() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .includeformat(true)
+                                        .build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludeformat)
+                .containsExactly(true);
     }
 
     @Test
@@ -374,6 +397,29 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .containsExactly(
                         tuple(false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
                                 ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithNotChangedExtRequestPrebidTargetingFields() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(ExtRequestTargeting.builder()
+                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true))
+                                .truncateattrchars(10)
+                                .build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebrandcategory, ExtRequestTargeting::getTruncateattrchars)
+                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true), 10));
     }
 
     private Answer<Object> answerWithFirstArgument() {

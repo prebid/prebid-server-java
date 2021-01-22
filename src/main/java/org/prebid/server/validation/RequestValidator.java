@@ -45,10 +45,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -67,6 +67,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -130,6 +131,7 @@ public class RequestValidator {
                 validateBidAdjustmentFactors(
                         ObjectUtils.defaultIfNull(extRequestPrebid.getBidadjustmentfactors(), Collections.emptyMap()),
                         aliases);
+                validateSchains(extRequestPrebid.getSchains());
             }
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
@@ -199,6 +201,35 @@ public class RequestValidator {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %s",
                         bidder, format(adjustmentFactor));
+            }
+        }
+    }
+
+    private void validateSchains(List<ExtRequestPrebidSchain> schains) throws ValidationException {
+        if (schains == null) {
+            return;
+        }
+
+        final Set<String> schainBidders = new HashSet<>();
+        for (final ExtRequestPrebidSchain schain : schains) {
+            if (schain == null) {
+                continue;
+            }
+
+            final List<String> bidders = schain.getBidders();
+            if (bidders == null) {
+                continue;
+            }
+
+            for (final String bidder : bidders) {
+                if (schainBidders.contains(bidder)) {
+                    throw new ValidationException(
+                            "request.ext.prebid.schains contains multiple schains for bidder %s; "
+                                    + "it must contain no more than one per bidder.",
+                            bidder);
+                }
+
+                schainBidders.add(bidder);
             }
         }
     }
@@ -392,18 +423,12 @@ public class RequestValidator {
                 }
             }
 
-            final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-            if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
-                throw new ValidationException("request.user contains a digitrust object that is not valid");
-            }
-
             final List<ExtUserEid> eids = extUser.getEids();
             if (eids != null) {
                 if (eids.isEmpty()) {
                     throw new ValidationException(
                             "request.user.ext.eids must contain at least one element or be undefined");
                 }
-                final Set<String> uniqueSources = new HashSet<>(eids.size());
                 for (int index = 0; index < eids.size(); index++) {
                     final ExtUserEid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
@@ -431,9 +456,10 @@ public class RequestValidator {
                             }
                         }
                     }
-                    uniqueSources.add(eid.getSource());
                 }
-
+                final Set<String> uniqueSources = eids.stream()
+                        .map(ExtUserEid::getSource)
+                        .collect(Collectors.toSet());
                 if (eids.size() != uniqueSources.size()) {
                     throw new ValidationException("request.user.ext.eids must contain unique sources");
                 }

@@ -249,8 +249,7 @@ public class AmpRequestFactory {
     /**
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
-    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request,
-                                          List<String> errors) {
+    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request, List<String> errors) {
         final String requestConsentParam = request.getParam(CONSENT_PARAM);
         final String requestGdprConsentParam = request.getParam(GDPR_CONSENT_PARAM);
         final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
@@ -640,11 +639,14 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
-        return ExtRequestTargeting.builder()
+        final Boolean includeFormat = !isTargetingNull ? targeting.getIncludeformat() : null;
+
+        return (isTargetingNull ? ExtRequestTargeting.builder() : targeting.toBuilder())
                 .pricegranularity(outgoingPriceGranularityNode)
                 .mediatypepricegranularity(mediaTypePriceGranularity)
                 .includewinners(includeWinners)
                 .includebidderkeys(includeBidderKeys)
+                .includeformat(includeFormat)
                 .build();
     }
 }

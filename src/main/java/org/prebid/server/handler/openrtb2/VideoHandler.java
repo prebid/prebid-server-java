@@ -63,8 +63,6 @@ public class VideoHandler implements Handler<RoutingContext> {
         // more accurately if we note the real start time, and use it to compute the auction timeout.
         final long startTime = clock.millis();
 
-        final boolean isSafari = HttpUtil.isSafari(routingContext.request().headers().get(HttpUtil.USER_AGENT_HEADER));
-        metrics.updateSafariRequestsMetric(isSafari);
         final VideoEvent.VideoEventBuilder videoEventBuilder = VideoEvent.builder()
                 .httpContext(HttpContext.from(routingContext));
 

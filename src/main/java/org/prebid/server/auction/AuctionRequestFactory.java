@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
-import com.iab.openrtb.request.User;
 import io.netty.buffer.ByteBufInputStream;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -49,11 +48,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -83,8 +81,8 @@ public class AuctionRequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
-    public static final String WEB_CHANNEL = "web";
-    public static final String APP_CHANNEL = "app";
+    private static final String WEB_CHANNEL = "web";
+    private static final String APP_CHANNEL = "app";
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -102,7 +100,7 @@ public class AuctionRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
-    private final IdGenerator idGenerator;
+    private final IdGenerator sourceIdGenerator;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -124,7 +122,7 @@ public class AuctionRequestFactory {
                                  TimeoutResolver timeoutResolver,
                                  TimeoutFactory timeoutFactory,
                                  ApplicationSettings applicationSettings,
-                                 IdGenerator idGenerator,
+                                 IdGenerator sourceIdGenerator,
                                  PrivacyEnforcementService privacyEnforcementService,
                                  JacksonMapper mapper) {
 
@@ -145,7 +143,7 @@ public class AuctionRequestFactory {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.idGenerator = Objects.requireNonNull(idGenerator);
+        this.sourceIdGenerator = Objects.requireNonNull(sourceIdGenerator);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -200,7 +198,7 @@ public class AuctionRequestFactory {
 
         return accountFrom(bidRequest, timeout, routingContext)
                 .compose(account -> privacyEnforcementService.contextFromBidRequest(
-                        bidRequest, account, requestTypeMetric, timeout)
+                        bidRequest, account, requestTypeMetric, timeout, errors)
                         .map(privacyContext -> AuctionContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
@@ -277,9 +275,6 @@ public class AuctionRequestFactory {
         final Site site = bidRequest.getSite();
         final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
 
-        final User user = bidRequest.getUser();
-        final User populatedUser = populateUser(user);
-
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source);
 
@@ -299,14 +294,13 @@ public class AuctionRequestFactory {
         final ExtRequest populatedExt = populateRequestExt(
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps));
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
+        if (populatedDevice != null || populatedSite != null || populatedSource != null
                 || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
                 || populatedExt != null) {
 
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : device)
                     .site(populatedSite != null ? populatedSite : site)
-                    .user(populatedUser != null ? populatedUser : user)
                     .source(populatedSource != null ? populatedSource : source)
                     .imp(populatedImps != null ? populatedImps : imps)
                     .at(resolvedAt != null ? resolvedAt : at)
@@ -451,39 +445,12 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
-     */
-    private User populateUser(User user) {
-        final ExtUser ext = userExtOrNull(user);
-
-        if (ext != null) {
-            return user.toBuilder().ext(ext).build();
-        }
-        return null;
-    }
-
-    /**
-     * Returns updated {@link ExtUser} or null if no updates needed.
-     */
-    private ExtUser userExtOrNull(User user) {
-        final ExtUser extUser = user != null ? user.getExt() : null;
-
-        final ExtUserDigiTrust digitrust = extUser != null ? extUser.getDigitrust() : null;
-        if (digitrust != null && digitrust.getPref() == null) {
-            return extUser.toBuilder()
-                    .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
-                    .build();
-        }
-        return null;
-    }
-
-    /**
      * Returns {@link Source} with updated source.tid or null if nothing changed.
      */
     private Source populateSource(Source source) {
         final String tid = source != null ? source.getTid() : null;
         if (StringUtils.isEmpty(tid)) {
-            final String generatedId = idGenerator.generateId();
+            final String generatedId = sourceIdGenerator.generateId();
             if (StringUtils.isNotEmpty(generatedId)) {
                 final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
                 return builder
@@ -591,21 +558,17 @@ public class AuctionRequestFactory {
         final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
         final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
 
-        final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
-            result = ExtRequestTargeting.builder()
-                    .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
+            return targeting.toBuilder()
+                    .pricegranularity(resolvePriceGranularity(targeting, isPriceGranularityNull,
                             isPriceGranularityTextual, impMediaTypes))
-                    .mediatypepricegranularity(targeting.getMediatypepricegranularity())
                     .includewinners(isIncludeWinnersNull || targeting.getIncludewinners())
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
                     .build();
-        } else {
-            result = null;
         }
-        return result;
+        return null;
     }
 
     /**
@@ -623,9 +586,8 @@ public class AuctionRequestFactory {
      * In case of valid string price granularity replaced it with appropriate custom view.
      * In case of invalid string value throws {@link InvalidRequestException}.
      */
-    private JsonNode populatePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
-                                              boolean isPriceGranularityTextual, Set<BidType> impMediaTypes) {
-        final JsonNode priceGranularityNode = targeting.getPricegranularity();
+    private JsonNode resolvePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
+                                             boolean isPriceGranularityTextual, Set<BidType> impMediaTypes) {
 
         final boolean hasAllMediaTypes = checkExistingMediaTypes(targeting.getMediatypepricegranularity())
                 .containsAll(impMediaTypes);
@@ -633,6 +595,8 @@ public class AuctionRequestFactory {
         if (isPriceGranularityNull && !hasAllMediaTypes) {
             return mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
         }
+
+        final JsonNode priceGranularityNode = targeting.getPricegranularity();
         if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
             try {
@@ -642,6 +606,7 @@ public class AuctionRequestFactory {
             }
             return mapper.mapper().valueToTree(ExtPriceGranularity.from(priceGranularity));
         }
+
         return priceGranularityNode;
     }
 
@@ -808,7 +773,8 @@ public class AuctionRequestFactory {
         return blankAccountId
                 ? responseForEmptyAccount(routingContext)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .recover(exception -> accountFallback(exception, accountId, routingContext));
+                .compose(this::ensureAccountActive,
+                        exception -> accountFallback(exception, accountId, routingContext));
     }
 
     /**
@@ -872,6 +838,15 @@ public class AuctionRequestFactory {
                 ? Future.failedFuture(new UnauthorizedAccountException(
                 String.format("Unauthorized account id: %s", accountId), accountId))
                 : Future.succeededFuture(Account.empty(accountId));
+    }
+
+    private Future<Account> ensureAccountActive(Account account) {
+        final String accountId = account.getId();
+
+        return account.getStatus() == AccountStatus.inactive
+                ? Future.failedFuture(new UnauthorizedAccountException(
+                String.format("Account %s is inactive", accountId), accountId))
+                : Future.succeededFuture(account);
     }
 
     private BidRequest enrichBidRequestWithAccountAndPrivacyData(
