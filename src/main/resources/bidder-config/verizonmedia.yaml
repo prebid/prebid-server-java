@@ -10,6 +10,7 @@ adapters:
     meta-info:
       maintainer-email: dsp-supply-prebid@verizonmedia.com
       app-media-types:
+        - banner
       site-media-types:
         - banner
       supported-vendors:
