@@ -11,6 +11,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.BidResponseReducer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -469,6 +470,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
+            BidResponseReducer bidResponseReducer,
             IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
@@ -479,6 +481,7 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
+                bidResponseReducer,
                 bidIdGenerator,
                 truncateAttrChars,
                 clock,
@@ -539,6 +542,11 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 mapper,
                 jsonMerger);
+    }
+
+    @Bean
+    BidResponseReducer bidResponseReducer() {
+        return new BidResponseReducer();
     }
 
     @Bean
