@@ -445,7 +445,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true, 6)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true, true, 6)
                 .makeFor(bid, "bidder", true, null, null, null);
 
         // then
