@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.ix;
 
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
@@ -106,18 +105,6 @@ public class IxAdapterTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldFailIfAppIsPresentInPreBidRequest() {
-        // given
-        preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder
-                .app(App.builder().build()));
-
-        // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
-                .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("ix doesn't support apps");
     }
 
     @Test

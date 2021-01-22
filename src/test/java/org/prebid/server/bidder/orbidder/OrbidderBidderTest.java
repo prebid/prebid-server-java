@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,62 +41,6 @@ public class OrbidderBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new OrbidderBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseStatusIsNotOk() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(404, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected HTTP status 404.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenBadRequest() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(400, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid request.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenBadServerResponse() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(500, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Server internal error.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
     }
 
     @Test
@@ -147,11 +90,6 @@ public class OrbidderBidderTest extends VertxTest {
         assertThat(result).isNotNull()
                 .extracting(Result::getValue, Result::getErrors)
                 .containsOnly(Collections.emptyList(), Collections.emptyList());
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(orbidderBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

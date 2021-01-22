@@ -49,7 +49,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -68,6 +67,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -423,18 +423,12 @@ public class RequestValidator {
                 }
             }
 
-            final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-            if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
-                throw new ValidationException("request.user contains a digitrust object that is not valid");
-            }
-
             final List<ExtUserEid> eids = extUser.getEids();
             if (eids != null) {
                 if (eids.isEmpty()) {
                     throw new ValidationException(
                             "request.user.ext.eids must contain at least one element or be undefined");
                 }
-                final Set<String> uniqueSources = new HashSet<>(eids.size());
                 for (int index = 0; index < eids.size(); index++) {
                     final ExtUserEid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
@@ -462,9 +456,10 @@ public class RequestValidator {
                             }
                         }
                     }
-                    uniqueSources.add(eid.getSource());
                 }
-
+                final Set<String> uniqueSources = eids.stream()
+                        .map(ExtUserEid::getSource)
+                        .collect(Collectors.toSet());
                 if (eids.size() != uniqueSources.size()) {
                     throw new ValidationException("request.user.ext.eids must contain unique sources");
                 }

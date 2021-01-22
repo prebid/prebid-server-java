@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -28,7 +29,6 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,7 +151,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -159,8 +159,8 @@ public class AdtargetBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
-                ? Result.of(Collections.emptyList(), Collections.emptyList())
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Result.empty()
                 : createBiddersBid(bidResponse, imps);
     }
 
@@ -198,10 +198,5 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(String.format(
                     "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

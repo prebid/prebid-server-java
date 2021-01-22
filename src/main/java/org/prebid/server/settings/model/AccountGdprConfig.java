@@ -1,15 +1,11 @@
 package org.prebid.server.settings.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Value;
 
 @Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
+@Value
 public class AccountGdprConfig {
 
     @JsonProperty("enabled")

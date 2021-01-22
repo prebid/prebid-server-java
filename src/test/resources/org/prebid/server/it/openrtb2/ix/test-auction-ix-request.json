@@ -13,9 +13,7 @@
             "w": 600,
             "h": 480
           }
-        ],
-        "w": 300,
-        "h": 250
+        ]
       },
       "ext": {
         "ix": {
@@ -38,7 +36,7 @@
   "at": 1,
   "tmax": 5000,
   "cur": [
-    "USD"
+    "EUR"
   ],
   "source": {
     "fd": 1,
@@ -68,12 +66,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {
