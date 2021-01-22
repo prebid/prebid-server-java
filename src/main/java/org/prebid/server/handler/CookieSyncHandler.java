@@ -14,7 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncInfoAssembler;
 import org.prebid.server.bidder.Usersyncer;
@@ -39,6 +39,7 @@ import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -67,7 +68,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final TcfDefinerService tcfDefinerService;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final Integer gdprHostVendorId;
-    private final boolean defaultCoopSync;
+    private final Boolean defaultCoopSync;
     private final List<Collection<String>> listOfCoopSyncBidders;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
@@ -162,33 +163,39 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         final Integer limit = cookieSyncRequest.getLimit();
-        final Boolean coopSync = cookieSyncRequest.getCoopSync();
-        final Set<String> biddersToSync = biddersToSync(cookieSyncRequest.getBidders(), coopSync, limit);
-
         final String requestAccount = cookieSyncRequest.getAccount();
         final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
-                        cookieSyncRequest, context.request(), account, timeout)
-                        .map(privacyContext -> Tuple2.of(account, privacyContext)))
-                .map((Tuple2<Account, PrivacyContext> accountAndPrivacy) -> allowedForVendorId(vendorIds,
-                        accountAndPrivacy.getRight().getTcfContext())
+                        cookieSyncRequest,
+                        context.request(),
+                        account,
+                        timeout)
+                        .map(privacyContext -> Tuple3.of(
+                                account, privacyContext, biddersToSync(cookieSyncRequest, account))))
+                .map((Tuple3<Account, PrivacyContext, Set<String>> accountAndPrivacyAndBidders) -> allowedForVendorId(
+                        vendorIds, accountAndPrivacyAndBidders.getMiddle().getTcfContext())
                         .compose(ignored -> tcfDefinerService.resultForBidderNames(
-                                biddersToSync,
-                                accountAndPrivacy.getRight().getTcfContext(),
-                                accountAndPrivacy.getLeft().getGdpr()))
+                                accountAndPrivacyAndBidders.getRight(),
+                                accountAndPrivacyAndBidders.getMiddle().getTcfContext(),
+                                accountAndPrivacyAndBidders.getLeft().getGdpr()))
                         .map(tcfResponse -> handleBidderNamesResult(
                                 tcfResponse,
                                 context,
-                                accountAndPrivacy.getLeft(),
+                                accountAndPrivacyAndBidders.getLeft(),
                                 uidsCookie,
-                                biddersToSync,
-                                accountAndPrivacy.getRight().getPrivacy(),
+                                accountAndPrivacyAndBidders.getRight(),
+                                accountAndPrivacyAndBidders.getMiddle().getPrivacy(),
                                 limit))
                         .otherwise(ignored -> handleTcfError(
-                                context, uidsCookie, biddersToSync, accountAndPrivacy.getRight().getPrivacy(), limit)));
+                                context,
+                                uidsCookie,
+                                accountAndPrivacyAndBidders.getRight(),
+                                accountAndPrivacyAndBidders.getLeft(),
+                                accountAndPrivacyAndBidders.getMiddle().getPrivacy(),
+                                limit)));
     }
 
     private static boolean gdprParamsNotConsistent(CookieSyncRequest request) {
@@ -200,19 +207,36 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * <p>
      * If bidder list was omitted in request, that means sync should be done for all bidders.
      */
-    private Set<String> biddersToSync(List<String> requestBidders, Boolean requestCoop, Integer requestLimit) {
+    private Set<String> biddersToSync(CookieSyncRequest cookieSyncRequest, Account account) {
+        final List<String> requestBidders = cookieSyncRequest.getBidders();
+
         if (CollectionUtils.isEmpty(requestBidders)) {
             return activeBidders;
         }
 
-        final boolean coop = requestCoop != null ? requestCoop : defaultCoopSync;
-        if (coop) {
+        if (coopSyncAllowed(cookieSyncRequest, account)) {
+            final Integer requestLimit = resolveLimit(cookieSyncRequest.getLimit(), account);
+
             return requestLimit == null
                     ? addAllCoopSyncBidders(requestBidders)
                     : addCoopSyncBidders(requestBidders, requestLimit);
         }
 
         return new HashSet<>(requestBidders);
+    }
+
+    private Boolean coopSyncAllowed(CookieSyncRequest cookieSyncRequest, Account account) {
+        final Boolean requestCoopSync = cookieSyncRequest.getCoopSync();
+        if (requestCoopSync != null) {
+            return requestCoopSync;
+        }
+
+        final AccountCookieSyncConfig accountCookieSyncConfig = account.getCookieSync();
+        final Boolean accountCoopSync = accountCookieSyncConfig != null
+                ? accountCookieSyncConfig.getDefaultCoopSync()
+                : null;
+
+        return ObjectUtils.firstNonNull(accountCoopSync, defaultCoopSync);
     }
 
     /**
@@ -307,7 +331,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                 || bidderNameToAction.get(bidder).isBlockPixelSync())
                 .collect(Collectors.toSet());
 
-        respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByTcf, ccpaEnforcedBidders, limit);
+        respondWith(
+                context, uidsCookie, account, privacy, biddersToSync, biddersRejectedByTcf, ccpaEnforcedBidders, limit);
 
         return null;
     }
@@ -315,10 +340,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private Void handleTcfError(RoutingContext context,
                                 UidsCookie uidsCookie,
                                 Set<String> biddersToSync,
+                                Account account,
                                 Privacy privacy,
                                 Integer limit) {
 
-        respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, Collections.emptySet(), limit);
+        respondWith(context, uidsCookie, account, privacy, biddersToSync, biddersToSync, Collections.emptySet(), limit);
 
         return null;
     }
@@ -328,6 +354,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private void respondWith(RoutingContext context,
                              UidsCookie uidsCookie,
+                             Account account,
                              Privacy privacy,
                              Collection<String> bidders,
                              Set<String> biddersRejectedByTcf,
@@ -343,13 +370,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toList());
         updateCookieSyncMatchMetrics(bidders, bidderStatuses);
 
-        final List<BidderUsersyncStatus> updatedBidderStatuses;
-        if (limit != null && limit > 0 && limit < bidderStatuses.size()) {
-            Collections.shuffle(bidderStatuses);
-            updatedBidderStatuses = bidderStatuses.subList(0, limit);
-        } else {
-            updatedBidderStatuses = bidderStatuses;
-        }
+        final List<BidderUsersyncStatus> updatedBidderStatuses =
+                truncateBidderStatuses(bidderStatuses, resolveLimit(limit, account));
 
         final CookieSyncResponse response = CookieSyncResponse.of(uidsCookie.hasLiveUids() ? "ok" : "no_cookie",
                 updatedBidderStatuses);
@@ -368,6 +390,33 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .status(HttpResponseStatus.OK.code())
                 .bidderStatus(updatedBidderStatuses)
                 .build());
+    }
+
+    private static Integer resolveLimit(Integer limit, Account account) {
+        final AccountCookieSyncConfig cookieSyncConfig = account.getCookieSync();
+        if (cookieSyncConfig == null) {
+            return limit;
+        }
+
+        final Integer resolvedLimit = ObjectUtils.defaultIfNull(limit, cookieSyncConfig.getDefaultLimit());
+        if (resolvedLimit == null) {
+            return null;
+        }
+
+        final Integer maxLimit = cookieSyncConfig.getMaxLimit();
+
+        return maxLimit == null ? resolvedLimit : Math.min(resolvedLimit, maxLimit);
+    }
+
+    private static List<BidderUsersyncStatus> truncateBidderStatuses(List<BidderUsersyncStatus> bidderStatuses,
+                                                                     Integer limit) {
+
+        if (limit != null && limit > 0 && limit < bidderStatuses.size()) {
+            Collections.shuffle(bidderStatuses);
+            return bidderStatuses.subList(0, limit);
+        }
+
+        return bidderStatuses;
     }
 
     private Set<String> extractCcpaEnforcedBidders(Account account, Collection<String> biddersToSync, Privacy privacy) {
