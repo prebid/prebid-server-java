@@ -440,6 +440,21 @@ public class TargetingKeywordsCreatorTest {
     }
 
     @Test
+    public void shouldTruncateTargetingAndDropDuplicatedWhenTruncateIsTooShort() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true, 6)
+                .makeFor(bid, "bidder", true, null, null, null);
+
+        // then
+        // Without truncating: "hb_bidder", "hb_bidder_bidder", "hb_env", "hb_env_bidder", "hb_pb", "hb_pb_bidder"
+        assertThat(keywords).hasSize(4)
+                .containsKeys("hb_bid", "hb_env", "hb_pb", "hb_pb_");
+    }
+
+    @Test
     public void shouldNotTruncateTargetingKeywordsIfTruncateAttrCharsIsNotDefined() {
         // given
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
