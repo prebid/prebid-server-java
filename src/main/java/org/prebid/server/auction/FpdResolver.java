@@ -10,6 +10,7 @@ import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
@@ -21,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
-import org.prebid.server.util.JsonMergeUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,12 +53,11 @@ public class FpdResolver {
             "privacypolicy", "mobile"));
 
     private final JacksonMapper jacksonMapper;
-    private final JsonMergeUtil jsonMergeUtil;
+    private final JsonMerger jsonMerger;
 
-    public FpdResolver(JacksonMapper jacksonMapper) {
+    public FpdResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
-
-        this.jsonMergeUtil = new JsonMergeUtil(jacksonMapper);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
     public User resolveUser(User originUser, ObjectNode fpdUser) {
@@ -183,7 +182,7 @@ public class FpdResolver {
                 : null;
 
         final ObjectNode resolvedData = extImpContextData != null
-                ? (ObjectNode) jsonMergeUtil.merge(targeting, extImpContextData)
+                ? (ObjectNode) jsonMerger.merge(targeting, extImpContextData)
                 : targeting;
 
         return extImpContext != null && extImpContext.isObject()
@@ -253,7 +252,7 @@ public class FpdResolver {
         }
 
         if (originData != null && originData.isObject()) {
-            return (ObjectNode) jsonMergeUtil.merge(fpdData, originData);
+            return (ObjectNode) jsonMerger.merge(fpdData, originData);
         }
         return fpdData.isObject() ? (ObjectNode) fpdData : null;
     }

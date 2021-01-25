@@ -23,7 +23,10 @@ There are two ways to configure application settings: database and file. This do
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `default-integration` - Default integration to assume.
 - `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
+- `bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners.
+- `status` - allows to mark account as `active` or `inactive`.
 
+Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
 ----------|---------------------------------|---------------------------------------------
@@ -42,22 +45,26 @@ sf1       | Precise geo                     | Verifies user opt-in. If the user 
 sf2       | Fingerprinting                  | n\a
 ```
 
-## File application setting
+## Setting Account Configuration in Files
 
 In file based approach all configuration stores in .yaml files, path to which are defined in application properties.
 
 ### Configuration in application.yaml
 
-```
+The general idea is that you'll place all the account-specific settings in a separate YAML file and point to that file.
+
+```yaml
 settings:
   filesystem:
     settings-filename: <directory to yaml file with settings>
 ```
 ### File format
 
-```
+Here's an example YAML file containing account-specific settings:
+
+```yaml
 accounts:
-  - id: 14062
+  - id: 1111
     bannerCacheTtl: 100
     videoCacheTtl: 100
     eventsEnabled: true
@@ -69,6 +76,7 @@ accounts:
     analytics-config:
       auction-events:
         amp: true
+    status: active
     gdpr:
       enabled: true
       integration-enabled:
@@ -151,54 +159,71 @@ accounts:
       purpose-one-treatment-interpretation: ignore
 ```
 
-  
-## Database application setting
+## Setting Account Configuration in the Database
 
-In database approach account properties are stored in database table with name accounts_account.
+In database approach account properties are stored in database table.
+
+SQL query for retrieving account is configurable and can be specified in [application configuration](config-app.md). 
+Requirements for the SQL query stated below.
 
 ### Configuration in application.yaml
-```
+
+```yaml
 settings:
   database:
-    type: <mysql or postgres>
     pool-size: 20
-    type: mysql
+    type: <mysql or postgres>
     host: <host>
     port: <port>
+    account-query: <SQL query for account>
 ```
 
-### Table description 
+### Configurable SQL query for account requirements
 
-Query to create accounts_account table:
+The general approach is that each host company can set up their database however they wish, so long as the configurable query run by
+Prebid Server returns expected data in the expected order. Here's an example configuration:
 
-```
-'CREATE TABLE `accounts_account` (
-`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-`uuid` varchar(40) NOT NULL,
-`price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
-`granularityMultiplier` decimal(9,3) DEFAULT NULL,
-`banner_cache_ttl` int(11) DEFAULT NULL,
-`video_cache_ttl` int(11) DEFAULT NULL,
-`events_enabled` bit(1) DEFAULT NULL,
-`enforce_ccpa` bit(1) DEFAULT NULL,
-`enforce_gdpr` bit(1) DEFAULT NULL,
-`tcf_config` json DEFAULT NULL,
-`analytics_sampling_factor` tinyint(4) DEFAULT NULL,
-`truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
-`default_integration` varchar(64) DEFAULT NULL,
-`analytics_config` varchar(512) DEFAULT NULL,
-`status` enum('active','inactive') DEFAULT 'active',
-`updated_by` int(11) DEFAULT NULL,
-`updated_by_user` varchar(64) DEFAULT NULL,
-`updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-PRIMARY KEY (`id`),
-UNIQUE KEY `uuid` (`uuid`))
-ENGINE=InnoDB DEFAULT CHARSET=utf8'
+```yaml
+settings:
+  database:
+    type: mysql
+    account-query: SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations, status FROM accounts_account where uuid = ? LIMIT 1
 ```
 
-where tcf_config column is json with next format
+The SQL query for account must:
+* return following columns, with specified type, in this order:
+    * account ID, string
+    * price granularity, string
+    * banner cache TTL, integer
+    * video cache TTL, integer
+    * events enabled flag, boolean
+    * enforce CCPA flag, boolean
+    * TCF configuration, JSON string, see below
+    * analytics sampling factor, integer
+    * maximum targeting attribute size, integer
+    * default integration value, string
+    * analytics configuration, JSON string, see below
+    * status, string. Expected values: "active", "inactive", NULL. Only "inactive" has any effect and only when settings.enforce-valid-account is on.
+* specify a special single `%ACCOUNT_ID%` placeholder in the `WHERE` clause that will be replaced with account ID in 
+runtime
 
+It is recommended to include `LIMIT 1` clause in the query because only the very first result returned will be taken.
+
+If a host company doesn't support a given field, or they have a different table name, they can just update the query with whatever values are needed. e.g.
+
+```yaml
+settings:
+  database:
+    type: mysql
+    account-query: SELECT uuid, 'med', banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 0, null, default_integration, '{}', '{}' FROM myaccountstable where uuid = ? LIMIT 1
 ```
+### Configuration Details
+
+#### TCF configuration JSON
+
+Here's an example of the value that the `tcf_config` column can take:
+
+```json
 {
   "enabled": true,
    "integration-enabled": {
@@ -206,8 +231,8 @@ where tcf_config column is json with next format
       "web": true,
       "app": true,
       "amp": true
-   }
-  "purpose-one-treatment-interpretation": "ignore"
+   },
+  "purpose-one-treatment-interpretation": "ignore",
   "purposes": {
     "p1": {
       "enforce-purpose": "full",
@@ -309,10 +334,62 @@ where tcf_config column is json with next format
 }
 ```
 
-Query used to get an account:
-```
-SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config 
-FROM accounts_account where uuid = ?
-LIMIT 1
+#### Bid Validations configuration JSON
 
+The `bid_validations` column is json with this format:
+
+```json
+{
+  "banner-creative-max-size": "enforce"
+}
+```
+
+Valid values are:
+- "skip": don't do anything about creative max size for this publisher
+- "warn": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, log an operational warning.
+- "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject the bid and log an operational warning.
+
+#### Analytics Validations configuration JSON
+
+The `analytics_config`  configuration column format:
+
+```json
+{
+  "auction-events": {
+    "web": true,   // the analytics adapter should log auction events when the channel is web
+    "amp": true,   // the analytics adapter should log auction events when the channel is AMP
+    "app": false   // the analytics adapter should not log auction events when the channel is app
+  }
+}
+```
+
+#### Creating the accounts table
+
+Traditionally the table name used by Prebid Server is `accounts_account`. No one remembers why. But here's SQL 
+you could use to create your table:
+
+```sql
+'CREATE TABLE `accounts_account` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `uuid` varchar(40) NOT NULL,
+    `price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
+    `granularityMultiplier` decimal(9,3) DEFAULT NULL,
+    `banner_cache_ttl` int(11) DEFAULT NULL,
+    `video_cache_ttl` int(11) DEFAULT NULL,
+    `events_enabled` bit(1) DEFAULT NULL,
+    `enforce_ccpa` bit(1) DEFAULT NULL,
+    `enforce_gdpr` bit(1) DEFAULT NULL,
+    `tcf_config` json DEFAULT NULL,
+    `analytics_sampling_factor` tinyint(4) DEFAULT NULL,
+    `truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
+    `default_integration` varchar(64) DEFAULT NULL,
+    `analytics_config` varchar(512) DEFAULT NULL,
+    `bid_validations` json DEFAULT NULL,
+    `status` enum('active','inactive') DEFAULT 'active',
+    `updated_by` int(11) DEFAULT NULL,
+    `updated_by_user` varchar(64) DEFAULT NULL,
+    `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+PRIMARY KEY (`id`),
+UNIQUE KEY `uuid` (`uuid`))
+ENGINE=InnoDB DEFAULT CHARSET=utf8'
 ```

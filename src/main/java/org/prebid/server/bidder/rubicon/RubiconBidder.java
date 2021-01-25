@@ -65,6 +65,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -111,6 +112,8 @@ import java.util.stream.StreamSupport;
 public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
+    private static final ConditionalLogger MISSING_VIDEO_SIZE_LOGGER =
+            new ConditionalLogger("missing_video_size", logger);
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
@@ -170,8 +173,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
+        final List<Imp> imps = extractValidImps(bidRequest, errors);
+        if (CollectionUtils.isEmpty(imps)) {
+            errors.add(BidderError.of("There are no valid impressions to create bid request to rubicon bidder",
+                    BidderError.Type.bad_input));
+            return Result.of(Collections.emptyList(), errors);
+        }
         final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt =
-                parseRubiconImpExts(bidRequest.getImp(), errors);
+                parseRubiconImpExts(imps, errors);
         final String impLanguage = firstImpExtLanguage(impToImpExt.values());
 
         for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt : impToImpExt.entrySet()) {
@@ -224,6 +233,44 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(rubiconTargeting -> !CollectionUtils.isEmpty(rubiconTargeting.getValues()))
                 .collect(Collectors.toMap(RubiconTargeting::getKey, t -> t.getValues().get(0)))
                 : Collections.emptyMap();
+    }
+
+    private List<Imp> extractValidImps(BidRequest bidRequest, List<BidderError> errors) {
+        final Map<Boolean, List<Imp>> isValidToImps = bidRequest.getImp().stream()
+                .collect(Collectors.groupingBy(RubiconBidder::isValidType));
+
+        isValidToImps.getOrDefault(false, Collections.emptyList()).stream()
+                .map(this::impTypeErrorMessage)
+                .forEach(errors::add);
+
+        return isValidToImps.getOrDefault(true, Collections.emptyList());
+    }
+
+    private static boolean isValidType(Imp imp) {
+        return imp.getVideo() != null || imp.getBanner() != null;
+    }
+
+    private BidderError impTypeErrorMessage(Imp imp) {
+        final BidType type = resolveExpectedBidType(imp);
+        return BidderError.of(
+                String.format("Impression with id %s rejected with invalid type `%s`." + " Allowed types are banner and"
+                        + " video.", imp.getId(), type != null ? type.name() : "unknown"), BidderError.Type.bad_input);
+    }
+
+    private static BidType resolveExpectedBidType(Imp imp) {
+        if (imp.getBanner() != null) {
+            return BidType.banner;
+        }
+        if (imp.getVideo() != null) {
+            return BidType.video;
+        }
+        if (imp.getAudio() != null) {
+            return BidType.audio;
+        }
+        if (imp.getXNative() != null) {
+            return BidType.xNative;
+        }
+        return null;
     }
 
     private static MultiMap headers(String xapiUsername, String xapiPassword) {
@@ -339,7 +386,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (isVideo(imp)) {
             builder
                     .banner(null)
-                    .video(makeVideo(imp.getVideo(), extRubicon.getVideo(), extPrebid));
+                    .video(makeVideo(imp, extRubicon.getVideo(), extPrebid, referer(site)));
         } else {
             builder
                     .banner(makeBanner(imp, overriddenSizes(extRubicon)))
@@ -609,21 +656,59 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && video.getLinearity() != null && video.getApi() != null;
     }
 
-    private Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
-        final String videoType = prebidImpExt != null && prebidImpExt.getIsRewardedInventory() != null
-                && prebidImpExt.getIsRewardedInventory() == 1 ? "rewarded" : null;
+    private static String referer(Site site) {
+        return site != null ? site.getPage() : null;
+    }
 
-        if (rubiconVideoParams == null && videoType == null) {
-            return video;
-        }
+    private Video makeVideo(Imp imp, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt, String referer) {
+        final Video video = imp.getVideo();
 
         final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
         final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+
+        final Integer resolvedSizeId = sizeId == null || sizeId == 0
+                ? resolveVideoSizeId(video.getPlacement(), imp.getInstl())
+                : sizeId;
+        validateVideoSizeId(resolvedSizeId, referer, imp.getId());
+
+        final String videoType = prebidImpExt != null && prebidImpExt.getIsRewardedInventory() != null
+                && prebidImpExt.getIsRewardedInventory() == 1 ? "rewarded" : null;
+
+        // optimization for empty ext params
+        if (skip == null && skipDelay == null && resolvedSizeId == null && videoType == null) {
+            return video;
+        }
+
         return video.toBuilder()
                 .ext(mapper.mapper().valueToTree(
-                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(sizeId), videoType)))
+                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(resolvedSizeId), videoType)))
                 .build();
+    }
+
+    private static void validateVideoSizeId(Integer resolvedSizeId, String referer, String impId) {
+        // log only 1% of cases to monitor how often video impressions does not have size id
+        if (resolvedSizeId == null) {
+            MISSING_VIDEO_SIZE_LOGGER.warn(String.format("RP adapter: video request with no size_id. Referrer URL = %s,"
+                    + " impId = %s", referer, impId), 0.01d);
+        }
+    }
+
+    private static Integer resolveVideoSizeId(Integer placement, Integer instl) {
+        if (placement != null) {
+            if (placement == 1) {
+                return 201;
+            }
+            if (placement == 3) {
+                return 203;
+            }
+        }
+
+        if (instl != null && instl == 1) {
+            return 202;
+        }
+
+        return null;
     }
 
     private static List<Format> overriddenSizes(ExtImpRubicon rubiconImpExt) {
@@ -903,14 +988,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
         final List<ExtUserEid> liverampEids = MapUtils.emptyIfNull(sourceToUserEidExt).get(LIVERAMP_EID);
         for (ExtUserEid extUserEid : CollectionUtils.emptyIfNull(liverampEids)) {
-            final ExtUserEidUid eidUid = extUserEid != null
-                    ? CollectionUtils.emptyIfNull(extUserEid.getUids()).stream().findFirst().orElse(null)
-                    : null;
-
-            final String id = eidUid != null ? eidUid.getId() : null;
-            if (StringUtils.isNotEmpty(id)) {
-                return id;
-            }
+            return extUserEid.getUids().stream()
+                    .map(ExtUserEidUid::getId)
+                    .filter(StringUtils::isNotEmpty)
+                    .findFirst()
+                    .orElse(null);
         }
         return null;
     }
