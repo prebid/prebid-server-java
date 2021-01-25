@@ -42,7 +42,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.request.CookieSyncRequest;
@@ -665,7 +664,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final ExtUser extUser = ExtUser.builder()
                 .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
-                .digitrust(ExtUserDigiTrust.of("idDigit", 12, 23))
                 .build();
         final User user = User.builder()
                 .buyeruid(BUYER_UID)
@@ -1063,7 +1061,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         final ExtUser extUser = ExtUser.builder()
                 .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
-                .digitrust(ExtUserDigiTrust.of("idDigit", 12, 23))
                 .build();
         final User user = User.builder()
                 .buyeruid("buyeruid")
@@ -1431,7 +1428,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static ExtUser notMaskedExtUser() {
         return ExtUser.builder()
                 .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
-                .digitrust(ExtUserDigiTrust.of("idDigit", 12, 23))
                 .prebid(ExtUserPrebid.of(singletonMap("key", "value")))
                 .build();
     }

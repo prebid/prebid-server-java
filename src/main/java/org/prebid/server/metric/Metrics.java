@@ -121,21 +121,11 @@ public class Metrics extends UpdatableMetrics {
         return settingsCacheMetrics.computeIfAbsent(type, settingsCacheMetricsCreator);
     }
 
-    public void updateSafariRequestsMetric(boolean isSafari) {
-        if (isSafari) {
-            incCounter(MetricName.safari_requests);
-        }
-    }
-
-    public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, boolean isSafari,
-                                                            int numImps) {
+    public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, int numImps) {
         if (isApp) {
             incCounter(MetricName.app_requests);
         } else if (!liveUidsPresent) {
             incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                incCounter(MetricName.safari_no_cookie_requests);
-            }
         }
         incCounter(MetricName.imps_requested, numImps);
     }
@@ -274,6 +264,16 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
         forAdapter(resolveMetricsBidderName(bidder)).request().incCounter(errorMetric);
+    }
+
+    public void updateSizeValidationMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(resolveMetricsBidderName(bidder)).response().validation().size().incCounter(type);
+        forAccount(accountId).response().validation().size().incCounter(type);
+    }
+
+    public void updateSecureValidationMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(resolveMetricsBidderName(bidder)).response().validation().secure().incCounter(type);
+        forAccount(accountId).response().validation().secure().incCounter(type);
     }
 
     public void updateUserSyncOptoutMetric() {

@@ -84,7 +84,7 @@ public class CurrencyConversionService implements Initializable {
         httpClient.get(currencyServerUrl, defaultTimeout)
                 .map(this::processResponse)
                 .map(this::updateCurrencyRates)
-                .recover(CurrencyConversionService::failResponse);
+                .otherwise(this::handleErrorResponse);
     }
 
     /**
@@ -106,21 +106,37 @@ public class CurrencyConversionService implements Initializable {
         }
     }
 
-    private CurrencyConversionRates updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
+    private Void updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
             externalCurrencyRates = receivedCurrencyRates;
-            lastUpdated = ZonedDateTime.now(externalConversionProperties.getClock());
+            lastUpdated = now();
         }
-        return currencyConversionRates;
+
+        return null;
     }
 
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private static Future<CurrencyConversionRates> failResponse(Throwable exception) {
+    private Void handleErrorResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
-        return Future.failedFuture(exception);
+
+        if (externalRatesAreStale()) {
+            externalCurrencyRates = null;
+        }
+
+        return null;
+    }
+
+    private boolean externalRatesAreStale() {
+        final Long stalePeriodMs = externalConversionProperties.getStalePeriodMs();
+
+        return stalePeriodMs != null && Duration.between(lastUpdated, now()).toMillis() > stalePeriodMs;
+    }
+
+    private ZonedDateTime now() {
+        return ZonedDateTime.now(externalConversionProperties.getClock());
     }
 
     public boolean isExternalRatesActive() {
