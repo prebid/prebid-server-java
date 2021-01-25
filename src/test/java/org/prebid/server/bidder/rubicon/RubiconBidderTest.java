@@ -28,7 +28,11 @@ import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -55,6 +59,8 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -94,6 +100,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -105,17 +117,25 @@ public class RubiconBidderTest extends VertxTest {
     private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "adform",
             "comscore", "doubleverify", "integralads", "moat", "sizmek", "whiteops");
 
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     private RubiconBidder rubiconBidder;
+
+    @Mock
+    private CurrencyConversionService currencyConversionService;
 
     @Before
     public void setUp() {
-        rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, false, jacksonMapper);
+        rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
+                currencyConversionService, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new RubiconBidder("invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS, false, jacksonMapper));
+                () -> new RubiconBidder("invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
+                        currencyConversionService, jacksonMapper));
     }
 
     @Test
@@ -418,6 +438,76 @@ public class RubiconBidderTest extends VertxTest {
                         null, // banner is removed
                         Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
                                 .maxduration(60).linearity(2).api(singletonList(3)).build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldResolveImpBidFloorCurrencyIfNotUSDAndCallCurrencyService() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
+                        .bidfloor(BigDecimal.ONE).bidfloorcur("EUR"),
+                identity());
+
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        verify(currencyConversionService).convertCurrency(eq(BigDecimal.ONE), any(), eq("EUR"), eq("USD"));
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.TEN, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetBidFloorCurrencyToUSDIfNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
+                        .bidfloor(BigDecimal.ONE).bidfloorcur(null),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        verifyZeroInteractions(currencyConversionService);
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.ONE, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIgnoreBidRequestIfCurrencyServiceThrowsAnException() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .id("impId")
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
+                        .bidfloor(BigDecimal.ONE).bidfloorcur("EUR"),
+                identity());
+
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willThrow(new PreBidException("failed"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.of("Failed to convert bidfloor for imp `impId` with a reason: failed",
+                        BidderError.Type.bad_input));
     }
 
     @Test
@@ -2419,7 +2509,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithRandomlyGeneratedId() throws JsonProcessingException {
         // given
         rubiconBidder = new RubiconBidder(
-                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, jacksonMapper);
+                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, currencyConversionService, jacksonMapper);
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(BidResponse.builder()
@@ -2444,7 +2534,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
         // given
         rubiconBidder = new RubiconBidder(
-                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, jacksonMapper);
+                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, currencyConversionService, jacksonMapper);
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(BidResponse.builder()

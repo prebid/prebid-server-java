@@ -270,7 +270,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyConversionService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), EUR, GBP))
-                .withMessage("Unable to convert bid currency GBP to desired ad server currency EUR");
+                .withMessage("Unable to convert from currency GBP to desired ad server currency EUR");
     }
 
     @Test
@@ -279,7 +279,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), USD, EUR))
-                .withMessage("Unable to convert bid currency EUR to desired ad server currency USD");
+                .withMessage("Unable to convert from currency EUR to desired ad server currency USD");
     }
 
     @Test
@@ -297,7 +297,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(requestConversionRates, false), EUR, AUD))
-                .withMessage("Unable to convert bid currency AUD to desired ad server currency EUR");
+                .withMessage("Unable to convert from currency AUD to desired ad server currency EUR");
     }
 
     @Test
@@ -312,7 +312,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), UAH, AUD))
-                .withMessage("Unable to convert bid currency AUD to desired ad server currency UAH");
+                .withMessage("Unable to convert from currency AUD to desired ad server currency UAH");
     }
 
     @Test
@@ -327,7 +327,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), UAH, AUD))
-                .withMessage("Unable to convert bid currency AUD to desired ad server currency UAH");
+                .withMessage("Unable to convert from currency AUD to desired ad server currency UAH");
     }
 
     @SuppressWarnings("unchecked")

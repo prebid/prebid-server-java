@@ -22,7 +22,6 @@ import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.metric.AccountMetricsVerbosity;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
@@ -109,8 +108,8 @@ public class MetricsConfiguration {
 
     @Bean
     Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
-                    AccountMetricsVerbosity accountMetricsVerbosity, BidderCatalog bidderCatalog) {
-        return new Metrics(metricRegistry, counterType, accountMetricsVerbosity, bidderCatalog);
+                    AccountMetricsVerbosity accountMetricsVerbosity) {
+        return new Metrics(metricRegistry, counterType, accountMetricsVerbosity);
     }
 
     @Bean

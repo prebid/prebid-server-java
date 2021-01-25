@@ -57,6 +57,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
+    private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
 
     private final String externalUrl;
     private final long defaultTimeout;
@@ -382,7 +383,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void updateCookieSyncTcfMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
         for (String bidder : syncBidders) {
             if (rejectedBidders.contains(bidder)) {
-                metrics.updateCookieSyncTcfBlockedMetric(bidder);
+                metrics.updateCookieSyncTcfBlockedMetric(
+                        bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER);
             } else {
                 metrics.updateCookieSyncGenMetric(bidder);
             }

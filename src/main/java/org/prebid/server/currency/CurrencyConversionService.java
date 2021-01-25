@@ -205,7 +205,7 @@ public class CurrencyConversionService implements Initializable {
 
         if (conversionRate == null) {
             throw new PreBidException(
-                    String.format("Unable to convert bid currency %s to desired ad server currency %s",
+                    String.format("Unable to convert from currency %s to desired ad server currency %s",
                             effectiveBidCurrency, adServerCurrency));
         }
 
