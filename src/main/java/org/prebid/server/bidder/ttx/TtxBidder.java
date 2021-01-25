@@ -62,12 +62,21 @@ public class TtxBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
+        ExtRequest reqExt;
 
-        final ExtRequest reqExt = updateExtRequest(request.getExt());
+        try {
+            reqExt = updateExtRequest(request.getExt());
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            reqExt = null;
+        }
 
         for (Imp imp : request.getImp()) {
             try {
-                requests.add(makeRequest(request, imp, reqExt));
+                validateImp(imp);
+                final ExtImpTtx extImpTtx = parseImpExt(imp);
+                final Imp updatedImp = updateImp(imp, extImpTtx);
+                requests.add(createRequest(request, updatedImp, reqExt));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -94,23 +103,11 @@ public class TtxBidder implements Bidder<BidRequest> {
         return updatedRequest;
     }
 
-    private HttpRequest<BidRequest> makeRequest(BidRequest request, Imp imp, ExtRequest reqExt) {
-        final Imp updatedImp = updateImp(imp);
-
-        return createRequest(request, updatedImp, reqExt);
-    }
-
-    private Imp updateImp(Imp imp) {
+    private void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(
                     String.format("Imp ID %s must have at least one of [Banner, Video] defined", imp.getId()));
         }
-        final ExtImpTtx extImpTtx = parseImpExt(imp);
-        final String productId = extImpTtx.getProductId();
-        return imp.toBuilder()
-                .video(updatedVideo(imp.getVideo(), productId))
-                .ext(createImpExt(productId, extImpTtx.getZoneId(), extImpTtx.getSiteId()))
-                .build();
     }
 
     private ExtImpTtx parseImpExt(Imp imp) {
@@ -119,6 +116,14 @@ public class TtxBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private Imp updateImp(Imp imp, ExtImpTtx extImpTtx) {
+        final String productId = extImpTtx.getProductId();
+        return imp.toBuilder()
+                .video(updatedVideo(imp.getVideo(), productId))
+                .ext(createImpExt(productId, extImpTtx.getZoneId(), extImpTtx.getSiteId()))
+                .build();
     }
 
     private static Video updatedVideo(Video video, String productId) {
@@ -165,9 +170,11 @@ public class TtxBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ttxImpExt);
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request,
-                                                  Imp requestImp, ExtRequest extRequest) {
-        final BidRequest modifiedRequest = updateRequest(request, requestImp, extRequest);
+    private HttpRequest<BidRequest> createRequest(BidRequest request, Imp requestImp, ExtRequest extRequest) {
+        final BidRequest modifiedRequest = request.toBuilder()
+                .ext(extRequest)
+                .imp(Collections.singletonList(requestImp))
+                .build();
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -175,14 +182,6 @@ public class TtxBidder implements Bidder<BidRequest> {
                 .headers(HttpUtil.headers())
                 .payload(modifiedRequest)
                 .body(mapper.encode(modifiedRequest))
-                .build();
-    }
-
-    private static BidRequest updateRequest(BidRequest request, Imp requestImp, ExtRequest extRequest) {
-
-        return request.toBuilder()
-                .ext(extRequest)
-                .imp(Collections.singletonList(requestImp))
                 .build();
     }
 
