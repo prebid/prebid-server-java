@@ -63,9 +63,11 @@ public class TtxBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
 
+        final ExtRequest reqExt = updateExtRequest(request.getExt());
+
         for (Imp imp : request.getImp()) {
             try {
-                requests.add(makeRequest(request, imp));
+                requests.add(makeRequest(request, imp, reqExt));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -73,9 +75,27 @@ public class TtxBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
-    private HttpRequest<BidRequest> makeRequest(BidRequest request, Imp imp) {
+    private ExtRequest updateExtRequest(ExtRequest reqExt) {
+        final ExtRequest updatedRequest = reqExt != null ? reqExt : ExtRequest.empty();
+        TtxRequestExt ttxRequestExt;
+        try {
+            ttxRequestExt = mapper.mapper().convertValue(
+                    updatedRequest.getProperty(TTX_REQUEST_EXT_PROPERTY), TtxRequestExt.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+        if (ttxRequestExt == null || CollectionUtils.isEmpty(ttxRequestExt.getCaller())) {
+            ttxRequestExt = TtxRequestExt.of(Collections.singletonList(CALLER));
+        } else {
+            ttxRequestExt.getCaller().add(CALLER);
+        }
+
+        updatedRequest.addProperty(TTX_REQUEST_EXT_PROPERTY, mapper.mapper().valueToTree(ttxRequestExt));
+        return updatedRequest;
+    }
+
+    private HttpRequest<BidRequest> makeRequest(BidRequest request, Imp imp, ExtRequest reqExt) {
         final Imp updatedImp = updateImp(imp);
-        ExtRequest reqExt = updateExtRequest(request.getExt());
 
         return createRequest(request, updatedImp, reqExt);
     }
@@ -143,25 +163,6 @@ public class TtxBidder implements Bidder<BidRequest> {
         final TtxImpExt ttxImpExt = TtxImpExt.of(
                 TtxImpExtTtx.of(productId, StringUtils.isNotEmpty(zoneId) ? zoneId : siteId));
         return mapper.mapper().valueToTree(ttxImpExt);
-    }
-
-    private ExtRequest updateExtRequest(ExtRequest reqExt) {
-        final ExtRequest updatedRequest = reqExt != null ? reqExt : ExtRequest.empty();
-        TtxRequestExt ttxRequestExt;
-        try {
-            ttxRequestExt = mapper.mapper().convertValue(
-                    updatedRequest.getProperty(TTX_REQUEST_EXT_PROPERTY), TtxRequestExt.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-        if (ttxRequestExt == null || CollectionUtils.isEmpty(ttxRequestExt.getCaller())) {
-            ttxRequestExt = TtxRequestExt.of(Collections.singletonList(CALLER));
-        } else {
-            ttxRequestExt.getCaller().add(CALLER);
-        }
-
-        updatedRequest.addProperty(TTX_REQUEST_EXT_PROPERTY, mapper.mapper().valueToTree(ttxRequestExt));
-        return updatedRequest;
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request,
