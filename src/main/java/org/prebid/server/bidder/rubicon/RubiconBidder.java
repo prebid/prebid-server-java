@@ -384,40 +384,51 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon, BidRequest bidRequest) {
+        final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+        final BigDecimal bidFloor = imp.getBidfloor();
+        if (bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0) {
+            impBuilder
+                    .bidfloorcur(DEFAULT_CURRENCY)
+                    .bidfloor(resolveBidFloor(imp, bidRequest));
+        }
+
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
-        final Imp.ImpBuilder builder = resolveBidFloor(imp, bidRequest)
+        impBuilder
                 .metric(makeMetrics(imp))
                 .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app)));
 
         if (isVideo(imp)) {
-            builder
+            impBuilder
                     .banner(null)
                     .video(makeVideo(imp, extRubicon.getVideo(), extPrebid, referer(site)));
         } else {
-            builder
+            impBuilder
                     .banner(makeBanner(imp, overriddenSizes(extRubicon)))
                     .video(null);
         }
 
-        return builder.build();
+        return impBuilder.build();
     }
 
-    private Imp.ImpBuilder resolveBidFloor(Imp imp, BidRequest bidRequest) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder();
+    private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest) {
+        final String bidFloorCurrency = resolveBidFloorCurrency(imp);
         final BigDecimal bidFloor = imp.getBidfloor();
-        final String bidFloorCurrency = imp.getBidfloorcur();
         final boolean bidFloorExists = bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
-        if (bidFloorExists && bidFloorCurrency == null) {
-            logger.debug("Imp `{0}` floor provided with no currency, assuming USD", imp.getId());
-            return impBuilder.bidfloorcur(DEFAULT_CURRENCY);
-        }
-
         return bidFloorExists && ObjectUtils.notEqual(bidFloorCurrency, DEFAULT_CURRENCY)
-                ? impBuilder
-                .bidfloor(convertBidFloorCurrency(imp, bidRequest, bidFloor, bidFloorCurrency))
-                .bidfloorcur(DEFAULT_CURRENCY)
-                : impBuilder;
+                ? convertBidFloorCurrency(imp, bidRequest, bidFloor, bidFloorCurrency)
+                : bidFloor;
+    }
+
+    private String resolveBidFloorCurrency(Imp imp) {
+        String bidFloorCurrency = imp.getBidfloorcur();
+        if (bidFloorCurrency == null) {
+            logger.debug("Imp `{0}` floor provided with no currency, assuming USD", imp.getId());
+            bidFloorCurrency = DEFAULT_CURRENCY;
+
+        }
+        return bidFloorCurrency;
     }
 
     private BigDecimal convertBidFloorCurrency(Imp imp, BidRequest bidRequest, BigDecimal bidFloor,
