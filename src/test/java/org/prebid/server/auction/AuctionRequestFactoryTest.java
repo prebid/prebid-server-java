@@ -26,7 +26,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
@@ -48,6 +47,7 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -63,6 +63,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -89,6 +90,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
@@ -270,6 +272,32 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.cause())
                 .isInstanceOf(UnauthorizedAccountException.class)
                 .hasMessage("Unauthorized account id: absentId");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfAccountIsInactive() {
+        // given
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(Account.builder()
+                .id("accountId")
+                .status(AccountStatus.inactive)
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().id("accountId").build())
+                        .build())
+                .build();
+
+        givenBidRequest(bidRequest);
+
+        // when
+        final Future<AuctionContext> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isFailed();
+        assertThat(future.cause())
+                .isInstanceOf(UnauthorizedAccountException.class)
+                .hasMessage("Account accountId is inactive");
     }
 
     @Test
@@ -1114,6 +1142,31 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotChangeAnyOtherExtRequestPrebidTargetingFields() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder()
+                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true))
+                                .truncateattrchars(10)
+                                .build())
+                        .build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebrandcategory, ExtRequestTargeting::getTruncateattrchars)
+                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true), 10));
+    }
+
+    @Test
     public void shouldSetCacheWinningonlyFromRequestWhenCacheWinningonlyIsPresent() {
         // given
         factory = new AuctionRequestFactory(
@@ -1643,7 +1696,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
         assertThat(auctionContextFuture.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
     }
 
@@ -1656,7 +1709,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
         assertThat(auctionContextFuture.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2app);
     }
 
@@ -1678,7 +1731,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
 
         final AuctionContext auctionContext = auctionContextFuture.result();
         assertThat(auctionContext.getBidRequest().getDevice()).isEqualTo(

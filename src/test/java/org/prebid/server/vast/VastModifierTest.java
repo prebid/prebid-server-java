@@ -2,7 +2,6 @@ package org.prebid.server.vast;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.response.Bid;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -117,7 +116,7 @@ public class VastModifierTest {
         given(bidderCatalog.isModifyingVastXmlAllowed(any())).willReturn(false);
 
         // when
-        final String result = target.createBidVastXml(bid(), BIDDER, ACCOUNT_ID, eventsContext());
+        final String result = target.createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID, eventsContext());
 
         // then
         assertThat(result).isEqualTo(adm());
@@ -126,7 +125,8 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldInjectBidNurlWhenBidAdmIsEmptyAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(givenBid(null), BIDDER, ACCOUNT_ID, givenEventsContext(false));
+        final String result = target.createBidVastXml(BIDDER, null, BID_NURL, BID_ID, ACCOUNT_ID,
+                givenEventsContext(false));
 
         // then
         assertThat(result).isEqualTo(modifiedAdm(BID_NURL));
@@ -135,7 +135,7 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldNotModifyWhenBidAdmIsEmptyAndNurlIsNullAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(givenBid(null, null), BIDDER, ACCOUNT_ID,
+        final String result = target.createBidVastXml(BIDDER, null, null, BID_ID, ACCOUNT_ID,
                 givenEventsContext(false));
 
         // then
@@ -145,7 +145,8 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldReturnAdmWhenBidAdmIsPresentAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(bid(), BIDDER, ACCOUNT_ID, givenEventsContext(false));
+        final String result = target.createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID,
+                givenEventsContext(false));
 
         // then
         assertThat(result).isEqualTo(adm());
@@ -154,21 +155,20 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldBeModifiedWithNewImpressionVastUrlWhenEventsEnabledAndNoEmptyTag() {
         // when
-        final Bid bidWithImpression = givenBid("<Impression>http:/test.com</Impression>");
-        final String result = target.createBidVastXml(bidWithImpression, BIDDER, ACCOUNT_ID, eventsContext());
+        final String bidAdm = "<Impression>http:/test.com</Impression>";
+        final String result = target.createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
 
-        assertThat(result).isEqualTo("<Impression>http:/test.com</Impression>"
-                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression>");
+        assertThat(result).isEqualTo(bidAdm + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression>");
     }
 
     @Test
     public void createBidVastXmlShouldBeInjectedWithImpressionVastUrlWhenEventsEnabledAndAdmEmptyTagPresent() {
         // when
-        final Bid bidWithImpression = givenBid("<Impression></Impression>");
-        final String result = target.createBidVastXml(bidWithImpression, BIDDER, ACCOUNT_ID, eventsContext());
+        final String adm = "<Impression></Impression>";
+        final String result = target.createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
@@ -180,8 +180,8 @@ public class VastModifierTest {
     public void createBidVastXmlShouldNotModifyWhenEventsEnabledAndAdmHaveNoImpression() {
         // when
         final String admWithNoImpression = "no impression";
-        final Bid bidWithImpression = givenBid(admWithNoImpression);
-        final String result = target.createBidVastXml(bidWithImpression, BIDDER, ACCOUNT_ID, eventsContext());
+        final String result = target.createBidVastXml(BIDDER, admWithNoImpression, BID_NURL, BID_ID, ACCOUNT_ID,
+                eventsContext());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
@@ -221,22 +221,6 @@ public class VastModifierTest {
                 + "<VASTAdTagURI><![CDATA[" + bidNurl + "]]></VASTAdTagURI>"
                 + "<Impression></Impression><Creatives></Creatives>"
                 + "</Wrapper></Ad></VAST>";
-    }
-
-    public static Bid givenBid(String adm, String nurl) {
-        return Bid.builder()
-                .id(BID_ID)
-                .adm(adm)
-                .nurl(nurl)
-                .build();
-    }
-
-    public static Bid givenBid(String adm) {
-        return givenBid(adm, BID_NURL);
-    }
-
-    public static Bid bid() {
-        return givenBid(adm());
     }
 
     public static EventsContext givenEventsContext(boolean accountEnabled) {

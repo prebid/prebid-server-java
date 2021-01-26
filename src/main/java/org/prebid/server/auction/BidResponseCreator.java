@@ -28,7 +28,6 @@ import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
@@ -41,6 +40,8 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -83,7 +84,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -103,7 +103,8 @@ public class BidResponseCreator {
     private final VastModifier vastModifier;
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
-    private final boolean generateBidId;
+    private final BidResponseReducer bidResponseReducer;
+    private final IdGenerator bidIdGenerator;
     private final int truncateAttrChars;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -117,7 +118,8 @@ public class BidResponseCreator {
                               VastModifier vastModifier,
                               EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
-                              boolean generateBidId,
+                              BidResponseReducer bidResponseReducer,
+                              IdGenerator bidIdGenerator,
                               int truncateAttrChars,
                               Clock clock,
                               JacksonMapper mapper) {
@@ -127,7 +129,8 @@ public class BidResponseCreator {
         this.vastModifier = Objects.requireNonNull(vastModifier);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
-        this.generateBidId = generateBidId;
+        this.bidResponseReducer = Objects.requireNonNull(bidResponseReducer);
+        this.bidIdGenerator = Objects.requireNonNull(bidIdGenerator);
         this.truncateAttrChars = validateTruncateAttrChars(truncateAttrChars);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -178,7 +181,6 @@ public class BidResponseCreator {
         if (truncateAttrChars < 0 || truncateAttrChars > 255) {
             throw new IllegalArgumentException("truncateAttrChars must be between 0 and 255");
         }
-
         return truncateAttrChars;
     }
 
@@ -199,28 +201,29 @@ public class BidResponseCreator {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
-        bidderResponses.forEach(BidResponseCreator::removeRedundantBids);
-
-        ExtRequestTargeting targeting = targeting(bidRequest);
-        final Set<Bid> winningBids = newOrEmptySet(targeting);
-        final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
-
-        // determine winning bids only if targeting is present
-        if (targeting != null) {
-            populateWinningBids(bidderResponses, winningBids, winningBidsByBidder);
-        }
+        final List<BidderResponse> updatedBidderResponses = bidderResponses.stream()
+                .map(bidResponseReducer::removeRedundantBids)
+                .collect(Collectors.toList());
 
         final List<Imp> imps = bidRequest.getImp();
-        final Set<BidInfo> bidInfos = bidderResponses.stream()
-                .map(bidderResponse -> toBidInfo(bidderResponse, imps))
+        final Map<BidderResponse, List<BidInfo>> bidResponseToBidInfos = updatedBidderResponses.stream()
+                .collect(Collectors.toMap(Function.identity(), bidderResponse -> toBidInfo(bidderResponse, imps)));
+
+        final Set<BidInfo> bidInfos = bidResponseToBidInfos.values().stream()
+                .filter(CollectionUtils::isNotEmpty)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
 
-        final Set<BidInfo> bidsToCache = !cacheInfo.isShouldCacheWinningBidsOnly()
-                ? bidInfos
-                : bidInfos.stream()
-                        .filter(bidInfo -> winningBids.contains(bidInfo.getBid()))
-                        .collect(Collectors.toSet());
+        final ExtRequestTargeting targeting = targeting(bidRequest);
+        final Set<BidInfo> winningBids = newOrEmptySet(targeting);
+        final Set<BidInfo> winningBidsByBidder = newOrEmptySet(targeting);
+
+        // determine winning bids only if targeting is present
+        if (targeting != null) {
+            populateWinningBids(bidInfos, winningBids, winningBidsByBidder);
+        }
+
+        final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBids : bidInfos;
 
         final EventsContext eventsContext = EventsContext.builder()
                 .enabledForAccount(eventsEnabledForAccount(auctionContext))
@@ -229,14 +232,10 @@ public class BidResponseCreator {
                 .integration(integrationFrom(auctionContext))
                 .build();
 
-        return cacheBids(
-                bidsToCache,
-                auctionContext,
-                cacheInfo,
-                eventsContext)
+        return cacheBids(bidsToCache, auctionContext, cacheInfo, eventsContext)
                 .compose(cacheResult -> videoStoredDataResult(auctionContext)
                         .map(videoStoredDataResult -> toBidResponse(
-                                bidderResponses,
+                                bidResponseToBidInfos,
                                 auctionContext,
                                 targeting,
                                 winningBids,
@@ -255,7 +254,7 @@ public class BidResponseCreator {
         return prebid != null ? prebid.getTargeting() : null;
     }
 
-    private static List<BidInfo> toBidInfo(BidderResponse bidderResponse, List<Imp> imps) {
+    private List<BidInfo> toBidInfo(BidderResponse bidderResponse, List<Imp> imps) {
         return Stream.of(bidderResponse)
                 .map(BidderResponse::getSeatBid)
                 .filter(Objects::nonNull)
@@ -266,8 +265,9 @@ public class BidResponseCreator {
                 .collect(Collectors.toList());
     }
 
-    private static BidInfo toBidInfo(Bid bid, BidType type, List<Imp> imps, String bidder) {
+    private BidInfo toBidInfo(Bid bid, BidType type, List<Imp> imps, String bidder) {
         return BidInfo.builder()
+                .generatedBidId(bidIdGenerator.getType() != IdGeneratorType.none ? bidIdGenerator.generateId() : null)
                 .bid(bid)
                 .bidType(type)
                 .bidder(bidder)
@@ -299,7 +299,7 @@ public class BidResponseCreator {
      * Returns {@link ExtBidResponse} object, populated with response time, errors and debug info (if requested)
      * from all bidders.
      */
-    private ExtBidResponse toExtBidResponse(List<BidderResponse> bidderResponses,
+    private ExtBidResponse toExtBidResponse(Collection<BidderResponse> bidderResponses,
                                             AuctionContext auctionContext,
                                             CacheServiceResult cacheResult,
                                             VideoStoredDataResult videoStoredDataResult,
@@ -320,43 +320,10 @@ public class BidResponseCreator {
                 ExtBidResponsePrebid.of(auctionTimestamp));
     }
 
-    private static void removeRedundantBids(BidderResponse bidderResponse) {
-        final List<BidderBid> responseBidderBids = bidderResponse.getSeatBid().getBids();
-        if (responseBidderBids.size() < 2) { // no reason for removing if only one bid was responded
-            return;
-        }
-
-        final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
-                .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
-
-        final Set<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
-                .map(BidResponseCreator::mostValuableBid)
-                .collect(Collectors.toSet());
-
-        responseBidderBids.clear();
-        responseBidderBids.addAll(mostValuableBids);
-    }
-
-    private static BidderBid mostValuableBid(List<BidderBid> bidderBids) {
-        if (bidderBids.size() == 1) {
-            return bidderBids.get(0);
-        }
-
-        final List<BidderBid> dealBidderBids = bidderBids.stream()
-                .filter(bidderBid -> StringUtils.isNotBlank(bidderBid.getBid().getDealid()))
-                .collect(Collectors.toList());
-
-        List<BidderBid> processedBidderBids = dealBidderBids.isEmpty() ? bidderBids : dealBidderBids;
-
-        return processedBidderBids.stream()
-                .max(Comparator.comparing(bidderBid -> bidderBid.getBid().getPrice(), Comparator.naturalOrder()))
-                .orElse(bidderBids.get(0));
-    }
-
     /**
      * Returns new {@link HashSet} in case of existing keywordsCreator or empty collection if null.
      */
-    private static Set<Bid> newOrEmptySet(ExtRequestTargeting targeting) {
+    private static Set<BidInfo> newOrEmptySet(ExtRequestTargeting targeting) {
         return targeting != null ? new HashSet<>() : Collections.emptySet();
     }
 
@@ -369,62 +336,32 @@ public class BidResponseCreator {
      * <p>
      * Winning bid is the one with the highest price.
      */
-    private static void populateWinningBids(List<BidderResponse> bidderResponses,
-                                            Set<Bid> winningBids,
-                                            Set<Bid> winningBidsByBidder) {
-        final Map<String, Bid> winningBidsMap = new HashMap<>(); // impId -> Bid
-        final Map<String, Map<String, Bid>> winningBidsByBidderMap = new HashMap<>(); // impId -> [bidder -> Bid]
+    private static void populateWinningBids(Set<BidInfo> bidInfos,
+                                            Set<BidInfo> winningBids,
+                                            Set<BidInfo> winningBidsByBidder) {
+        final Map<String, Map<String, BidInfo>> impIdToBidderToBidInfo = bidInfos.stream()
+                .collect(Collectors.groupingBy(
+                        bidInfo -> bidInfo.getCorrespondingImp().getId(),
+                        Collectors.toMap(BidInfo::getBidder, Function.identity(), BidResponseCreator::winningBidInfo)));
 
-        for (BidderResponse bidderResponse : bidderResponses) {
-            final String bidder = bidderResponse.getBidder();
+        impIdToBidderToBidInfo.values().stream()
+                .map(Map::values)
+                .flatMap(Collection::stream)
+                .forEach(winningBidsByBidder::add);
 
-            for (BidderBid bidderBid : bidderResponse.getSeatBid().getBids()) {
-                final Bid bid = bidderBid.getBid();
+        for (Map<String, BidInfo> bidderToBidInfo : impIdToBidderToBidInfo.values()) {
+            winningBidsByBidder.addAll(bidderToBidInfo.values());
 
-                tryAddWinningBid(bid, winningBidsMap);
-                tryAddWinningBidByBidder(bid, bidder, winningBidsByBidderMap);
-            }
-        }
-
-        winningBids.addAll(winningBidsMap.values());
-
-        final List<Bid> bidsByBidder = winningBidsByBidderMap.values().stream()
-                .flatMap(bidsByBidderMap -> bidsByBidderMap.values().stream())
-                .collect(Collectors.toList());
-        winningBidsByBidder.addAll(bidsByBidder);
-    }
-
-    /**
-     * Tries to add a winning bid for each impId.
-     */
-    private static void tryAddWinningBid(Bid bid, Map<String, Bid> winningBids) {
-        final String impId = bid.getImpid();
-
-        if (!winningBids.containsKey(impId) || bid.getPrice().compareTo(winningBids.get(impId).getPrice()) > 0) {
-            winningBids.put(impId, bid);
+            bidderToBidInfo.values().stream()
+                    .max(Comparator.comparing(o -> o.getBid().getPrice()))
+                    .ifPresent(winningBids::add);
         }
     }
 
-    /**
-     * Tries to add a winning bid for each impId for separate bidder.
-     */
-    private static void tryAddWinningBidByBidder(Bid bid, String bidder,
-                                                 Map<String, Map<String, Bid>> winningBidsByBidder) {
-        final String impId = bid.getImpid();
-
-        if (!winningBidsByBidder.containsKey(impId)) {
-            final Map<String, Bid> bidsByBidder = new HashMap<>();
-            bidsByBidder.put(bidder, bid);
-
-            winningBidsByBidder.put(impId, bidsByBidder);
-        } else {
-            final Map<String, Bid> bidsByBidder = winningBidsByBidder.get(impId);
-
-            if (!bidsByBidder.containsKey(bidder)
-                    || bid.getPrice().compareTo(bidsByBidder.get(bidder).getPrice()) > 0) {
-                bidsByBidder.put(bidder, bid);
-            }
-        }
+    private static BidInfo winningBidInfo(BidInfo bidInfo1, BidInfo bidInfo2) {
+        final Bid bid1 = bidInfo1.getBid();
+        final Bid bid2 = bidInfo2.getBid();
+        return bid1.getPrice().compareTo(bid2.getPrice()) > 0 ? bidInfo1 : bidInfo2;
     }
 
     /**
@@ -488,10 +425,11 @@ public class BidResponseCreator {
         return cacheResult;
     }
 
-    private static Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponse> bidderResponses,
+    private static Map<String, List<ExtHttpCall>> toExtHttpCalls(Collection<BidderResponse> bidderResponses,
                                                                  CacheServiceResult cacheResult) {
         final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
-                .collect(Collectors.toMap(BidderResponse::getBidder,
+                .collect(Collectors.toMap(
+                        BidderResponse::getBidder,
                         bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));
 
         final DebugHttpCall httpCall = cacheResult.getHttpCall();
@@ -515,16 +453,15 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private Map<String, List<ExtBidderError>> toExtBidderErrors(List<BidderResponse> bidderResponses,
+    private Map<String, List<ExtBidderError>> toExtBidderErrors(Collection<BidderResponse> bidderResponses,
                                                                 AuctionContext auctionContext,
                                                                 CacheServiceResult cacheResult,
                                                                 VideoStoredDataResult videoStoredDataResult,
                                                                 Map<String, List<ExtBidderError>> bidErrors) {
-        final BidRequest bidRequest = auctionContext.getBidRequest();
         final Map<String, List<ExtBidderError>> errors = new HashMap<>();
 
         errors.putAll(extractBidderErrors(bidderResponses));
-        errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
+        errors.putAll(extractDeprecatedBiddersErrors(auctionContext.getBidRequest()));
         errors.putAll(extractPrebidErrors(videoStoredDataResult, auctionContext));
         errors.putAll(extractCacheErrors(cacheResult));
         if (MapUtils.isNotEmpty(bidErrors)) {
@@ -537,7 +474,7 @@ public class BidResponseCreator {
     /**
      * Returns a map with bidder name as a key and list of {@link ExtBidderError}s as a value.
      */
-    private static Map<String, List<ExtBidderError>> extractBidderErrors(List<BidderResponse> bidderResponses) {
+    private static Map<String, List<ExtBidderError>> extractBidderErrors(Collection<BidderResponse> bidderResponses) {
         return bidderResponses.stream()
                 .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors()))
                 .collect(Collectors.toMap(BidderResponse::getBidder,
@@ -641,7 +578,7 @@ public class BidResponseCreator {
     /**
      * Returns a map with response time by bidders and cache.
      */
-    private static Map<String, Integer> toResponseTimes(List<BidderResponse> bidderResponses,
+    private static Map<String, Integer> toResponseTimes(Collection<BidderResponse> bidderResponses,
                                                         CacheServiceResult cacheResult) {
         final Map<String, Integer> responseTimeMillis = bidderResponses.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
@@ -657,11 +594,11 @@ public class BidResponseCreator {
     /**
      * Returns {@link BidResponse} based on list of {@link BidderResponse}s and {@link CacheServiceResult}.
      */
-    private BidResponse toBidResponse(List<BidderResponse> bidderResponses,
+    private BidResponse toBidResponse(Map<BidderResponse, List<BidInfo>> bidResponseToBidInfos,
                                       AuctionContext auctionContext,
                                       ExtRequestTargeting targeting,
-                                      Set<Bid> winningBids,
-                                      Set<Bid> winningBidsByBidder,
+                                      Set<BidInfo> winningBids,
+                                      Set<BidInfo> winningBidsByBidder,
                                       BidRequestCacheInfo requestCacheInfo,
                                       CacheServiceResult cacheResult,
                                       VideoStoredDataResult videoStoredDataResult,
@@ -673,10 +610,10 @@ public class BidResponseCreator {
         final Account account = auctionContext.getAccount();
 
         final Map<String, List<ExtBidderError>> bidErrors = new HashMap<>();
-        final List<SeatBid> seatBids = bidderResponses.stream()
-                .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
-                .map(bidderResponse -> toSeatBid(
-                        bidderResponse,
+        final List<SeatBid> seatBids = bidResponseToBidInfos.values().stream()
+                .filter(CollectionUtils::isNotEmpty)
+                .map(bidInfos -> toSeatBid(
+                        bidInfos,
                         targeting,
                         bidRequest,
                         winningBids,
@@ -690,7 +627,7 @@ public class BidResponseCreator {
                 .collect(Collectors.toList());
 
         final ExtBidResponse extBidResponse = toExtBidResponse(
-                bidderResponses,
+                bidResponseToBidInfos.keySet(),
                 auctionContext,
                 cacheResult,
                 videoStoredDataResult,
@@ -752,11 +689,11 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link SeatBid} for a bidder. It will contain all the bids supplied by a bidder and a "bidder"
      * extension field populated.
      */
-    private SeatBid toSeatBid(BidderResponse bidderResponse,
+    private SeatBid toSeatBid(List<BidInfo> bidInfos,
                               ExtRequestTargeting targeting,
                               BidRequest bidRequest,
-                              Set<Bid> winningBids,
-                              Set<Bid> winningBidsByBidder,
+                              Set<BidInfo> winningBids,
+                              Set<BidInfo> winningBidsByBidder,
                               BidRequestCacheInfo requestCacheInfo,
                               Map<Bid, CacheInfo> bidToCacheInfo,
                               VideoStoredDataResult videoStoredDataResult,
@@ -764,12 +701,15 @@ public class BidResponseCreator {
                               Map<String, List<ExtBidderError>> bidErrors,
                               EventsContext eventsContext) {
 
-        final String bidder = bidderResponse.getBidder();
+        final String bidder = bidInfos.stream()
+                .map(BidInfo::getBidder)
+                .findFirst()
+                // Should never occur
+                .orElseThrow(() -> new IllegalArgumentException("Bidder was not defined for bidInfo"));
 
-        final List<Bid> bids = bidderResponse.getSeatBid().getBids().stream()
-                .map(bidderBid -> toBid(
-                        bidderBid,
-                        bidder,
+        final List<Bid> bids = bidInfos.stream()
+                .map(bidInfo -> toBid(
+                        bidInfo,
                         targeting,
                         bidRequest,
                         winningBids,
@@ -793,25 +733,24 @@ public class BidResponseCreator {
     /**
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
-    private Bid toBid(BidderBid bidderBid,
-                      String bidder,
+    private Bid toBid(BidInfo bidInfo,
                       ExtRequestTargeting targeting,
                       BidRequest bidRequest,
-                      Set<Bid> winningBids,
-                      Set<Bid> winningBidsByBidder,
+                      Set<BidInfo> winningBids,
+                      Set<BidInfo> winningBidsByBidder,
                       BidRequestCacheInfo requestCacheInfo,
                       Map<Bid, CacheInfo> bidsWithCacheIds,
                       Map<String, Video> impIdToStoredVideo,
                       Account account,
                       EventsContext eventsContext,
                       Map<String, List<ExtBidderError>> bidErrors) {
-
-        final Bid bid = bidderBid.getBid();
-        final BidType bidType = bidderBid.getType();
+        final Bid bid = bidInfo.getBid();
+        final BidType bidType = bidInfo.getBidType();
+        final String bidder = bidInfo.getBidder();
 
         // preliminary variables are needed because bid is changing below, so we can lost it in winning bids sets
-        final boolean isWinningBid = winningBids.contains(bid);
-        final boolean isWinningBidByBidder = winningBidsByBidder.contains(bid);
+        final boolean isWinningBid = winningBids.contains(bidInfo);
+        final boolean isWinningBidByBidder = winningBidsByBidder.contains(bidInfo);
 
         final CacheInfo cacheInfo = bidsWithCacheIds.get(bid);
         final String cacheId = cacheInfo != null ? cacheInfo.getCacheId() : null;
@@ -821,7 +760,14 @@ public class BidResponseCreator {
                 || (cacheId != null && !requestCacheInfo.isReturnCreativeBids())) {
             bid.setAdm(null);
         } else if (bidType.equals(BidType.video)) {
-            final String adm = vastModifier.createBidVastXml(bid, bidder, account.getId(), eventsContext);
+            final String adm = vastModifier.createBidVastXml(
+                    bidder,
+                    bid.getAdm(),
+                    bid.getNurl(),
+                    bidInfo.getBidId(),
+                    account.getId(),
+                    eventsContext);
+
             bid.setAdm(adm);
         }
 
@@ -851,14 +797,12 @@ public class BidResponseCreator {
         final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
         final ExtResponseCache cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
 
-        final String generatedBidId = generateBidId ? UUID.randomUUID().toString() : null;
-        final String eventBidId = ObjectUtils.defaultIfNull(generatedBidId, bid.getId());
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = createEvents(bidder, account, eventBidId, eventsContext);
+        final Events events = createEvents(bidder, account, bidInfo.getBidId(), eventsContext);
         final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .bidid(generatedBidId)
+                .bidid(bidInfo.getGeneratedBidId())
                 .type(bidType)
                 .targeting(targetingKeywords)
                 .cache(cache)
@@ -1002,8 +946,10 @@ public class BidResponseCreator {
      * Extracts targeting keywords settings from the bid request and creates {@link TargetingKeywordsCreator}
      * instance if it is present.
      */
-    private TargetingKeywordsCreator keywordsCreator(
-            ExtRequestTargeting targeting, boolean isApp, BidRequest bidRequest, Account account) {
+    private TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting,
+                                                     boolean isApp,
+                                                     BidRequest bidRequest,
+                                                     Account account) {
 
         final JsonNode priceGranularityNode = targeting.getPricegranularity();
         return priceGranularityNode == null || priceGranularityNode.isNull()
@@ -1021,7 +967,6 @@ public class BidResponseCreator {
                                                                             Account account) {
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
-
         if (mediaTypePriceGranularity == null) {
             return Collections.emptyMap();
         }

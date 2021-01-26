@@ -2,7 +2,6 @@ package org.prebid.server.vast;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -45,13 +44,17 @@ public class VastModifier {
         return value;
     }
 
-    public String createBidVastXml(Bid bid, String bidder, String accountId, EventsContext eventsContext) {
-        final String bidAdm = bid.getAdm();
+    public String createBidVastXml(String bidder,
+                                   String bidAdm,
+                                   String bidNurl,
+                                   String eventBidId,
+                                   String accountId,
+                                   EventsContext eventsContext) {
         if (!bidderCatalog.isModifyingVastXmlAllowed(bidder)) {
             return bidAdm;
         }
 
-        final String vastXml = resolveVastXmlFrom(bidAdm, bid.getNurl());
+        final String vastXml = resolveVastXmlFrom(bidAdm, bidNurl);
         if (!eventsContext.isEnabledForAccount()) {
             return vastXml;
         }
@@ -59,8 +62,8 @@ public class VastModifier {
         final Long auctionTimestamp = eventsContext.getAuctionTimestamp();
         final String integration = eventsContext.getIntegration();
 
-        final String bidId = bid.getId();
-        final String vastUrl = eventsService.vastUrlTracking(bidId, bidder, accountId, auctionTimestamp, integration);
+        final String vastUrl = eventsService.vastUrlTracking(eventBidId, bidder, accountId, auctionTimestamp,
+                integration);
         return appendTrackingUrlToVastXml(vastXml, vastUrl);
     }
 

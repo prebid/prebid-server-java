@@ -53,6 +53,7 @@ public abstract class IntegrationTest extends VertxTest {
     public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(options()
             .port(WIREMOCK_PORT)
             .gzipDisabled(true)
+            .jettyStopTimeout(5000L)
             .extensions(IntegrationTest.CacheResponseTransformer.class));
 
     @Rule

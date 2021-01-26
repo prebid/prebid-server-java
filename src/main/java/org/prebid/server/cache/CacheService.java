@@ -447,7 +447,7 @@ public class CacheService {
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
 
-        final String eventUrl = generateWinUrl(bid, bidInfo.getBidder(), accountId, eventsContext);
+        final String eventUrl = generateWinUrl(bidInfo.getBidId(), bidInfo.getBidder(), accountId, eventsContext);
         if (eventUrl != null) {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }
@@ -458,7 +458,7 @@ public class CacheService {
                 .expiry(cacheBid.getTtl())
                 .build();
 
-        return CachedCreative.of(payload, creativeSizeFromAdm(bid));
+        return CachedCreative.of(payload, creativeSizeFromAdm(bid.getAdm()));
     }
 
     /**
@@ -468,8 +468,14 @@ public class CacheService {
                                                      String accountId,
                                                      EventsContext eventsContext) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
-        final String bidder = bidInfo.getBidder();
-        final String vastXml = vastModifier.createBidVastXml(bidInfo.getBid(), bidder, accountId, eventsContext);
+        final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
+        final String vastXml = vastModifier.createBidVastXml(
+                bidInfo.getBidder(),
+                bid.getAdm(),
+                bid.getNurl(),
+                bidInfo.getBidId(),
+                accountId,
+                eventsContext);
 
         final PutObject payload = PutObject.builder()
                 .type("xml")
@@ -480,13 +486,12 @@ public class CacheService {
         return CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue()));
     }
 
-    private String generateWinUrl(com.iab.openrtb.response.Bid bid,
+    private String generateWinUrl(String bidId,
                                   String bidder,
                                   String accountId,
                                   EventsContext eventsContext) {
 
         if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
-            final String bidId = bid.getId();
             return eventsService.winUrl(
                     bidId,
                     bidder,
@@ -654,8 +659,8 @@ public class CacheService {
         }
     }
 
-    private static int creativeSizeFromAdm(com.iab.openrtb.response.Bid bid) {
-        return lengthOrZero(bid.getAdm());
+    private static int creativeSizeFromAdm(String adm) {
+        return lengthOrZero(adm);
     }
 
     private static int creativeSizeFromAdm(Bid bid) {

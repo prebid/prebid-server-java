@@ -45,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -59,6 +60,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -129,6 +131,7 @@ public class RequestValidator {
                 validateBidAdjustmentFactors(
                         ObjectUtils.defaultIfNull(extRequestPrebid.getBidadjustmentfactors(), Collections.emptyMap()),
                         aliases);
+                validateSchains(extRequestPrebid.getSchains());
             }
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
@@ -198,6 +201,35 @@ public class RequestValidator {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %s",
                         bidder, format(adjustmentFactor));
+            }
+        }
+    }
+
+    private void validateSchains(List<ExtRequestPrebidSchain> schains) throws ValidationException {
+        if (schains == null) {
+            return;
+        }
+
+        final Set<String> schainBidders = new HashSet<>();
+        for (final ExtRequestPrebidSchain schain : schains) {
+            if (schain == null) {
+                continue;
+            }
+
+            final List<String> bidders = schain.getBidders();
+            if (bidders == null) {
+                continue;
+            }
+
+            for (final String bidder : bidders) {
+                if (schainBidders.contains(bidder)) {
+                    throw new ValidationException(
+                            "request.ext.prebid.schains contains multiple schains for bidder %s; "
+                                    + "it must contain no more than one per bidder.",
+                            bidder);
+                }
+
+                schainBidders.add(bidder);
             }
         }
     }

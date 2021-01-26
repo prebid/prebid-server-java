@@ -10,6 +10,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 @Value
 public class BidInfo {
 
+    String generatedBidId;
+
     Bid bid;
 
     Imp correspondingImp;
@@ -17,4 +19,8 @@ public class BidInfo {
     String bidder;
 
     BidType bidType;
+
+    public String getBidId() {
+        return generatedBidId != null ? generatedBidId : bid.getId();
+    }
 }
