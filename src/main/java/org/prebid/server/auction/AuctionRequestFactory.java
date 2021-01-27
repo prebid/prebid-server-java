@@ -2,7 +2,6 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -404,44 +403,37 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (domain, page).
      */
     private Site populateSite(Site site, HttpServerRequest request) {
-        Site result = null;
-
         final String page = site != null ? site.getPage() : null;
+        final String updatedPage = StringUtils.isBlank(page) ? paramsExtractor.refererFrom(request) : null;
+
         final String domain = site != null ? site.getDomain() : null;
-        final ExtSite siteExt = site != null ? site.getExt() : null;
-        final ObjectNode data = siteExt != null ? siteExt.getData() : null;
-        final boolean shouldSetExtAmp = siteExt == null || siteExt.getAmp() == null;
-        final ExtSite modifiedSiteExt = shouldSetExtAmp
-                ? ExtSite.of(0, data)
+        final String updatedDomain = StringUtils.isBlank(domain)
+                ? getDomainOrNull(ObjectUtils.defaultIfNull(updatedPage, page))
                 : null;
 
-        String referer = null;
-        String parsedDomain = null;
-        if (StringUtils.isBlank(page) || StringUtils.isBlank(domain)) {
-            referer = paramsExtractor.refererFrom(request);
-            if (StringUtils.isNotBlank(referer)) {
-                try {
-                    parsedDomain = paramsExtractor.domainFrom(referer);
-                } catch (PreBidException e) {
-                    logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
-                    logger.debug("Error occurred while populating bid request", e);
-                }
-            }
-        }
-        final boolean shouldModifyPageOrDomain = referer != null && parsedDomain != null;
+        final ExtSite siteExt = site != null ? site.getExt() : null;
+        final ExtSite updatedSiteExt = siteExt == null || siteExt.getAmp() == null
+                ? ExtSite.of(0, getIfNotNull(siteExt, ExtSite::getData))
+                : null;
 
-        if (shouldModifyPageOrDomain || shouldSetExtAmp) {
-            final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
-            if (shouldModifyPageOrDomain) {
-                builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
-                builder.page(StringUtils.isNotBlank(page) ? page : referer);
-            }
-            if (shouldSetExtAmp) {
-                builder.ext(modifiedSiteExt);
-            }
-            result = builder.build();
+        if (updatedPage != null || updatedDomain != null || updatedSiteExt != null) {
+            return (site == null ? Site.builder() : site.toBuilder())
+                    // do not set page if domain was not parsed successfully
+                    .page(domain == null && updatedDomain == null ? page : ObjectUtils.defaultIfNull(updatedPage, page))
+                    .domain(ObjectUtils.defaultIfNull(updatedDomain, domain))
+                    .ext(ObjectUtils.defaultIfNull(updatedSiteExt, siteExt))
+                    .build();
         }
-        return result;
+        return null;
+    }
+
+    private String getDomainOrNull(String url) {
+        try {
+            return paramsExtractor.domainFrom(url);
+        } catch (PreBidException e) {
+            logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
+            return null;
+        }
     }
 
     /**

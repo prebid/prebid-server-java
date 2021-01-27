@@ -26,8 +26,8 @@
     }
   ],
   "site": {
-    "domain": "example.com",
-    "page": "prebid.com",
+    "domain": "prebid.com",
+    "page": "https://prebid.com",
     "content": {
       "episode": 6,
       "title": "episodeName",
