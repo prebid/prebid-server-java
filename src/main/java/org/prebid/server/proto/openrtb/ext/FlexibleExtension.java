@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.apache.commons.collections4.MapUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,15 +19,7 @@ public abstract class FlexibleExtension {
             new TypeReference<Map<String, JsonNode>>() {
             };
 
-    private final Map<String, JsonNode> properties;
-
-    protected FlexibleExtension(Map<String, JsonNode> properties) {
-        this.properties = MapUtils.isNotEmpty(properties) ? new HashMap<>(properties) : new HashMap<>();
-    }
-
-    protected FlexibleExtension() {
-        this.properties = new HashMap<>();
-    }
+    private final Map<String, JsonNode> properties = new HashMap<>();
 
     public JsonNode getProperty(String property) {
         return properties.get(property);
