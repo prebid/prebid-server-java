@@ -60,14 +60,6 @@
         }
       },
       "auctiontimestamp": 1000
-    },
-    "ttx": {
-      "caller": [
-        {
-          "name": "testName",
-          "version": "testValue"
-        }
-      ]
     }
   },
   "user": {

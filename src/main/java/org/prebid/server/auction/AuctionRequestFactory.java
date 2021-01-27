@@ -498,7 +498,7 @@ public class AuctionRequestFactory {
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
 
-            final ExtRequest extRequest = ExtRequest.of(prebidBuilder
+            return ExtRequest.of(prebidBuilder
                     .aliases(ObjectUtils.defaultIfNull(updatedAliases,
                             getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
@@ -508,8 +508,6 @@ public class AuctionRequestFactory {
                     .channel(ObjectUtils.defaultIfNull(updatedChannel,
                             getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
                     .build());
-            extRequest.addProperties(ext.getProperties());
-            return extRequest;
         }
 
         return null;

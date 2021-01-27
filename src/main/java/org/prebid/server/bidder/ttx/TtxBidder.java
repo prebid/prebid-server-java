@@ -17,17 +17,14 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.ttx.proto.TtxCaller;
 import org.prebid.server.bidder.ttx.proto.TtxImpExt;
 import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
-import org.prebid.server.bidder.ttx.proto.TtxRequestExt;
 import org.prebid.server.bidder.ttx.response.TtxBidExt;
 import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -47,8 +44,6 @@ public class TtxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTtx>> TTX_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTtx>>() {
             };
-    private static final TtxCaller CALLER = TtxCaller.of("Prebid-Server", "n/a");
-    private static final String TTX_REQUEST_EXT_PROPERTY = "ttx";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -62,45 +57,18 @@ public class TtxBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
-        ExtRequest reqExt;
-
-        try {
-            reqExt = updateExtRequest(request.getExt());
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            reqExt = null;
-        }
 
         for (Imp imp : request.getImp()) {
             try {
                 validateImp(imp);
                 final ExtImpTtx extImpTtx = parseImpExt(imp);
                 final Imp updatedImp = updateImp(imp, extImpTtx);
-                requests.add(createRequest(request, updatedImp, reqExt));
+                requests.add(createRequest(request, updatedImp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
         return Result.of(requests, errors);
-    }
-
-    private ExtRequest updateExtRequest(ExtRequest reqExt) {
-        final ExtRequest updatedRequest = reqExt != null ? reqExt : ExtRequest.empty();
-        TtxRequestExt ttxRequestExt;
-        try {
-            ttxRequestExt = mapper.mapper().convertValue(
-                    updatedRequest.getProperty(TTX_REQUEST_EXT_PROPERTY), TtxRequestExt.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-        if (ttxRequestExt == null || CollectionUtils.isEmpty(ttxRequestExt.getCaller())) {
-            ttxRequestExt = TtxRequestExt.of(Collections.singletonList(CALLER));
-        } else {
-            ttxRequestExt.getCaller().add(CALLER);
-        }
-
-        updatedRequest.addProperty(TTX_REQUEST_EXT_PROPERTY, mapper.mapper().valueToTree(ttxRequestExt));
-        return updatedRequest;
     }
 
     private void validateImp(Imp imp) {
@@ -170,9 +138,8 @@ public class TtxBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ttxImpExt);
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request, Imp requestImp, ExtRequest extRequest) {
+    private HttpRequest<BidRequest> createRequest(BidRequest request, Imp requestImp) {
         final BidRequest modifiedRequest = request.toBuilder()
-                .ext(extRequest)
                 .imp(Collections.singletonList(requestImp))
                 .build();
 
@@ -212,7 +179,8 @@ public class TtxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private BidType getBidType(Bid bid) {
+    private BidType getBidType(Bid
+                                       bid) {
         try {
             final TtxBidExt ttxBidExt = mapper.mapper().convertValue(bid.getExt(), TtxBidExt.class);
             return ttxBidExt != null ? getBidTypeByTtx(ttxBidExt.getTtx()) : BidType.banner;

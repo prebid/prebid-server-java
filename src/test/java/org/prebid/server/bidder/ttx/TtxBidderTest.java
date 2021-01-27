@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.ttx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -18,14 +17,11 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.ttx.proto.TtxCaller;
 import org.prebid.server.bidder.ttx.proto.TtxImpExt;
 import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
-import org.prebid.server.bidder.ttx.proto.TtxRequestExt;
 import org.prebid.server.bidder.ttx.response.TtxBidExt;
 import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 
 import java.util.List;
@@ -127,57 +123,6 @@ public class TtxBidderTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .containsExactly(
                         mapper.valueToTree(TtxImpExt.of(TtxImpExtTtx.of("productId", "zoneId"))));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotChangeRequestExtIfCallersListIsNotEmpty() {
-        // given
-        final ExtRequest extRequest = ExtRequest.empty();
-        final TtxRequestExt extTtx = TtxRequestExt.of(singletonList(TtxCaller.of("testName", "testVersion")));
-        JsonNode extRequestTtx = mapper.valueToTree(extTtx);
-        extRequest.addProperty("ttx", extRequestTtx);
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(identity())))
-                .ext(extRequest)
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
-
-        // then
-        final TtxRequestExt expectedExtTtx = TtxRequestExt.of(asList(
-                TtxCaller.of("testName", "testVersion"),
-                TtxCaller.of("Prebid-Server", "n/a")));
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt)
-                .extracting(ext -> mapper.convertValue(ext.getProperty("ttx"), TtxRequestExt.class))
-                .containsExactly(expectedExtTtx);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldChangeRequestExtIfCallersListIsEmpty() {
-        // given
-        final ExtRequest extRequest = ExtRequest.empty();
-        final TtxRequestExt extTtx = TtxRequestExt.of(singletonList(TtxCaller.of("Prebid-Server", "n/a")));
-        JsonNode extRequestTtx = mapper.valueToTree(extTtx);
-        extRequest.addProperty("ttx", extRequestTtx);
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(identity())))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt)
-                .extracting(ext -> mapper.convertValue(ext.getProperty("ttx"), TtxRequestExt.class))
-                .containsExactly(extTtx);
     }
 
     @Test
