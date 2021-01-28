@@ -403,11 +403,11 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (domain, page).
      */
     private Site populateSite(Site site, HttpServerRequest request) {
-        final String page = site != null ? site.getPage() : null;
-        final String updatedPage = StringUtils.isBlank(page) ? paramsExtractor.refererFrom(request) : null;
+        final String page = site != null ? StringUtils.trimToNull(site.getPage()) : null;
+        final String updatedPage = page == null ? paramsExtractor.refererFrom(request) : null;
 
-        final String domain = site != null ? site.getDomain() : null;
-        final String updatedDomain = StringUtils.isBlank(domain)
+        final String domain = site != null ? StringUtils.trimToNull(site.getDomain()) : null;
+        final String updatedDomain = domain == null
                 ? getDomainOrNull(ObjectUtils.defaultIfNull(updatedPage, page))
                 : null;
 
