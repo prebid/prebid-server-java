@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.rubicon;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -47,8 +46,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBidders;
 import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBiddersBidder;
 import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBiddersBidderDebug;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
-import org.prebid.server.bidder.rubicon.proto.RubiconImpExtPrebidBidder;
-import org.prebid.server.bidder.rubicon.proto.RubiconImpExtPrebidRubiconDebug;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
@@ -81,6 +78,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUidExt;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -117,7 +115,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
-    private static final String PREBID_EXT = "prebid";
 
     private static final String ADSERVER_EID = "adserver.org";
     private static final String LIVEINTENT_EID = "liveintent.com";
@@ -1130,29 +1127,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Float cpmOverrideFromImp(Imp imp) {
-        final JsonNode extImpPrebidNode = imp.getExt().get(PREBID_EXT);
-        final ExtImpPrebid prebid = extImpPrebidNode != null ? extImpPrebid(extImpPrebidNode) : null;
-        final RubiconImpExtPrebidBidder bidder = prebid != null
-                ? extImpPrebidBidder(prebid.getBidder())
-                : null;
-        final RubiconImpExtPrebidRubiconDebug debug = bidder != null ? bidder.getDebug() : null;
+        final ExtImpRubiconDebug debug = parseRubiconExt(imp).getBidder().getDebug();
+
         return debug != null ? debug.getCpmoverride() : null;
-    }
-
-    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
-        try {
-            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding imp.ext.prebid: %s", e.getMessage()), e);
-        }
-    }
-
-    private RubiconImpExtPrebidBidder extImpPrebidBidder(ObjectNode extImpPrebidBidder) {
-        try {
-            return mapper.mapper().treeToValue(extImpPrebidBidder, RubiconImpExtPrebidBidder.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding imp.ext.prebid.bidder: %s", e.getMessage()), e);
-        }
     }
 
     private static BidType bidType(BidRequest bidRequest) {

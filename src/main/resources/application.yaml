@@ -90,6 +90,7 @@ auction:
   validations:
     banner-creative-max-size: skip
     secure-markup: skip
+  host-schain-node:
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
