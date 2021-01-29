@@ -20,7 +20,6 @@
     }
   ],
   "site": {
-    "id": "site-id",
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
