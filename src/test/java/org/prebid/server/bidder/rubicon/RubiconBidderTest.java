@@ -466,7 +466,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBidFloorCurrencyToUSDIfNull() {
+    public void makeHttpRequestsShouldNotSetBidFloorCurrencyToUSDIfNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
@@ -484,7 +484,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsOnly(tuple(BigDecimal.ONE, "USD"));
+                .containsOnly(tuple(BigDecimal.ONE, null));
     }
 
     @Test

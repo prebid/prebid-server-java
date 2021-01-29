@@ -386,11 +386,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon, BidRequest bidRequest) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
 
-        final BigDecimal bidFloor = imp.getBidfloor();
-        if (bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0) {
+        final BigDecimal updatedBidFloor = makeBidFloor(imp, bidRequest);
+        if (updatedBidFloor != null) {
             impBuilder
                     .bidfloorcur(DEFAULT_CURRENCY)
-                    .bidfloor(resolveBidFloor(imp, bidRequest));
+                    .bidfloor(updatedBidFloor);
         }
 
         final App app = bidRequest.getApp();
@@ -412,13 +412,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return impBuilder.build();
     }
 
-    private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest) {
+    private BigDecimal makeBidFloor(Imp imp, BidRequest bidRequest) {
         final String bidFloorCurrency = resolveBidFloorCurrency(imp);
         final BigDecimal bidFloor = imp.getBidfloor();
         final boolean bidFloorExists = bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
-        return bidFloorExists && ObjectUtils.notEqual(bidFloorCurrency, DEFAULT_CURRENCY)
+        return bidFloorExists && bidFloorCurrency != null && ObjectUtils.notEqual(bidFloorCurrency, DEFAULT_CURRENCY)
                 ? convertBidFloorCurrency(imp, bidRequest, bidFloor, bidFloorCurrency)
-                : bidFloor;
+                : null;
     }
 
     private String resolveBidFloorCurrency(Imp imp) {
