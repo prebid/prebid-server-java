@@ -47,22 +47,11 @@ public class AdheseRequestBody {
     @JsonFormat(with = ACCEPT_SINGLE_VALUE_AS_ARRAY)
     public Map<String, List<String>> parameters = new TreeMap<>();
 
-    private Integer maxAds;
-
-    public Integer getMaxAds() {
-        return maxAds;
-    }
-
-    public void setMaxAds(Integer maxAds) {
-        this.maxAds = maxAds;
-    }
-
     @Override
     public String toString() {
         return "RequestBody{" +
                 "slots=" + slots +
                 ", parameters=" + parameters +
-                ", maxAds=" + maxAds +
                 '}';
     }
 
@@ -72,12 +61,11 @@ public class AdheseRequestBody {
         if (!(o instanceof AdheseRequestBody)) return false;
         AdheseRequestBody that = (AdheseRequestBody) o;
         return Objects.equals(slots, that.slots) &&
-                Objects.equals(parameters, that.parameters) &&
-                Objects.equals(maxAds, that.maxAds);
+                Objects.equals(parameters, that.parameters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(slots, parameters, maxAds);
+        return Objects.hash(slots, parameters);
     }
 }
