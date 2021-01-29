@@ -117,8 +117,10 @@ public class AdheseBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/ag55/cigent;brussels"
-                        + "/tlall/xtdummy/xzdum-my");
+                .containsOnly("https://ads-demo.adhese.com/json");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getBody)
+                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"ag\":[\"55\"],\"ci\":[\"gent\",\"brussels\"],\"tl\":[\"all\"],\"xt\":[\"dummy\"],\"xz\":[\"dum-my\"]}}");
     }
 
     @Test
@@ -139,7 +141,10 @@ public class AdheseBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xzifaValue");
+                .containsOnly("https://ads-demo.adhese.com/json");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getBody)
+                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"xz\":[\"ifaValue\"]}}");
     }
 
     @Test
@@ -160,7 +165,10 @@ public class AdheseBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xfpageValue");
+                .containsOnly("https://ads-demo.adhese.com/json");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getBody)
+                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"xf\":[\"pageValue\"]}}");
     }
 
     @Test
@@ -182,7 +190,10 @@ public class AdheseBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://ads-demo.adhese.com/json/sl_adhese_prebid_demo_-leaderboard/xtdummy");
+                .containsOnly("https://ads-demo.adhese.com/json");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getBody)
+                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"xt\":[\"dummy\"]}}");
     }
 
     @Test

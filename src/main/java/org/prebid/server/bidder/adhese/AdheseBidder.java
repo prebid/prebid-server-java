@@ -15,6 +15,8 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -57,9 +59,9 @@ public class AdheseBidder implements Bidder<Void> {
             };
 
     private static final String ORIGIN_BID = "JERLICIA";
-    private static final String GDPR_QUERY_PARAMETER = "/xt";
-    private static final String REFERER_QUERY_PARAMETER = "/xf";
-    private static final String IFA_QUERY_PARAMETER = "/xz";
+    private static final String GDPR_QUERY_PARAMETER = "xt";
+    private static final String REFERER_QUERY_PARAMETER = "xf";
+    private static final String IFA_QUERY_PARAMETER = "xz";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -82,12 +84,14 @@ public class AdheseBidder implements Bidder<Void> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = buildUrl(request, extImpAdhese);
+        final String uri = getUrl(extImpAdhese);
+
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
                         .method(HttpMethod.POST)
                         .uri(uri)
+                        .body(buildBody(request, extImpAdhese))
                         .headers(replaceHeaders(request.getDevice()))
                         .build()),
                 Collections.emptyList());
@@ -110,36 +114,41 @@ public class AdheseBidder implements Bidder<Void> {
         }
     }
 
-    private String buildUrl(BidRequest request, ExtImpAdhese extImpAdhese) {
-        return String.format("%s%s%s%s%s%s",
-                getUrl(extImpAdhese),
-                getSlotParameter(extImpAdhese),
-                getTargetParameters(extImpAdhese),
-                getGdprParameter(request.getUser()),
-                getRefererParameter(request.getSite()),
-                getIfaParameter(request.getDevice()));
+    private String buildBody(BidRequest request, ExtImpAdhese extImpAdhese) {
+        JsonObject main = new JsonObject();
+
+        JsonArray slotsArray = new JsonArray();
+        slotsArray.add(getSlotParameter(extImpAdhese));
+        main.put("slots", slotsArray);
+
+        JsonObject parameters = new JsonObject();
+        insertTargetParameters(extImpAdhese, parameters);
+        insertGdprParameter(request.getUser(), parameters);
+        insertRefererParameter(request.getSite(), parameters);
+        insertIfaParameter(request.getDevice(), parameters);
+        main.put("parameters", parameters);
+
+        return main.toString();
     }
 
     private String getUrl(ExtImpAdhese extImpAdhese) {
         return endpointUrl.replace("{{AccountId}}", extImpAdhese.getAccount());
     }
 
-    private static String getSlotParameter(ExtImpAdhese extImpAdhese) {
-        return String.format("/sl%s-%s",
+    private static JsonObject getSlotParameter(ExtImpAdhese extImpAdhese) {
+        JsonObject slots = new JsonObject();
+        slots.put("slotname", String.format("%s-%s",
                 HttpUtil.encodeUrl(extImpAdhese.getLocation()),
-                HttpUtil.encodeUrl(extImpAdhese.getFormat()));
+                HttpUtil.encodeUrl(extImpAdhese.getFormat())));
+        return slots;
     }
 
-    private String getTargetParameters(ExtImpAdhese extImpAdhese) {
+    private void insertTargetParameters(ExtImpAdhese extImpAdhese, JsonObject parameters) {
         final JsonNode targets = extImpAdhese.getTargets();
-        if (targets == null || targets.isNull()) {
-            return "";
+        if (!(targets == null || targets.isNull())) {
+            final Map<String, List<String>> targetParameters = parseTargetParametersAndSort(targets);
+            targetParameters.forEach((k, v) -> parameters.put(k, new JsonArray(v)));
         }
-
-        final Map<String, List<String>> targetParameters = parseTargetParametersAndSort(targets);
-        return targetParameters.entrySet().stream()
-                .map(entry -> createPartOrUrl(entry.getKey(), entry.getValue()))
-                .collect(Collectors.joining());
     }
 
     private Map<String, List<String>> parseTargetParametersAndSort(JsonNode targets) {
@@ -148,31 +157,26 @@ public class AdheseBidder implements Bidder<Void> {
                 }));
     }
 
-    private static String createPartOrUrl(String key, List<String> values) {
-        final String formattedValues = String.join(";", values);
-        return String.format("/%s%s", HttpUtil.encodeUrl(key), formattedValues);
-    }
-
-    private static String getGdprParameter(User user) {
+    private static void insertGdprParameter(User user, JsonObject parameters) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
-        return StringUtils.isNotBlank(consent)
-                ? String.format("%s%s", GDPR_QUERY_PARAMETER, consent)
-                : "";
+        if (StringUtils.isNotBlank(consent)) {
+            parameters.put(GDPR_QUERY_PARAMETER, new JsonArray(Collections.singletonList(consent)));
+        }
     }
 
-    private static String getRefererParameter(Site site) {
+    private static void insertRefererParameter(Site site, JsonObject parameters) {
         final String page = site != null ? site.getPage() : null;
-        return StringUtils.isNotBlank(page)
-                ? String.format("%s%s", REFERER_QUERY_PARAMETER, HttpUtil.encodeUrl(page))
-                : "";
+        if (StringUtils.isNotBlank(page)) {
+            parameters.put(REFERER_QUERY_PARAMETER, new JsonArray(Collections.singletonList(page)));
+        }
     }
 
-    private static String getIfaParameter(Device device) {
+    private static void insertIfaParameter(Device device, JsonObject parameters) {
         final String ifa = device != null ? device.getIfa() : null;
-        return StringUtils.isNotBlank(ifa)
-                ? String.format("%s%s", IFA_QUERY_PARAMETER, HttpUtil.encodeUrl(ifa))
-                : "";
+        if (StringUtils.isNotBlank(ifa)) {
+            parameters.put(IFA_QUERY_PARAMETER, new JsonArray(Collections.singletonList(ifa)));
+        }
     }
 
     @Override
