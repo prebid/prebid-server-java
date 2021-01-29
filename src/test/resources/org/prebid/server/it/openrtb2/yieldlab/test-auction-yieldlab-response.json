@@ -151,7 +151,6 @@
           }
         },
         "site": {
-          "domain": "example.com",
           "ext": {
             "amp": 0
           },

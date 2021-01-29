@@ -130,7 +130,7 @@ So far, our examples have only used Stored Imp data. However, Stored Requests
 are also allowed on the [BidRequest](https://www.iab.com/wp-content/uploads/2016/03/OpenRTB-API-Specification-Version-2-5-FINAL.pdf#page=15).
 These work exactly the same way, but support storing properties like timeouts and price granularity.
 
-For example, assume the following `stored-requests/stored-request.json`:
+For example, assume the following `stored-requests/{id}.json`:
 
 ```json
 {
@@ -156,7 +156,7 @@ Then HTTP request like:
   "ext": {
     "prebid": {
       "storedrequest": {
-        "id": "stored-request.json"
+        "id": "{id}"
       }
     }
   }

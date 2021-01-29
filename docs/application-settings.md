@@ -187,7 +187,7 @@ Prebid Server returns expected data in the expected order. Here's an example con
 settings:
   database:
     type: mysql
-    account-query: SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations FROM accounts_account where uuid = ? LIMIT 1
+    account-query: SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations, status FROM accounts_account where uuid = ? LIMIT 1
 ```
 
 The SQL query for account must:
@@ -203,6 +203,7 @@ The SQL query for account must:
     * maximum targeting attribute size, integer
     * default integration value, string
     * analytics configuration, JSON string, see below
+    * status, string. Expected values: "active", "inactive", NULL. Only "inactive" has any effect and only when settings.enforce-valid-account is on.
 * specify a special single `%ACCOUNT_ID%` placeholder in the `WHERE` clause that will be replaced with account ID in 
 runtime
 

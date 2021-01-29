@@ -48,6 +48,7 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -76,6 +77,7 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -747,9 +749,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldNotSetSitePageIfDomainCouldNotBeDerived() {
         // given
-        givenBidRequest(BidRequest.builder()
-                .site(Site.builder().domain("home.com").build())
-                .build());
+        givenValidBidRequest();
 
         given(paramsExtractor.refererFrom(any())).willReturn("http://not-valid-site");
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
@@ -759,7 +759,28 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getSite()).isEqualTo(
-                Site.builder().domain("home.com").ext(ExtSite.of(0, null)).build());
+                Site.builder().ext(ExtSite.of(0, null)).build());
+    }
+
+    @Test
+    public void shouldSetDomainFromPageInsteadOfReferer() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().page("http://page.site.com/page1.html").build())
+                .build());
+
+        given(paramsExtractor.refererFrom(any())).willReturn("http://any-site/referer.html");
+        given(paramsExtractor.domainFrom(anyString())).willReturn("site.com");
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        verify(paramsExtractor).domainFrom(eq("http://page.site.com/page1.html"));
+
+        assertThat(singleton(request.getSite()))
+                .extracting(Site::getPage, Site::getDomain)
+                .containsOnly(tuple("http://page.site.com/page1.html", "site.com"));
     }
 
     @Test
@@ -1234,6 +1255,31 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestPrebid::getCache)
                 .extracting(ExtRequestPrebidCache::getBids, ExtRequestPrebidCache::getVastxml)
                 .containsOnly(tuple(cacheBids, cacheVastxml));
+    }
+
+    @Test
+    public void shouldNotChangeAnyOtherExtRequestPrebidTargetingFields() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder()
+                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true))
+                                .truncateattrchars(10)
+                                .build())
+                        .build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebrandcategory, ExtRequestTargeting::getTruncateattrchars)
+                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true), 10));
     }
 
     @Test
