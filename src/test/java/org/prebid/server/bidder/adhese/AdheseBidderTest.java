@@ -15,7 +15,12 @@ import com.iab.openrtb.response.BidResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adhese.model.*;
+import org.prebid.server.bidder.adhese.model.AdheseBid;
+import org.prebid.server.bidder.adhese.model.AdheseOriginData;
+import org.prebid.server.bidder.adhese.model.AdheseResponseExt;
+import org.prebid.server.bidder.adhese.model.Cpm;
+import org.prebid.server.bidder.adhese.model.CpmValues;
+import org.prebid.server.bidder.adhese.model.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -100,8 +105,11 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(ExtUser.builder().consent("dummy").build())
                         .build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of("demo",
-                                "_adhese_prebid_demo_", "leaderboard", mapper.convertValue(targets, JsonNode.class)))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of(
+                                "demo",
+                                "_adhese_prebid_demo_",
+                                "leaderboard",
+                                mapper.convertValue(targets, JsonNode.class)))))
                         .build()))
                 .device(Device.builder().ifa("dum-my").build())
                 .build();
@@ -115,7 +123,9 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"ag\":[\"55\"],\"ci\":[\"gent\",\"brussels\"],\"tl\":[\"all\"],\"xt\":[\"dummy\"],\"xz\":[\"dum-my\"]}}");
+                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],"
+                        + "\"parameters\":{\"ag\":[\"55\"],\"ci\":[\"gent\",\"brussels\"],"
+                        + "\"tl\":[\"all\"],\"xt\":[\"dummy\"],\"xz\":[\"dum-my\"]}}");
     }
 
     @Test
@@ -139,7 +149,8 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"xz\":[\"ifaValue\"]}}");
+                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],"
+                        + "\"parameters\":{\"xz\":[\"ifaValue\"]}}");
     }
 
     @Test
@@ -163,7 +174,8 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"xf\":[\"pageValue\"]}}");
+                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],"
+                        + "\"parameters\":{\"xf\":[\"pageValue\"]}}");
     }
 
     @Test
@@ -174,8 +186,11 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(ExtUser.builder().consent("dummy").build())
                         .build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of("demo",
-                                "_adhese_prebid_demo_", "leaderboard", mapper.convertValue(null, JsonNode.class)))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of(
+                                "demo",
+                                "_adhese_prebid_demo_",
+                                "leaderboard",
+                                mapper.convertValue(null, JsonNode.class)))))
                         .build()))
                 .build();
 
@@ -188,7 +203,8 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"xt\":[\"dummy\"]}}");
+                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],"
+                        + "\"parameters\":{\"xt\":[\"dummy\"]}}");
     }
 
     @Test

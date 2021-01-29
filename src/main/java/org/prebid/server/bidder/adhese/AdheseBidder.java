@@ -17,7 +17,13 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.adhese.model.*;
+import org.prebid.server.bidder.adhese.model.AdheseBid;
+import org.prebid.server.bidder.adhese.model.AdheseOriginData;
+import org.prebid.server.bidder.adhese.model.AdheseRequestBody;
+import org.prebid.server.bidder.adhese.model.AdheseResponseExt;
+import org.prebid.server.bidder.adhese.model.Cpm;
+import org.prebid.server.bidder.adhese.model.CpmValues;
+import org.prebid.server.bidder.adhese.model.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -76,7 +82,6 @@ public class AdheseBidder implements Bidder<Void> {
         }
 
         final String uri = getUrl(extImpAdhese);
-
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
@@ -137,26 +142,26 @@ public class AdheseBidder implements Bidder<Void> {
                 }));
     }
 
-    private static Map<String, List<String>>  getGdprParameter(User user) {
+    private static Map<String, List<String>> getGdprParameter(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
-        return StringUtils.isNotBlank(consent) ?
-                Collections.singletonMap(GDPR_QUERY_PARAMETER, Collections.singletonList(consent)) :
-                Collections.emptyMap();
+        return StringUtils.isNotBlank(consent)
+                ? Collections.singletonMap(GDPR_QUERY_PARAMETER, Collections.singletonList(consent))
+                : Collections.emptyMap();
     }
 
-    private static Map<String, List<String>>  getRefererParameter(Site site) {
+    private static Map<String, List<String>> getRefererParameter(Site site) {
         final String page = site != null ? site.getPage() : null;
-        return StringUtils.isNotBlank(page) ?
-                Collections.singletonMap(REFERER_QUERY_PARAMETER, Collections.singletonList(page)) :
-                Collections.emptyMap();
+        return StringUtils.isNotBlank(page)
+                ? Collections.singletonMap(REFERER_QUERY_PARAMETER, Collections.singletonList(page))
+                : Collections.emptyMap();
     }
 
-    private static Map<String, List<String>>  getIfaParameter(Device device) {
+    private static Map<String, List<String>> getIfaParameter(Device device) {
         final String ifa = device != null ? device.getIfa() : null;
-        return StringUtils.isNotBlank(ifa) ?
-                Collections.singletonMap(IFA_QUERY_PARAMETER, Collections.singletonList(ifa)) :
-                Collections.emptyMap();
+        return StringUtils.isNotBlank(ifa)
+                ? Collections.singletonMap(IFA_QUERY_PARAMETER, Collections.singletonList(ifa))
+                : Collections.emptyMap();
     }
 
     @Override

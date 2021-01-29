@@ -1,8 +1,13 @@
 package org.prebid.server.bidder.adhese.model;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
 
 public class AdheseRequestBody {
+
     public static class Slot {
 
         public static Slot create(String slotname) {
@@ -24,8 +29,12 @@ public class AdheseRequestBody {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof Slot)) return false;
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof Slot)) {
+                return false;
+            }
             Slot slot = (Slot) o;
             return Objects.equals(slotname, slot.slotname);
         }
@@ -42,9 +51,9 @@ public class AdheseRequestBody {
 
     @Override
     public String toString() {
-        return "RequestBody{" +
-                "slots=" + slots +
-                ", parameters=" + parameters +
-                '}';
+        return "RequestBody{"
+                + "slots=" + slots
+                + ", parameters=" + parameters
+                + '}';
     }
 }
