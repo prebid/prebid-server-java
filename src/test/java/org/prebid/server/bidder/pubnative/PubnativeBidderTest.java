@@ -311,6 +311,137 @@ public class PubnativeBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldResolveBidSizeFromBannerIfWAndHArePresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .banner(Banner.builder().w(100).h(100).build())
+                                .id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldResolveBidSizeForBannerWhenWAndHNotNullAndFormatHasSingleElementWithSameSize()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .banner(Banner.builder().w(100).h(100)
+                                        .format(singletonList(Format.builder().w(100).h(100).build())).build())
+                                .id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldNotResolveBidSizeForBannerWhenWAndHNotNullAndFormatHasSingleElementWithDifferentSize()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .banner(Banner.builder().w(100).h(100)
+                                        .format(singletonList(Format.builder().w(150).h(150).build())).build())
+                                .id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldNotResolveBidSizeForBannerWhenWAndHNotNullAndFormatHasMultipleElements()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .banner(Banner.builder().w(100).h(100)
+                                        .format(singletonList(Format.builder().w(100).h(100).build())).build())
+                                .id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldResolveBidSizeForBannerWhenWAndHAreNullAndFormatHasSingleElements()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(150).h(150).build())).build())
+                                .id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(150).h(150).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldNotResolveBidSizeForBannerWhenWAndHAreNullAndFormatMultipleElements()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .banner(Banner.builder()
+                                        .format(asList(Format.builder().w(100).h(100).build(),
+                                                Format.builder().w(150).h(150).build())).build())
+                                .id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestModifier) {

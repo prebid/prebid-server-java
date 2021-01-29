@@ -99,7 +99,7 @@ public class AdheseBidder implements Bidder<Void> {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.createOptimized("X-Real-IP"), device.getIp());
         }
-        return HttpUtil.headers();
+        return headers;
     }
 
     private ExtImpAdhese parseImpExt(Imp imp) {

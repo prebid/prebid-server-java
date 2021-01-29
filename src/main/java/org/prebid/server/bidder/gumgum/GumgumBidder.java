@@ -13,6 +13,8 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -21,13 +23,13 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,6 +38,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Gumgum {@link Bidder} implementation.
+ */
 public class GumgumBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
@@ -53,27 +58,20 @@ public class GumgumBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
+
         final BidRequest outgoingRequest;
         try {
             outgoingRequest = createBidRequest(bidRequest, errors);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
-            return Result.of(Collections.emptyList(), errors);
-        }
-
-        String body;
-        try {
-            body = mapper.encode(outgoingRequest);
-        } catch (EncodeException e) {
-            errors.add(BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(body)
+                        .body(mapper.encode(outgoingRequest))
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
                         .build()),
@@ -118,21 +116,27 @@ public class GumgumBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
         }
     }
 
     private static Imp modifyImp(Imp imp) {
-        final Banner banner = imp.getBanner();
-        final List<Format> format = banner.getFormat();
-        if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(format)) {
-            final Format firstFormat = format.get(0);
-            final Banner modifiedBanner = banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
+        final Banner resolvedBanner = resolveBanner(imp.getBanner());
+        if (resolvedBanner != null) {
             return imp.toBuilder()
-                    .banner(modifiedBanner)
+                    .banner(resolvedBanner)
                     .build();
         }
         return imp;
+    }
+
+    private static Banner resolveBanner(Banner banner) {
+        final List<Format> format = banner.getFormat();
+        if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(format)) {
+            final Format firstFormat = format.get(0);
+            return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
+        }
+        return null;
     }
 
     private void validateVideoParams(Video video) {
@@ -156,7 +160,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     private static Site modifySite(Site site, String trackingId) {
-        return site != null ? site.toBuilder().id(trackingId).build() : null;
+        return site != null ? site.toBuilder().id(ObjectUtils.defaultIfNull(trackingId, "")).build() : null;
     }
 
     @Override
@@ -177,8 +181,10 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> toBidderBid(bid, bidRequest, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
@@ -186,17 +192,21 @@ public class GumgumBidder implements Bidder<BidRequest> {
     private static BidderBid toBidderBid(Bid bid, BidRequest bidRequest, String currency) {
         final BidType bidType = getMediaType(bid.getImpid(), bidRequest.getImp());
         final Bid updatedBid = bidType == BidType.video
-                ? bid.toBuilder().adm(bid.getAdm().replace("${AUCTION_PRICE}", String.valueOf(bid.getPrice()))).build()
+                ? bid.toBuilder().adm(resolveAdm(bid.getAdm(), bid.getPrice())).build()
                 : bid;
         return BidderBid.of(updatedBid, bidType, currency);
     }
 
     private static BidType getMediaType(String impId, List<Imp> requestImps) {
         for (Imp imp : requestImps) {
-            if (imp.getId().equals(impId) && imp.getBanner() != null) {
-                return BidType.banner;
+            if (imp.getId().equals(impId)) {
+                return imp.getBanner() != null ? BidType.banner : BidType.video;
             }
         }
         return BidType.video;
+    }
+
+    private static String resolveAdm(String bidAdm, BigDecimal price) {
+        return StringUtils.isNotBlank(bidAdm) ? bidAdm.replace("${AUCTION_PRICE}", String.valueOf(price)) : bidAdm;
     }
 }

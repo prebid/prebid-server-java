@@ -3,12 +3,14 @@ package org.prebid.server.bidder.smartyads;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -20,16 +22,19 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smartyads.ExtImpSmartyAds;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -63,6 +68,49 @@ public class SmartyAdsBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("ext.bidder not provided");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfExtBidderAccountIdParamIsMissed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpSmartyAds.of("", "testSourceId", "testHost")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("accountId is a required ext.bidder param"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfExtBidderSourceIdParamIsMissed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpSmartyAds.of("testAccountId", "", "testHost")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("sourceId is a required ext.bidder param"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfExtBidderHostParamIsMissed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpSmartyAds.of("testAccountId", "testSourceId", "")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("host is a required ext.bidder param"));
     }
 
     @Test
@@ -112,9 +160,7 @@ public class SmartyAdsBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Bad Server Response"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -128,7 +174,7 @@ public class SmartyAdsBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Bad Server Response"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -142,7 +188,7 @@ public class SmartyAdsBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid array"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -163,6 +209,27 @@ public class SmartyAdsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyValueIfBidsAreNotPresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(null)
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -194,6 +261,38 @@ public class SmartyAdsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("456").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAdditionalHeadersIfDeviceFieldsAreNotEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder
+                        .device(Device.builder()
+                                .ua("user_agent")
+                                .ip("test_ip")
+                                .dnt(23)
+                                .language("testLang")
+                                .build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
+                        tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "testLang"),
+                        tuple(HttpUtil.DNT_HEADER.toString(), "23"),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "user_agent"),
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "test_ip"));
     }
 
     @Test

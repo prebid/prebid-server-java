@@ -26,7 +26,6 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -156,20 +155,16 @@ public class DmxBidder implements Bidder<BidRequest> {
 
         final String tagId = extImp.getTagId();
         if (StringUtils.isNotBlank(tagId)) {
-            updatedImp = Imp.builder()
-                    .id(imp.getId())
+            updatedImp = imp.toBuilder()
                     .tagid(tagId)
-                    .ext(imp.getExt())
                     .secure(SECURE)
                     .build();
         }
 
         final String dmxId = extImp.getDmxId();
         if (StringUtils.isNotBlank(dmxId)) {
-            updatedImp = Imp.builder()
-                    .id(imp.getId())
+            updatedImp = imp.toBuilder()
                     .tagid(dmxId)
-                    .ext(imp.getExt())
                     .secure(SECURE)
                     .build();
         }
@@ -202,9 +197,7 @@ public class DmxBidder implements Bidder<BidRequest> {
             }
             final ExtUser userExt = user.getExt();
             if (userExt != null) {
-                final ExtUserDigiTrust digitrust = userExt.getDigitrust();
-                if (CollectionUtils.isNotEmpty(userExt.getEids()) || (digitrust != null
-                        && StringUtils.isNotBlank(digitrust.getId()))) {
+                if (CollectionUtils.isNotEmpty(userExt.getEids())) {
                     anyHasId = true;
                 }
             }

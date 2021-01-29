@@ -11,6 +11,8 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -43,6 +45,8 @@ public class CachingApplicationSettingsTest {
 
     @Mock
     private ApplicationSettings applicationSettings;
+    @Mock
+    private Metrics metrics;
 
     private CachingApplicationSettings cachingApplicationSettings;
 
@@ -52,8 +56,14 @@ public class CachingApplicationSettingsTest {
     public void setUp() {
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
 
-        cachingApplicationSettings = new CachingApplicationSettings(applicationSettings, new SettingsCache(360, 100),
-                new SettingsCache(360, 100), new SettingsCache(360, 100), 360, 100);
+        cachingApplicationSettings = new CachingApplicationSettings(
+                applicationSettings,
+                new SettingsCache(360, 100),
+                new SettingsCache(360, 100),
+                new SettingsCache(360, 100),
+                metrics,
+                360,
+                100);
     }
 
     @Test
@@ -130,6 +140,22 @@ public class CachingApplicationSettingsTest {
         assertThat(lastFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("error");
+    }
+
+    @Test
+    public void getAccountByIdShouldUpdateMetrics() {
+        // given
+        final Account account = Account.builder().id("accountId").priceGranularity("med").build();
+        given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
+                .willReturn(Future.succeededFuture(account));
+
+        // when
+        cachingApplicationSettings.getAccountById("accountId", timeout);
+        cachingApplicationSettings.getAccountById("accountId", timeout);
+
+        // then
+        verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.account), eq(MetricName.miss));
+        verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.account), eq(MetricName.hit));
     }
 
     @Test

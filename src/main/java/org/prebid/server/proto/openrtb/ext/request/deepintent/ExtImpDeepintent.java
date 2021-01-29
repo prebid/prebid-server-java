@@ -8,6 +8,6 @@ import lombok.Value;
 @Value
 public class ExtImpDeepintent {
 
-    @JsonProperty("TagID")
+    @JsonProperty("tagId")
     String tagId;
 }
