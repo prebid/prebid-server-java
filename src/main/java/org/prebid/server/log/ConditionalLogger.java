@@ -56,6 +56,10 @@ public class ConditionalLogger {
         log(message, duration, unit, logger -> logger.info(message));
     }
 
+    public void errorWithKey(String key, String message, int limit) {
+        log(key, limit, logger -> logger.error(message));
+    }
+
     public void error(String message, int limit) {
         log(message, limit, logger -> logger.error(message));
     }

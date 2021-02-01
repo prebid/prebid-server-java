@@ -7,8 +7,12 @@
         "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}}]}"
       },
       "ext": {
-        "triplelift_native": {
-          "inventoryCode": "foo"
+        "prebid": {
+          "bidder": {
+            "triplelift_native": {
+              "inventoryCode": "foo"
+            }
+          }
         }
       }
     }
