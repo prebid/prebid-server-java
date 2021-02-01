@@ -13,9 +13,7 @@
           "w": 728,
           "h": 90,
           "ext": {
-            "bidder": {
-              "adType": "leaderboard"
-            },
+            "adType": "leaderboard",
             "prebid": {
               "type": "banner",
               "targeting": {

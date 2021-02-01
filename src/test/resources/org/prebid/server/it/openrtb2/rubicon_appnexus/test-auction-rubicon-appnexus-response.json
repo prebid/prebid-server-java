@@ -78,14 +78,12 @@
                 }
               }
             },
-            "bidder": {
-              "appnexus": {
-                "brand_id": 1,
-                "auction_id": 8189378542222915032,
-                "bidder_id": 2,
-                "bid_ad_type": 0,
-                "ranking_price": 0.0
-              }
+            "appnexus": {
+              "brand_id": 1,
+              "auction_id": 8189378542222915032,
+              "bidder_id": 2,
+              "bid_ad_type": 0,
+              "ranking_price": 0.0
             }
           }
         },
@@ -130,14 +128,12 @@
                 }
               }
             },
-            "bidder": {
-              "appnexus": {
-                "brand_id": 1,
-                "brand_category_id": 1,
-                "auction_id": 5607483846416358664,
-                "bidder_id": 2,
-                "bid_ad_type": 3
-              }
+            "appnexus": {
+              "brand_id": 1,
+              "brand_category_id": 1,
+              "auction_id": 5607483846416358664,
+              "bidder_id": 2,
+              "bid_ad_type": 3
             }
           }
         }
@@ -184,15 +180,13 @@
                 }
               }
             },
-            "bidder": {
-              "appnexus": {
-                "brand_id": 350,
-                "brand_category_id": 350,
-                "auction_id": 8189378542222915031,
-                "bidder_id": 2,
-                "bid_ad_type": 0,
-                "ranking_price": 0.0
-              }
+            "appnexus": {
+              "brand_id": 350,
+              "brand_category_id": 350,
+              "auction_id": 8189378542222915031,
+              "bidder_id": 2,
+              "bid_ad_type": 0,
+              "ranking_price": 0.0
             }
           }
         }
@@ -306,17 +300,15 @@
                 }
               }
             },
-            "bidder": {
-              "rp": {
-                "targeting": [
-                  {
-                    "key": "rpfl_1001",
-                    "values": [
-                      "2_tier0100"
-                    ]
-                  }
-                ]
-              }
+            "rp": {
+              "targeting": [
+                {
+                  "key": "rpfl_1001",
+                  "values": [
+                    "2_tier0100"
+                  ]
+                }
+              ]
             }
           }
         },

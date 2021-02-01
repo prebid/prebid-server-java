@@ -35,10 +35,8 @@
                 }
               }
             },
-            "bidder": {
-              "adot": {
-                "media_type": "banner"
-              }
+            "adot": {
+              "media_type": "banner"
             }
           }
         }

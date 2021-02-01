@@ -76,9 +76,7 @@
                 }
               }
             },
-            "bidder": {
-              "BidType": 1
-            }
+            "BidType": 1
           }
         }
       ],

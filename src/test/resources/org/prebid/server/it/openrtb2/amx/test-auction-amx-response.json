@@ -34,12 +34,10 @@
                 }
               }
             },
-            "bidder": {
-              "himp": [
-                "https://example.com/imp-tracker/pixel.gif?param=1&param2=2"
-              ],
-              "startdelay": 0
-            }
+            "himp": [
+              "https://example.com/imp-tracker/pixel.gif?param=1&param2=2"
+            ],
+            "startdelay": 0
           }
         }
       ],

@@ -42,7 +42,6 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -67,13 +66,12 @@ public class AmpHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(AmpHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
-            };
     private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
             new TypeReference<ExtBidResponse>() {
             };
     private static final MetricName REQUEST_TYPE_METRIC = MetricName.amp;
+
+    public static final String PREBID_EXT = "prebid";
 
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
@@ -197,34 +195,36 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
+        final ObjectNode ext = bid.getExt();
+
+        if (ext == null) {
+            return Collections.emptyMap();
+        }
+
+        final ExtBidPrebid extBidPrebid;
         try {
-            extBid = mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
+            extBidPrebid = mapper.mapper().convertValue(ext.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
                     String.format("Critical error while unpacking AMP targets: %s", e.getMessage()), e);
         }
 
-        if (extBid != null) {
-            final ExtBidPrebid extBidPrebid = extBid.getPrebid();
+        // Need to extract the targeting parameters from the response, as those are all that
+        // go in the AMP response
+        final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
+        if (targeting != null && targeting.keySet().stream()
+                .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
 
-            // Need to extract the targeting parameters from the response, as those are all that
-            // go in the AMP response
-            final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
-            if (targeting != null && targeting.keySet().stream()
-                    .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
-
-                return enrichWithCustomTargeting(targeting, extBid, bidder);
-            }
+            return enrichWithCustomTargeting(targeting, ext, bidder);
         }
 
         return Collections.emptyMap();
     }
 
     private Map<String, String> enrichWithCustomTargeting(
-            Map<String, String> targeting, ExtPrebid<ExtBidPrebid, ObjectNode> extBid, String bidder) {
+            Map<String, String> targeting, ObjectNode bidExt, String bidder) {
 
-        final Map<String, String> customTargeting = customTargetingFrom(extBid.getBidder(), bidder);
+        final Map<String, String> customTargeting = customTargetingFrom(bidExt, bidder);
         if (!customTargeting.isEmpty()) {
             final Map<String, String> enrichedTargeting = new HashMap<>(targeting);
             enrichedTargeting.putAll(customTargeting);

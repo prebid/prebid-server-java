@@ -803,7 +803,6 @@ public class BidResponseCreator {
                       Map<String, List<ExtBidderError>> bidErrors) {
 
         final Bid bid = bidderBid.getBid();
-        final BidType bidType = bidderBid.getType();
 
         // preliminary variables are needed because bid is changing below, so we can lost it in winning bids sets
         final boolean isWinningBid = winningBids.contains(bid);
@@ -819,7 +818,7 @@ public class BidResponseCreator {
         }
 
         final boolean isApp = bidRequest.getApp() != null;
-        if (isApp && bidType.equals(BidType.xNative) && bid.getAdm() != null) {
+        if (isApp && bidderBid.getType().equals(BidType.xNative) && bid.getAdm() != null) {
             try {
                 addNativeMarkup(bid, bidRequest.getImp());
             } catch (PreBidException e) {
@@ -830,41 +829,21 @@ public class BidResponseCreator {
             }
         }
 
-        final Map<String, String> targetingKeywords;
-        if (targeting != null && isWinningBidByBidder) {
-            final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(bidType, targeting, isApp,
-                    bidRequest, account);
+        bid.setExt(toExtBid(
+                bidder,
+                bidderBid,
+                generatedBidIds,
+                targeting,
+                bidRequest,
+                isWinningBid,
+                isWinningBidByBidder,
+                cacheId,
+                videoCacheId,
+                eventsContext,
+                impIdToStoredVideo.get(bid.getImpid()),
+                account));
 
-            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, bidType.getName(),
-                    videoCacheId);
-        } else {
-            targetingKeywords = null;
-        }
-
-        final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
-        final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
-        final ExtResponseCache cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
-
-        final String generatedBidId = generatedBidIds.getGeneratedId(bidder, bid.getId(), bid.getImpid());
-        final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = createEvents(bidder, account, generatedBidId, eventsContext);
-        final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
-
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .bidid(bidIdGenerator.getType() != IdGeneratorType.none ? generatedBidId : null)
-                .type(bidType)
-                .targeting(targetingKeywords)
-                .cache(cache)
-                .storedRequestAttributes(storedVideo)
-                .events(events)
-                .video(extBidPrebidVideo)
-                .build();
-
-        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, bid.getExt());
-        bid.setExt(mapper.mapper().valueToTree(bidExt));
-
-        final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
-        bid.setExp(ttl);
+        bid.setExp(toBidExp(cacheInfo));
 
         return bid;
     }
@@ -980,14 +959,43 @@ public class BidResponseCreator {
         return prebid != null && prebid.getEvents() != null;
     }
 
+    private Map<String, String> makeTargetingKeywords(String bidder,
+                                                      ExtRequestTargeting targeting,
+                                                      BidderBid bidderBid,
+                                                      BidRequest bidRequest,
+                                                      boolean isWinningBid,
+                                                      boolean isWinningBidByBidder,
+                                                      String cacheId,
+                                                      String videoCacheId,
+                                                      Account account) {
+
+        if (targeting != null && isWinningBidByBidder) {
+            final BidType bidType = bidderBid.getType();
+
+            final TargetingKeywordsCreator keywordsCreator =
+                    resolveKeywordsCreator(bidType, targeting, bidRequest, account);
+
+            return keywordsCreator.makeFor(
+                    bidderBid.getBid(),
+                    bidder,
+                    isWinningBid,
+                    cacheId,
+                    bidType.getName(),
+                    videoCacheId);
+        }
+
+        return null;
+    }
+
     private TargetingKeywordsCreator resolveKeywordsCreator(BidType bidType,
                                                             ExtRequestTargeting targeting,
-                                                            boolean isApp,
                                                             BidRequest bidRequest,
                                                             Account account) {
 
-        final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType = keywordsCreatorByBidType(targeting,
-                isApp, bidRequest, account);
+        final boolean isApp = bidRequest.getApp() != null;
+
+        final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
+                keywordsCreatorByBidType(targeting, isApp, bidRequest, account);
 
         return keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator(targeting, isApp, bidRequest, account));
     }
@@ -1103,13 +1111,94 @@ public class BidResponseCreator {
         return prebid != null ? prebid.getIntegration() : null;
     }
 
-    /**
-     * Creates {@link ExtBidPrebidVideo} from bid extension.
-     */
+    private ObjectNode toExtBid(String bidder,
+                                BidderBid bidderBid,
+                                GeneratedBidIds generatedBidIds,
+                                ExtRequestTargeting targeting,
+                                BidRequest bidRequest,
+                                boolean isWinningBid,
+                                boolean isWinningBidByBidder,
+                                String cacheId,
+                                String videoCacheId,
+                                EventsContext eventsContext,
+                                Video storedVideo,
+                                Account account) {
+
+        final ObjectNode bidExt = bidderBid.getBid().getExt();
+        final ObjectNode modifiedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
+
+        return modifiedBidExt.set(
+                PREBID_EXT,
+                mapper.mapper().valueToTree(toExtBidPrebid(
+                        bidder,
+                        bidderBid,
+                        generatedBidIds,
+                        targeting,
+                        bidRequest,
+                        isWinningBid,
+                        isWinningBidByBidder,
+                        cacheId,
+                        videoCacheId,
+                        eventsContext,
+                        storedVideo,
+                        account)));
+    }
+
+    private ExtBidPrebid toExtBidPrebid(String bidder,
+                                        BidderBid bidderBid,
+                                        GeneratedBidIds generatedBidIds,
+                                        ExtRequestTargeting targeting,
+                                        BidRequest bidRequest,
+                                        boolean isWinningBid,
+                                        boolean isWinningBidByBidder,
+                                        String cacheId,
+                                        String videoCacheId,
+                                        EventsContext eventsContext,
+                                        Video storedVideo,
+                                        Account account) {
+
+        final Bid bid = bidderBid.getBid();
+
+        final String generatedBidId = generatedBidIds.getGeneratedId(bidder, bid.getId(), bid.getImpid());
+        final String bidid = bidIdGenerator.getType() != IdGeneratorType.none ? generatedBidId : null;
+
+        final Map<String, String> targetingKeywords = makeTargetingKeywords(
+                bidder,
+                targeting,
+                bidderBid,
+                bidRequest,
+                isWinningBid,
+                isWinningBidByBidder,
+                cacheId,
+                videoCacheId,
+                account);
+
+        final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
+        final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
+        final ExtResponseCache cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
+
+        final Events events = createEvents(bidder, account, generatedBidId, eventsContext);
+
+        return ExtBidPrebid.builder()
+                .bidid(bidid)
+                .type(bidderBid.getType())
+                .targeting(targetingKeywords)
+                .cache(cache)
+                .storedRequestAttributes(storedVideo)
+                .events(events)
+                .video(getExtBidPrebidVideo(bid.getExt()))
+                .build();
+    }
+
     private ExtBidPrebidVideo getExtBidPrebidVideo(ObjectNode bidExt) {
         final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = mapper.mapper()
                 .convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE);
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
+
         return extBidPrebid != null ? extBidPrebid.getVideo() : null;
+    }
+
+    private static Integer toBidExp(CacheInfo cacheInfo) {
+        return cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
     }
 }

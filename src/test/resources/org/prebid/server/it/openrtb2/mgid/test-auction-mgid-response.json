@@ -36,9 +36,7 @@
                 }
               }
             },
-            "bidder": {
-              "crtype": "banner"
-            }
+            "crtype": "banner"
           }
         }
       ],
