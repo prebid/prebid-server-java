@@ -610,6 +610,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                                 .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
                                 .<ObjectNode>set("bidder2", mapper.createObjectNode().put("param2", "value2"))
                                 .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
+                                .<ObjectNode>set("skadn", mapper.createObjectNode().put("network", 1))
                                 .set("prebid", mapper.createObjectNode()
                                         .<ObjectNode>set("bidder", mapper.createObjectNode()
                                                 .set("bidder2", mapper.createObjectNode().put("param22", "value22")))
@@ -626,6 +627,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 Imp.builder()
                         .ext(mapper.createObjectNode()
                                 .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
+                                .<ObjectNode>set("skadn", mapper.createObjectNode().put("network", 1))
                                 .set("prebid", mapper.createObjectNode()
                                         .<ObjectNode>set("bidder", mapper.createObjectNode()
                                                 .<ObjectNode>set(

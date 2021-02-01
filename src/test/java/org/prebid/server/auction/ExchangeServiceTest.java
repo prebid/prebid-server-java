@@ -1270,7 +1270,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassImpExtSkanToEachImpression() {
+    public void shouldPassImpExtSkadnToEachImpression() {
         // given
         final ObjectNode impExt = mapper.createObjectNode()
                 .<ObjectNode>set("prebid", mapper.createObjectNode()
