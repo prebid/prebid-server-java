@@ -8,7 +8,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseVideoTargeting;
@@ -41,21 +40,21 @@ public class VideoResponseFactoryTest extends VertxTest {
 
         final Bid bid0 = Bid.builder()
                 .impid("0_0")
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.builder().targeting(targeting).build(),
-                                mapper.createObjectNode())))
+                .ext(mapper.createObjectNode()
+                        .set("prebid", mapper.valueToTree(
+                                ExtBidPrebid.builder().targeting(targeting).build())))
                 .build();
         final Bid bid1 = Bid.builder()
                 .impid("1_1")
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.builder().targeting(targeting).build(),
-                                mapper.createObjectNode())))
+                .ext(mapper.createObjectNode()
+                        .set("prebid", mapper.valueToTree(
+                                ExtBidPrebid.builder().targeting(targeting).build())))
                 .build();
         final Bid bid2 = Bid.builder()
                 .impid("2_1")
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.builder().build(),
-                                mapper.createObjectNode())))
+                .ext(mapper.createObjectNode()
+                        .set("prebid", mapper.valueToTree(
+                                ExtBidPrebid.builder().build())))
                 .build();
 
         final BidResponse bidResponse = BidResponse.builder()

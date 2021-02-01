@@ -1,7 +1,6 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -45,7 +44,6 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -89,10 +87,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class BidResponseCreator {
-
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
-            };
 
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
@@ -1191,9 +1185,11 @@ public class BidResponseCreator {
     }
 
     private ExtBidPrebidVideo getExtBidPrebidVideo(ObjectNode bidExt) {
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = mapper.mapper()
-                .convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE);
-        final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
+        if (bidExt == null) {
+            return null;
+        }
+
+        final ExtBidPrebid extBidPrebid = mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
 
         return extBidPrebid != null ? extBidPrebid.getVideo() : null;
     }
