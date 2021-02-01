@@ -26,6 +26,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -398,6 +399,29 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))))));
     }
 
+    @Test
+    public void shouldReturnBidRequestWithNotChangedExtRequestPrebidTargetingFields() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(ExtRequestTargeting.builder()
+                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true))
+                                .truncateattrchars(10)
+                                .build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebrandcategory, ExtRequestTargeting::getTruncateattrchars)
+                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true), 10));
+    }
+
     private Answer<Object> answerWithFirstArgument() {
         return invocationOnMock -> invocationOnMock.getArguments()[0];
     }
@@ -559,14 +583,14 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenSitePageByCurlParamValue() {
+    public void shouldReturnBidRequestWithOverriddenSitePageAndDomainByCurlParamValue() {
         // given
-        given(httpRequest.getParam("curl")).willReturn("overridden-site-page");
+        given(httpRequest.getParam("curl")).willReturn("http://overridden.site.page:8080/path");
 
         givenBidRequest(
                 builder -> builder
                         .ext(ExtRequest.empty())
-                        .site(Site.builder().page("will-be-overridden").build()),
+                        .site(Site.builder().page("http://will.be.overridden/path").build()),
                 Imp.builder().build());
 
         // when
@@ -575,14 +599,15 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(singletonList(request))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", ExtSite.of(1, null)));
+                .extracting(Site::getPage, Site::getDomain, Site::getExt)
+                .containsOnly(tuple(
+                        "http://overridden.site.page:8080/path", "overridden.site.page", ExtSite.of(1, null)));
     }
 
     @Test
-    public void shouldReturnBidRequestWithSitePageContainingCurlParamValueWhenSitePreviouslyNotExistInRequest() {
+    public void shouldReturnBidRequestWithSitePageAndDomainContainingCurlParamValueWhenSiteNotInRequest() {
         // given
-        given(httpRequest.getParam("curl")).willReturn("overridden-site-page");
+        given(httpRequest.getParam("curl")).willReturn("http://overridden.site.page:8080/path");
 
         givenBidRequest(
                 builder -> builder
@@ -596,8 +621,9 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(singletonList(request))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", ExtSite.of(1, null)));
+                .extracting(Site::getPage, Site::getDomain, Site::getExt)
+                .containsOnly(tuple(
+                        "http://overridden.site.page:8080/path", "overridden.site.page", ExtSite.of(1, null)));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.verizonmedia;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -127,7 +128,24 @@ public class VerizonmediaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAlwaysSetSiteIdAndImpTagIdFromImpExt() {
+    public void makeHttpRequestsShouldAlwaysSetImpTagIdFromImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).hasSize(1)
+                .extracting(Imp::getTagid)
+                .containsExactly("pos");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetSiteIdIfSiteIsPresentInTheRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
@@ -140,12 +158,25 @@ public class VerizonmediaBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getId)
-                .containsOnly("dcn");
-        assertThat(result.getValue())
+                .containsExactly("dcn");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAppIdIfAppIsPresentInTheRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                bidRequestBuilder -> bidRequestBuilder.site(null).app(App.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(1)
-                .extracting(Imp::getTagid)
-                .containsOnly("pos");
+                .extracting(BidRequest::getApp)
+                .extracting(App::getId)
+                .containsExactly("dcn");
     }
 
     @Test
