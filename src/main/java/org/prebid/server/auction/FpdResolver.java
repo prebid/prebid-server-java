@@ -248,7 +248,7 @@ public class FpdResolver {
 
     private ObjectNode mergeExtData(JsonNode fpdData, JsonNode originData) {
         if (fpdData.isMissingNode() || !fpdData.isObject()) {
-            return originData != null && originData.isObject() ? (ObjectNode) originData : null;
+            return originData != null && originData.isObject() ? ((ObjectNode) originData).deepCopy() : null;
         }
 
         if (originData != null && originData.isObject()) {
