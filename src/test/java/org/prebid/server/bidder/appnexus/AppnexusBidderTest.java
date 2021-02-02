@@ -302,11 +302,11 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdateRequestExtAppnexusTrueWhenPrimaryAdserverIsNotZero() {
+    public void makeHttpRequestsShouldUpdateRequestExtAppnexusTrueWhenPrimaryAdserverIsNotNull() {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(-120, null, null))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null))
                         .build())
                 .build();
 
@@ -330,11 +330,11 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotUpdateRequestExtAppnexusWhenPrimaryAdserverIsZero() {
+    public void makeHttpRequestsShouldNotUpdateRequestExtAppnexusWhenIncludeBrandCategoryIsNull() {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(0, null, null))
+                        .includebrandcategory(null)
                         .build())
                 .build();
 

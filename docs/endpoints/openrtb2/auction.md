@@ -39,8 +39,12 @@ The following is a "hello world" request which fetches the [Prebid sample ad](ht
         ]
       },
       "ext": {
-        "appnexus": {
-          "placement_id": 10433394
+        "prebid": {
+          "bidder": {
+            "appnexus": {
+              "placement_id": 10433394
+            }
+          }
         }
       }
     }
@@ -107,11 +111,11 @@ These fall under the `ext` property of JSON objects.
 
 If `ext` is defined on an object, Prebid Server uses the following conventions:
 
-1. `ext` in "Request objects" uses `ext.prebid` and/or `ext.{anyBidderCode}`.
+1. `ext` in "Request objects" uses `ext.prebid` and/or `ext.prebid.bidder.{anyBidderCode}`.
 2. `ext` on "Response objects" uses `ext.prebid` and/or `ext.bidder`.
 The only exception here is the top-level `BidResponse`, because it's bidder-independent.
 
-`ext.{anyBidderCode}` and `ext.bidder` extensions are defined by bidders.
+`ext.prebid.bidder.{anyBidderCode}` and `ext.bidder` extensions are defined by bidders.
 `ext.prebid` extensions are defined by Prebid Server.
 
 Exceptions are made for extensions with "standard" recommendations:
@@ -164,6 +168,7 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
         },
         "includewinners": false, // Optional param defaulting to true
         "includebidderkeys": false // Optional param defaulting to true
+        "includeformat": false // Optional param defaulting to false
       }
     }
   }
@@ -177,6 +182,8 @@ For backwards compatibility the following strings will also be allowed as price 
 `currency` is used for conversion between bid currency returned by bidder and adServer currency defined in request or prebid server configuration. If AdServer currency was not defined neither in request or config, prebid server will not fire request for bidders in such case. Currency support works in pair with custom price granularity, which should be defined for specific currency in request.  Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 One of "includewinners" or "includebidderkeys" must be true (both default to true if unset). If both were false, then no targeting keys would be set, which is better configured by omitting targeting altogether.
+
+The parameter "includeformat" indicates the type of the bid (banner, video, etc) for multiformat requests. It will add the key `hb_format` and/or `hb_format_{bidderName}` as per "includewinners" and "includebidderkeys" above.
 
 MediaType PriceGranularity - when a single OpenRTB request contains multiple impressions with different mediatypes, or a single impression supports multiple formats, the different mediatypes may need different price granularities. If `mediatypepricegranularity` is present, `pricegranularity` would only be used for any mediatypes not specified. 
 
@@ -286,11 +293,15 @@ This can be used to request bids from the same Bidder with different params. For
         "mimes": ["video/mp4"]
       },
       "ext": {
-        "appnexus: {
-          "placement_id": 123
-        },
-        "districtm": {
-          "placement_id": 456
+        "prebid": {
+          "bidder": {
+            "appnexus: {
+              "placement_id": 123
+            },
+            "districtm": {
+              "placement_id": 456
+            }
+          }
         }
       }
     }
@@ -321,7 +332,7 @@ For example, if the Request defines an alias like this:
   }
 ```
 
-then any `imp.ext.appnexus` params will actually go to the **rubicon** adapter.
+then any `imp.ext.prebid.bidder.appnexus` params will actually go to the **rubicon** adapter.
 It will become impossible to fetch bids from Appnexus within that Request.
 
 #### Bidder Response Times
@@ -754,7 +765,7 @@ This section describes the ways in which Prebid Server **breaks** the OpenRTB sp
 Prebid Server returns a 400 on requests which define `wseat` or `bseat`.
 We may add support for these in the future, if there's compelling need.
 
-Instead, an impression is only offered to a bidder if `bidrequest.imp[i].ext.{bidderName}` exists.
+Instead, an impression is only offered to a bidder if `bidrequest.imp[i].ext.prebid.bidder.{bidderName}` exists.
 
 This supports publishers who want to sell different impressions to different bidders.
 

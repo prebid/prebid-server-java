@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -145,21 +146,68 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency))
+                .map(bid -> createBidderBid(imps, currency, bid))
                 .collect(Collectors.toList());
     }
 
-    private static BidType resolveBidType(String impid, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impid)) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-            }
+    private static BidderBid createBidderBid(List<Imp> imps, String currency, Bid bid) {
+        final Imp imp = findImpById(bid.getImpid(), imps);
+        return BidderBid.of(updateBidWithSize(bid, imp), resolveBidType(imp), currency);
+    }
+
+    private static Bid updateBidWithSize(Bid bid, Imp imp) {
+        if (bid.getW() != null && bid.getH() != null) {
+            return bid;
         }
-        return BidType.banner;
+
+        final Format format = imp != null && imp.getBanner() != null
+                ? resolveBidSizeFromBanner(imp.getBanner())
+                : null;
+        return format != null
+                ? bid.toBuilder().w(format.getW()).h(format.getH()).build()
+                : bid;
+    }
+
+    private static Imp findImpById(String impId, List<Imp> imps) {
+        return imps.stream()
+                .filter(imp -> imp.getId().equals(impId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static BidType resolveBidType(Imp imp) {
+        if (imp == null) {
+            return BidType.banner;
+        } else if (imp.getVideo() != null) {
+            return BidType.video;
+        } else if (imp.getXNative() != null) {
+            return BidType.xNative;
+        } else {
+            return BidType.banner;
+        }
+    }
+
+    private static Format resolveBidSizeFromBanner(Banner banner) {
+        Format result = null;
+        final Integer width = banner.getW();
+        final Integer height = banner.getH();
+
+        final List<Format> formats = banner.getFormat();
+        if (width != null && height != null) {
+            result = isOnlyOneSize(width, height, formats)
+                    ? Format.builder().w(width).h(height).build()
+                    : null;
+        } else if (formats.size() == 1) {
+            result = formats.get(0);
+        }
+        return result;
+    }
+
+    private static boolean isOnlyOneSize(Integer width, Integer height, List<Format> formats) {
+        return CollectionUtils.isEmpty(formats) || (formats.size() == 1 && isSameFormat(width, height, formats.get(0)));
+    }
+
+    private static boolean isSameFormat(Integer width, Integer height, Format format) {
+        return width.equals(format.getW()) && height.equals(format.getH());
     }
 }
