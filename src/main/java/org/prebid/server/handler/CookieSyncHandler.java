@@ -273,7 +273,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 isCookieSyncAllowed(tcfResponse));
     }
 
-    private Boolean isCookieSyncAllowed(TcfResponse<Integer> hostTcfResponse) {
+    private boolean isCookieSyncAllowed(TcfResponse<Integer> hostTcfResponse) {
         final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = hostTcfResponse.getActions();
         final PrivacyEnforcementAction hostActions = vendorIdToAction != null
                 ? vendorIdToAction.get(gdprHostVendorId)
