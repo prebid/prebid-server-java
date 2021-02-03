@@ -176,6 +176,27 @@ public class FpdResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveUserShouldReturnCopyOfUserExtDataIfFPDUserExtDataIsMissing() {
+        // given
+        final ObjectNode originExtUserData = mapper.createObjectNode().put("originAttr", "originValue");
+
+        final User originUser = User.builder()
+                .ext(ExtUser.builder().data(originExtUserData).build())
+                .build();
+
+        final User fpdUser = User.builder()
+                .ext(ExtUser.builder().data(null).build())
+                .build();
+
+        // when
+        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser));
+
+        // then
+        assertThat(resultUser.getExt().getData() != originExtUserData).isTrue(); // different by reference
+        assertThat(resultUser.getExt().getData().equals(originExtUserData)).isTrue(); // but the same by value
+    }
+
+    @Test
     public void resolveAppShouldOverrideFpdFieldsFromFpdApp() {
         // given
         final App originApp = App.builder()

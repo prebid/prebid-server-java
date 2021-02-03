@@ -41,8 +41,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
-import org.prebid.server.bidder.rubicon.proto.RubiconImpExtPrebidBidder;
-import org.prebid.server.bidder.rubicon.proto.RubiconImpExtPrebidRubiconDebug;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
@@ -59,7 +57,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -73,6 +70,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUidExt;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.util.HttpUtil;
@@ -419,6 +417,75 @@ public class RubiconBidderTest extends VertxTest {
                         null, // banner is removed
                         Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
                                 .maxduration(60).linearity(2).api(singletonList(3)).build()));
+    }
+
+    @Test
+    public void shouldSetSizeIdTo201IfPlacementIs1AndSizeIdIsNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.instl(1).video(Video.builder().placement(1).build()),
+                builder -> builder.video(RubiconVideoParams.builder().sizeId(null).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
+                .extracting(RubiconVideoExt::getRp)
+                .extracting(RubiconVideoExtRp::getSizeId)
+                .containsOnly(201);
+    }
+
+    @Test
+    public void shouldSetSizeIdTo203IfPlacementIs3AndSizeIdIsNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.instl(1).video(Video.builder().placement(3).build()),
+                builder -> builder.video(RubiconVideoParams.builder().sizeId(null).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
+                .extracting(RubiconVideoExt::getRp)
+                .extracting(RubiconVideoExtRp::getSizeId)
+                .containsOnly(203);
+    }
+
+    @Test
+    public void shouldSetSizeIdTo202UsingInstlFlagIfPlacementAndSizeIdAreNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.instl(1).video(Video.builder().placement(null).build()),
+                builder -> builder.video(RubiconVideoParams.builder().sizeId(null).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
+                .extracting(RubiconVideoExt::getRp)
+                .extracting(RubiconVideoExtRp::getSizeId)
+                .containsOnly(202);
     }
 
     @Test
@@ -2319,10 +2386,11 @@ public class RubiconBidderTest extends VertxTest {
                                 mapper.createObjectNode().put("cpmoverride", 5.55))))) // will be ignored
                 .build());
 
-        final ExtImp extImp = ExtImp.of(ExtImpPrebid.builder()
-                .bidder(mapper.valueToTree(
-                        RubiconImpExtPrebidBidder.of(RubiconImpExtPrebidRubiconDebug.of(4.44f))))
-                .build(), null);
+        final ExtPrebid<Void, ExtImpRubicon> extImp = ExtPrebid.of(
+                null,
+                ExtImpRubicon.builder()
+                        .debug(ExtImpRubiconDebug.of(4.44f))
+                        .build());
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(
