@@ -256,7 +256,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final ExtIncludeBrandCategory includebrandcategory = targeting != null
                 ? targeting.getIncludebrandcategory()
                 : null;
-        return includebrandcategory != null && includebrandcategory.getPrimaryAdserver() != 0;
+        return includebrandcategory != null;
     }
 
     private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest outgoingRequest, List<Imp> processedImps,

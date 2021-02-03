@@ -340,6 +340,11 @@ public class AmpRequestFactory {
             final Site.SiteBuilder siteBuilder = hasSite ? site.toBuilder() : Site.builder();
             if (StringUtils.isNotBlank(canonicalUrl)) {
                 siteBuilder.page(canonicalUrl);
+
+                final String domain = HttpUtil.getDomainFromUrl(canonicalUrl);
+                if (StringUtils.isNotBlank(domain)) {
+                    siteBuilder.domain(domain);
+                }
             }
             if (StringUtils.isNotBlank(accountId)) {
                 final Publisher publisher = hasSite ? site.getPublisher() : null;
@@ -634,11 +639,14 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
-        return ExtRequestTargeting.builder()
+        final Boolean includeFormat = !isTargetingNull ? targeting.getIncludeformat() : null;
+
+        return (isTargetingNull ? ExtRequestTargeting.builder() : targeting.toBuilder())
                 .pricegranularity(outgoingPriceGranularityNode)
                 .mediatypepricegranularity(mediaTypePriceGranularity)
                 .includewinners(includeWinners)
                 .includebidderkeys(includeBidderKeys)
+                .includeformat(includeFormat)
                 .build();
     }
 }

@@ -10,9 +10,9 @@ Please see [documentation](https://developers.pubnative.net/docs/prebid-adding-p
 
 ## Configuration 
 
-- bidder should be always set to "pubnative" (`imp.ext.pubnative`)
-- zone_id (int) should be always set to 1, unless special use case agreed with our account manager. (`imp.ext.pubnative.zone_id`)
-- app_auth_token (string) is unique per publisher app. Please contact our account manager to obtain yours. (`imp.ext.pubnative.app_auth_token`)
+- bidder should be always set to "pubnative" (`imp.ext.prebid.bidder.pubnative`)
+- zone_id (int) should be always set to 1, unless special use case agreed with our account manager. (`imp.ext.prebid.bidder.pubnative.zone_id`)
+- app_auth_token (string) is unique per publisher app. Please contact our account manager to obtain yours. (`imp.ext.prebid.bidder.pubnative.app_auth_token`)
 
 An example is illustrated in a section below.
 
@@ -44,9 +44,13 @@ The following json can be used to do a request to prebid server for verifying it
           ]
         },
         "ext": {
-          "pubnative": {
-            "zone_id": 1,
-            "app_auth_token": "b620e282f3c74787beedda34336a4821"
+          "prebid": {
+            "bidder": {
+              "pubnative": {
+                "zone_id": 1,
+                "app_auth_token": "b620e282f3c74787beedda34336a4821"
+              }
+            }
           }
         }
       }

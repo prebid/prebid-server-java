@@ -1,9 +1,9 @@
 package org.prebid.server.spring.config;
 
-import com.iab.openrtb.request.BidRequest;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
@@ -11,6 +11,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.BidResponseReducer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -19,6 +20,7 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.SchainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -38,10 +40,10 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
-import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
@@ -49,6 +51,7 @@ import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -124,13 +127,21 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    FpdResolver fpdResolver(JacksonMapper mapper) {
-        return new FpdResolver(mapper);
+    FpdResolver fpdResolver(JacksonMapper mapper, JsonMerger jsonMerger) {
+        return new FpdResolver(mapper, jsonMerger);
     }
 
     @Bean
-    OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper) {
-        return new OrtbTypesResolver(jacksonMapper);
+    OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
+        return new OrtbTypesResolver(jacksonMapper, jsonMerger);
+    }
+
+    @Bean
+    SchainResolver schainResolver(
+            @Value("${auction.host-schain-node}") String globalSchainNode,
+            JacksonMapper mapper) {
+
+        return SchainResolver.create(globalSchainNode, mapper);
     }
 
     @Bean
@@ -199,11 +210,11 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
             PrivacyEnforcementService privacyEnforcementService,
-            IdGenerator idGenerator,
+            IdGenerator sourceIdGenerator,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
-        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+        final List<String> blacklistedApps = splitToList(blacklistedAppsString);
+        final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -223,14 +234,21 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
-                idGenerator,
+                sourceIdGenerator,
                 privacyEnforcementService,
                 mapper);
     }
 
     @Bean
-    IdGenerator idGenerator(@Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType) {
-        return idGeneratorType == IdGeneratorType.uuid
+    IdGenerator bidIdGenerator(@Value("${auction.generate-bid-id}") boolean generateBidId) {
+        return generateBidId
+                ? new UUIDIdGenerator()
+                : new NoneIdGenerator();
+    }
+
+    @Bean
+    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") boolean generateSourceTid) {
+        return generateSourceTid
                 ? new UUIDIdGenerator()
                 : new NoneIdGenerator();
     }
@@ -283,32 +301,35 @@ public class ServiceConfiguration {
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
-            BidRequest defaultVideoBidRequest,
+            @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            FileSystem fileSystem,
             ApplicationSettings applicationSettings,
+            VideoRequestValidator videoRequestValidator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             TimeoutResolver timeoutResolver,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            JsonMerger jsonMerger) {
 
-        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
-
-        return new VideoStoredRequestProcessor(
+        return VideoStoredRequestProcessor.create(
                 enforceStoredRequest,
-                blacklistedAccounts,
+                splitToList(blacklistedAccountsString),
                 defaultTimeoutMs,
                 adServerCurrency,
-                defaultVideoBidRequest,
-                new VideoRequestValidator(),
+                defaultBidRequestPath,
+                fileSystem,
                 applicationSettings,
+                videoRequestValidator,
                 metrics,
                 timeoutFactory,
                 timeoutResolver,
-                mapper);
+                mapper,
+                jsonMerger);
     }
 
     @Bean
-    BidRequest defaultVideoBidRequest() {
-        return BidRequest.builder().build();
+    VideoRequestValidator videoRequestValidator() {
+        return new VideoRequestValidator();
     }
 
     @Bean
@@ -449,7 +470,8 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            @Value("${auction.generate-bid-id}") boolean generateBidId,
+            BidResponseReducer bidResponseReducer,
+            IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
@@ -459,7 +481,8 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
-                generateBidId,
+                bidResponseReducer,
+                bidIdGenerator,
                 truncateAttrChars,
                 clock,
                 mapper);
@@ -472,6 +495,7 @@ public class ServiceConfiguration {
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
+            SchainResolver schainResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -487,6 +511,7 @@ public class ServiceConfiguration {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
+                schainResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
@@ -500,12 +525,28 @@ public class ServiceConfiguration {
     @Bean
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            FileSystem fileSystem,
             ApplicationSettings applicationSettings,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            JsonMerger jsonMerger) {
 
-        return new StoredRequestProcessor(defaultTimeoutMs, applicationSettings, metrics, timeoutFactory, mapper);
+        return StoredRequestProcessor.create(
+                defaultTimeoutMs,
+                defaultBidRequestPath,
+                fileSystem,
+                applicationSettings,
+                metrics,
+                timeoutFactory,
+                mapper,
+                jsonMerger);
+    }
+
+    @Bean
+    BidResponseReducer bidResponseReducer() {
+        return new BidResponseReducer();
     }
 
     @Bean
@@ -563,8 +604,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    ResponseBidValidator responseValidator() {
-        return new ResponseBidValidator();
+    ResponseBidValidator responseValidator(
+            @Value("${auction.validations.banner-creative-max-size}") BidValidationEnforcement bannerMaxSizeEnforcement,
+            @Value("${auction.validations.secure-markup}") BidValidationEnforcement secureMarkupEnforcement,
+            Metrics metrics) {
+
+        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics);
     }
 
     @Bean
@@ -644,9 +689,11 @@ public class ServiceConfiguration {
         return new LoggerControlKnob(vertx);
     }
 
-    private static List<String> splitCommaSeparatedString(String listString) {
-        return Stream.of(listString.split(","))
+    private static List<String> splitToList(String listAsString) {
+        return listAsString != null
+                ? Stream.of(listAsString.split(","))
                 .map(String::trim)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList())
+                : null;
     }
 }
