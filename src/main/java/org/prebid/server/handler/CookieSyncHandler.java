@@ -13,7 +13,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
@@ -35,6 +34,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
@@ -189,7 +189,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return StringUtils.isBlank(accountId)
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(Account.empty(accountId));
+                        .otherwise(Account.empty(accountId));
     }
 
     private void handleCookieSyncContextResult(AsyncResult<CookieSyncContext> cookieSyncContextResult,
@@ -208,11 +208,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final Set<String> biddersToSync = biddersToSync(cookieSyncRequest);
 
             isAllowedForHostVendorId(tcfContext)
-                    .compose(isCookieSyncAllowed ->
-                            prepareRejectedBidders(isCookieSyncAllowed, biddersToSync, cookieSyncContext))
-                    .setHandler(rejectedBiddersResult ->
-                            respondByRejectedBidder(rejectedBiddersResult, biddersToSync, cookieSyncContext));
-
+                    .setHandler(hostTcfResponseResult ->
+                            respondByTcfResponse(hostTcfResponseResult, biddersToSync, cookieSyncContext));
         } else {
             final Throwable error = cookieSyncContextResult.cause();
             handleErrors(error, routingContext, null);
@@ -264,11 +261,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     /**
      * If host vendor id is null, host allowed to sync cookies.
      */
-    private Future<Boolean> isAllowedForHostVendorId(TcfContext tcfContext) {
+    private Future<HostVendorTcfResponse> isAllowedForHostVendorId(TcfContext tcfContext) {
         return gdprHostVendorId == null
-                ? Future.succeededFuture(true)
+                ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
                 : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                .map(this::isCookieSyncAllowed);
+                        .map(this::toHostVendorTcfResponse);
+    }
+
+    private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {
+        return HostVendorTcfResponse.of(tcfResponse.getUserInGdprScope(), tcfResponse.getCountry(),
+                isCookieSyncAllowed(tcfResponse));
     }
 
     private Boolean isCookieSyncAllowed(TcfResponse<Integer> hostTcfResponse) {
@@ -322,19 +324,50 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return bidderCatalog.isAlias(bidder) ? bidderCatalog.nameByAlias(bidder) : bidder;
     }
 
-    private Future<RejectedBidders> prepareRejectedBidders(Boolean isCookieSyncAllowed,
-                                                           Set<String> biddersToSync,
-                                                           CookieSyncContext cookieSyncContext) {
-        if (BooleanUtils.isTrue(isCookieSyncAllowed)) {
+    private void respondByTcfResponse(AsyncResult<HostVendorTcfResponse> hostTcfResponseResult,
+                                      Set<String> biddersToSync,
+                                      CookieSyncContext cookieSyncContext) {
+        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
+        if (hostTcfResponseResult.succeeded()) {
 
-            final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-            final AccountGdprConfig accountGdprConfig = cookieSyncContext.getAccount().getGdpr();
+            // Host vendor tcf response can be not populated if host vendor id is not defined,
+            // we can't be sure if we can use it. So we get tcf values from response for all bidders.
+            final HostVendorTcfResponse hostVendorTcfResponse = hostTcfResponseResult.result();
+            if (hostVendorTcfResponse.isVendorAllowed()) {
 
-            return tcfDefinerService.resultForBidderNames(biddersToSync, tcfContext, accountGdprConfig)
-                    .map(tcfResponse -> rejectedRequestBiddersToSync(tcfResponse, cookieSyncContext, biddersToSync));
+                final AccountGdprConfig accountGdprConfig = cookieSyncContext.getAccount().getGdpr();
+                tcfDefinerService.resultForBidderNames(biddersToSync, tcfContext, accountGdprConfig)
+                        .setHandler(tcfResponseResult -> respondByTcfResultForBidders(tcfResponseResult,
+                                biddersToSync, cookieSyncContext));
+
+            } else {
+                // Reject all bidders when Host TCF response has blocked pixel
+                final RejectedBidders rejectedBidders = RejectedBidders.of(biddersToSync, Collections.emptySet());
+                respondWithRejectedBidders(cookieSyncContext, biddersToSync, rejectedBidders);
+            }
+
         } else {
-            // Reject all bidders when Host TCF response has blocked pixel
-            return Future.succeededFuture(RejectedBidders.of(biddersToSync, Collections.emptySet()));
+            final Throwable error = hostTcfResponseResult.cause();
+            final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
+            handleErrors(error, routingContext, tcfContext);
+        }
+    }
+
+    private void respondByTcfResultForBidders(AsyncResult<TcfResponse<String>> tcfResponseResult,
+                                              Set<String> biddersToSync,
+                                              CookieSyncContext cookieSyncContext) {
+        if (tcfResponseResult.succeeded()) {
+            final TcfResponse<String> tcfResponse = tcfResponseResult.result();
+
+            final RejectedBidders rejectedBidders = rejectedRequestBiddersToSync(tcfResponse, cookieSyncContext,
+                    biddersToSync);
+
+            respondWithRejectedBidders(cookieSyncContext, biddersToSync, rejectedBidders);
+        } else {
+            final Throwable error = tcfResponseResult.cause();
+            final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
+            final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
+            handleErrors(error, routingContext, tcfContext);
         }
     }
 
@@ -365,20 +398,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .collect(Collectors.toSet());
         }
         return Collections.emptySet();
-    }
-
-    private void respondByRejectedBidder(AsyncResult<RejectedBidders> rejectedBiddersResult,
-                                         Set<String> biddersToSync,
-                                         CookieSyncContext cookieSyncContext) {
-        if (rejectedBiddersResult.succeeded()) {
-            final RejectedBidders rejectedBidders = rejectedBiddersResult.result();
-            respondWithRejectedBidders(cookieSyncContext, biddersToSync, rejectedBidders);
-        } else {
-            final Throwable error = rejectedBiddersResult.cause();
-            final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
-            final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-            handleErrors(error, routingContext, tcfContext);
-        }
     }
 
     /**
