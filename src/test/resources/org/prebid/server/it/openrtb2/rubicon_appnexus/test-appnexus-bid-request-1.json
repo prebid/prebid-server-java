@@ -130,6 +130,9 @@
       "integration": "dmbjs",
       "channel": {
         "name": "web"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
       }
     }
   }

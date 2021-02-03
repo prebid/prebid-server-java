@@ -24,6 +24,7 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
@@ -516,7 +517,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
+        verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any(), any());
 
         assertThat(captor.getValue().getTest()).isEqualTo(1);
     }
@@ -536,7 +537,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
+        verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any(), any());
 
         final ExtRequest extRequest = captor.getValue().getExt();
         assertThat(extRequest.getPrebid().getDebug()).isEqualTo(1);
@@ -1474,7 +1475,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(any(), anyString()))
                 .willReturn(Future.succeededFuture(bidRequest));
 
-        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any(), eq(Endpoint.openrtb2_amp.value())))
+                .willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.toAuctionContext(any(), any(), eq(MetricName.amp), anyList(), anyLong(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(

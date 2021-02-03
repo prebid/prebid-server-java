@@ -71,6 +71,9 @@
       "auctiontimestamp": 1000,
       "channel": {
         "name": "app"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
       }
     }
   }

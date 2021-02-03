@@ -21,6 +21,7 @@ import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
@@ -41,7 +42,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
@@ -730,7 +731,9 @@ public class AppnexusBidderTest extends VertxTest {
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().channel(ExtRequestPrebidChannel.of("video")).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
                 .build();
 
         // when
@@ -758,7 +761,9 @@ public class AppnexusBidderTest extends VertxTest {
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().channel(ExtRequestPrebidChannel.of("video")).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
                 .build();
 
         // when
@@ -788,7 +793,9 @@ public class AppnexusBidderTest extends VertxTest {
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().channel(ExtRequestPrebidChannel.of("video")).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
                 .build();
 
         // when
@@ -818,7 +825,9 @@ public class AppnexusBidderTest extends VertxTest {
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().channel(ExtRequestPrebidChannel.of("video")).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
                 .build();
 
         // when

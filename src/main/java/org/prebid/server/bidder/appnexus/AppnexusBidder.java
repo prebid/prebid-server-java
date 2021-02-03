@@ -12,6 +12,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
@@ -35,7 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -252,13 +253,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private boolean isVideoRequest(BidRequest bidRequest) {
+    private static boolean isVideoRequest(BidRequest bidRequest) {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidChannel channel = prebid != null ? prebid.getChannel() : null;
-        final String channelName = channel != null ? channel.getName() : null;
+        final ExtRequestPrebidPbs pbs = prebid != null ? prebid.getPbs() : null;
+        final String endpointName = pbs != null ? pbs.getEndpoint() : null;
 
-        return StringUtils.equals(channelName, "video");
+        return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
     }
 
     private ExtRequest updateRequestExt(BidRequest bidRequest) {

@@ -16,6 +16,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
@@ -33,6 +34,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class VideoRequestFactory {
+
+    private static final String ENDPOINT = Endpoint.openrtb2_video.value();
 
     private final int maxRequestSize;
     private final boolean enforceStoredRequest;
@@ -192,8 +195,10 @@ public class VideoRequestFactory {
 
     private WithPodErrors<BidRequest> fillImplicitParameters(RoutingContext routingContext,
                                                              WithPodErrors<BidRequest> bidRequestToErrors) {
+
         final BidRequest bidRequest = auctionRequestFactory
-                .fillImplicitParameters(bidRequestToErrors.getData(), routingContext, timeoutResolver);
+                .fillImplicitParameters(bidRequestToErrors.getData(), routingContext, timeoutResolver, ENDPOINT);
+
         return WithPodErrors.of(bidRequest, bidRequestToErrors.getPodErrors());
     }
 }

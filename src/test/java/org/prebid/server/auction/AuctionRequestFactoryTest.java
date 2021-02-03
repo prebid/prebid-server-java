@@ -28,6 +28,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
@@ -60,6 +61,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.settings.ApplicationSettings;
@@ -1351,8 +1353,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 privacyEnforcementService,
                 jacksonMapper);
 
+        final ExtRequestPrebidCache cacheExt = ExtRequestPrebidCache.of(null, null, null);
         final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .cache(ExtRequestPrebidCache.of(null, null, null))
+                .cache(cacheExt)
                 .build());
 
         givenBidRequest(BidRequest.builder()
@@ -1364,7 +1367,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getExt()).isSameAs(extBidRequest);
+        assertThat(request.getExt().getPrebid().getCache()).isSameAs(cacheExt);
     }
 
     @Test
@@ -1484,6 +1487,46 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getChannel)
                 .containsOnly(ExtRequestPrebidChannel.of("custom"));
+    }
+
+    @Test
+    public void shouldSetRequestPrebidPbsEndpointWhenMissingInRequest() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getPbs)
+                .containsOnly(ExtRequestPrebidPbs.of(Endpoint.openrtb2_auction.value()));
+    }
+
+    @Test
+    public void shouldNotSetRequestPrebidPbsEndpointWhenPresentInRequest() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of("custom"))
+                        .build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getPbs)
+                .containsOnly(ExtRequestPrebidPbs.of("custom"));
     }
 
     @Test

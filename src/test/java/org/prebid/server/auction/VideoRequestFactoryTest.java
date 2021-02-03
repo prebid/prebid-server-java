@@ -22,6 +22,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
@@ -210,7 +211,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(mergedBidRequest));
         given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
-        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
+        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any(), eq(Endpoint.openrtb2_video.value())))
                 .willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any()))
                 .willReturn(Future.succeededFuture());
@@ -222,7 +223,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(routingContext).getBody();
         verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
         verify(auctionRequestFactory).validateRequest(bidRequest);
-        verify(auctionRequestFactory).fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        verify(auctionRequestFactory)
+                .fillImplicitParameters(bidRequest, routingContext, timeoutResolver, Endpoint.openrtb2_video.value());
         verify(auctionRequestFactory).toAuctionContext(
                 routingContext, bidRequest, MetricName.video, new ArrayList<>(), 0, timeoutResolver);
 
