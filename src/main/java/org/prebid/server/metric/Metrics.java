@@ -359,12 +359,12 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updatePrivacyTcfRequestsMetric(int version) {
-        final UpdatableMetrics versionMetrics = version == 2 ? privacy().tcf().v2() : privacy().tcf().v1();
+        final UpdatableMetrics versionMetrics = privacy().tcf().fromVersion(version);
         versionMetrics.incCounter(MetricName.requests);
     }
 
     public void updatePrivacyTcfGeoMetric(int version, Boolean inEea) {
-        final UpdatableMetrics versionMetrics = version == 2 ? privacy().tcf().v2() : privacy().tcf().v1();
+        final UpdatableMetrics versionMetrics = privacy().tcf().fromVersion(version);
 
         final MetricName metricName = inEea == null
                 ? MetricName.unknown_geo
@@ -391,8 +391,7 @@ public class Metrics extends UpdatableMetrics {
 
     private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
         final TcfMetrics tcfMetrics = privacy().tcf();
-        final TcfMetrics.TcfVersionMetrics tcfVersionMetrics = version == 2 ? tcfMetrics.v2() : tcfMetrics.v1();
-        tcfVersionMetrics.vendorList().incCounter(metricName);
+        tcfMetrics.fromVersion(version).vendorList().incCounter(metricName);
     }
 
     public void updateConnectionAcceptErrors() {

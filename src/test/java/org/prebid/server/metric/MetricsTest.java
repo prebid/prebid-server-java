@@ -705,12 +705,13 @@ public class MetricsTest {
 
     @Test
     public void privacyTcfVersionShouldReturnSameMetricsOnSuccessiveCalls() {
-        assertThat(metrics.privacy().tcf().v1()).isSameAs(metrics.privacy().tcf().v1());
+        assertThat(metrics.privacy().tcf().fromVersion(1)).isSameAs(metrics.privacy().tcf().fromVersion(1));
     }
 
     @Test
     public void privacyTcfVersionVendorListShouldReturnSameMetricsOnSuccessiveCalls() {
-        assertThat(metrics.privacy().tcf().v2().vendorList()).isSameAs(metrics.privacy().tcf().v2().vendorList());
+        assertThat(metrics.privacy().tcf().fromVersion(2).vendorList())
+                .isSameAs(metrics.privacy().tcf().fromVersion(2).vendorList());
     }
 
     @Test

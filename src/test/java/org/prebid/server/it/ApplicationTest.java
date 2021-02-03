@@ -3,9 +3,8 @@ package org.prebid.server.it;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.iab.gdpr.consent.VendorConsentEncoder;
-import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
-import com.iab.gdpr.consent.range.StartEndRangeEntry;
+import com.iabtcf.encoder.TCStringEncoder;
+import com.iabtcf.utils.BitSetIntIterable;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
@@ -39,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -331,16 +329,14 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void cookieSyncShouldReturnBidderStatusWithExpectedUsersyncInfo() {
         // given
-        final String gdprConsent = VendorConsentEncoder.toBase64String(new VendorConsentBuilder()
-                .withConsentRecordCreatedOn(Instant.now())
-                .withConsentRecordLastUpdatedOn(Instant.now())
-                .withConsentLanguage("en")
-                .withVendorListVersion(79)
-                .withRangeEntries(singletonList(new StartEndRangeEntry(1, 100)))
-                .withMaxVendorId(100)
-                .withBitField(new HashSet<>(asList(1, 32, 52)))
-                .withAllowedPurposeIds(new HashSet<>(asList(1, 3)))
-                .build());
+        String tcString = TCStringEncoder.newBuilder()
+                .version(2)
+                .consentLanguage("EN")
+                .vendorListVersion(52)
+                .tcfPolicyVersion(2)
+                .addPurposesConsent(BitSetIntIterable.from(1))
+                .addVendorConsent(BitSetIntIterable.from(1, 32, 52))
+                .encode();
 
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
@@ -348,7 +344,7 @@ public class ApplicationTest extends IntegrationTest {
                 .body(CookieSyncRequest.builder()
                         .bidders(asList(RUBICON, APPNEXUS, ADFORM))
                         .gdpr(1)
-                        .gdprConsent(gdprConsent)
+                        .gdprConsent(tcString)
                         .usPrivacy("1YNN")
                         .coopSync(false)
                         .build())
@@ -368,7 +364,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
                                         "http://localhost:8080/setuid?bidder=rubicon"
-                                                + "&gdpr=1&gdpr_consent=" + gdprConsent
+                                                + "&gdpr=1&gdpr_consent=" + tcString
                                                 + "&us_privacy=1YNN"
                                                 + "&uid=host-cookie-uid",
                                         "redirect", false))
@@ -378,7 +374,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
                                         "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
-                                                + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
+                                                + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + tcString
                                                 + "%26us_privacy%3D1YNN"
                                                 + "%26uid%3D%24UID",
                                         "redirect", false))
@@ -401,7 +397,7 @@ public class ApplicationTest extends IntegrationTest {
                 .queryParam("bidder", RUBICON)
                 .queryParam("uid", "updatedUid")
                 .queryParam("gdpr", "1")
-                .queryParam("gdpr_consent", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA")
+                .queryParam("gdpr_consent", "CPBCKiyPBCKiyAAAAAENA0CAAIAAAAAAACiQAaQAwAAgAgABoAAAAAA")
                 .when()
                 .get("/setuid")
                 .then()

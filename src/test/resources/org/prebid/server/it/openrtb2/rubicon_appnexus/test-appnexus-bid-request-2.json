@@ -44,6 +44,7 @@
     "ip": "80.215.195.0",
     "pxratio": 4.2,
     "language": "en",
+    "ifa": "ifaId",
     "ext": {
       "prebid": {
         "interstitial": {
@@ -54,8 +55,40 @@
     }
   },
   "user": {
+    "buyeruid": "12345",
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+      "eids": [
+        {
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "cd96870f-f53d-4986-a08e-cd1612fb13b0",
+              "ext": {
+                "rtiPartner": "TDID"
+              }
+            }
+          ]
+        },
+        {
+          "source": "liveintent.com",
+          "uids": [
+            {
+              "id": "efcf3a33-2eaf-4d6b-bf11-a411f134278c"
+            }
+          ],
+          "ext": {
+            "segments": [
+              "999",
+              "888"
+            ]
+          }
+        },
+        {
+          "source": "pubcid",
+          "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+        }
+      ]
     }
   },
   "at": 1,
@@ -80,21 +113,20 @@
   "ext": {
     "prebid": {
       "debug": 1,
+      "aliases": {
+        "appnexusAlias": "appnexus"
+      },
       "currency": {
         "rates": {
           "EUR": {
             "USD": 1.2406
           },
           "USD": {
-            "EUR": 0.8110
+            "EUR": 0.811
           }
         },
         "usepbsrates": false
       },
-      "aliases": {
-        "appnexusAlias": "appnexus"
-      },
-      "events": {},
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -109,11 +141,13 @@
         "includebidderkeys": true
       },
       "cache": {
-        "bids": {},
+        "bids": {
+        },
         "vastxml": {
           "ttlseconds": 120
         }
       },
+      "events": {},
       "auctiontimestamp": 1000,
       "integration": "dmbjs",
       "channel": {
