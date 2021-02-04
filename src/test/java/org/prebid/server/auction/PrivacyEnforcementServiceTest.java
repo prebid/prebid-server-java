@@ -125,11 +125,19 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void contextFromBidRequestShouldReturnCoppaContext() {
+    public void contextFromBidRequestShouldReturnTcfContextForCoppa() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .regs(Regs.of(1, null))
                 .build();
+
+        final TcfContext tcfContext = TcfContext.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .consent(TCStringEmpty.create())
+                .build();
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(tcfContext));
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
@@ -137,7 +145,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // then
         FutureAssertion.assertThat(privacyContext).succeededWith(
-                PrivacyContext.of(Privacy.of(EMPTY, EMPTY, Ccpa.EMPTY, 1), TcfContext.empty()));
+                PrivacyContext.of(Privacy.of(EMPTY, EMPTY, Ccpa.EMPTY, 1), tcfContext));
     }
 
     @Test
