@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.adman;
 
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.exception.PreBidException;
@@ -27,7 +28,8 @@ public class AdmanBidder extends OpenrtbBidder<ExtImpAdman> {
     }
 
     @Override
-    protected BidType getBidType(String impId, List<Imp> imps) {
+    protected BidType getBidType(Bid bid, List<Imp> imps) {
+        final String impId = bid.getImpid();
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() == null && imp.getVideo() != null) {
