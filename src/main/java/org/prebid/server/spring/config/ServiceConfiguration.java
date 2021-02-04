@@ -11,6 +11,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.BidResponseReducer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -19,6 +20,7 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.SchainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -132,6 +134,14 @@ public class ServiceConfiguration {
     @Bean
     OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
         return new OrtbTypesResolver(jacksonMapper, jsonMerger);
+    }
+
+    @Bean
+    SchainResolver schainResolver(
+            @Value("${auction.host-schain-node}") String globalSchainNode,
+            JacksonMapper mapper) {
+
+        return SchainResolver.create(globalSchainNode, mapper);
     }
 
     @Bean
@@ -460,6 +470,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
+            BidResponseReducer bidResponseReducer,
             IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
@@ -470,6 +481,7 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
+                bidResponseReducer,
                 bidIdGenerator,
                 truncateAttrChars,
                 clock,
@@ -483,6 +495,7 @@ public class ServiceConfiguration {
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
+            SchainResolver schainResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -498,6 +511,7 @@ public class ServiceConfiguration {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
+                schainResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
@@ -528,6 +542,11 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 mapper,
                 jsonMerger);
+    }
+
+    @Bean
+    BidResponseReducer bidResponseReducer() {
+        return new BidResponseReducer();
     }
 
     @Bean

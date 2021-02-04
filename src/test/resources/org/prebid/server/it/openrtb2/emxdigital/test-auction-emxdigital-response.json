@@ -78,8 +78,12 @@
               ]
             },
             "ext": {
-              "emx_digital": {
-                "tagid": "25251"
+              "prebid": {
+                "bidder": {
+                  "emx_digital": {
+                    "tagid": "25251"
+                  }
+                }
               }
             }
           }
