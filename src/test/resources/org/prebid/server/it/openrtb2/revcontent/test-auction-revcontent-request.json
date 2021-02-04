@@ -60,10 +60,7 @@
     }
   },
   "user": {
-    "buyeruid" : "revcontent-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "buyeruid" : "revcontent-UID"
   },
   "regs": {
     "ext": {

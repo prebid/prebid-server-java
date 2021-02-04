@@ -35,10 +35,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "revcontent-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "buyeruid": "revcontent-UID"
   },
   "at": 1,
   "tmax": 5000,
