@@ -583,14 +583,14 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenSitePageByCurlParamValue() {
+    public void shouldReturnBidRequestWithOverriddenSitePageAndDomainByCurlParamValue() {
         // given
-        given(httpRequest.getParam("curl")).willReturn("overridden-site-page");
+        given(httpRequest.getParam("curl")).willReturn("http://overridden.site.page:8080/path");
 
         givenBidRequest(
                 builder -> builder
                         .ext(ExtRequest.empty())
-                        .site(Site.builder().page("will-be-overridden").build()),
+                        .site(Site.builder().page("http://will.be.overridden/path").build()),
                 Imp.builder().build());
 
         // when
@@ -599,14 +599,15 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(singletonList(request))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", ExtSite.of(1, null)));
+                .extracting(Site::getPage, Site::getDomain, Site::getExt)
+                .containsOnly(tuple(
+                        "http://overridden.site.page:8080/path", "overridden.site.page", ExtSite.of(1, null)));
     }
 
     @Test
-    public void shouldReturnBidRequestWithSitePageContainingCurlParamValueWhenSitePreviouslyNotExistInRequest() {
+    public void shouldReturnBidRequestWithSitePageAndDomainContainingCurlParamValueWhenSiteNotInRequest() {
         // given
-        given(httpRequest.getParam("curl")).willReturn("overridden-site-page");
+        given(httpRequest.getParam("curl")).willReturn("http://overridden.site.page:8080/path");
 
         givenBidRequest(
                 builder -> builder
@@ -620,8 +621,9 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(singletonList(request))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", ExtSite.of(1, null)));
+                .extracting(Site::getPage, Site::getDomain, Site::getExt)
+                .containsOnly(tuple(
+                        "http://overridden.site.page:8080/path", "overridden.site.page", ExtSite.of(1, null)));
     }
 
     @Test

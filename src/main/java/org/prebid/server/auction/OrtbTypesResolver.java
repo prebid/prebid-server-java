@@ -248,7 +248,7 @@ public class OrtbTypesResolver {
     public void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
                                        List<String> warnings) {
         final JsonNode data = containerNode.get(DATA);
-        if (data == null || data.isNull()) {
+        if (data == null || !data.isObject()) {
             return;
         }
         final JsonNode extData = containerNode.path(EXT).path(DATA);
