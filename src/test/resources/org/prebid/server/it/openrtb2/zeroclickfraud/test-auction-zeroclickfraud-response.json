@@ -129,9 +129,13 @@
               ]
             },
             "ext": {
-              "zeroclickfraud": {
-                "host": "localhost:8090",
-                "sourceId": 1
+              "prebid": {
+                "bidder": {
+                  "zeroclickfraud": {
+                    "host": "localhost:8090",
+                    "sourceId": 1
+                  }
+                }
               }
             }
           },
@@ -146,9 +150,13 @@
               "pos": 1
             },
             "ext": {
-              "zeroclickfraud": {
-                "host": "localhost:8090",
-                "sourceId": 2
+              "prebid": {
+                "bidder": {
+                  "zeroclickfraud": {
+                    "host": "localhost:8090",
+                    "sourceId": 2
+                  }
+                }
               }
             }
           }

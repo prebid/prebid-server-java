@@ -29,7 +29,7 @@ public class Metrics extends UpdatableMetrics {
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
-    private final Function<String, AdapterMetrics> adapterMetricsCreator;
+    private final Function<String, AdapterTypeMetrics> adapterMetricsCreator;
     private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
     private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     private final Function<MetricName, SettingsCacheMetrics> settingsCacheMetricsCreator;
@@ -38,7 +38,7 @@ public class Metrics extends UpdatableMetrics {
     // thread-safe
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
-    private final Map<String, AdapterMetrics> adapterMetrics;
+    private final Map<String, AdapterTypeMetrics> adapterMetrics;
     private final Map<Integer, BidderCardinalityMetrics> bidderCardinailtyMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
@@ -58,7 +58,7 @@ public class Metrics extends UpdatableMetrics {
 
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
-        adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
+        adapterMetricsCreator = adapterType -> new AdapterTypeMetrics(metricRegistry, counterType, adapterType);
         bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
                 metricRegistry, counterType, cardinality);
         circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
@@ -89,7 +89,7 @@ public class Metrics extends UpdatableMetrics {
         return accountMetrics.computeIfAbsent(account, accountMetricsCreator);
     }
 
-    AdapterMetrics forAdapter(String adapterType) {
+    AdapterTypeMetrics forAdapter(String adapterType) {
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 
@@ -211,22 +211,23 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
-        final AdapterMetrics adapterMetrics = forAdapter(resolveMetricsBidderName(bidder));
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(resolveMetricsBidderName(bidder));
 
-        adapterMetrics.requestType(requestType).incCounter(MetricName.requests);
+        adapterTypeMetrics.requestType(requestType).incCounter(MetricName.requests);
 
         if (noCookie) {
-            adapterMetrics.incCounter(MetricName.no_cookie_requests);
+            adapterTypeMetrics.incCounter(MetricName.no_cookie_requests);
         }
     }
 
     public void updateAdapterResponseTime(String bidder, String accountId, int responseTime) {
         final String metricsBidderName = resolveMetricsBidderName(bidder);
-        final AdapterMetrics adapterMetrics = forAdapter(metricsBidderName);
-        adapterMetrics.updateTimer(MetricName.request_time, responseTime);
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(metricsBidderName);
+        adapterTypeMetrics.updateTimer(MetricName.request_time, responseTime);
 
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(metricsBidderName);
+            final AdapterTypeMetrics accountAdapterMetrics =
+                    forAccount(accountId).adapter().forAdapter(metricsBidderName);
             accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
         }
     }
@@ -235,7 +236,7 @@ public class Metrics extends UpdatableMetrics {
         final String metricsBidderName = resolveMetricsBidderName(bidder);
         forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(accountId).forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
+            forAccount(accountId).adapter().forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
         }
     }
 
@@ -243,20 +244,21 @@ public class Metrics extends UpdatableMetrics {
         final String metricsBidderName = resolveMetricsBidderName(bidder);
         forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(accountId).forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
+            forAccount(accountId).adapter().forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
         }
     }
 
     public void updateAdapterBidMetrics(String bidder, String accountId, long cpm, boolean isAdm, String bidType) {
         final String metricsBidderName = resolveMetricsBidderName(bidder);
-        final AdapterMetrics adapterMetrics = forAdapter(metricsBidderName);
-        adapterMetrics.updateHistogram(MetricName.prices, cpm);
-        adapterMetrics.incCounter(MetricName.bids_received);
-        adapterMetrics.forBidType(bidType)
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(metricsBidderName);
+        adapterTypeMetrics.updateHistogram(MetricName.prices, cpm);
+        adapterTypeMetrics.incCounter(MetricName.bids_received);
+        adapterTypeMetrics.forBidType(bidType)
                 .incCounter(isAdm ? MetricName.adm_bids_received : MetricName.nurl_bids_received);
 
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(metricsBidderName);
+            final AdapterTypeMetrics accountAdapterMetrics =
+                    forAccount(accountId).adapter().forAdapter(metricsBidderName);
             accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
             accountAdapterMetrics.incCounter(MetricName.bids_received);
         }
@@ -264,6 +266,16 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
         forAdapter(resolveMetricsBidderName(bidder)).request().incCounter(errorMetric);
+    }
+
+    public void updateSizeValidationMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(resolveMetricsBidderName(bidder)).response().validation().size().incCounter(type);
+        forAccount(accountId).response().validation().size().incCounter(type);
+    }
+
+    public void updateSecureValidationMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(resolveMetricsBidderName(bidder)).response().validation().secure().incCounter(type);
+        forAccount(accountId).response().validation().secure().incCounter(type);
     }
 
     public void updateUserSyncOptoutMetric() {

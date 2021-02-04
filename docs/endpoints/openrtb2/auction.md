@@ -39,8 +39,12 @@ The following is a "hello world" request which fetches the [Prebid sample ad](ht
         ]
       },
       "ext": {
-        "appnexus": {
-          "placement_id": 10433394
+        "prebid": {
+          "bidder": {
+            "appnexus": {
+              "placement_id": 10433394
+            }
+          }
         }
       }
     }
@@ -107,11 +111,11 @@ These fall under the `ext` property of JSON objects.
 
 If `ext` is defined on an object, Prebid Server uses the following conventions:
 
-1. `ext` in "Request objects" uses `ext.prebid` and/or `ext.{anyBidderCode}`.
+1. `ext` in "Request objects" uses `ext.prebid` and/or `ext.prebid.bidder.{anyBidderCode}`.
 2. `ext` on "Response objects" uses `ext.prebid` and/or `ext.bidder`.
 The only exception here is the top-level `BidResponse`, because it's bidder-independent.
 
-`ext.{anyBidderCode}` and `ext.bidder` extensions are defined by bidders.
+`ext.prebid.bidder.{anyBidderCode}` and `ext.bidder` extensions are defined by bidders.
 `ext.prebid` extensions are defined by Prebid Server.
 
 Exceptions are made for extensions with "standard" recommendations:
@@ -289,11 +293,15 @@ This can be used to request bids from the same Bidder with different params. For
         "mimes": ["video/mp4"]
       },
       "ext": {
-        "appnexus: {
-          "placement_id": 123
-        },
-        "districtm": {
-          "placement_id": 456
+        "prebid": {
+          "bidder": {
+            "appnexus: {
+              "placement_id": 123
+            },
+            "districtm": {
+              "placement_id": 456
+            }
+          }
         }
       }
     }
@@ -324,7 +332,7 @@ For example, if the Request defines an alias like this:
   }
 ```
 
-then any `imp.ext.appnexus` params will actually go to the **rubicon** adapter.
+then any `imp.ext.prebid.bidder.appnexus` params will actually go to the **rubicon** adapter.
 It will become impossible to fetch bids from Appnexus within that Request.
 
 #### Bidder Response Times
@@ -757,7 +765,7 @@ This section describes the ways in which Prebid Server **breaks** the OpenRTB sp
 Prebid Server returns a 400 on requests which define `wseat` or `bseat`.
 We may add support for these in the future, if there's compelling need.
 
-Instead, an impression is only offered to a bidder if `bidrequest.imp[i].ext.{bidderName}` exists.
+Instead, an impression is only offered to a bidder if `bidrequest.imp[i].ext.prebid.bidder.{bidderName}` exists.
 
 This supports publishers who want to sell different impressions to different bidders.
 

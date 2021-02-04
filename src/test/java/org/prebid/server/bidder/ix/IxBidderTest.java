@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -34,12 +33,12 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class IxBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final int REQUEST_LIMIT = 20;
+    private static final String SITE_ID = "site id";
 
     private IxBidder ixBidder;
 
@@ -51,39 +50,6 @@ public class IxBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new IxBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfRequestHasApp() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("ix doesn't support apps"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpHasNoBanner() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(null).video(Video.builder().build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsOnly(
-                        BidderError.badInput("Invalid MediaType. Ix supports only Banner type. Ignoring ImpID=123"),
-                        BidderError.badInput("No valid impressions in the bid request"));
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -103,30 +69,25 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtSiteIdIsNullOrBlank() {
+    public void makeHttpRequestsShouldReturnWhenImpHasNoBanner() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        givenImp(impBuilder -> impBuilder.ext(
-                                mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(null))))),
-                        givenImp(impBuilder -> impBuilder.ext(
-                                mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("")))))))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(null).video(Video.builder().build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
-                .containsOnly(BidderError.badInput("Missing siteId param"),
-                        BidderError.badInput("No valid impressions in the bid request"));
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSitePublisherIdFromImpExt() {
+    public void makeHttpRequestsShouldSetSitePublisherIdFromImpExtWhenSitePresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final Banner banner = Banner.builder().w(100).h(200).build();
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder().build()),
+                impBuilder -> impBuilder.banner(banner));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
@@ -138,28 +99,7 @@ public class IxBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPublisher)
                 .extracting(Publisher::getId)
-                .containsOnly("site id");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetImpTagIdFromImpId() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(Banner.builder()
-                        .id("123")
-                        .format(singletonList(Format.builder().w(300).h(200).build()))
-                        .build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getTagid)
-                .containsOnly("123");
+                .containsOnly(SITE_ID);
     }
 
     @Test
@@ -213,6 +153,7 @@ public class IxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder
+                                .id("123")
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(300).h(200).build())).build())),
                         givenImp(impBuilder -> impBuilder
@@ -238,7 +179,8 @@ public class IxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder()
-                        .format(asList(Format.builder().w(300).h(200).build(),
+                        .format(asList(
+                                Format.builder().w(300).h(200).build(),
                                 Format.builder().w(600).h(400).build()))
                         .build()));
 
@@ -249,11 +191,8 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher)
-                .extracting(Publisher::getId)
-                // both from same imp (same imp.ext.siteId)
-                .containsOnly("site id");
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(2);
     }
 
     @Test
@@ -285,8 +224,7 @@ public class IxBidderTest extends VertxTest {
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                     .format(singletonList(Format.builder().w(value).h(value).build())).build())));
         }
-        final BidRequest bidRequest = givenBidRequest(requestBuilder -> requestBuilder.imp(imps),
-                identity());
+        final BidRequest bidRequest = givenBidRequest(requestBuilder -> requestBuilder.imp(imps), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
@@ -303,7 +241,8 @@ public class IxBidderTest extends VertxTest {
         for (int i = 0; i < 21; i++) {
             int value = i;
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
-                    .format(asList(Format.builder().w(value).h(value).build(),
+                    .format(asList(
+                            Format.builder().w(value).h(value).build(),
                             Format.builder().w(value + 1).h(value).build()))
                     .build())));
         }
@@ -322,16 +261,16 @@ public class IxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldPrioritizeFirstFormatPerImpOverOtherFormats() {
         // given
         final List<Imp> imps = new ArrayList<>();
-        for (int i = 0; i < 21; i++) {
+        for (int i = 0; i <= REQUEST_LIMIT; i++) {
             int priority = i;
             int other = i + 25;
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
-                    .format(asList(Format.builder().w(priority).h(priority).build(),
+                    .format(asList(
+                            Format.builder().w(priority).h(priority).build(),
                             Format.builder().w(other).h(other).build()))
                     .build())));
         }
-        final BidRequest bidRequest = givenBidRequest(requestBuilder -> requestBuilder.imp(imps),
-                identity());
+        final BidRequest bidRequest = givenBidRequest(requestBuilder -> requestBuilder.imp(imps), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
@@ -398,9 +337,10 @@ public class IxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidWithOriginalBidSize() throws JsonProcessingException {
         // given
+        final Video video = Video.builder().build();
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .imp(singletonList(Imp.builder().id("123").video(video).build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").w(300).h(200))));
@@ -411,7 +351,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), banner, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), BidType.video, "EUR"));
     }
 
     @Test
@@ -450,7 +390,7 @@ public class IxBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("site id")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(SITE_ID, null)))))
                 .build();
     }
 

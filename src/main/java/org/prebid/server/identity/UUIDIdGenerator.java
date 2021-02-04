@@ -11,4 +11,9 @@ public class UUIDIdGenerator implements IdGenerator {
     public String generateId() {
         return UUID.randomUUID().toString();
     }
+
+    @Override
+    public IdGeneratorType getType() {
+        return IdGeneratorType.uuid;
+    }
 }

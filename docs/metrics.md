@@ -78,17 +78,21 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.geo_masked` - number of requests made to `<bidder-name>` that required geo information removed as a result of TCF enforcement for that bidder
 - `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.request_blocked` - number of requests made to `<bidder-name>` that were blocked as a result of TCF enforcement for that bidder
 - `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.analytics_blocked` - number of requests made to `<bidder-name>` that required analytics blocked as a result of TCF enforcement for that bidder
+- `adapter.<bidder-name>.response.validation.size.(warn|err)` - number of banner bids received from the `<bidder-name>` that had invalid size
+- `adapter.<bidder-name>.response.validation.secure.(warn|err)` - number of bids received from the `<bidder-name>` that had insecure creative while in secure context
 
 ## Auction per-account metrics
 Following metrics are collected and submitted if account is configured with `basic` verbosity:   
 - `account.<account-id>.requests` - number of requests received from account with `<account-id>`
+- `account.<account-id>.response.validation.size.(warn|err)` - number of banner bids received from account with `<account-id>` that had invalid size
+- `account.<account-id>.response.validation.secure.(warn|err)` - number of bids received from account with `<account-id>` that had insecure creative while in secure context
 
 Following metrics are collected and submitted if account is configured with `detailed` verbosity:
 - `account.<account-id>.requests.type.(openrtb2-web,openrtb-app,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
-- `account.<account-id>.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
-- `account.<account-id>.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
-- `account.<account-id>.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
 - `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
+- `account.<account-id>.adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
+- `account.<account-id>.adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
+- `account.<account-id>.adapter.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
 
 ## General Prebid Cache metrics
 - `prebid_cache.requests.ok` - timer tracking how long did successful cache requests take
