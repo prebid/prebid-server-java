@@ -569,7 +569,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.legacy), eq(MetricName.ok));
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyBoolean(), eq(1));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), eq(1));
         verify(metrics).updateImpTypesMetrics(singletonMap("banner", 1L));
         verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.legacy));
         verify(metrics).updateRequestTimeMetric(anyLong());
@@ -594,7 +594,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementSafariAndNoCookieMetrics() {
+    public void shouldIncrementNoCookieMetrics() {
         // given
         givenPreBidRequestContext(identity(), builder -> builder.noLiveUids(true));
 
@@ -605,7 +605,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), eq(true), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), anyInt());
     }
 
     @Test

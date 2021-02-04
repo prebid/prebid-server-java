@@ -10,6 +10,7 @@ import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
@@ -21,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
-import org.prebid.server.util.JsonMergeUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,12 +53,11 @@ public class FpdResolver {
             "privacypolicy", "mobile"));
 
     private final JacksonMapper jacksonMapper;
-    private final JsonMergeUtil jsonMergeUtil;
+    private final JsonMerger jsonMerger;
 
-    public FpdResolver(JacksonMapper jacksonMapper) {
+    public FpdResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
-
-        this.jsonMergeUtil = new JsonMergeUtil(jacksonMapper);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
     public User resolveUser(User originUser, ObjectNode fpdUser) {
@@ -183,12 +182,66 @@ public class FpdResolver {
                 : null;
 
         final ObjectNode resolvedData = extImpContextData != null
-                ? (ObjectNode) jsonMergeUtil.merge(targeting, extImpContextData)
+                ? (ObjectNode) jsonMerger.merge(targeting, extImpContextData)
                 : targeting;
 
         return extImpContext != null && extImpContext.isObject()
                 ? impExt.set(CONTEXT, ((ObjectNode) extImpContext).set(DATA, resolvedData))
                 : impExt.set(CONTEXT, jacksonMapper.mapper().createObjectNode().set(DATA, resolvedData));
+    }
+
+    public ObjectNode resolveImpExt(ObjectNode originalImpExt, ObjectNode updatedImpExt, boolean useFirstPartyData) {
+        final JsonNode updatedContextNode = sanitizeImpExtContext(originalImpExt, useFirstPartyData);
+        if (updatedContextNode != null) {
+            updatedImpExt.set(CONTEXT, updatedContextNode);
+        }
+
+        final JsonNode updatedDataNode = sanitizeImpExtData(originalImpExt, useFirstPartyData);
+        if (updatedDataNode != null) {
+            updatedImpExt.set(DATA, updatedDataNode);
+        }
+
+        return updatedImpExt;
+    }
+
+    private JsonNode sanitizeImpExtContext(ObjectNode originalImpExt, boolean useFirstPartyData) {
+        if (!originalImpExt.hasNonNull(CONTEXT)) {
+            return null;
+        }
+
+        final JsonNode updatedContextNode = originalImpExt.get(CONTEXT).deepCopy();
+        if (!useFirstPartyData && updatedContextNode.hasNonNull(DATA)) {
+            ((ObjectNode) updatedContextNode).remove(DATA);
+        }
+
+        return updatedContextNode.isObject() && updatedContextNode.isEmpty() ? null : updatedContextNode;
+    }
+
+    private JsonNode sanitizeImpExtData(ObjectNode originalImpExt, boolean useFirstPartyData) {
+        if (!useFirstPartyData) {
+            return null;
+        }
+
+        final JsonNode contextNode = originalImpExt.hasNonNull(CONTEXT) ? originalImpExt.get(CONTEXT) : null;
+        final JsonNode contextDataNode =
+                contextNode != null && contextNode.hasNonNull(DATA) ? contextNode.get(DATA) : null;
+
+        final JsonNode dataNode = originalImpExt.get(DATA);
+
+        final boolean dataIsNullOrObject =
+                dataNode == null || dataNode.isObject();
+        final boolean contextDataIsObject =
+                contextDataNode != null && !contextDataNode.isNull() && contextDataNode.isObject();
+
+        final JsonNode mergedDataNode = dataIsNullOrObject && contextDataIsObject
+                ? dataNode != null ? jsonMerger.merge(contextDataNode, dataNode) : contextDataNode.deepCopy()
+                : dataNode;
+
+        if (mergedDataNode != null && !mergedDataNode.isNull()) {
+            return mergedDataNode;
+        }
+
+        return null;
     }
 
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
@@ -249,11 +302,11 @@ public class FpdResolver {
 
     private ObjectNode mergeExtData(JsonNode fpdData, JsonNode originData) {
         if (fpdData.isMissingNode() || !fpdData.isObject()) {
-            return originData != null && originData.isObject() ? (ObjectNode) originData : null;
+            return originData != null && originData.isObject() ? ((ObjectNode) originData).deepCopy() : null;
         }
 
         if (originData != null && originData.isObject()) {
-            return (ObjectNode) jsonMergeUtil.merge(fpdData, originData);
+            return (ObjectNode) jsonMerger.merge(fpdData, originData);
         }
         return fpdData.isObject() ? (ObjectNode) fpdData : null;
     }

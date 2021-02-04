@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.json.JsonMerger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class OrtbTypesResolverTest extends VertxTest {
 
-    private final OrtbTypesResolver ortbTypesResolver = new OrtbTypesResolver(jacksonMapper);
+    private final OrtbTypesResolver ortbTypesResolver =
+            new OrtbTypesResolver(jacksonMapper, new JsonMerger(jacksonMapper));
 
     @Test
     public void normalizeTargetingShouldNotChangeNodeIfItsTypeIsNotObject() {
@@ -270,6 +272,21 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     @Test
+    public void normalizeBidRequestShouldNotChangeUserWhenUserDataNotObject() {
+        // given
+        final ObjectNode containerNode = obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue"))))
+                .set("data", mapper.createArrayNode().add(obj("id", "123")));
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(
+                obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue"))))
+                        .set("data", mapper.createArrayNode().add(obj("id", "123"))));
+    }
+
+    @Test
     public void normalizeBidRequestShouldSetDataToUserIfExtDataNotExist() {
         // given
         final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue"))
@@ -390,7 +407,7 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     private static ObjectNode obj(String fieldName, JsonNode value) {
-        return (ObjectNode) mapper.createObjectNode().set(fieldName, value);
+        return mapper.createObjectNode().set(fieldName, value);
     }
 
     private static ObjectNode obj(String fieldName, String value) {
