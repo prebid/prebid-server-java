@@ -16,7 +16,7 @@ Throughout the rest of this document, substitute `{bidder}` with the name you've
 Bidders may define their own APIs for Publishers pass custom values. It is _strongly encouraged_ that these not
 duplicate values already present in the [OpenRTB 2.5 spec](https://www.iab.com/wp-content/uploads/2016/03/OpenRTB-API-Specification-Version-2-5-FINAL.pdf).
 
-Publishers will send values for these parameters in `request.imp[i].ext.{bidder}` of
+Publishers will send values for these parameters in `request.imp[i].ext.prebid.bidder.{bidder}` of
 [the Auction endpoint](../endpoints/openrtb2/auction.md). Prebid Server will preprocess these so that
 your bidder will access them at `request.imp[i].ext.bidder`--regardless of what your `{bidder}` name is.
 
@@ -134,7 +134,7 @@ We expect to see at least 90% code coverage on each bidder.
 
 Then `POST` an OpenRTB Request to `http://localhost:8080/openrtb2/auction`.
 
-If at least one `request.imp[i].ext.{bidder}` is defined in your Request, then your bidder should be called.
+If at least one `request.imp[i].ext.prebid.bidder.{bidder}` is defined in your Request, then your bidder should be called.
 
 To test user syncs, [save a UID](../endpoints/setuid.md) using the FamilyName of your Bidder.
 The next time you use `/openrtb2/auction`, the OpenRTB request sent to your Bidder should have

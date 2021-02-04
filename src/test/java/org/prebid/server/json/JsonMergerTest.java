@@ -1,4 +1,4 @@
-package org.prebid.server.util;
+package org.prebid.server.json;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -11,13 +11,13 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class JsonMergeUtilTest extends VertxTest {
+public class JsonMergerTest extends VertxTest {
 
-    private JsonMergeUtil target;
+    private JsonMerger target;
 
     @Before
     public void setUp() {
-        target = new JsonMergeUtil(jacksonMapper);
+        target = new JsonMerger(jacksonMapper);
     }
 
     @Test

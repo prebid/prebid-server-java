@@ -89,7 +89,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         final ExtImpTriplelift impExt = parseImpExt(imp);
         return imp.toBuilder()
                 .tagid(impExt.getInventoryCode())
-                .bidfloor(ObjectUtils.firstNonNull(impExt.getFloor(), imp.getBidfloor()))
+                .bidfloor(ObjectUtils.defaultIfNull(impExt.getFloor(), imp.getBidfloor()))
                 .build();
     }
 

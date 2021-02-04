@@ -2,8 +2,10 @@ package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.model.BidderBid;
@@ -165,9 +167,16 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .body(body)
-                .headers(HttpUtil.headers())
+                .headers(headers())
                 .payload(outgoingRequest)
                 .build();
+    }
+
+    /**
+     * A hook for any request headers changes.
+     */
+    protected MultiMap headers() {
+        return HttpUtil.headers();
     }
 
     /**
@@ -226,7 +235,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -237,11 +246,12 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * bid type based on impression details with the following priority:
      * 1.Banner, 2.Video, 3.Native, 4.Audio.
      *
-     * @param impId - impression id taken from bid.getImpid()
-     * @param imps  - list of impressions from outgoing request
+     * @param bid  - bid type of which we are looking for
+     * @param imps - list of impressions from outgoing request
      * @return - bid type depending on impression's content
      */
-    protected BidType getBidType(String impId, List<Imp> imps) {
+    protected BidType getBidType(Bid bid, List<Imp> imps) {
+        final String impId = bid.getImpid();
         BidType bidType = BidType.banner;
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {

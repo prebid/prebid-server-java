@@ -52,13 +52,18 @@ public abstract class PurposeStrategy {
             Collection<VendorPermissionWithGvl> vendorPermissions,
             boolean wasDowngraded) {
 
-        allowedByTypeStrategy(vendorConsent, purpose, vendorPermissions).stream()
+        final Collection<VendorPermissionWithGvl> excludedVendors = excludedVendors(vendorPermissions, purpose);
+        final Collection<VendorPermissionWithGvl> vendorForPurpose = vendorPermissions.stream()
+                .filter(vendorPermission -> !excludedVendors.contains(vendorPermission))
+                .collect(Collectors.toList());
+
+        allowedByTypeStrategy(vendorConsent, purpose, vendorForPurpose, excludedVendors).stream()
                 .map(VendorPermission::getPrivacyEnforcementAction)
                 .forEach(this::allow);
 
         final Collection<VendorPermission> naturalVendorPermission = wasDowngraded
-                ? allowedByBasicTypeStrategy(vendorConsent, true, vendorPermissions, Collections.emptyList())
-                : allowedByFullTypeStrategy(vendorConsent, true, vendorPermissions, Collections.emptyList());
+                ? allowedByBasicTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors)
+                : allowedByFullTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors);
 
         naturalVendorPermission.stream()
                 .map(VendorPermission::getPrivacyEnforcementAction)
@@ -71,12 +76,8 @@ public abstract class PurposeStrategy {
 
     private Collection<VendorPermission> allowedByTypeStrategy(TCString vendorConsent,
                                                                Purpose purpose,
-                                                               Collection<VendorPermissionWithGvl> vendorPermissions) {
-
-        final Collection<VendorPermissionWithGvl> excludedVendors = excludedVendors(vendorPermissions, purpose);
-        final Collection<VendorPermissionWithGvl> vendorForPurpose = vendorPermissions.stream()
-                .filter(vendorPermission -> !excludedVendors.contains(vendorPermission))
-                .collect(Collectors.toList());
+                                                               Collection<VendorPermissionWithGvl> vendorForPurpose,
+                                                               Collection<VendorPermissionWithGvl> excludedVendors) {
         final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
 
         final EnforcePurpose purposeType = purpose.getEnforcePurpose();
@@ -105,7 +106,7 @@ public abstract class PurposeStrategy {
         return CollectionUtils.isEmpty(bidderNameExceptions)
                 ? Collections.emptyList()
                 : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                bidderNameExceptions.contains(vendorPermission.getVendorPermission().getBidderName()));
+                        bidderNameExceptions.contains(vendorPermission.getVendorPermission().getBidderName()));
     }
 
     protected Collection<VendorPermission> allowedByBasicTypeStrategy(

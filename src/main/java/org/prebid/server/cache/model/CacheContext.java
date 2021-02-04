@@ -2,9 +2,7 @@ package org.prebid.server.cache.model;
 
 import lombok.Builder;
 import lombok.Value;
-
-import java.util.List;
-import java.util.Map;
+import org.prebid.server.auction.model.GeneratedBidIds;
 
 /**
  * Holds the state needed to perform caching response bids.
@@ -21,7 +19,7 @@ public class CacheContext {
 
     Integer cacheVideoBidsTtl;
 
-    Map<String, List<String>> bidderToVideoBidIdsToModify;
+    GeneratedBidIds bidderToVideoGeneratedBidIdsToModify;
 
-    Map<String, List<String>> bidderToBidIds;
+    GeneratedBidIds bidderToBidsToGeneratedIds;
 }

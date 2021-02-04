@@ -430,35 +430,37 @@
               ]
             },
             "ext": {
-              "rubicon": {
-                "accountId": 2001,
-                "siteId": 3001,
-                "zoneId": 4001,
-                "inventory": {
-                  "rating": [
-                    "5-star"
-                  ],
-                  "prodtype": [
-                    "tech"
-                  ]
-                },
-                "visitor": {
-                  "ucat": [
-                    "new"
-                  ],
-                  "search": [
-                    "iphone"
-                  ]
-                },
-                "video": {
-                  "size_id": 15,
-                  "playerWidth": 780,
-                  "playerHeight": "438",
-                  "skip": 5,
-                  "skipdelay": 1
-                }
-              },
               "prebid": {
+                "bidder": {
+                  "rubicon": {
+                    "accountId": 2001,
+                    "siteId": 3001,
+                    "zoneId": 4001,
+                    "inventory": {
+                      "rating": [
+                        "5-star"
+                      ],
+                      "prodtype": [
+                        "tech"
+                      ]
+                    },
+                    "visitor": {
+                      "ucat": [
+                        "new"
+                      ],
+                      "search": [
+                        "iphone"
+                      ]
+                    },
+                    "video": {
+                      "size_id": 15,
+                      "playerWidth": 780,
+                      "playerHeight": "438",
+                      "skip": 5,
+                      "skipdelay": 1
+                    }
+                  }
+                },
                 "is_rewarded_inventory": 1
               }
             }
@@ -476,12 +478,14 @@
               "h": 600
             },
             "ext": {
-              "rubicon": {
-                "accountId": 5001,
-                "siteId": 6001,
-                "zoneId": 7001
-              },
               "prebid": {
+                "bidder": {
+                  "rubicon": {
+                    "accountId": 5001,
+                    "siteId": 6001,
+                    "zoneId": 7001
+                  }
+                },
                 "storedrequest": {
                   "id": "test-rubicon-stored-request-2"
                 }
@@ -503,37 +507,41 @@
               ]
             },
             "ext": {
-              "appnexus": {
-                "member": "103",
-                "inv_code": "abc",
-                "reserve": 1.0,
-                "position": "below",
-                "traffic_source_code": "trafficSource",
-                "keywords": [
-                  {
-                    "key": "foo",
-                    "value": [
-                      "bar",
-                      "baz"
+              "prebid": {
+                "bidder": {
+                  "appnexus": {
+                    "member": "103",
+                    "inv_code": "abc",
+                    "reserve": 1.0,
+                    "position": "below",
+                    "traffic_source_code": "trafficSource",
+                    "keywords": [
+                      {
+                        "key": "foo",
+                        "value": [
+                          "bar",
+                          "baz"
+                        ]
+                      }
+                    ]
+                  },
+                  "appnexusAlias": {
+                    "member": "104",
+                    "inv_code": "abc",
+                    "reserve": 1.0,
+                    "position": "above",
+                    "traffic_source_code": "trafficSourceAlias",
+                    "keywords": [
+                      {
+                        "key": "foo",
+                        "value": [
+                          "barAlias",
+                          "bazAlias"
+                        ]
+                      }
                     ]
                   }
-                ]
-              },
-              "appnexusAlias": {
-                "member": "104",
-                "inv_code": "abc",
-                "reserve": 1.0,
-                "position": "above",
-                "traffic_source_code": "trafficSourceAlias",
-                "keywords": [
-                  {
-                    "key": "foo",
-                    "value": [
-                      "barAlias",
-                      "bazAlias"
-                    ]
-                  }
-                ]
+                }
               }
             }
           },
@@ -544,8 +552,12 @@
               "ver": "1.1"
             },
             "ext": {
-              "appnexus": {
-                "placement_id": 9880618
+              "prebid": {
+                "bidder": {
+                  "appnexus": {
+                    "placement_id": 9880618
+                  }
+                }
               }
             }
           },
@@ -557,8 +569,12 @@
               ]
             },
             "ext": {
-              "appnexus": {
-                "placement_id": 10433394
+              "prebid": {
+                "bidder": {
+                  "appnexus": {
+                    "placement_id": 10433394
+                  }
+                }
               }
             }
           },
