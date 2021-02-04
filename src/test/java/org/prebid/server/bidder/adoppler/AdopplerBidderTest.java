@@ -63,7 +63,7 @@ public class AdopplerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("$.imp.ext.adoppler.adunit required"));
+                .containsExactly(BidderError.badInput("adunit parameter is required for adoppler bidder"));
     }
 
     @Test
