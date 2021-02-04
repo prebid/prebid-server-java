@@ -150,8 +150,6 @@ public class YieldlabBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
-
-
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
