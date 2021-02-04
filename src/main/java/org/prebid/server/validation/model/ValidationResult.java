@@ -20,12 +20,12 @@ public class ValidationResult {
         return !errors.isEmpty();
     }
 
-    public static ValidationResult error(String errorMessageFormat, Object... args) {
-        return error(Collections.emptyList(), errorMessageFormat, args);
+    public static ValidationResult error(String errorMessageFormat) {
+        return error(Collections.emptyList(), errorMessageFormat);
     }
 
-    public static ValidationResult error(List<String> warnings, String errorMessageFormat, Object... args) {
-        return new ValidationResult(warnings, Collections.singletonList(String.format(errorMessageFormat, args)));
+    public static ValidationResult error(List<String> warnings, String errorMessageFormat) {
+        return new ValidationResult(warnings, Collections.singletonList(errorMessageFormat));
     }
 
     public static ValidationResult success() {

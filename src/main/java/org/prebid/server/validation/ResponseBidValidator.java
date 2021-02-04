@@ -135,16 +135,16 @@ public class ResponseBidValidator {
             final Format maxSize = maxSizeForBanner(bid, bidRequest);
             if (bannerSizeIsNotValid(bid, maxSize)) {
                 final String accountId = auctionContext.getAccount().getId();
+                final String message = String.format(
+                        "BidResponse validation `%s`: bidder `%s` response triggers creative size validation for bid "
+                                + "%s, account=%s, referrer=%s, max imp size='%dx%d', bid response size='%dx%d'",
+                        bannerMaxSizeEnforcement, bidder, bid.getId(), accountId, getReferer(bidRequest),
+                        maxSize.getW(), maxSize.getH(), bid.getW(), bid.getH());
                 return singleWarningOrValidationException(
                         bannerMaxSizeEnforcement,
                         metricName -> metrics.updateSizeValidationMetrics(
                                 aliases.resolveBidder(bidder), account.getId(), metricName),
-                        "BidResponse validation `%s`: bidder `%s` response triggers creative size"
-                                + " validation for bid %s, account=%s, referrer=%s, max imp size='%dx%d',"
-                                + " bid response size='%dx%d'",
-                        CREATIVE_SIZE_LOGGER,
-                        bannerMaxSizeEnforcement, bidder, bid.getId(), accountId, getReferer(bidRequest),
-                        maxSize.getW(), maxSize.getH(), bid.getW(), bid.getH());
+                        CREATIVE_SIZE_LOGGER, message);
             }
         }
         return Collections.emptyList();
@@ -200,15 +200,14 @@ public class ResponseBidValidator {
         final String adm = bid.getAdm();
 
         if (isImpSecure(imp) && markupIsNotSecure(adm)) {
-            final String decodedAdm = adm != null ? StringUtils.replaceAll(adm, "%3A", ":") : null;
+            final String message = String.format("BidResponse validation `%s`: bidder `%s` response triggers secure"
+                            + " creative validation for bid %s, account=%s, referrer=%s, adm=%s",
+                    secureMarkupEnforcement, bidder, bid.getId(), accountId, referer, adm);
             return singleWarningOrValidationException(
                     secureMarkupEnforcement,
                     metricName -> metrics.updateSecureValidationMetrics(
                             aliases.resolveBidder(bidder), auctionContext.getAccount().getId(), metricName),
-                    "BidResponse validation `%s`: bidder `%s` response triggers secure creative validation for bid "
-                            + "%s, account=%s, referrer=%s, adm=%s",
-                    SECURE_CREATIVE_LOGGER,
-                    secureMarkupEnforcement, bidder, bid.getId(), accountId, referer, decodedAdm
+                    SECURE_CREATIVE_LOGGER, message
             );
         }
 
@@ -234,18 +233,17 @@ public class ResponseBidValidator {
 
     private static List<String> singleWarningOrValidationException(BidValidationEnforcement enforcement,
                                                                    Consumer<MetricName> metricsRecorder,
-                                                                   String message,
                                                                    ConditionalLogger conditionalLogger,
-                                                                   Object... args) throws ValidationException {
+                                                                   String message) throws ValidationException {
         switch (enforcement) {
             case enforce:
                 metricsRecorder.accept(MetricName.err);
                 conditionalLogger.warn(message, LOG_SAMPLING_RATE);
-                throw new ValidationException(message, args);
+                throw new ValidationException(message);
             case warn:
                 metricsRecorder.accept(MetricName.warn);
                 conditionalLogger.warn(message, LOG_SAMPLING_RATE);
-                return Collections.singletonList(String.format(message, args));
+                return Collections.singletonList(message);
             default:
                 throw new IllegalStateException(String.format("Unexpected enforcement: %s", enforcement));
         }

@@ -273,7 +273,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers secure creative"
                         + " validation for bid bidId1, account=account, referrer=unknown, "
-                        + "adm=<tag>http://site.com/creative.jpg</tag>");
+                        + "adm=<tag>http%3A//site.com/creative.jpg</tag>");
     }
 
     @Test
