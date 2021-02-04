@@ -124,7 +124,9 @@ public class BeachfrontBidderTest extends VertxTest {
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                                 mapper.valueToTree(ExtImpBeachfront.of("appId", null, BigDecimal.ONE, "nurl")))))),
                         givenImp(impBuilder -> impBuilder
-                                .banner(Banner.builder().w(100).h(200).build())
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(100).h(200).build()))
+                                        .build())
                                 .video(null)),
                         givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder()
@@ -152,6 +154,47 @@ public class BeachfrontBidderTest extends VertxTest {
                 .containsOnly(
                         VIDEO_ENDPOINT + "appId",
                         VIDEO_ENDPOINT + "appId&prebidserver");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseAdmAsDefaultResponseTypeForVideo() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().build())
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                mapper.valueToTree(ExtImpBeachfront.of("appId", null, BigDecimal.ONE, null))))))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final List<HttpRequest<Void>> httpRequests = result.getValue();
+        assertThat(httpRequests).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly(VIDEO_ENDPOINT + "appId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFilterBannerImpWithoutFormat() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().build())
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder
+                                .banner(Banner.builder().w(200).h(400).build())
+                                .video(null))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("no valid impressions were found in the request"));
     }
 
     @Test
@@ -225,7 +268,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .deviceOs("nokia")
                         .isMobile(1)
                         .user(User.builder().id("userId").buyeruid("buid").build())
-                        .adapterVersion("0.9.0")
+                        .adapterVersion("0.9.1")
                         .adapterName("BF_PREBID_S2S")
                         .ip("192.168.255.255")
                         .requestId("153")
@@ -236,6 +279,7 @@ public class BeachfrontBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnExpectedAdmAndNurlVideoRequests() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().bundle("prefix_test1.test2.test3_suffix").build())
                 .device(Device.builder().ip("127.0.0.1").build())
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
@@ -264,6 +308,8 @@ public class BeachfrontBidderTest extends VertxTest {
                                 .appId("appId2")
                                 .videoResponseType("nurl")
                                 .request(expectedRequestBuilder
+                                        .app(App.builder().bundle("prefix_test1.test2.test3_suffix")
+                                                .domain("test2.prefix_test1").build())
                                         .imp(singletonList(expectedImpBuilder.id("123")
                                                 .bidfloor(BigDecimal.TEN).build()))
                                         .build())
@@ -272,6 +318,8 @@ public class BeachfrontBidderTest extends VertxTest {
                                 .appId("appId")
                                 .videoResponseType("adm")
                                 .request(expectedRequestBuilder
+                                        .app(App.builder().bundle("prefix_test1.test2.test3_suffix")
+                                                .domain("test2.prefix_test1").build())
                                         .imp(singletonList(expectedImpBuilder.id("234")
                                                 .bidfloor(BigDecimal.ONE).build()))
                                         .build())
