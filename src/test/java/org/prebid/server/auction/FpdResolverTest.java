@@ -497,6 +497,201 @@ public class FpdResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveImpExtShouldNotSetContextIfContextIsAbsent() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode();
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+
+        // then
+        assertThat(result.get("context")).isNull();
+    }
+
+    @Test
+    public void resolveImpExtShouldNotRemoveDataFromContextIfFPDEnabled() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .set("context", mapper.createObjectNode()
+                        .set("data", mapper.createObjectNode()
+                                .put("attr1", "value1")));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+
+        // then
+        assertThat(result.get("context")).isNotSameAs(originalExtImp.get("context"));
+        assertThat(result.get("context")).isEqualTo(originalExtImp.get("context"));
+    }
+
+    @Test
+    public void resolveImpExtShouldRemoveDataFromContextIfFPDDisabled() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .set("context", mapper.createObjectNode()
+                        .put("keyword", "keyw1")
+                        .set("data", mapper.createObjectNode()
+                                .put("attr1", "value1")));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, false);
+
+        // then
+        assertThat(result.get("context")).isEqualTo(mapper.createObjectNode()
+                .put("keyword", "keyw1"));
+    }
+
+    @Test
+    public void resolveImpExtShouldTolerateNonObjectContextIfFPDDisabled() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .set("context", mapper.createArrayNode().add("value1"));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, false);
+
+        // then
+        assertThat(result.get("context")).isEqualTo(originalExtImp.get("context"));
+    }
+
+    @Test
+    public void resolveImpExtShouldNotSetContextIfEmpty() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .set("context", mapper.createObjectNode()
+                        .set("data", mapper.createObjectNode()
+                                .put("attr1", "value1")));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, false);
+
+        // then
+        assertThat(result.get("context")).isNull();
+    }
+
+    @Test
+    public void resolveImpExtShouldNotSetDataIfDataIsAbsent() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode();
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+
+        // then
+        assertThat(result.get("data")).isNull();
+    }
+
+    @Test
+    public void resolveImpExtShouldNotSetDataIfFPDDisabled() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .set("data", mapper.createObjectNode()
+                        .put("attr1", "value1"));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, false);
+
+        // then
+        assertThat(result.get("data")).isNull();
+    }
+
+    @Test
+    public void resolveImpExtShouldSetDataFromContextDataIfDataIsAbsent() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .set("context", mapper.createObjectNode()
+                        .set("data", mapper.createObjectNode()
+                                .put("attr1", "value1")));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+
+        // then
+        assertThat(result.get("data")).isNotSameAs(originalExtImp.get("context").get("data"));
+        assertThat(result.get("data")).isEqualTo(originalExtImp.get("context").get("data"));
+    }
+
+    @Test
+    public void resolveImpExtShouldMergeDataWithContextDataIfDataIsPresent() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .<ObjectNode>set("context", mapper.createObjectNode()
+                        .set("data", mapper.createObjectNode()
+                                .put("attr1", "value1")))
+                .set("data", mapper.createObjectNode()
+                        .put("attr2", "value2"));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+
+        // then
+        assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
+                .put("attr1", "value1")
+                .put("attr2", "value2"));
+    }
+
+    @Test
+    public void resolveImpExtShouldNotChangeDataIfContextDataIsAbsent() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .<ObjectNode>set("context", mapper.createObjectNode())
+                .set("data", mapper.createObjectNode()
+                        .put("attr2", "value2"));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+
+        // then
+        assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
+                .put("attr2", "value2"));
+    }
+
+    @Test
+    public void resolveImpExtShouldTolerateNonObjectData() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .<ObjectNode>set("context", mapper.createObjectNode()
+                        .set("data", mapper.createObjectNode()
+                                .put("attr1", "value1")))
+                .set("data", mapper.createArrayNode()
+                        .add("attr2"));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+
+        // then
+        assertThat(result.get("data")).isEqualTo(originalExtImp.get("data"));
+    }
+
+    @Test
+    public void resolveImpExtShouldNotMergeNonObjectContextData() {
+        // given
+        final ObjectNode originalExtImp = mapper.createObjectNode()
+                .<ObjectNode>set("context", mapper.createArrayNode()
+                        .add("attr1"))
+                .set("data", mapper.createObjectNode()
+                        .put("attr2", "value2"));
+        final ObjectNode updatedExtImp = mapper.createObjectNode();
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+
+        // then
+        assertThat(result.get("data")).isEqualTo(originalExtImp.get("data"));
+    }
+
+    @Test
     public void resolveBidRequestExtShouldReturnSameExtIfTargetingIsNull() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(null);

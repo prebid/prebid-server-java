@@ -190,6 +190,60 @@ public class FpdResolver {
                 : impExt.set(CONTEXT, jacksonMapper.mapper().createObjectNode().set(DATA, resolvedData));
     }
 
+    public ObjectNode resolveImpExt(ObjectNode originalImpExt, ObjectNode updatedImpExt, boolean useFirstPartyData) {
+        final JsonNode updatedContextNode = sanitizeImpExtContext(originalImpExt, useFirstPartyData);
+        if (updatedContextNode != null) {
+            updatedImpExt.set(CONTEXT, updatedContextNode);
+        }
+
+        final JsonNode updatedDataNode = sanitizeImpExtData(originalImpExt, useFirstPartyData);
+        if (updatedDataNode != null) {
+            updatedImpExt.set(DATA, updatedDataNode);
+        }
+
+        return updatedImpExt;
+    }
+
+    private JsonNode sanitizeImpExtContext(ObjectNode originalImpExt, boolean useFirstPartyData) {
+        if (!originalImpExt.hasNonNull(CONTEXT)) {
+            return null;
+        }
+
+        final JsonNode updatedContextNode = originalImpExt.get(CONTEXT).deepCopy();
+        if (!useFirstPartyData && updatedContextNode.hasNonNull(DATA)) {
+            ((ObjectNode) updatedContextNode).remove(DATA);
+        }
+
+        return updatedContextNode.isObject() && updatedContextNode.isEmpty() ? null : updatedContextNode;
+    }
+
+    private JsonNode sanitizeImpExtData(ObjectNode originalImpExt, boolean useFirstPartyData) {
+        if (!useFirstPartyData) {
+            return null;
+        }
+
+        final JsonNode contextNode = originalImpExt.hasNonNull(CONTEXT) ? originalImpExt.get(CONTEXT) : null;
+        final JsonNode contextDataNode =
+                contextNode != null && contextNode.hasNonNull(DATA) ? contextNode.get(DATA) : null;
+
+        final JsonNode dataNode = originalImpExt.get(DATA);
+
+        final boolean dataIsNullOrObject =
+                dataNode == null || dataNode.isObject();
+        final boolean contextDataIsObject =
+                contextDataNode != null && !contextDataNode.isNull() && contextDataNode.isObject();
+
+        final JsonNode mergedDataNode = dataIsNullOrObject && contextDataIsObject
+                ? dataNode != null ? jsonMerger.merge(contextDataNode, dataNode) : contextDataNode.deepCopy()
+                : dataNode;
+
+        if (mergedDataNode != null && !mergedDataNode.isNull()) {
+            return mergedDataNode;
+        }
+
+        return null;
+    }
+
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
         if (targeting == null) {
             return extRequest;
