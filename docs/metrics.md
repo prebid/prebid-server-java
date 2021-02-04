@@ -38,8 +38,6 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 ## General auction metrics
 - `app_requests` - number of requests received from applications
 - `no_cookie_requests` - number of requests without `uids` cookie or with one that didn't contain at least one live UID
-- `safari_requests` - number of requests received from Safari browser
-- `safari_no_cookie_requests` - number of requests received from Safari browser without `uids` cookie or with one that didn't contain at least one live UID
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
 - `imps_banner` - number of banner impressions
@@ -80,17 +78,21 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.geo_masked` - number of requests made to `<bidder-name>` that required geo information removed as a result of TCF enforcement for that bidder
 - `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.request_blocked` - number of requests made to `<bidder-name>` that were blocked as a result of TCF enforcement for that bidder
 - `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.analytics_blocked` - number of requests made to `<bidder-name>` that required analytics blocked as a result of TCF enforcement for that bidder
+- `adapter.<bidder-name>.response.validation.size.(warn|err)` - number of banner bids received from the `<bidder-name>` that had invalid size
+- `adapter.<bidder-name>.response.validation.secure.(warn|err)` - number of bids received from the `<bidder-name>` that had insecure creative while in secure context
 
 ## Auction per-account metrics
 Following metrics are collected and submitted if account is configured with `basic` verbosity:   
 - `account.<account-id>.requests` - number of requests received from account with `<account-id>`
+- `account.<account-id>.response.validation.size.(warn|err)` - number of banner bids received from account with `<account-id>` that had invalid size
+- `account.<account-id>.response.validation.secure.(warn|err)` - number of bids received from account with `<account-id>` that had insecure creative while in secure context
 
 Following metrics are collected and submitted if account is configured with `detailed` verbosity:
 - `account.<account-id>.requests.type.(openrtb2-web,openrtb-app,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
-- `account.<account-id>.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
-- `account.<account-id>.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
-- `account.<account-id>.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
 - `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
+- `account.<account-id>.adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
+- `account.<account-id>.adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
+- `account.<account-id>.adapter.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
 
 ## General Prebid Cache metrics
 - `prebid_cache.requests.ok` - timer tracking how long did successful cache requests take
@@ -116,9 +118,12 @@ Following metrics are collected and submitted if account is configured with `det
 
 ## Privacy metrics
 - `privacy.tcf.(missing|invalid)` - number of requests lacking a valid consent string
+- `privacy.tcf.(v1,v2).requests` - number of requests by TCF version
 - `privacy.tcf.(v1,v2).unknown-geo` - number of requests received from unknown geo region with consent string of particular version 
 - `privacy.tcf.(v1,v2).in-geo` - number of requests received from TCF-concerned geo region with consent string of particular version 
 - `privacy.tcf.(v1,v2).out-geo` - number of requests received outside of TCF-concerned geo region with consent string of particular version
 - `privacy.tcf.(v1,v2).vendorlist.(missing|ok|err|fallback)` - number of processed vendor lists of particular version
 - `privacy.usp.specified` - number of requests with a valid US Privacy string (CCPA)
 - `privacy.usp.opt-out` - number of requests that required privacy enforcement according to CCPA rules
+- `privacy.lmt` - number of requests that required privacy enforcement according to LMT flag
+- `privacy.coppa` - number of requests that required privacy enforcement according to COPPA rules

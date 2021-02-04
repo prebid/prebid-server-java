@@ -54,12 +54,16 @@ An example Stored Request is given below:
              "id": "some-impression-id",
              "banner": {}, // The sizes are defined is set by your AMP tag query params
              "ext": {
-                 "appnexus": {
-                     // Insert parameters here
-                 },
-                 "rubicon": {
-                     // Insert parameters here
-                 }
+                "prebid": {
+                    "bidder": {
+                         "appnexus": {
+                             // Insert parameters here
+                         },
+                         "rubicon": {
+                             // Insert parameters here
+                         }
+                    }
+                }
              }
          }
      ]

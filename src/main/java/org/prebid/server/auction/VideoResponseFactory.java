@@ -88,7 +88,7 @@ public class VideoResponseFactory {
         final List<ExtAdPod> adPods = new ArrayList<>();
         for (Bid bid : bids) {
             final Map<String, String> targeting = targeting(bid);
-            if (targeting.get("hb_uuid") == null) {
+            if (findByPrefix(targeting, "hb_uuid") == null) {
                 continue;
             }
             final String impId = bid.getImpid();
@@ -99,9 +99,9 @@ public class VideoResponseFactory {
             final Integer podId = Integer.parseInt(podIdString);
 
             final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
-                    targeting.get("hb_pb"),
-                    targeting.get("hb_pb_cat_dur"),
-                    targeting.get("hb_uuid"));
+                    findByPrefix(targeting, "hb_pb"),
+                    findByPrefix(targeting, "hb_pb_cat_dur"),
+                    findByPrefix(targeting, "hb_uuid"));
 
             ExtAdPod adPod = adPods.stream()
                     .filter(extAdPod -> extAdPod.getPodid().equals(podId))
@@ -128,6 +128,14 @@ public class VideoResponseFactory {
         final ExtBidPrebid extBidPrebid = extBid != null ? extBid.getPrebid() : null;
         final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
         return targeting != null ? targeting : Collections.emptyMap();
+    }
+
+    private static String findByPrefix(Map<String, String> keyToValue, String prefix) {
+        return keyToValue.entrySet().stream()
+                .filter(keyAndValue -> keyAndValue.getKey().startsWith(prefix))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
     }
 
     private static List<ExtAdPod> adPodsWithErrors(List<PodError> podErrors) {

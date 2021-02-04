@@ -39,17 +39,20 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 public class ConversantBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String UUID_REGEX = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
+            + "-[0-9a-fA-F]{12}";
 
     private ConversantBidder conversantBidder;
 
     @Before
     public void setUp() {
-        conversantBidder = new ConversantBidder(ENDPOINT_URL, jacksonMapper);
+        conversantBidder = new ConversantBidder(ENDPOINT_URL, false, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new ConversantBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ConversantBidder("invalid_url", false, jacksonMapper));
     }
 
     @Test
@@ -593,6 +596,28 @@ public class ConversantBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldUpdateBidWithUUIDIfGenerateBidIdIsTrue() throws JsonProcessingException {
+        // given
+        conversantBidder = new ConversantBidder(ENDPOINT_URL, true, jacksonMapper);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(builder -> builder.id("123")
+                        .banner(Banner.builder().build())),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getId)
+                .element(0)
+                .matches(id -> id.matches(UUID_REGEX), "matches UUID format");
     }
 
     private static BidRequest givenBidRequest(

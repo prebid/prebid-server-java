@@ -85,14 +85,13 @@ public class TcfDefinerService {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public Future<TcfContext> resolveTcfContext(
-            Privacy privacy,
-            String country,
-            String ipAddress,
-            AccountGdprConfig accountGdprConfig,
-            MetricName requestType,
-            RequestLogInfo requestLogInfo,
-            Timeout timeout) {
+    public Future<TcfContext> resolveTcfContext(Privacy privacy,
+                                                String country,
+                                                String ipAddress,
+                                                AccountGdprConfig accountGdprConfig,
+                                                MetricName requestType,
+                                                RequestLogInfo requestLogInfo,
+                                                Timeout timeout) {
 
         if (!isGdprEnabled(accountGdprConfig, requestType)) {
             return Future.succeededFuture(TcfContext.empty());
@@ -398,6 +397,8 @@ public class TcfDefinerService {
             return TCStringEmpty.create();
         }
 
+        final int version = tcString.getVersion();
+        metrics.updatePrivacyTcfRequestsMetric(version);
         return tcString;
     }
 
@@ -450,7 +451,7 @@ public class TcfDefinerService {
                 consent, type, requestLogInfo.getAccountId(), requestLogInfo.getRefUrl(), message);
     }
 
-    public static boolean isConsentValid(TCString consent) {
+    private static boolean isConsentValid(TCString consent) {
         return consent != null && !(consent instanceof TCStringEmpty);
     }
 

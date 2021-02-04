@@ -107,16 +107,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext context) {
         final long startTime = clock.millis();
 
-        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpUtil.USER_AGENT_HEADER));
-
-        metrics.updateSafariRequestsMetric(isSafari);
-
         preBidRequestContextFactory.fromRequest(context)
                 .recover(exception -> failWithInvalidRequest(
                         String.format("Error parsing request: %s", exception.getMessage()), exception))
 
-                .map(preBidRequestContext ->
-                        updateAppAndNoCookieAndImpsMetrics(preBidRequestContext, isSafari))
+                .map(this::updateAppAndNoCookieAndImpsMetrics)
 
                 .compose(preBidRequestContext -> accountFrom(preBidRequestContext)
                         .map(account -> Tuple2.of(preBidRequestContext, account)))
@@ -147,13 +142,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         respondWith(bidResponseOrError(preBidResponseResult), context, startTime));
     }
 
-    private PreBidRequestContext updateAppAndNoCookieAndImpsMetrics(PreBidRequestContext preBidRequestContext,
-                                                                    boolean isSafari) {
+    private PreBidRequestContext updateAppAndNoCookieAndImpsMetrics(PreBidRequestContext preBidRequestContext) {
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         final List<AdUnit> adUnits = preBidRequest.getAdUnits();
 
         metrics.updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequest.getApp() != null,
-                !preBidRequestContext.isNoLiveUids(), isSafari, adUnits.size());
+                !preBidRequestContext.isNoLiveUids(), adUnits.size());
 
         final Map<String, Long> mediaTypeToCount = adUnits.stream()
                 .map(AdUnit::getMediaTypes)
@@ -400,7 +394,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final Integer sortBids = preBidRequest.getSortBids();
         if (sortBids != null && sortBids == 1) {
             final TargetingKeywordsCreator keywordsCreator =
-                    TargetingKeywordsCreator.create(account.getPriceGranularity(), true, true, false, 0);
+                    TargetingKeywordsCreator.create(account.getPriceGranularity(), true, true, false, false, 0);
 
             final Map<String, List<Bid>> adUnitCodeToBids = preBidResponse.getBids().stream()
                     .collect(Collectors.groupingBy(Bid::getCode));
