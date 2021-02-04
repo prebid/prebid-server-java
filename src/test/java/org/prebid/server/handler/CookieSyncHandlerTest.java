@@ -283,6 +283,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.failedFuture("fail"));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -302,6 +304,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.failedFuture("bad"));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.failedFuture("fail"));
 
         // when
         cookieSyncHandler.handle(routingContext);

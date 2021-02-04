@@ -25,6 +25,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
@@ -124,7 +125,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         return StringUtils.isBlank(accountId)
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(Account.empty(accountId));
+                        .otherwise(Account.empty(accountId));
     }
 
     private void handleSetuidContextResult(AsyncResult<SetuidContext> setuidContextResult,
@@ -139,7 +140,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             }
 
             isAllowedForHostVendorId(tcfContext)
-                    .setHandler(setuidAllowedResult -> respondByVendorIdsResult(setuidAllowedResult, setuidContext));
+                    .setHandler(hostTcfResponseResult -> respondByTcfResponse(hostTcfResponseResult, setuidContext));
         } else {
             final Throwable error = setuidContextResult.cause();
             handleErrors(error, routingContext, null);
@@ -165,14 +166,19 @@ public class SetuidHandler implements Handler<RoutingContext> {
     /**
      * If host vendor id is null, host allowed to setuid.
      */
-    private Future<Boolean> isAllowedForHostVendorId(TcfContext tcfContext) {
+    private Future<HostVendorTcfResponse> isAllowedForHostVendorId(TcfContext tcfContext) {
         return gdprHostVendorId == null
-                ? Future.succeededFuture(true)
+                ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
                 : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                .map(this::isSetuidAllowed);
+                        .map(this::toHostVendorTcfResponse);
     }
 
-    private Boolean isSetuidAllowed(TcfResponse<Integer> hostTcfResponseToSetuidContext) {
+    private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {
+        return HostVendorTcfResponse.of(tcfResponse.getUserInGdprScope(), tcfResponse.getCountry(),
+                isSetuidAllowed(tcfResponse));
+    }
+
+    private boolean isSetuidAllowed(TcfResponse<Integer> hostTcfResponseToSetuidContext) {
         // allow cookie only if user is not in GDPR scope or vendor passed GDPR check
         final boolean notInGdprScope = BooleanUtils.isFalse(hostTcfResponseToSetuidContext.getUserInGdprScope());
 
@@ -185,16 +191,16 @@ public class SetuidHandler implements Handler<RoutingContext> {
         return notInGdprScope || !blockPixelSync;
     }
 
-    private void respondByVendorIdsResult(AsyncResult<Boolean> isCookieAllowedResult,
-                                          SetuidContext setuidContext) {
+    private void respondByTcfResponse(AsyncResult<HostVendorTcfResponse> hostTcfResponseResult,
+                                      SetuidContext setuidContext) {
         final String bidderCookieName = setuidContext.getCookieName();
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         final RoutingContext routingContext = setuidContext.getRoutingContext();
 
-        if (isCookieAllowedResult.succeeded()) {
-            final Boolean isCookieAllowed = isCookieAllowedResult.result();
-            if (isCookieAllowed) {
-                respondWithCookie(setuidContext, bidderCookieName);
+        if (hostTcfResponseResult.succeeded()) {
+            final HostVendorTcfResponse hostTcfResponse = hostTcfResponseResult.result();
+            if (hostTcfResponse.isVendorAllowed()) {
+                respondWithCookie(setuidContext);
             } else {
                 metrics.updateUserSyncTcfBlockedMetric(bidderCookieName);
 
@@ -204,18 +210,19 @@ public class SetuidHandler implements Handler<RoutingContext> {
             }
 
         } else {
-            final Throwable error = isCookieAllowedResult.cause();
+            final Throwable error = hostTcfResponseResult.cause();
             metrics.updateUserSyncTcfBlockedMetric(bidderCookieName);
             handleErrors(error, routingContext, tcfContext);
         }
     }
 
-    private void respondWithCookie(SetuidContext setuidContext, String bidder) {
+    private void respondWithCookie(SetuidContext setuidContext) {
         final RoutingContext routingContext = setuidContext.getRoutingContext();
         final String uid = routingContext.request().getParam(UID_PARAM);
         final UidsCookie updatedUidsCookie;
         boolean successfullyUpdated = false;
 
+        final String bidder = setuidContext.getCookieName();
         final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (StringUtils.isBlank(uid)) {
             updatedUidsCookie = uidsCookie.deleteUid(bidder);
