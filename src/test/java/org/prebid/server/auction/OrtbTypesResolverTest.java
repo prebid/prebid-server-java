@@ -272,6 +272,21 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     @Test
+    public void normalizeBidRequestShouldNotChangeUserWhenUserDataNotObject() {
+        // given
+        final ObjectNode containerNode = obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue"))))
+                .set("data", mapper.createArrayNode().add(obj("id", "123")));
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(
+                obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue"))))
+                        .set("data", mapper.createArrayNode().add(obj("id", "123"))));
+    }
+
+    @Test
     public void normalizeBidRequestShouldSetDataToUserIfExtDataNotExist() {
         // given
         final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue"))
@@ -392,7 +407,7 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     private static ObjectNode obj(String fieldName, JsonNode value) {
-        return (ObjectNode) mapper.createObjectNode().set(fieldName, value);
+        return mapper.createObjectNode().set(fieldName, value);
     }
 
     private static ObjectNode obj(String fieldName, String value) {

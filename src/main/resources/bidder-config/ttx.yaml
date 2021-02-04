@@ -11,8 +11,6 @@ adapters:
     meta-info:
       maintainer-email: headerbidding@33across.com
       app-media-types:
-        - banner
-        - video
       site-media-types:
         - banner
         - video
