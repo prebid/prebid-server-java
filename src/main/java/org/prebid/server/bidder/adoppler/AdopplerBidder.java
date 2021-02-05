@@ -82,7 +82,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage());
         }
         if (StringUtils.isBlank(extImpAdoppler.getAdunit())) {
-            throw new PreBidException("$.imp.ext.adoppler.adunit required");
+            throw new PreBidException("adunit parameter is required for adoppler bidder");
         }
         return extImpAdoppler;
     }
