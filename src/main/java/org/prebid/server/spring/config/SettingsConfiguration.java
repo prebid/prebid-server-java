@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -22,7 +23,6 @@ import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
-import org.prebid.server.spring.config.model.AccountConfigurationProperties;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
@@ -332,19 +332,12 @@ public class SettingsConfiguration {
     static class EnrichingSettingsConfiguration {
 
         @Bean
-        @ConfigurationProperties("settings.default-account-config")
-        AccountConfigurationProperties defaultAccountConfigurationProperties() {
-            return new AccountConfigurationProperties();
-        }
-
-        @Bean
         EnrichingApplicationSettings enrichingApplicationSettings(
+                @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 CompositeApplicationSettings compositeApplicationSettings,
-                AccountConfigurationProperties defaultAccountConfigurationProperties,
-                JacksonMapper mapper) {
+                JsonMerger jsonMerger) {
 
-            return new EnrichingApplicationSettings(
-                    compositeApplicationSettings, defaultAccountConfigurationProperties.toAccount(mapper));
+            return new EnrichingApplicationSettings(defaultAccountConfig, compositeApplicationSettings, jsonMerger);
         }
     }
 
