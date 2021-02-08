@@ -218,45 +218,46 @@ public class OrtbTypesResolverTest extends VertxTest {
     @Test
     public void normalizeBidRequestShouldMergeUserDataToUserExtDataAndRemoveData() {
         // given
-        final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue"))
-                .set("ext", obj("data", obj("extDataField", "extDataValue"))));
+        final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue1"))
+                .set("ext", obj("data", obj("extDataField", "extDataValue")
+                        .put("dataField", "dataValue2"))));
 
         // when
         ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
 
         // then
-
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue")
-                .put("dataField", "dataValue")))));
+                .put("dataField", "dataValue1")))));
     }
 
     @Test
     public void normalizeBidRequestShouldMergeSiteDataToSiteExtDataAndRemoveData() {
         // given
-        final ObjectNode containerNode = obj("site", obj("data", obj("dataField", "dataValue"))
-                .set("ext", obj("data", obj("extDataField", "extDataValue"))));
+        final ObjectNode containerNode = obj("site", obj("data", obj("dataField", "dataValue1"))
+                .set("ext", obj("data", obj("extDataField", "extDataValue")
+                        .put("dataField", "dataValue2"))));
 
         // when
         ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
 
         // then
-
         assertThat(containerNode).isEqualTo(obj("site", obj("ext", obj("data", obj("extDataField", "extDataValue")
-                .put("dataField", "dataValue")))));
+                .put("dataField", "dataValue1")))));
     }
 
     @Test
     public void normalizeBidRequestShouldMergeAppDataToAppExtDataAndRemoveData() {
         // given
-        final ObjectNode containerNode = obj("app", obj("data", obj("dataField", "dataValue"))
-                .set("ext", obj("data", obj("extDataField", "extDataValue"))));
+        final ObjectNode containerNode = obj("app", obj("data", obj("dataField", "dataValue1"))
+                .set("ext", obj("data", obj("extDataField", "extDataValue")
+                        .put("dataField", "dataValue2"))));
 
         // when
         ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("app", obj("ext", obj("data", obj("extDataField", "extDataValue")
-                .put("dataField", "dataValue")))));
+                .put("dataField", "dataValue1")))));
     }
 
     @Test
