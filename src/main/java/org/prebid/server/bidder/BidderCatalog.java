@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.bidder.BidderInfo;
+import org.prebid.server.settings.bidder.GdprInfo;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,7 +34,7 @@ public class BidderCatalog {
             aliases.putAll(createAliases(deps.getAliases(), deps.getName()));
 
             final BidderInfo bidderInfo = deps.getBidderInfo();
-            final BidderInfo.GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
+            final GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
             final Integer vendorId = gdprInfo != null ? gdprInfo.getVendorId() : null;
             if (vendorId != null && vendorId != 0) {
                 vendorIdToBidderName.put(vendorId, deps.getName());
@@ -140,7 +141,7 @@ public class BidderCatalog {
     public Integer vendorIdByName(String name) {
         final BidderDeps bidderDeps = bidderDepsMap.get(name);
         final BidderInfo bidderInfo = bidderDeps != null ? bidderDeps.getBidderInfo() : null;
-        final BidderInfo.GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
+        final GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
         return gdprInfo != null ? gdprInfo.getVendorId() : null;
     }
 
@@ -158,7 +159,7 @@ public class BidderCatalog {
         return bidderDepsMap.values().stream()
                 .map(BidderDeps::getBidderInfo)
                 .map(BidderInfo::getGdpr)
-                .map(BidderInfo.GdprInfo::getVendorId)
+                .map(GdprInfo::getVendorId)
                 // TODO change to notNull when migrate from primitives to Object
                 // .filter(id -> id != 0)
                 .collect(Collectors.toSet());

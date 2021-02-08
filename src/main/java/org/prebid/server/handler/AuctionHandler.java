@@ -33,7 +33,7 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.bidder.BidderInfo;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.PreBidResponse;

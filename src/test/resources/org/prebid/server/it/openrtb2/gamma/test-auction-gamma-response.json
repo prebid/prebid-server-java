@@ -20,6 +20,8 @@
             "prebid": {
               "type": "banner",
               "targeting": {
+                "hb_env": "mobile-app",
+                "hb_env_gamma": "mobile-app",
                 "hb_pb": "0.50",
                 "hb_cache_path_gamma": "{{ cache.path }}",
                 "hb_cache_path": "{{ cache.path }}",

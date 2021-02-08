@@ -56,6 +56,7 @@ import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
+import org.prebid.server.validation.BidderInfoRequestValidator;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -440,10 +441,12 @@ public class ServiceConfiguration {
     @Bean
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
+            BidderInfoRequestValidator bidderInfoRequestValidator,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
             BidderErrorNotifier bidderErrorNotifier) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+        return new HttpBidderRequester(httpClient, bidderInfoRequestValidator, bidderRequestCompletionTrackerFactory,
+                bidderErrorNotifier);
     }
 
     @Bean
@@ -596,6 +599,11 @@ public class ServiceConfiguration {
                                       JacksonMapper mapper) {
 
         return new RequestValidator(bidderCatalog, bidderParamValidator, mapper);
+    }
+
+    @Bean
+    BidderInfoRequestValidator bidderInfoRequestValidator() {
+        return new BidderInfoRequestValidator();
     }
 
     @Bean

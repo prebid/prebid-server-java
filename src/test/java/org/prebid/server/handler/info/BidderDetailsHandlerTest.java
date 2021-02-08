@@ -12,7 +12,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.bidder.BidderInfo;
 
 import java.util.HashSet;
 
@@ -129,7 +129,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(
                 eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
-                        + "{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}"));
+                        + "{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}}}"));
     }
 
     @Test
@@ -143,7 +143,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(
                 eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
-                        + "{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}},"
+                        + "{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}},"
                         + "\"aliasOf\":\"bidderName1\"}"));
     }
 
@@ -158,14 +158,14 @@ public class BidderDetailsHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(
                 eq("{\"bidderAlias1\":{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
-                        + "{\"app\":{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}},"
+                        + "{\"app\":{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}},"
                         + "\"aliasOf\":\"bidderName1\"},"
                         + "\"bidderName1\":{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
-                        + "{\"app\":{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}}"));
+                        + "{\"app\":{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}}}}"));
     }
 
     private static BidderInfo givenBidderInfo() {
-        return BidderInfo.create(true, "test@email.org", singletonList("mediaType1"),
-                singletonList("mediaType2"), null, 0, true, true, false);
+        return BidderInfo.create(true, "test@email.org", false, singletonList("banner"),
+                singletonList("video"), null, 0, true, true, false);
     }
 }

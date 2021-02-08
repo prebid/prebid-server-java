@@ -24,9 +24,9 @@
     "language": "en",
     "ifa": "ifaId"
   },
-  "site": {
+  "app": {
     "publisher": {
-      "id": "publisherId"
+      "id": "pub1"
     }
   },
   "at": 1,

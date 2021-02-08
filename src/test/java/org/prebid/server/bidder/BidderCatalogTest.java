@@ -5,7 +5,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.bidder.BidderInfo;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -143,8 +143,8 @@ public class BidderCatalogTest {
     @Test
     public void metaInfoByNameShouldReturnMetaInfoForKnownBidder() {
         // given
-        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
-                singletonList("banner"), singletonList("video"), null, 99, true, true, false);
+        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com", false, singletonList("banner"),
+                singletonList("video"), null, 99, true, true, false);
 
         bidderDeps = BidderDeps.builder()
                 .name(BIDDER)
@@ -209,8 +209,8 @@ public class BidderCatalogTest {
     @Test
     public void nameByVendorIdShouldReturnBidderNameForVendorId() {
         // given
-        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
-                singletonList("banner"), singletonList("video"), null, 99, true, true, false);
+        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com", false, singletonList("banner"),
+                singletonList("video"), null, 99, true, true, false);
 
         bidderDeps = BidderDeps.builder()
                 .name(BIDDER)

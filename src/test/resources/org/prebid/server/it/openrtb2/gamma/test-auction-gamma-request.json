@@ -27,13 +27,9 @@
     "ua": "Android Chrome/60",
     "ip": "123.123.123.12"
   },
-  "site": {
-    "page": "http://www.example.com",
+  "app": {
     "publisher": {
       "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "at": 1,

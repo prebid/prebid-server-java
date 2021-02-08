@@ -23,14 +23,9 @@
       }
     }
   ],
-  "site": {
-    "domain": "example.com",
-    "page": "http://www.example.com",
+  "app": {
     "publisher": {
-      "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
+      "id": "pub1"
     }
   },
   "device": {
@@ -94,7 +89,7 @@
       },
       "auctiontimestamp": 1000,
       "channel": {
-        "name": "web"
+        "name": "app"
       }
     }
   }

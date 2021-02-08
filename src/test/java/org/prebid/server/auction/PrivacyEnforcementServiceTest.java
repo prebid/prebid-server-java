@@ -46,7 +46,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.request.PreBidRequest;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.bidder.BidderInfo;
+import org.prebid.server.settings.bidder.GdprInfo;
 import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
@@ -1531,6 +1532,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceCcpa) {
         return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, true), enforceCcpa, false);
+                new GdprInfo(gdprVendorId, true), enforceCcpa, false);
     }
 }

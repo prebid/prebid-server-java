@@ -44,13 +44,14 @@ import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.bidder.BidderInfo;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.BidderStatus.BidderStatusBuilder;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.PreBidResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.bidder.GdprInfo;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
@@ -925,7 +926,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     private static BidderInfo givenBidderInfo(int gdprVendorId) {
         return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, true), true, false);
+                new GdprInfo(gdprVendorId, true), true, false);
     }
 
     private static PrivacyEnforcementAction actionWithUserSync(boolean blockPixelSync) {

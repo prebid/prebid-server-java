@@ -55,6 +55,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.settings.bidder.BidderInfo;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -779,10 +780,12 @@ public class ExchangeService {
                                                BidderAliases aliases) {
 
         final String bidderName = bidderRequest.getBidder();
-        final Bidder<?> bidder = bidderCatalog.bidderByName(aliases.resolveBidder(bidderName));
+        final String resolveBidder = aliases.resolveBidder(bidderName);
+        final Bidder<?> bidder = bidderCatalog.bidderByName(resolveBidder);
+        final BidderInfo bidderInfo = bidderCatalog.bidderInfoByName(resolveBidder);
         final long startTime = clock.millis();
 
-        return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabled)
+        return httpBidderRequester.requestBids(bidder, bidderInfo, bidderRequest.getBidRequest(), timeout, debugEnabled)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
