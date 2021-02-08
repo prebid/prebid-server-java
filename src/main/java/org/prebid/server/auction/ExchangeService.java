@@ -39,7 +39,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
@@ -606,12 +605,18 @@ public class ExchangeService {
      * </ul>
      */
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
+        final ObjectNode modifiedImpExt = impExt.deepCopy();
+
         final JsonNode impExtPrebid = cleanBidderParamsFromImpExtPrebid(impExt.get(PREBID_EXT));
-        final JsonNode impExtBidder = bidderParamsFromImpExt(impExt).get(bidder);
+        if (impExtPrebid == null) {
+            modifiedImpExt.remove(PREBID_EXT);
+        } else {
+            modifiedImpExt.set(PREBID_EXT, impExtPrebid);
+        }
 
-        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExtBidder));
+        modifiedImpExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
 
-        return fpdResolver.resolveImpExt(impExt, result, useFirstPartyData);
+        return fpdResolver.resolveImpExt(modifiedImpExt, useFirstPartyData);
     }
 
     private JsonNode cleanBidderParamsFromImpExtPrebid(JsonNode extImpPrebidNode) {
