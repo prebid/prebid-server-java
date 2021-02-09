@@ -1271,7 +1271,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .ext(impExt)
                         .build()),
                 identity());
-        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
 
@@ -1280,7 +1280,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), any(), bidRequestCaptor.capture(), any(), anyBoolean());
         assertThat(bidRequestCaptor.getAllValues())
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
