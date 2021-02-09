@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -191,8 +192,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveUser(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(fpdResolver.resolveSite(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(fpdResolver.resolveApp(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
-        given(fpdResolver.resolveImpExt(any(), any(), anyBoolean()))
-                .willAnswer(invocation -> invocation.getArgument(1));
+        given(fpdResolver.resolveImpExt(any(), anyBoolean()))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         given(schainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
@@ -1227,11 +1228,11 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
 
-        given(fpdResolver.resolveImpExt(any(), any(), eq(true))).willReturn(mapper.createObjectNode()
+        given(fpdResolver.resolveImpExt(any(), eq(true))).willReturn(mapper.createObjectNode()
                 .set("context", mapper.createObjectNode()
                         .put("data", "data")
                         .put("otherField", "value")));
-        given(fpdResolver.resolveImpExt(any(), any(), eq(false))).willReturn(mapper.createObjectNode()
+        given(fpdResolver.resolveImpExt(any(), eq(false))).willReturn(mapper.createObjectNode()
                 .set("context", mapper.createObjectNode()
                         .put("otherField", "value")));
 
@@ -1251,6 +1252,40 @@ public class ExchangeServiceTest extends VertxTest {
                         mapper.createObjectNode().put("otherField", "value"),
                         // data present for someBidder
                         mapper.createObjectNode().put("data", "data").put("otherField", "value"));
+    }
+
+    @Test
+    public void shouldPassImpExtFieldsToEachImpression() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode()
+                .<ObjectNode>set("prebid", mapper.createObjectNode()
+                        .<ObjectNode>set("bidder", mapper.createObjectNode()
+                                .put("someBidder", 1)))
+                .put("all", "allValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build())
+                        .ext(impExt)
+                        .build()),
+                identity());
+        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
+                        givenBid(Bid.builder().price(TEN).build())))));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        assertThat(bidRequestCaptor.getAllValues())
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(impExtNode -> impExtNode.get("all"))
+                .containsOnly(new TextNode("allValue"));
     }
 
     @Test
