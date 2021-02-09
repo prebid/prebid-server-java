@@ -12,7 +12,6 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
-import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.metric.MetricName;
@@ -109,22 +108,6 @@ public class PrivacyEnforcementService {
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
-    public Future<PrivacyContext> contextFromLegacyRequest(PreBidRequestContext preBidRequestContext, Account account) {
-
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequestContext.getPreBidRequest());
-        final AccountGdprConfig accountGdpr = account.getGdpr();
-        final String accountId = account.getId();
-        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.legacy, null, accountId);
-
-        return tcfDefinerService.resolveTcfContext(
-                privacy,
-                preBidRequestContext.getIp(),
-                accountGdpr,
-                requestLogInfo,
-                preBidRequestContext.getTimeout())
-                .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
-    }
-
     public Future<PrivacyContext> contextFromSetuidRequest(
             HttpServerRequest httpRequest, Account account, Timeout timeout) {
 
@@ -134,7 +117,8 @@ public class PrivacyEnforcementService {
         final String accountId = account.getId();
         final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.setuid, null, accountId);
 
-        return tcfDefinerService.resolveTcfContext(privacy, ipAddress, accountGdpr, requestLogInfo, timeout)
+        return tcfDefinerService.resolveTcfContext(
+                privacy, ipAddress, accountGdpr, MetricName.setuid, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -147,7 +131,8 @@ public class PrivacyEnforcementService {
         final String accountId = account.getId();
         final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.cookiesync, null, accountId);
 
-        return tcfDefinerService.resolveTcfContext(privacy, ipAddress, accountGdpr, requestLogInfo, timeout)
+        return tcfDefinerService.resolveTcfContext(
+                privacy, ipAddress, accountGdpr, MetricName.cookiesync, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -348,7 +333,7 @@ public class PrivacyEnforcementService {
     }
 
     private static Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(TcfResponse<String> tcfResponse,
-                                                                             Set<String> bidders) {
+                                                                                    Set<String> bidders) {
 
         final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getActions();
         return bidders.stream().collect(Collectors.toMap(Function.identity(), bidderNameToAction::get));

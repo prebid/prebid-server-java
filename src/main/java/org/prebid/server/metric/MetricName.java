@@ -40,7 +40,6 @@ public enum MetricName {
     openrtb2app("openrtb2-app"),
     amp,
     video,
-    legacy,
     cookiesync,
     setuid,
 

@@ -20,8 +20,6 @@ import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.model.DebugHttpCall;
-import org.prebid.server.cache.proto.BidCacheResult;
-import org.prebid.server.cache.proto.request.BannerValue;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
@@ -33,8 +31,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -106,41 +102,6 @@ public class CacheService {
 
     public String getCachedAssetURLTemplate() {
         return cachedAssetUrlTemplate;
-    }
-
-    /**
-     * Makes cache for {@link Bid}s (legacy).
-     * <p>
-     * The returned result will always have the same number of elements as the values argument.
-     */
-    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, Timeout timeout, String accountId) {
-        return doCache(bids, timeout, accountId, this::createPutObject, this::createBidCacheResult);
-    }
-
-    /**
-     * Makes cache for {@link Bid}s with video media type only (legacy).
-     * <p>
-     * The returned result will always have the same number of elements as the values argument.
-     */
-    public Future<List<BidCacheResult>> cacheBidsVideoOnly(List<Bid> bids, Timeout timeout, String accountId) {
-        return doCache(bids, timeout, accountId, CacheService::createPutObjectVideoOnly, this::createBidCacheResult);
-    }
-
-    /**
-     * Generic method to work with cache service (legacy).
-     */
-    private <T, R> Future<List<R>> doCache(List<T> bids,
-                                           Timeout timeout,
-                                           String accountId,
-                                           Function<T, CachedCreative> requestItemCreator,
-                                           Function<CacheObject, R> responseItemCreator) {
-
-        final List<CachedCreative> cachedCreatives = bidsToCachedCreatives(bids, requestItemCreator);
-
-        updateCreativeMetrics(accountId, cachedCreatives);
-
-        return makeRequest(toBidCacheRequest(cachedCreatives), bids.size(), timeout, accountId)
-                .map(bidCacheResponse -> toResponse(bidCacheResponse, responseItemCreator));
     }
 
     /**
@@ -462,28 +423,6 @@ public class CacheService {
     }
 
     /**
-     * Makes put object from {@link Bid}. Used for legacy auction request.
-     */
-    private CachedCreative createPutObject(Bid bid) {
-        final PutObject payload = MediaType.video.equals(bid.getMediaType())
-                ? videoPutObject(bid)
-                : bannerPutObject(bid);
-
-        return CachedCreative.of(payload, creativeSizeFromAdm(bid));
-    }
-
-    /**
-     * Makes put object from {@link Bid} with video media type only. Used for legacy auction request.
-     */
-    private static CachedCreative createPutObjectVideoOnly(Bid bid) {
-        if (!MediaType.video.equals(bid.getMediaType())) {
-            return null;
-        }
-
-        return CachedCreative.of(videoPutObject(bid), creativeSizeFromAdm(bid));
-    }
-
-    /**
      * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}.
      * Used for OpenRTB auction request. Also, adds win url to result object if events are enabled.
      */
@@ -606,24 +545,6 @@ public class CacheService {
         return vastXml.replaceFirst(closeTag, closeTag + openTag + impressionUrl + closeTag);
     }
 
-    private static <T> List<CachedCreative> bidsToCachedCreatives(
-            List<T> bids, Function<T, CachedCreative> requestItemCreator) {
-
-        return bids.stream()
-                .filter(Objects::nonNull)
-                .map(requestItemCreator)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Transforms {@link CacheObject} into {@link BidCacheResult}. Used for legacy auction request.
-     */
-    private BidCacheResult createBidCacheResult(CacheObject cacheObject) {
-        final String uuid = cacheObject.getUuid();
-        return BidCacheResult.of(uuid, cachedAssetUrlTemplate.concat(uuid));
-    }
-
     /**
      * Handles http response, analyzes response status and creates {@link BidCacheResponse} from response body
      * or throws {@link PreBidException} in case of errors.
@@ -732,27 +653,6 @@ public class CacheService {
         return new URL(cacheSchema + "://" + cacheHost);
     }
 
-    /**
-     * Creates video {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
-     */
-    private static PutObject videoPutObject(Bid bid) {
-        return PutObject.builder()
-                .type("xml")
-                .value(new TextNode(bid.getAdm()))
-                .build();
-    }
-
-    /**
-     * Creates banner {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
-     */
-    private PutObject bannerPutObject(Bid bid) {
-        return PutObject.builder()
-                .type("json")
-                .value(mapper.mapper().valueToTree(BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(),
-                        bid.getHeight())))
-                .build();
-    }
-
     private void updateCreativeMetrics(String accountId, List<CachedCreative> cachedCreatives) {
         for (final CachedCreative cachedCreative : cachedCreatives) {
             metrics.updateCacheCreativeSize(accountId, cachedCreative.getSize());
@@ -760,10 +660,6 @@ public class CacheService {
     }
 
     private static int creativeSizeFromAdm(com.iab.openrtb.response.Bid bid) {
-        return lengthOrZero(bid.getAdm());
-    }
-
-    private static int creativeSizeFromAdm(Bid bid) {
         return lengthOrZero(bid.getAdm());
     }
 
