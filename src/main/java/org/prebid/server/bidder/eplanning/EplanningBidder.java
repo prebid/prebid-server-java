@@ -164,19 +164,19 @@ public class EplanningBidder implements Bidder<Void> {
         final Integer bannerWidth = banner.getW();
         final Integer bannerHeight = banner.getH();
         if (bannerWidth != null && bannerHeight != null) {
-            return String.format("%sx%s", bannerWidth, bannerHeight);
+            return String.format(SIZE_FORMAT, bannerWidth, bannerHeight);
         }
 
         final List<Format> bannerFormats = banner.getFormat();
 
-        final Set<String> formattedFormat = CollectionUtils.emptyIfNull(bannerFormats).stream()
+        final Set<String> formattedBannerSizes = CollectionUtils.emptyIfNull(bannerFormats).stream()
                 .filter(format -> format.getH() != null && format.getW() != null)
                 .map(format -> String.format(SIZE_FORMAT, format.getW(), format.getH()))
                 .collect(Collectors.toSet());
 
         final List<String> prioritySizes = isMobile ? PRIORITY_SIZES_FOR_MOBILE : PRIORITY_SIZES_FOR_DESKTOP;
         return prioritySizes.stream()
-                .filter(formattedFormat::contains).findFirst()
+                .filter(formattedBannerSizes::contains).findFirst()
                 .orElse(NULL_SIZE);
     }
 
