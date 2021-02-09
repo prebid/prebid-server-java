@@ -5,6 +5,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -230,7 +232,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetCorrectUriWithSizeString() {
+    public void makeHttpRequestsShouldSetCorrectUriWithSizeStringFromBannerWAndH() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
@@ -248,6 +250,94 @@ public class EplanningBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
                         + "300x200");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetCorrectUriWithSizeStringFromFormatForMobile() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().devicetype(1).build()),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(300).h(50).build(),
+                                        Format.builder().w(320).h(50).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                        + "320x50");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetCorrectUriWithSizeStringFromFormatForDesktop() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().devicetype(2).build()),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(300).h(600).build(),
+                                        Format.builder().w(728).h(90).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                        + "728x90");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldTolerateAndDropInvalidFormats() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().devicetype(2).build()),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(null).h(600).build(),
+                                        Format.builder().w(728).h(90).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                        + "728x90");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetUriWithSize1x1WhenSizeWasNotFoundInPriority() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().devicetype(2).build()),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(301).h(600).build(),
+                                        Format.builder().w(729).h(90).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                        + "1x1");
     }
 
     @Test
