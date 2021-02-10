@@ -33,6 +33,7 @@ import java.util.concurrent.TimeoutException;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -213,13 +214,13 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .build(),
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri("uri2")
                         .body("requestBody2")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .build()),
                 emptyList()));
 
@@ -236,8 +237,10 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").responsebody("responseBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(200).build(),
                 ExtHttpCall.builder().uri("uri2").requestbody("requestBody2").responsebody("responseBody2")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(200).build());
     }
 
@@ -248,8 +251,8 @@ public class HttpBidderRequesterTest extends VertxTest {
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri("uri1")
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
                         .build()),
                 emptyList()));
 
@@ -259,7 +262,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
-                ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").build());
+                ExtHttpCall.builder().uri("uri1").requestbody("requestBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
+                        .build());
     }
 
     @Test
@@ -270,7 +275,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .build()),
                 emptyList()));
 
@@ -282,7 +287,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
-                ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").build());
+                ExtHttpCall.builder().uri("uri1").requestbody("requestBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
+                        .build());
     }
 
     @Test
@@ -293,7 +300,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .build()),
                 emptyList()));
 
@@ -306,6 +313,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").responsebody("responseBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(500).build());
         assertThat(bidderSeatBid.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage).containsOnly(

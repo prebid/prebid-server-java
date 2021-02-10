@@ -504,6 +504,7 @@ public class BidResponseCreator {
                 .requestbody(debugHttpCall.getRequestBody())
                 .status(debugHttpCall.getResponseStatus())
                 .responsebody(debugHttpCall.getResponseBody())
+                .requestheaders(debugHttpCall.getRequestHeaders())
                 .build();
     }
 

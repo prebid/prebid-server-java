@@ -47,7 +47,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.UnaryOperator;
@@ -449,6 +451,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getError()).isInstanceOf(RuntimeException.class).hasMessage("Response exception");
         assertThat(result.getHttpCall()).isNotNull()
                 .isEqualTo(DebugHttpCall.builder().requestUri(request.getUri()).requestBody(request.getBody())
+                        .requestHeaders(givenDebugHeaders())
                         .endpoint("http://cache-service/cache").responseTimeMillis(0).build());
     }
 
@@ -478,6 +481,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getHttpCall()).isNotNull()
                 .isEqualTo(DebugHttpCall.builder().endpoint("http://cache-service/cache")
                         .requestBody(request.getBody()).requestUri(request.getUri()).responseStatus(503)
+                        .requestHeaders(givenDebugHeaders())
                         .responseBody("response").responseTimeMillis(0).build());
     }
 
@@ -506,6 +510,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getHttpCall()).isNotNull()
                 .isEqualTo(DebugHttpCall.builder().endpoint("http://cache-service/cache")
                         .requestUri(request.getUri()).requestBody(request.getBody())
+                        .requestHeaders(givenDebugHeaders())
                         .responseStatus(200).responseBody("response").responseTimeMillis(0).build());
     }
 
@@ -537,6 +542,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getHttpCall()).isNotNull()
                 .isEqualTo(DebugHttpCall.builder().endpoint("http://cache-service/cache")
                         .requestBody(request.getBody()).requestUri(request.getUri())
+                        .requestHeaders(givenDebugHeaders())
                         .responseStatus(200).responseBody("{}").responseTimeMillis(0).build());
     }
 
@@ -562,6 +568,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getHttpCall()).isNotNull()
                 .isEqualTo(DebugHttpCall.builder().endpoint("http://cache-service/cache")
                         .requestUri(request.getUri()).requestBody(request.getBody())
+                        .requestHeaders(givenDebugHeaders())
                         .responseStatus(200).responseBody("{\"responses\":[{\"uuid\":\"uuid1\"}]}")
                         .responseTimeMillis(0).build());
     }
@@ -1309,5 +1316,12 @@ public class CacheServiceTest extends VertxTest {
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(httpClient).post(anyString(), any(), captor.capture(), anyLong());
         return mapper.readValue(captor.getValue(), BidCacheRequest.class);
+    }
+
+    private Map<String, List<String>> givenDebugHeaders() {
+        final Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Accept", singletonList("application/json"));
+        headers.put("Content-Type", singletonList("application/json;charset=utf-8"));
+        return headers;
     }
 }

@@ -16,6 +16,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -157,4 +160,21 @@ public final class HttpUtil {
             response.end();
         }
     }
+
+    /**
+     * Converts {@link MultiMap} headers format to Map, where keys are headers names and values are lists
+     * of header's values
+     */
+    public static Map<String, List<String>> toDebugHeaders(MultiMap headers) {
+        return headers != null
+                ? headers.entries().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        entry -> StringUtils.isNotBlank(entry.getValue())
+                                ? Arrays.stream(entry.getValue().split(","))
+                                .map(String::trim)
+                                .collect(Collectors.toList())
+                                : Collections.singletonList(entry.getValue())))
+                : null;
+    }
+
 }

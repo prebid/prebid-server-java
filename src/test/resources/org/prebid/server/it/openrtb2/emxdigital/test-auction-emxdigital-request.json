@@ -50,7 +50,6 @@
   },
   "ext": {
     "prebid": {
-      "debug": 1,
       "targeting": {
         "pricegranularity": {
           "precision": 2,
