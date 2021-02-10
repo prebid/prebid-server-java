@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -47,30 +46,38 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final Optional<ExtImpMobilefuse> firstExtImpMobilefuse = request.getImp().stream()
-                .map(this::parseImpExt)
-                .filter(Objects::nonNull)
-                .findFirst();
+        ExtImpMobilefuse firstExtImpMobilefuse = null;
+        for (Imp imp : request.getImp()) {
+            final ExtImpMobilefuse impExt = parseImpExt(imp);
+            if (impExt != null) {
+                firstExtImpMobilefuse = impExt;
+                break;
+            }
+        }
 
-        if (!firstExtImpMobilefuse.isPresent()) {
+        if (firstExtImpMobilefuse == null) {
             return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
         }
 
-        final Optional<Imp> requestImp = request.getImp().stream()
-                .map(imp -> modifyImp(imp, firstExtImpMobilefuse.get()))
-                .filter(Objects::nonNull)
-                .findFirst();
+        Imp requestImp = null;
+        for (Imp imp : request.getImp()) {
+            final Imp modifiedImp = modifyImp(imp, firstExtImpMobilefuse);
+            if (modifiedImp != null) {
+                requestImp = modifiedImp;
+                break;
+            }
+        }
 
-        if (!requestImp.isPresent()) {
+        if (requestImp == null) {
             return Result.withError(BidderError.badInput("No valid imps"));
         }
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(requestImp.get())).build();
+        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(requestImp)).build();
         final String body = mapper.encode(outgoingRequest);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(makeUrl(firstExtImpMobilefuse.get()))
+                .uri(makeUrl(firstExtImpMobilefuse))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .body(body)
