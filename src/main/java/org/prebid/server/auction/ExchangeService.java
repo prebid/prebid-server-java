@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
@@ -435,12 +436,13 @@ public class ExchangeService {
                              ExtBidderConfigFpd fpdConfig) {
 
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
-        final boolean shouldCleanPrebid = extUser != null && extUser.getPrebid() != null;
-        final boolean shouldCleanData = extUser != null && extUser.getData() != null && !useFirstPartyData;
-        final boolean shouldUpdateUserExt = shouldCleanData || shouldCleanPrebid;
+        final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
+        final boolean shouldCleanExtData = extUser != null && extUser.getData() != null && !useFirstPartyData;
+        final boolean shouldUpdateUserExt = shouldCleanExtData || shouldCleanExtPrebid;
+        final boolean shouldCleanData = user != null && user.getData() != null && !useFirstPartyData;
 
         User maskedUser = user;
-        if (updatedBuyerUid != null || shouldUpdateUserExt) {
+        if (updatedBuyerUid != null || shouldUpdateUserExt || shouldCleanData) {
             final User.UserBuilder userBuilder = user == null ? User.builder() : user.toBuilder();
             if (updatedBuyerUid != null) {
                 userBuilder.buyeruid(updatedBuyerUid);
@@ -448,10 +450,14 @@ public class ExchangeService {
 
             if (shouldUpdateUserExt) {
                 final ExtUser updatedExtUser = extUser.toBuilder()
-                        .prebid(shouldCleanPrebid ? null : extUser.getPrebid())
-                        .data(shouldCleanData ? null : extUser.getData())
+                        .prebid(shouldCleanExtPrebid ? null : extUser.getPrebid())
+                        .data(shouldCleanExtData ? null : extUser.getData())
                         .build();
                 userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
+            }
+
+            if (shouldCleanData) {
+                userBuilder.data(null);
             }
 
             maskedUser = userBuilder.build();
@@ -668,14 +674,29 @@ public class ExchangeService {
      */
     private Site prepareSite(Site site, ObjectNode fpdSite, boolean useFirstPartyData) {
         final ExtSite siteExt = site != null ? site.getExt() : null;
+        final Content content = site != null ? site.getContent() : null;
 
-        final Site maskedSite = siteExt != null && siteExt.getData() != null && !useFirstPartyData
-                ? site.toBuilder().ext(maskExtSite(siteExt)).build()
+        final boolean shouldCleanExtData = siteExt != null && siteExt.getData() != null && !useFirstPartyData;
+        final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
+
+        final Site maskedSite = shouldCleanExtData || shouldCleanContentData
+                ? site.toBuilder()
+                .ext(shouldCleanExtData ? maskExtSite(siteExt) : siteExt)
+                .content(shouldCleanContentData ? prepareContent(content) : content)
+                .build()
                 : site;
 
         return useFirstPartyData
                 ? fpdResolver.resolveSite(maskedSite, fpdSite)
                 : maskedSite;
+    }
+
+    private Content prepareContent(Content content) {
+        final Content updatedContent = content.toBuilder()
+                .data(null)
+                .build();
+
+        return updatedContent.isEmpty() ? null : updatedContent;
     }
 
     private ExtSite maskExtSite(ExtSite siteExt) {
