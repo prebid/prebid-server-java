@@ -96,7 +96,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage());
         }
 
-        if (StringUtils.isBlank(extImpLunamedia.getPubId())) {
+        if (StringUtils.isBlank(extImpLunamedia.getPubid())) {
             throw new PreBidException("No pubid value provided");
         }
 
@@ -153,7 +153,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final List<Imp> imps = impExtAndListOfImps.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpLunamedia, imps);
 
-            final String url = String.format("%s%s", endpointUrl, extImpLunamedia.getPubId());
+            final String url = String.format("%s%s", endpointUrl, extImpLunamedia.getPubid());
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
