@@ -424,7 +424,8 @@ public class ExchangeService {
      * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
      * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
      * <p>
-     * Also, removes user.ext.prebid (if present) and user.ext.data (in case bidder does not use first party data).
+     * Also, removes user.ext.prebid (if present), user.ext.data and user.data (in case bidder does not use first
+     * party data).
      */
     private User prepareUser(User user,
                              ExtUser extUser,
@@ -648,14 +649,21 @@ public class ExchangeService {
     }
 
     /**
-     * Checks whether to pass the app.ext.data depending on request having a first party data
+     * Checks whether to pass the app.ext.data and app.content.data depending on request having a first party data
      * allowed for given bidder or not. And merge masked app with fpd config.
      */
     private App prepareApp(App app, ObjectNode fpdApp, boolean useFirstPartyData) {
         final ExtApp appExt = app != null ? app.getExt() : null;
+        final Content content = app != null ? app.getContent() : null;
 
-        final App maskedApp = appExt != null && appExt.getData() != null && !useFirstPartyData
-                ? app.toBuilder().ext(maskExtApp(appExt)).build()
+        final boolean shouldCleanExtData = appExt != null && appExt.getData() != null && !useFirstPartyData;
+        final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
+
+        final App maskedApp = shouldCleanExtData || shouldCleanContentData
+                ? app.toBuilder()
+                .ext(shouldCleanExtData ? maskExtApp(appExt) : appExt)
+                .content(shouldCleanContentData ? prepareContent(content) : content)
+                .build()
                 : app;
 
         return useFirstPartyData
@@ -669,7 +677,7 @@ public class ExchangeService {
     }
 
     /**
-     * Checks whether to pass the site.ext.data depending on request having a first party data
+     * Checks whether to pass the site.ext.data  and site.content.data depending on request having a first party data
      * allowed for given bidder or not. And merge masked site with fpd config.
      */
     private Site prepareSite(Site site, ObjectNode fpdSite, boolean useFirstPartyData) {

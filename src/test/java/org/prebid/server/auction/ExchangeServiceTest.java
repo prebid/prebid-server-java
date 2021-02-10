@@ -1585,6 +1585,10 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final Content content = Content.builder()
+                .data(singletonList(Data.builder().build()))
+                .album("album")
+                .build();
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -1595,6 +1599,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .app(App.builder()
                                 .keywords("keyword")
                                 .ext(ExtApp.of(null, dataNode))
+                                .content(content)
                                 .build()));
 
         // when
@@ -1607,10 +1612,10 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getApp)
-                .extracting(App::getExt, App::getKeywords)
+                .extracting(App::getExt, App::getKeywords, App::getContent)
                 .containsOnly(
-                        tuple(ExtApp.of(null, dataNode), "keyword"),
-                        tuple(null, "keyword"));
+                        tuple(ExtApp.of(null, dataNode), "keyword", content),
+                        tuple(null, "keyword", Content.builder().album("album").build()));
     }
 
     @Test
