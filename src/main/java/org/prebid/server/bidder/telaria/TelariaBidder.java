@@ -82,9 +82,9 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
 
         if (bidRequest.getSite() != null) {
-            requestBuilder.site(modifySite(seatCode, bidRequest.getSite()));
+            requestBuilder.site(modifySite(bidRequest.getSite(), seatCode));
         } else if (bidRequest.getApp() != null) {
-            requestBuilder.app(modifyApp(seatCode, bidRequest.getApp()));
+            requestBuilder.app(modifyApp(bidRequest.getApp(), seatCode));
         }
 
         final BidRequest outgoingRequest = requestBuilder.imp(validImps).build();
@@ -140,15 +140,15 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Site modifySite(String seatCode, Site site) {
-        return site.toBuilder().publisher(createPublisher(seatCode, site.getPublisher())).build();
+    private static Site modifySite(Site site, String seatCode) {
+        return site.toBuilder().publisher(createPublisher(site.getPublisher(), seatCode)).build();
     }
 
-    private static App modifyApp(String seatCode, App app) {
-        return app.toBuilder().publisher(createPublisher(seatCode, app.getPublisher())).build();
+    private static App modifyApp(App app, String seatCode) {
+        return app.toBuilder().publisher(createPublisher(app.getPublisher(), seatCode)).build();
     }
 
-    private static Publisher createPublisher(String seatCode, Publisher publisher) {
+    private static Publisher createPublisher(Publisher publisher, String seatCode) {
         return publisher != null
                 ? publisher.toBuilder().id(seatCode).build()
                 : Publisher.builder().id(seatCode).build();
