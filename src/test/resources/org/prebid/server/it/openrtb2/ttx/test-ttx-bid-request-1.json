@@ -20,7 +20,6 @@
     }
   ],
   "site": {
-    "id": "site-id",
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
@@ -41,12 +40,7 @@
   "user": {
     "buyeruid": "TTX-UID",
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
     }
   },
   "at": 1,

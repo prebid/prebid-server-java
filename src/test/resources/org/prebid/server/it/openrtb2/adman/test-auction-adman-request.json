@@ -12,8 +12,12 @@
         ]
       },
       "ext": {
-        "adman": {
-          "TagID": "first-tagid"
+        "prebid": {
+          "bidder": {
+            "adman": {
+              "TagID": "first-tagid"
+            }
+          }
         }
       }
     },
@@ -27,8 +31,12 @@
         "h": 480
       },
       "ext": {
-        "adman": {
-          "TagID": "second-tagid"
+        "prebid": {
+          "bidder": {
+            "adman": {
+              "TagID": "second-tagid"
+            }
+          }
         }
       }
     }
@@ -55,12 +63,7 @@
   },
   "user": {
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
     }
   },
   "regs": {

@@ -39,11 +39,6 @@
   "user": {
     "buyeruid" : "SA-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
     }
   },
@@ -64,10 +59,6 @@
   "ext": {
     "prebid": {
       "debug": 1,
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

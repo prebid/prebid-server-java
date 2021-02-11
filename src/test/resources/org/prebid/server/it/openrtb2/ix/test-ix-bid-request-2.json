@@ -13,7 +13,6 @@
         "w": 600,
         "h": 480
       },
-      "tagid": "impId6",
       "ext": {
         "bidder": {
           "siteId": "10002"
@@ -42,11 +41,6 @@
   "user": {
     "buyeruid": "IE-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
     }
   },

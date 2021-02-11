@@ -17,7 +17,6 @@
     }
   ],
   "site": {
-    "domain": "example.com",
     "page": "http://localhost:3000/server.html?pbjs_debug=true&endpoint=http://localhost:3000/bidder",
     "publisher": {
       "id": "11000"

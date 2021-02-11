@@ -14,8 +14,12 @@
         "h": 400
       },
       "ext": {
-        "avocet": {
-          "placement": "5ea9601ac865f911007f1b6a"
+        "prebid": {
+          "bidder": {
+            "avocet": {
+              "placement": "5ea9601ac865f911007f1b6a"
+            }
+          }
         }
       }
     }
@@ -43,10 +47,6 @@
   "ext": {
     "prebid": {
       "debug": 1,
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -69,12 +69,7 @@
   },
   "user": {
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
     }
   },
   "regs": {

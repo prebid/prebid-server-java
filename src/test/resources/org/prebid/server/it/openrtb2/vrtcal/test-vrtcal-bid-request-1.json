@@ -30,12 +30,7 @@
   "user": {
     "buyeruid": "VR-UID",
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
     }
   },
   "at": 1,

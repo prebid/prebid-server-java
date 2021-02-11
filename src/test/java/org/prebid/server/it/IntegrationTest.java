@@ -52,6 +52,7 @@ public abstract class IntegrationTest extends VertxTest {
     public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(options()
             .port(WIREMOCK_PORT)
             .gzipDisabled(true)
+            .jettyStopTimeout(5000L)
             .extensions(IntegrationTest.CacheResponseTransformer.class));
 
     @Rule
@@ -79,13 +80,6 @@ public abstract class IntegrationTest extends VertxTest {
     static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
-    }
-
-    static String legacyAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
-            throws IOException {
-
-        return auctionResponseFrom(templatePath, response,
-                "bidder_status.find { it.bidder == '%s' }.response_time_ms", bidders);
     }
 
     static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)

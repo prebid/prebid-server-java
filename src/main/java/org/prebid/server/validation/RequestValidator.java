@@ -48,10 +48,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -70,6 +70,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -79,8 +80,10 @@ import java.util.stream.Stream;
 public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
-    private static final String CONTEXT_EXT = "context";
+    private static final String BIDDER_EXT = "bidder";
+
     private static final Locale LOCALE = Locale.US;
+
     private static final String DOCUMENTATION = "https://iabtechlab.com/wp-content/uploads/2016/07/"
             + "OpenRTB-Native-Ads-Specification-Final-1.2.pdf";
 
@@ -134,6 +137,7 @@ public class RequestValidator {
                 validateBidAdjustmentFactors(
                         ObjectUtils.defaultIfNull(extRequestPrebid.getBidadjustmentfactors(), Collections.emptyMap()),
                         aliases);
+                validateSchains(extRequestPrebid.getSchains());
             }
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
@@ -174,7 +178,7 @@ public class RequestValidator {
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
         }
-        return warnings.isEmpty() ? ValidationResult.success() : ValidationResult.warning(warnings);
+        return ValidationResult.success(warnings);
     }
 
     /**
@@ -203,6 +207,35 @@ public class RequestValidator {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %s",
                         bidder, format(adjustmentFactor));
+            }
+        }
+    }
+
+    private void validateSchains(List<ExtRequestPrebidSchain> schains) throws ValidationException {
+        if (schains == null) {
+            return;
+        }
+
+        final Set<String> schainBidders = new HashSet<>();
+        for (final ExtRequestPrebidSchain schain : schains) {
+            if (schain == null) {
+                continue;
+            }
+
+            final List<String> bidders = schain.getBidders();
+            if (bidders == null) {
+                continue;
+            }
+
+            for (final String bidder : bidders) {
+                if (schainBidders.contains(bidder)) {
+                    throw new ValidationException(
+                            "request.ext.prebid.schains contains multiple schains for bidder %s; "
+                                    + "it must contain no more than one per bidder.",
+                            bidder);
+                }
+
+                schainBidders.add(bidder);
             }
         }
     }
@@ -397,11 +430,6 @@ public class RequestValidator {
                 }
             }
 
-            final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-            if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
-                throw new ValidationException("request.user contains a digitrust object that is not valid");
-            }
-
             final String tcfConsent = extUser.getConsent();
             if (StringUtils.isNotBlank(tcfConsent) && !TcfDefinerService.isConsentStringValid(tcfConsent)) {
                 warnings.add(String.format("Tcf consent string has invalid format: %s", tcfConsent));
@@ -413,7 +441,6 @@ public class RequestValidator {
                     throw new ValidationException(
                             "request.user.ext.eids must contain at least one element or be undefined");
                 }
-                final Set<String> uniqueSources = new HashSet<>(eids.size());
                 for (int index = 0; index < eids.size(); index++) {
                     final ExtUserEid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
@@ -441,9 +468,10 @@ public class RequestValidator {
                             }
                         }
                     }
-                    uniqueSources.add(eid.getSource());
                 }
-
+                final Set<String> uniqueSources = eids.stream()
+                        .map(ExtUserEid::getSource)
+                        .collect(Collectors.toSet());
                 if (eids.size() != uniqueSources.size()) {
                     throw new ValidationException("request.user.ext.eids must contain unique sources");
                 }
@@ -512,12 +540,12 @@ public class RequestValidator {
 
     private Request parseNativeRequest(String rawStringNativeRequest, int impIndex) throws ValidationException {
         if (StringUtils.isBlank(rawStringNativeRequest)) {
-            throw new ValidationException("request.imp.[%d].ext.native contains empty request value", impIndex);
+            throw new ValidationException("request.imp[%d].native contains empty request value", impIndex);
         }
         try {
             return mapper.mapper().readValue(rawStringNativeRequest, Request.class);
         } catch (IOException e) {
-            throw new ValidationException("Error while parsing request.imp.[%d].ext.native.request", impIndex);
+            throw new ValidationException("Error while parsing request.imp[%d].native.request", impIndex);
         }
     }
 
@@ -756,17 +784,38 @@ public class RequestValidator {
     }
 
     private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
-        if (ext == null || ext.size() < 1) {
-            throw new ValidationException("request.imp[%d].ext must contain at least one bidder", impIndex);
+        validateImpExtPrebid(childAsObjectNode(ext, PREBID_EXT), aliases, impIndex);
+    }
+
+    private void validateImpExtPrebid(ObjectNode extPrebid, Map<String, String> aliases, int impIndex)
+            throws ValidationException {
+
+        if (extPrebid == null || extPrebid.size() < 1) {
+            throw new ValidationException(
+                    "request.imp[%d].ext.prebid must be non-empty object", impIndex);
         }
 
-        final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = ext.fields();
+        validateImpExtPrebidBidder(extPrebid, aliases, impIndex);
+    }
+
+    private void validateImpExtPrebidBidder(ObjectNode extPrebid, Map<String, String> aliases, int impIndex)
+            throws ValidationException {
+
+        final JsonNode extPrebidBidder = extPrebid.get(BIDDER_EXT);
+
+        if (extPrebidBidder == null) {
+            return;
+        }
+
+        if (!extPrebidBidder.isObject()) {
+            throw new ValidationException("request.imp[%d].ext.prebid.bidder must be object", impIndex);
+        }
+
+        final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = extPrebidBidder.fields();
         while (bidderExtensions.hasNext()) {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidder = bidderExtension.getKey();
-            if (!Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT)) {
-                validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
-            }
+            validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
         }
     }
 
@@ -775,12 +824,12 @@ public class RequestValidator {
         if (bidderCatalog.isValidName(bidderName)) {
             final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
             if (!messages.isEmpty()) {
-                throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex,
+                throw new ValidationException("request.imp[%d].ext.prebid.bidder.%s failed validation.\n%s", impIndex,
                         bidderName, String.join("\n", messages));
             }
         } else if (!bidderCatalog.isDeprecatedName(bidderName) && !bidderCatalog.isAlias(bidderName)) {
             throw new ValidationException(
-                    "request.imp[%d].ext contains unknown bidder: %s", impIndex, bidderName);
+                    "request.imp[%d].ext.prebid.bidder contains unknown bidder: %s", impIndex, bidderName);
         }
     }
 
@@ -885,6 +934,16 @@ public class RequestValidator {
                         impIndex, i);
             }
         }
+    }
+
+    private ObjectNode childAsObjectNode(ObjectNode parent, String fieldName) {
+        final JsonNode child = parent != null ? parent.get(fieldName) : null;
+
+        return isObjectNode(child) ? (ObjectNode) child : null;
+    }
+
+    private static boolean isObjectNode(JsonNode node) {
+        return node != null && node.isObject();
     }
 
     private static boolean hasPositiveValue(Integer value) {
