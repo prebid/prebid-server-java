@@ -1,7 +1,7 @@
 adapters:
   advangelists:
     enabled: false
-    endpoint: http://nep.advangelists.com/xp/get?pubid=
+    endpoint: http://nep.advangelists.com/xp/get?pubid={{PublisherID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
