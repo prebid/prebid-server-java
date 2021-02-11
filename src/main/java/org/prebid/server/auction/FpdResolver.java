@@ -13,7 +13,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -295,7 +295,7 @@ public class FpdResolver {
         final List<String> bidders = Collections.singletonList(ALLOW_ALL_BIDDERS);
 
         return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
-                ExtBidderConfig.of(ExtBidderConfigFpd.of(siteNode, null, userNode))));
+                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode))));
     }
 
     private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {

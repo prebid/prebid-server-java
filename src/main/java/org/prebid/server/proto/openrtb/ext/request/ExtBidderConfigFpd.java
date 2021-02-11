@@ -11,12 +11,7 @@ public class ExtBidderConfigFpd {
     /**
      * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.site
      */
-    ObjectNode site;
-
-    /**
-     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.app
-     */
-    ObjectNode app;
+    ObjectNode context;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.user
