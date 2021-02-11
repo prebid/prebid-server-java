@@ -52,7 +52,7 @@ import java.util.TreeMap;
 public class AdheseBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdhese>> ADHESE_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
+            new TypeReference<ExtPrebid<?, ExtImpAdhese>>() {
             };
 
     private static final String ORIGIN_BID = "JERLICIA";
