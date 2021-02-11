@@ -25,7 +25,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
@@ -68,7 +67,6 @@ public class AdformBidderTest extends VertxTest {
                         .buyeruid("buyeruid")
                         .ext(ExtUser.builder()
                                 .consent("consent")
-                                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
                                 .eids(singletonList(ExtUserEid.of("test.com", "some_user_id",
                                         singletonList(ExtUserEidUid.of("uId", 1, null)), null)))
                                 .build())
@@ -103,9 +101,7 @@ public class AdformBidderTest extends VertxTest {
                         tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.3"),
                         tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
                         // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
-                        tuple(HttpUtil.COOKIE_HEADER.toString(),
-                                "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml"
-                                        + "2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
+                        tuple(HttpUtil.COOKIE_HEADER.toString(), "uid=buyeruid"));
     }
 
     @Test
@@ -184,7 +180,6 @@ public class AdformBidderTest extends VertxTest {
                         .buyeruid("buyeruid")
                         .ext(ExtUser.builder()
                                 .consent("consent")
-                                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
                                 .eids(singletonList(ExtUserEid.of("test.com", "some_user_id",
                                         singletonList(ExtUserEidUid.of("uId", 1, null)), null)))
                                 .build())
@@ -333,7 +328,6 @@ public class AdformBidderTest extends VertxTest {
                         .buyeruid("buyeruid")
                         .ext(ExtUser.builder()
                                 .consent("consent")
-                                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
                                 .eids(asList(ExtUserEid.of("test.com", "some_user_id",
                                         singletonList(ExtUserEidUid.of("uId", 1, null)), null),
                                         ExtUserEid.of("test.com", "some_user_id",
@@ -350,8 +344,9 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://adform.com/openrtb2d?CC=1&eids=eyJ0ZXN0LmNvbSI6eyJ1SWQiOlsxLDJdfSwidGVzdC5uZXQiOnsiaWRfc29tZV91c2VyIjpbM119fQ&fd=1&gdpr="
-                        + "&gdpr_consent=consent&ip=&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE");
+                .containsExactly(
+                        "https://adform.com/openrtb2d?CC=1&eids=eyJ0ZXN0LmNvbSI6eyJ1SWQiOlsxLDJdfSwidGVzdC5uZXQiOnsiaWRfc29tZV91c2VyIjpbM119fQ&fd=1&gdpr="
+                                + "&gdpr_consent=consent&ip=&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE");
     }
 
     private static HttpCall<Void> givenHttpCall(String body) {

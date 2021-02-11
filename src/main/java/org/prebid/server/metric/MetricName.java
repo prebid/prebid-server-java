@@ -24,8 +24,6 @@ public enum MetricName {
     requests,
     app_requests,
     no_cookie_requests,
-    safari_requests,
-    safari_no_cookie_requests,
     request_time,
     prices,
     imps_requested,
@@ -42,7 +40,6 @@ public enum MetricName {
     openrtb2app("openrtb2-app"),
     amp,
     video,
-    legacy,
     cookiesync,
     setuid,
 
@@ -61,6 +58,9 @@ public enum MetricName {
     unknown_error,
     err,
     networkerr,
+
+    // bids validation
+    warn,
 
     // cookie sync
     cookie_sync_requests,

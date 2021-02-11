@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class PrivacyEnforcementAction {
 
-    boolean removeUserIds;  // user.buyeruid, user.id, user.ext.eids, user.ext.digitrust
+    boolean removeUserIds;  // user.buyeruid, user.id, user.ext.eids
 
     boolean maskGeo;  // user.geo, device.geo
 

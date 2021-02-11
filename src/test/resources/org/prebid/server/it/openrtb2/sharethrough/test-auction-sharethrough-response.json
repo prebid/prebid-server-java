@@ -79,14 +79,18 @@
               ]
             },
             "ext": {
-              "sharethrough": {
-                "pkey": "abc123",
-                "iframe": true,
-                "iframeSize": [
-                  50,
-                  50
-                ],
-                "bidfloor": 3.5
+              "prebid": {
+                "bidder": {
+                  "sharethrough": {
+                    "pkey": "abc123",
+                    "iframe": true,
+                    "iframeSize": [
+                      50,
+                      50
+                    ],
+                    "bidfloor": 3.5
+                  }
+                }
               }
             }
           }
@@ -121,11 +125,6 @@
                 ]
               }
             ],
-            "digitrust": {
-              "id": "id",
-              "keyv": 123,
-              "pref": 0
-            },
             "consent": "consentValue"
           }
         },
@@ -151,10 +150,6 @@
         "ext": {
           "prebid": {
             "debug": 1,
-            "aliases": {
-              "appnexusAlias": "appnexus",
-              "conversantAlias": "conversant"
-            },
             "targeting": {
               "pricegranularity": {
                 "precision": 2,
