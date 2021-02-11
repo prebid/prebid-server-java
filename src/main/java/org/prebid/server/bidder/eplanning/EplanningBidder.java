@@ -144,17 +144,19 @@ public class EplanningBidder implements Bidder<Void> {
 
         return extImpEplanning;
     }
-    
+
     private static Boolean isMarfeelCustomSize(Integer width, Integer height) {
         return CUSTOM_MARFEEL_FIXED_WIDTH.equals(width) && CUSTOM_MARFEEL_FIXED_HEIGHT.equals(height);
     }
 
     private static String resolveSizeString(Imp imp) {
-     final Banner banner = imp.getBanner();
-        final String customMarfeelSize = String.format("%dx%d", CUSTOM_MARFEEL_FIXED_WIDTH, CUSTOM_MARFEEL_FIXED_HEIGHT);
+        final Banner banner = imp.getBanner();
+        final String customMarfeelSize = String.format(
+                    "%dx%d",
+                    CUSTOM_MARFEEL_FIXED_WIDTH, CUSTOM_MARFEEL_FIXED_HEIGHT);
         final Integer bannerWidth = banner.getW();
         final Integer bannerHeight = banner.getH();
-        
+
         if (isMarfeelCustomSize(bannerWidth, bannerHeight)) {
             return customMarfeelSize;
         }
@@ -164,14 +166,16 @@ public class EplanningBidder implements Bidder<Void> {
             for (Format format : bannerFormats) {
                 final Integer formatHeight = format.getH();
                 final Integer formatWidth = format.getW();
-        
+
                 if (isMarfeelCustomSize(formatWidth, formatHeight)) {
                     return customMarfeelSize;
                 }
             }
-        } 
+        }
 
-        throw new PreBidException(String.format("Ignoring imp id=%s, Eplanning doesn't support requested size(s)", imp.getId()));
+        throw new PreBidException(String.format(
+                    "Ignoring imp id=%s, Eplanning doesn't support requested size(s)",
+                    imp.getId()));
     }
 
     private static String cleanName(String name) {
