@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.model.ImpWithExt;
@@ -101,7 +102,7 @@ public class PulsepointBidder extends OpenrtbBidder<ExtImpPulsepoint> {
     }
 
     @Override
-    protected BidType getBidType(String impId, List<Imp> imps) {
+    protected BidType getBidType(Bid bid, List<Imp> imps) {
         return BidType.banner;
     }
 }

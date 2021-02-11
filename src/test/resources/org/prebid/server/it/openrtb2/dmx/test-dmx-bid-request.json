@@ -53,7 +53,12 @@
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "10400"
+      "id":"publisherId",
+      "ext": {
+        "dmx": {
+          "id": "10400"
+        }
+      }
     },
     "ext": {
       "amp": 0
