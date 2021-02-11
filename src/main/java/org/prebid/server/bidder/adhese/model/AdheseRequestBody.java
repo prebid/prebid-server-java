@@ -1,11 +1,13 @@
 package org.prebid.server.bidder.adhese.model;
 
-import java.util.ArrayList;
+import lombok.Getter;
+import lombok.Value;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TreeMap;
 
+@Value
 public class AdheseRequestBody {
 
     public static class Slot {
@@ -16,11 +18,8 @@ public class AdheseRequestBody {
             return slot;
         }
 
+        @Getter
         private String slotname;
-
-        public String getSlotname() {
-            return slotname;
-        }
 
         @Override
         public String toString() {
@@ -45,9 +44,14 @@ public class AdheseRequestBody {
         }
     }
 
-    public List<Slot> slots = new ArrayList<>();
+    List<Slot> slots;
 
-    public Map<String, List<String>> parameters = new TreeMap<>();
+    Map<String, List<String>> parameters;
+
+    public AdheseRequestBody(List<Slot> slots, Map<String, List<String>> parameters) {
+        this.slots = slots;
+        this.parameters = parameters;
+    }
 
     @Override
     public String toString() {

@@ -52,7 +52,7 @@ import java.util.TreeMap;
 public class AdheseBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdhese>> ADHESE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdhese>>() {
+            new TypeReference<>() {
             };
 
     private static final String ORIGIN_BID = "JERLICIA";
@@ -111,14 +111,15 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     private AdheseRequestBody buildBody(BidRequest request, ExtImpAdhese extImpAdhese) {
-        AdheseRequestBody body = new AdheseRequestBody();
-        body.slots.add(AdheseRequestBody.Slot.create(getSlotParameter(extImpAdhese)));
-        body.parameters.putAll(getTargetParameters(extImpAdhese));
-        body.parameters.putAll(getGdprParameter(request.getUser()));
-        body.parameters.putAll(getRefererParameter(request.getSite()));
-        body.parameters.putAll(getIfaParameter(request.getDevice()));
+        Map<String, List<String>> parameterMap = new TreeMap<>();
+        parameterMap.putAll(getTargetParameters(extImpAdhese));
+        parameterMap.putAll(getGdprParameter(request.getUser()));
+        parameterMap.putAll(getRefererParameter(request.getSite()));
+        parameterMap.putAll(getIfaParameter(request.getDevice()));
 
-        return body;
+        return new AdheseRequestBody(
+                Collections.singletonList(AdheseRequestBody.Slot.create(getSlotParameter(extImpAdhese))),
+                parameterMap);
     }
 
     private String getUrl(ExtImpAdhese extImpAdhese) {
@@ -133,7 +134,7 @@ public class AdheseBidder implements Bidder<Void> {
 
     private Map<String, List<String>> getTargetParameters(ExtImpAdhese extImpAdhese) {
         final JsonNode targets = extImpAdhese.getTargets();
-        return targets == null || targets.isNull() ? Collections.emptyMap() : parseTargetParametersAndSort(targets);
+        return targets == null || targets.isEmpty() ? Collections.emptyMap() : parseTargetParametersAndSort(targets);
     }
 
     private Map<String, List<String>> parseTargetParametersAndSort(JsonNode targets) {
