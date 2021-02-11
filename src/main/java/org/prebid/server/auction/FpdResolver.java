@@ -190,18 +190,14 @@ public class FpdResolver {
                 : impExt.set(CONTEXT, jacksonMapper.mapper().createObjectNode().set(DATA, resolvedData));
     }
 
-    public ObjectNode resolveImpExt(ObjectNode originalImpExt, ObjectNode updatedImpExt, boolean useFirstPartyData) {
-        final JsonNode updatedContextNode = sanitizeImpExtContext(originalImpExt, useFirstPartyData);
-        if (updatedContextNode != null) {
-            updatedImpExt.set(CONTEXT, updatedContextNode);
-        }
+    /**
+     * @param impExt might be modified within method
+     */
+    public ObjectNode resolveImpExt(ObjectNode impExt, boolean useFirstPartyData) {
+        removeOrReplace(impExt, CONTEXT, sanitizeImpExtContext(impExt, useFirstPartyData));
+        removeOrReplace(impExt, DATA, sanitizeImpExtData(impExt, useFirstPartyData));
 
-        final JsonNode updatedDataNode = sanitizeImpExtData(originalImpExt, useFirstPartyData);
-        if (updatedDataNode != null) {
-            updatedImpExt.set(DATA, updatedDataNode);
-        }
-
-        return updatedImpExt;
+        return impExt;
     }
 
     private JsonNode sanitizeImpExtContext(ObjectNode originalImpExt, boolean useFirstPartyData) {
@@ -217,16 +213,16 @@ public class FpdResolver {
         return updatedContextNode.isObject() && updatedContextNode.isEmpty() ? null : updatedContextNode;
     }
 
-    private JsonNode sanitizeImpExtData(ObjectNode originalImpExt, boolean useFirstPartyData) {
+    private JsonNode sanitizeImpExtData(ObjectNode impExt, boolean useFirstPartyData) {
         if (!useFirstPartyData) {
             return null;
         }
 
-        final JsonNode contextNode = originalImpExt.hasNonNull(CONTEXT) ? originalImpExt.get(CONTEXT) : null;
+        final JsonNode contextNode = impExt.hasNonNull(CONTEXT) ? impExt.get(CONTEXT) : null;
         final JsonNode contextDataNode =
                 contextNode != null && contextNode.hasNonNull(DATA) ? contextNode.get(DATA) : null;
 
-        final JsonNode dataNode = originalImpExt.get(DATA);
+        final JsonNode dataNode = impExt.get(DATA);
 
         final boolean dataIsNullOrObject =
                 dataNode == null || dataNode.isObject();
@@ -234,7 +230,7 @@ public class FpdResolver {
                 contextDataNode != null && !contextDataNode.isNull() && contextDataNode.isObject();
 
         final JsonNode mergedDataNode = dataIsNullOrObject && contextDataIsObject
-                ? dataNode != null ? jsonMerger.merge(contextDataNode, dataNode) : contextDataNode.deepCopy()
+                ? dataNode != null ? jsonMerger.merge(contextDataNode, dataNode) : contextDataNode
                 : dataNode;
 
         if (mergedDataNode != null && !mergedDataNode.isNull()) {
@@ -242,6 +238,14 @@ public class FpdResolver {
         }
 
         return null;
+    }
+
+    private void removeOrReplace(ObjectNode impExt, String field, JsonNode jsonNode) {
+        if (jsonNode == null) {
+            impExt.remove(field);
+        } else {
+            impExt.set(field, jsonNode);
+        }
     }
 
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
