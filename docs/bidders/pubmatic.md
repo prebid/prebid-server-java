@@ -23,9 +23,13 @@ and sizes that would match with the test creative.
             ]
          },
          "ext":{
-            "pubmatic":{
-               "publisherId":“156276”,
-               "adSlot":"pubmatic_test"
+            "prebid": {
+               "bidder"{
+                  "pubmatic":{
+                     "publisherId":“156276”,
+                     "adSlot":"pubmatic_test"
+                  }
+               }
             }
          }
       }

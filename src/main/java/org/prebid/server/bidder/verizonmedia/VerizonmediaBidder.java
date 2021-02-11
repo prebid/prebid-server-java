@@ -2,6 +2,7 @@ package org.prebid.server.bidder.verizonmedia;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -110,12 +111,18 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
             impBuilder.banner(modifyBanner(banner));
         }
 
-        final Site site = request.getSite();
-        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
+        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
-        return request.toBuilder()
+        final Site site = request.getSite();
+        final App app = request.getApp();
+        if (site != null) {
+            requestBuilder.site(site.toBuilder().id(extImpVerizonmedia.getDcn()).build());
+        } else if (app != null) {
+            requestBuilder.app(app.toBuilder().id(extImpVerizonmedia.getDcn()).build());
+        }
+
+        return requestBuilder
                 .imp(Collections.singletonList(impBuilder.build()))
-                .site(siteBuilder.id(extImpVerizonmedia.getDcn()).build())
                 .build();
     }
 

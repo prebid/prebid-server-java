@@ -16,7 +16,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 public class LifestreetTest extends IntegrationTest {
@@ -58,43 +57,5 @@ public class LifestreetTest extends IntegrationTest {
                 response, singletonList(LIFESTREET));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
-    }
-
-    @Test
-    public void auctionShouldRespondWithBidsFromLifestreet() throws IOException {
-        // given
-        // lifestreet bid response for ad unit 8
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lifestreet-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("auction/lifestreet/test-lifestreet-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/lifestreet/test-lifestreet-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("auction/lifestreet/test-cache-lifestreet-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/lifestreet/test-cache-lifestreet-response.json"))));
-
-        // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"lifestreet":"LS-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7ImxpZmVzdHJlZXQiOiJMUy1VSUQifX0=")
-                .queryParam("debug", "1")
-                .body(jsonFrom("auction/lifestreet/test-auction-lifestreet-request.json"))
-                .post("/auction");
-
-        // then
-        assertThat(response.header("Cache-Control")).isEqualTo("no-cache, no-store, must-revalidate");
-        assertThat(response.header("Pragma")).isEqualTo("no-cache");
-        assertThat(response.header("Expires")).isEqualTo("0");
-        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
-        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
-
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(
-                "auction/lifestreet/test-auction-lifestreet-response.json",
-                response, singletonList(LIFESTREET));
-        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 }

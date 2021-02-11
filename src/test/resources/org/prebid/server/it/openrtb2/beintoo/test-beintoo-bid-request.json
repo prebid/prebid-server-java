@@ -31,14 +31,9 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "BT-UID",
-    "ext" : {
-      "consent" : "consentValue",
-      "digitrust" : {
-        "id" : "id",
-        "keyv" : 123,
-        "pref" : 0
-      }
+    "buyeruid": "BT-UID",
+    "ext": {
+      "consent": "consentValue"
     }
   },
   "at": 1,
@@ -58,10 +53,6 @@
   "ext": {
     "prebid": {
       "debug": 1,
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

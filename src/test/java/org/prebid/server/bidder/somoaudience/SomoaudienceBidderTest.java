@@ -37,10 +37,11 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -56,26 +57,16 @@ public class SomoaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersAndMethod()
-            throws JsonProcessingException {
+    public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersAndMethod() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
-                        .build()))
-                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
-                .regs(Regs.of(0, ExtRegs.of(1, null)))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = somoaudienceBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
+        assertThat(result.getValue()).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly("http://somoaudience.com?s=placementId");
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
@@ -88,32 +79,23 @@ public class SomoaudienceBidderTest extends VertxTest {
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
                         tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "en"),
                         tuple(HttpUtil.DNT_HEADER.toString(), "1"));
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build())
-                                .bidfloor(BigDecimal.valueOf(1.39))
-                                .build()))
-                        .user(User.builder()
-                                .ext(ExtUser.builder().consent("consent").build())
-                                .build())
-                        .regs(Regs.of(0, ExtRegs.of(1, null)))
-                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
-                        .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
-                        .build()));
+        assertThat(result.getValue()).extracting(HttpRequest::getPayload).containsExactly(
+                givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                                .ext(jacksonMapper.fillExtension(ExtRequest.empty(),
+                                        SomoaudienceReqExt.of("hb_pbs_1.0.0"))),
+                        impBuilder -> impBuilder.ext(null).bidfloor(BigDecimal.valueOf(1.39))));
     }
 
     @Test
-    public void makeHttpRequestsShouldTolerateMissingDeviceLanguage() {
+    public void makeHttpRequestsShouldAddOnlyDeviceNotEmptyValuesToHeaders() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
-                        .build()))
-                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language(null).build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.device(Device.builder()
+                        .ua("User Agent")
+                        .ip("")
+                        .dnt(1)
+                        .language(null)
+                        .build()), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = somoaudienceBidder.makeHttpRequests(bidRequest);
@@ -121,64 +103,54 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .doesNotContain(tuple("Accept-Language", null));
+                .extracting(Map.Entry::getKey)
+                .doesNotContain(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
+                        HttpUtil.X_FORWARDED_FOR_HEADER.toString());
     }
 
     @Test
     public void makeHttpRequestsShouldReturnCorrectRequestBodyAndUri() throws IOException {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
-                Imp.builder()
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpSomoaudience.of("placement1", BigDecimal.valueOf(1.54)))))
-                        .build(),
-                Imp.builder()
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpSomoaudience.of("placement2", BigDecimal.valueOf(1.33)))))
-                        .build(),
-                Imp.builder()
+                givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
+                        null, ExtImpSomoaudience.of("placement1", BigDecimal.valueOf(1.54)))))),
+                givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
+                        null, ExtImpSomoaudience.of("placement2", BigDecimal.valueOf(1.33)))))),
+                givenImp(impBuilder -> impBuilder
                         .video(Video.builder().build())
+                        .banner(null)
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpSomoaudience.of("placement3", BigDecimal.valueOf(1.97)))))
-                        .build(),
-                Imp.builder()
+                                null, ExtImpSomoaudience.of("placement3", BigDecimal.valueOf(1.97)))))),
+
+                givenImp(impBuilder -> impBuilder
                         .xNative(Native.builder().build())
+                        .banner(null)
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpSomoaudience.of("placement4", BigDecimal.valueOf(2.52)))))
-                        .build()))
+                                null, ExtImpSomoaudience.of("placement4", BigDecimal.valueOf(2.52))))))))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = somoaudienceBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedBannersString = mapper.writeValueAsString(BidRequest.builder()
+        final BidRequest expectedBannersString = BidRequest.builder()
                 .imp(asList(
                         Imp.builder().banner(Banner.builder().build()).bidfloor(BigDecimal.valueOf(1.54)).build(),
                         Imp.builder().banner(Banner.builder().build()).bidfloor(BigDecimal.valueOf(1.33)).build()))
                 .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
-                .build());
-        final String expectedVideoSting = mapper.writeValueAsString(BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder().video(Video.builder().build()).bidfloor(BigDecimal.valueOf(1.97)).build()))
-                .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
-                .build());
-        final String expectedNativeString = mapper.writeValueAsString(BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder().xNative(Native.builder().build()).bidfloor(BigDecimal.valueOf(2.52)).build()))
-                .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
-                .build());
+                .build();
+        final BidRequest videoRequest =
+                expectedRequest(impBuilder -> impBuilder.video(Video.builder().build()), 1.97);
+        final BidRequest nativeRequest =
+                expectedRequest(impBuilder -> impBuilder.xNative(Native.builder().build()), 2.52);
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(3)
-                .extracting(HttpRequest::getUri, HttpRequest::getBody)
-                .containsOnly(
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri, HttpRequest::getPayload)
+                .containsExactlyInAnyOrder(
                         tuple("http://somoaudience.com?s=placement2", expectedBannersString),
-                        tuple("http://somoaudience.com?s=placement3", expectedVideoSting),
-                        tuple("http://somoaudience.com?s=placement4", expectedNativeString));
+                        tuple("http://somoaudience.com?s=placement3", videoRequest),
+                        tuple("http://somoaudience.com?s=placement4", nativeRequest));
     }
 
     @Test
@@ -196,27 +168,9 @@ public class SomoaudienceBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = somoaudienceBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactlyInAnyOrder(BidderError.badInput(
-                        "SomoAudience only supports banner and video imps. Ignoring imp id=impId"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnErrorMessageWhenImpExtIsEmpty() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId")
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, null))).build()))
-                .build();
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = somoaudienceBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("ignoring imp id=impId, extImpBidder is empty"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput(
+                        "SomoAudience only supports [banner, video, native] imps. Ignoring imp id : impId"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -224,16 +178,13 @@ public class SomoaudienceBidderTest extends VertxTest {
     public void makeHttpRequestShouldReturnHttpRequestWithErrorMessage() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
+                .imp(asList(givenImp(impBuilder -> impBuilder
                                 .id("impId")
-                                .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, null))).build(),
-                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                        givenImp(impBuilder -> impBuilder
                                 .id("impId2")
-                                .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(
-                                        null, ExtImpSomoaudience.of("placementId", null))))
-                                .build()))
+                                        null, ExtImpSomoaudience.of("placementId", null)))))))
                 .build();
 
         // when
@@ -241,25 +192,23 @@ public class SomoaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("ignoring imp id=impId, extImpBidder is empty"));
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("ignoring imp id=impId, error while decoding");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+
+                });
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly("http://somoaudience.com?s=placementId");
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.encode(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("impId2").banner(Banner.builder().build()).build()))
-                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), singletonMap("prebid", "hb_pbs_1.0.0")))
-                        .build()));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .containsExactly(
+                        expectedRequest(impBuilder -> impBuilder.id("impId2").banner(Banner.builder().build()), null));
     }
 
     @Test
     public void makeBidsShouldReturnBidWithoutErrors() throws JsonProcessingException {
         // given
-        final String response = mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("impId").build()))
-                        .build()))
-                .build());
+        final String response = mapper.writeValueAsString(givenBidResponse(identity()));
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId")
                 .banner(Banner.builder().build()).build()))
                 .build();
@@ -271,18 +220,14 @@ public class SomoaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
     }
 
     @Test
     public void makeBidsShouldTakeBannerPrecedencyOverAllOtherMediaTypes() throws JsonProcessingException {
         // given
-        final String response = mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("impId").build()))
-                        .build()))
-                .build());
+        final String response = mapper.writeValueAsString(givenBidResponse(identity()));
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId")
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
@@ -296,18 +241,14 @@ public class SomoaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
     }
 
     @Test
     public void makeBidsShouldTakeVideoPrecedencyOverNative() throws JsonProcessingException {
         // given
-        final String response = mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("impId").build()))
-                        .build()))
-                .build());
+        final String response = mapper.writeValueAsString(givenBidResponse(identity()));
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId")
                 .video(Video.builder().build())
                 .xNative(Native.builder().build()).build()))
@@ -320,18 +261,14 @@ public class SomoaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.video, null));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.video, "EUR"));
     }
 
     @Test
     public void makeBidsShouldReturnBidsWithNativeTypeOnlyWhenAllOtherAreAbsent() throws JsonProcessingException {
         // given
-        final String response = mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("impId").build()))
-                        .build()))
-                .build());
+        final String response = mapper.writeValueAsString(givenBidResponse(identity()));
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId")
                 .xNative(Native.builder().build()).build()))
                 .build();
@@ -343,18 +280,14 @@ public class SomoaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.xNative, null));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.xNative, "EUR"));
     }
 
     @Test
     public void makeBidsShouldReturnBidsWithMediaBidTypeIfMediaTypeWasNotDefinedInImp() throws JsonProcessingException {
         // given
-        final String response = mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("impId").build()))
-                        .build()))
-                .build());
+        final String response = mapper.writeValueAsString(givenBidResponse(identity()));
         final BidRequest bidRequest =
                 BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build())).build();
 
@@ -365,30 +298,25 @@ public class SomoaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
     }
 
     @Test
     public void makeBidsShouldReturnBidWithMediaBidTypeIfCorrespondentImpWasNotFound() throws JsonProcessingException {
         // given
-        final String response = mapper.writeValueAsString(BidResponse.builder()
-                .cur("EUR")
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("impId").build()))
-                        .build()))
-                .build());
+        final BidResponse response = givenBidResponse(identity());
         final BidRequest bidRequest =
                 BidRequest.builder().imp(singletonList(Imp.builder().id("impId2").build())).build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(response));
 
         // when
         final Result<List<BidderBid>> result = somoaudienceBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
     }
 
@@ -444,11 +372,53 @@ public class SomoaudienceBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = somoaudienceBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
+
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badServerResponse(
-                        "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at"
-                                + " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, "
-                                + "column: 3]"));
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Failed to decode: ");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                });
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
+                .regs(Regs.of(0, ExtRegs.of(1, null)))
+                .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .banner(Banner.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(
+                        null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39))))))
+                .build();
+    }
+
+    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return BidResponse.builder()
+                .cur("EUR")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).impid("impId").build()))
+                        .build()))
+                .build();
+    }
+
+    private static BidRequest expectedRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer, Double bidFloor) {
+        return BidRequest.builder()
+                .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
+                .imp(singletonList(impCustomizer.apply(Imp.builder()
+                        .bidfloor(bidFloor != null ? BigDecimal.valueOf(bidFloor) : null))
+                        .build())).build();
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {
