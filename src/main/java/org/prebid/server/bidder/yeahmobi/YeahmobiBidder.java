@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.yeahmobi;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -9,7 +10,6 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -106,16 +106,20 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         return imp;
     }
 
-    @SneakyThrows
     private String resolveNativeRequest(String xNativeRequest) {
-        final JsonNode nativeRequest = xNativeRequest != null
-                ? mapper.mapper().readValue(xNativeRequest, JsonNode.class)
-                : mapper.mapper().createObjectNode();
+        try {
+            final JsonNode nativeRequest = xNativeRequest != null
+                    ? mapper.mapper().readValue(xNativeRequest, JsonNode.class)
+                    : mapper.mapper().createObjectNode();
 
-        if (nativeRequest.isEmpty() || nativeRequest.get("native") == null) {
-            final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativeRequest);
-            return mapper.mapper().writeValueAsString(objectNode);
+            if (nativeRequest.isEmpty() || nativeRequest.get("native") == null) {
+                final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativeRequest);
+                return mapper.mapper().writeValueAsString(objectNode);
+            }
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
         }
+
         return null;
     }
 
