@@ -22,7 +22,6 @@
     }
   ],
   "site": {
-    "domain": "example.com",
     "page": "awesomePage",
     "publisher": {
       "id": "publisherId"
