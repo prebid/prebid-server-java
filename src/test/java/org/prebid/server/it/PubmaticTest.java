@@ -16,7 +16,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 public class PubmaticTest extends IntegrationTest {
@@ -57,43 +56,5 @@ public class PubmaticTest extends IntegrationTest {
                 response, singletonList(PUBMATIC));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
-    }
-
-    @Test
-    public void auctionShouldRespondWithBidsFromPubmatic() throws IOException {
-        // given
-        // pubmatic bid response for ad unit 9
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("auction/pubmatic/test-pubmatic-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/pubmatic/test-pubmatic-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("auction/pubmatic/test-cache-pubmatic-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/pubmatic/test-cache-pubmatic-response.json"))));
-
-        // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"pubmatic":"PM-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InB1Ym1hdGljIjoiUE0tVUlEIn19")
-                .queryParam("debug", "1")
-                .body(jsonFrom("auction/pubmatic/test-auction-pubmatic-request.json"))
-                .post("/auction");
-
-        // then
-        assertThat(response.header("Cache-Control")).isEqualTo("no-cache, no-store, must-revalidate");
-        assertThat(response.header("Pragma")).isEqualTo("no-cache");
-        assertThat(response.header("Expires")).isEqualTo("0");
-        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
-        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
-
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(
-                "auction/pubmatic/test-auction-pubmatic-response.json",
-                response, singletonList(PUBMATIC));
-        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 }

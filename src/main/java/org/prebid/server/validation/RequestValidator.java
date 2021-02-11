@@ -77,8 +77,10 @@ import java.util.stream.Stream;
 public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
-    private static final String CONTEXT_EXT = "context";
+    private static final String BIDDER_EXT = "bidder";
+
     private static final Locale LOCALE = Locale.US;
+
     private static final String DOCUMENTATION = "https://iabtechlab.com/wp-content/uploads/2016/07/"
             + "OpenRTB-Native-Ads-Specification-Final-1.2.pdf";
 
@@ -518,12 +520,12 @@ public class RequestValidator {
 
     private Request parseNativeRequest(String rawStringNativeRequest, int impIndex) throws ValidationException {
         if (StringUtils.isBlank(rawStringNativeRequest)) {
-            throw new ValidationException("request.imp.[%d].ext.native contains empty request value", impIndex);
+            throw new ValidationException("request.imp[%d].native contains empty request value", impIndex);
         }
         try {
             return mapper.mapper().readValue(rawStringNativeRequest, Request.class);
         } catch (IOException e) {
-            throw new ValidationException("Error while parsing request.imp.[%d].ext.native.request", impIndex);
+            throw new ValidationException("Error while parsing request.imp[%d].native.request", impIndex);
         }
     }
 
@@ -762,17 +764,38 @@ public class RequestValidator {
     }
 
     private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
-        if (ext == null || ext.size() < 1) {
-            throw new ValidationException("request.imp[%d].ext must contain at least one bidder", impIndex);
+        validateImpExtPrebid(childAsObjectNode(ext, PREBID_EXT), aliases, impIndex);
+    }
+
+    private void validateImpExtPrebid(ObjectNode extPrebid, Map<String, String> aliases, int impIndex)
+            throws ValidationException {
+
+        if (extPrebid == null || extPrebid.size() < 1) {
+            throw new ValidationException(
+                    "request.imp[%d].ext.prebid must be non-empty object", impIndex);
         }
 
-        final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = ext.fields();
+        validateImpExtPrebidBidder(extPrebid, aliases, impIndex);
+    }
+
+    private void validateImpExtPrebidBidder(ObjectNode extPrebid, Map<String, String> aliases, int impIndex)
+            throws ValidationException {
+
+        final JsonNode extPrebidBidder = extPrebid.get(BIDDER_EXT);
+
+        if (extPrebidBidder == null) {
+            return;
+        }
+
+        if (!extPrebidBidder.isObject()) {
+            throw new ValidationException("request.imp[%d].ext.prebid.bidder must be object", impIndex);
+        }
+
+        final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = extPrebidBidder.fields();
         while (bidderExtensions.hasNext()) {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidder = bidderExtension.getKey();
-            if (!Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT)) {
-                validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
-            }
+            validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
         }
     }
 
@@ -781,12 +804,12 @@ public class RequestValidator {
         if (bidderCatalog.isValidName(bidderName)) {
             final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
             if (!messages.isEmpty()) {
-                throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex,
+                throw new ValidationException("request.imp[%d].ext.prebid.bidder.%s failed validation.\n%s", impIndex,
                         bidderName, String.join("\n", messages));
             }
         } else if (!bidderCatalog.isDeprecatedName(bidderName) && !bidderCatalog.isAlias(bidderName)) {
             throw new ValidationException(
-                    "request.imp[%d].ext contains unknown bidder: %s", impIndex, bidderName);
+                    "request.imp[%d].ext.prebid.bidder contains unknown bidder: %s", impIndex, bidderName);
         }
     }
 
@@ -891,6 +914,16 @@ public class RequestValidator {
                         impIndex, i);
             }
         }
+    }
+
+    private ObjectNode childAsObjectNode(ObjectNode parent, String fieldName) {
+        final JsonNode child = parent != null ? parent.get(fieldName) : null;
+
+        return isObjectNode(child) ? (ObjectNode) child : null;
+    }
+
+    private static boolean isObjectNode(JsonNode node) {
+        return node != null && node.isObject();
     }
 
     private static boolean hasPositiveValue(Integer value) {

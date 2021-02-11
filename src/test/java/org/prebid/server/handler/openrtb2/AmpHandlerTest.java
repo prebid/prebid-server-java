@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
@@ -93,7 +93,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
     @Mock
@@ -135,7 +135,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler = new AmpHandler(
                 ampRequestFactory,
                 exchangeService,
-                analyticsReporter,
+                analyticsReporterDelegator,
                 metrics,
                 clock,
                 bidderCatalog,
@@ -784,7 +784,7 @@ public class AmpHandlerTest extends VertxTest {
 
     private AmpEvent captureAmpEvent() {
         final ArgumentCaptor<AmpEvent> captor = ArgumentCaptor.forClass(AmpEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture());
+        verify(analyticsReporterDelegator).processEvent(captor.capture(), any());
         return captor.getValue();
     }
 

@@ -14,8 +14,12 @@
         "h": 400
       },
       "ext": {
-        "avocet": {
-          "placement": "5ea9601ac865f911007f1b6a"
+        "prebid": {
+          "bidder": {
+            "avocet": {
+              "placement": "5ea9601ac865f911007f1b6a"
+            }
+          }
         }
       }
     }
