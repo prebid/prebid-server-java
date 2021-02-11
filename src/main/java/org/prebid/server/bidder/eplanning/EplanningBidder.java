@@ -144,6 +144,10 @@ public class EplanningBidder implements Bidder<Void> {
 
         return extImpEplanning;
     }
+    
+    private static Boolean isMarfeelCustomSize(Integer width, Integer height) {
+        return CUSTOM_MARFEEL_FIXED_WIDTH.equals(width) && CUSTOM_MARFEEL_FIXED_HEIGHT.equals(height);
+    }
 
     private static String resolveSizeString(Imp imp) {
      final Banner banner = imp.getBanner();
@@ -151,7 +155,7 @@ public class EplanningBidder implements Bidder<Void> {
         final Integer bannerWidth = banner.getW();
         final Integer bannerHeight = banner.getH();
         
-        if (CUSTOM_MARFEEL_FIXED_WIDTH.equals(bannerWidth) && CUSTOM_MARFEEL_FIXED_HEIGHT.equals(bannerHeight)) {
+        if (isMarfeelCustomSize(bannerWidth, bannerHeight)) {
             return customMarfeelSize;
         }
 
@@ -161,7 +165,7 @@ public class EplanningBidder implements Bidder<Void> {
                 final Integer formatHeight = format.getH();
                 final Integer formatWidth = format.getW();
         
-                if (CUSTOM_MARFEEL_FIXED_WIDTH.equals(formatWidth) && CUSTOM_MARFEEL_FIXED_HEIGHT.equals(formatHeight)) {
+                if (isMarfeelCustomSize(formatWidth, formatHeight)) {
                     return customMarfeelSize;
                 }
             }
