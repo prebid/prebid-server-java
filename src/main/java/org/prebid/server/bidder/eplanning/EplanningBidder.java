@@ -8,6 +8,8 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -51,9 +53,8 @@ import java.util.stream.Stream;
  */
 public class EplanningBidder implements Bidder<Void> {
 
-    private static final String CUSTOM_MARFEEL_FIXED_WIDTH = "300";
-    private static final String CUSTOM_MARFEEL_FIXED_HEIGHT = "250";
-    private static final String NULL_SIZE = "1x1";
+    private static final Integer CUSTOM_MARFEEL_FIXED_WIDTH = 300;
+    private static final Integer CUSTOM_MARFEEL_FIXED_HEIGHT = 250;
     private static final String DEFAULT_PAGE_URL = "FILE";
     private static final String SEC = "ROS";
     private static final String DFP_CLIENT_ID = "1";
@@ -144,8 +145,37 @@ public class EplanningBidder implements Bidder<Void> {
         return extImpEplanning;
     }
 
+    private static Boolean isMarfeelCustomSize(Integer width, Integer height) {
+        return CUSTOM_MARFEEL_FIXED_WIDTH.equals(width) && CUSTOM_MARFEEL_FIXED_HEIGHT.equals(height);
+    }
+
     private static String resolveSizeString(Imp imp) {
-        return String.format("%sx%s", CUSTOM_MARFEEL_FIXED_WIDTH, CUSTOM_MARFEEL_FIXED_HEIGHT);
+        final Banner banner = imp.getBanner();
+        final String customMarfeelSize = String.format(
+                    "%dx%d",
+                    CUSTOM_MARFEEL_FIXED_WIDTH, CUSTOM_MARFEEL_FIXED_HEIGHT);
+        final Integer bannerWidth = banner.getW();
+        final Integer bannerHeight = banner.getH();
+
+        if (isMarfeelCustomSize(bannerWidth, bannerHeight)) {
+            return customMarfeelSize;
+        }
+
+        final List<Format> bannerFormats = banner.getFormat();
+        if (CollectionUtils.isNotEmpty(bannerFormats)) {
+            for (Format format : bannerFormats) {
+                final Integer formatHeight = format.getH();
+                final Integer formatWidth = format.getW();
+
+                if (isMarfeelCustomSize(formatWidth, formatHeight)) {
+                    return customMarfeelSize;
+                }
+            }
+        }
+
+        throw new PreBidException(String.format(
+                    "Ignoring imp id=%s, Eplanning doesn't support requested size(s)",
+                    imp.getId()));
     }
 
     private static String cleanName(String name) {

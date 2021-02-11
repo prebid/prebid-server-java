@@ -136,7 +136,7 @@ gdpr:
       http-default-timeout-ms: 2000
       refresh-missing-list-period-ms: 3600000
     v2:
-      http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
+      http-endpoint-template: https://vendor-list.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       http-default-timeout-ms: 2000
       refresh-missing-list-period-ms: 3600000
   purposes:
