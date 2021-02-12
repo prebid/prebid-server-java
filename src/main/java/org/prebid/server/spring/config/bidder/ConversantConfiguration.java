@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.conversant.ConversantAdapter;
 import org.prebid.server.bidder.conversant.ConversantBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
@@ -58,8 +57,6 @@ public class ConversantConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
                 .bidderCreator(() -> new ConversantBidder(configProperties.getEndpoint(),
                         configProperties.getGenerateBidId(), mapper))
-                .adapterCreator(() -> new ConversantAdapter(usersync.getCookieFamilyName(),
-                        configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 
