@@ -603,7 +603,7 @@
         </profile>
 
         <profile>
-            <id>springboot</id>
+            <id>marfeelci</id>
             <dependencies>
                 <dependency>
                     <groupId>com.marfeel</groupId>
