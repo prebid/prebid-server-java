@@ -344,11 +344,6 @@ public class BidResponseCreator {
                         bidInfo -> bidInfo.getCorrespondingImp().getId(),
                         Collectors.toMap(BidInfo::getBidder, Function.identity(), BidResponseCreator::winningBidInfo)));
 
-        impIdToBidderToBidInfo.values().stream()
-                .map(Map::values)
-                .flatMap(Collection::stream)
-                .forEach(winningBidsByBidder::add);
-
         for (Map<String, BidInfo> bidderToBidInfo : impIdToBidderToBidInfo.values()) {
             winningBidsByBidder.addAll(bidderToBidInfo.values());
 
