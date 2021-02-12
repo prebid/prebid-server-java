@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -26,21 +27,19 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.util.StreamUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Resolves stored response data retrieving and BidderResponse merging processes.
@@ -48,8 +47,10 @@ import java.util.stream.StreamSupport;
 public class StoredResponseProcessor {
 
     private static final String PREBID_EXT = "prebid";
-    private static final String CONTEXT_EXT = "context";
+    private static final String BIDDER_EXT = "bidder";
+
     private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private static final TypeReference<List<SeatBid>> SEATBID_LIST_TYPEREFERENCE = new TypeReference<List<SeatBid>>() {
     };
 
@@ -60,6 +61,7 @@ public class StoredResponseProcessor {
     public StoredResponseProcessor(ApplicationSettings applicationSettings,
                                    BidderCatalog bidderCatalog,
                                    JacksonMapper mapper) {
+
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.mapper = Objects.requireNonNull(mapper);
@@ -72,7 +74,7 @@ public class StoredResponseProcessor {
         final Map<String, String> storedResponseIdToImpId = new HashMap<>();
 
         try {
-            fillStoredResponseIdsAndRequestingImps(imps, requiredRequestImps, storedResponseIdToImpId, aliases);
+            fillStoredResponseIdsAndRequestingImps(imps, aliases, requiredRequestImps, storedResponseIdToImpId);
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
@@ -90,6 +92,7 @@ public class StoredResponseProcessor {
 
     List<BidderResponse> mergeWithBidderResponses(List<BidderResponse> bidderResponses, List<SeatBid> storedResponses,
                                                   List<Imp> imps) {
+
         if (CollectionUtils.isEmpty(storedResponses)) {
             return bidderResponses;
         }
@@ -109,28 +112,34 @@ public class StoredResponseProcessor {
                 .collect(Collectors.toList());
     }
 
-    private void fillStoredResponseIdsAndRequestingImps(List<Imp> imps, List<Imp> requiredRequestImps,
-                                                        Map<String, String> storedResponseIdToImpId,
-                                                        BidderAliases aliases) {
+    private void fillStoredResponseIdsAndRequestingImps(List<Imp> imps,
+                                                        BidderAliases aliases,
+                                                        List<Imp> requiredRequestImps,
+                                                        Map<String, String> storedResponseIdToImpId) {
+
         for (final Imp imp : imps) {
             final String impId = imp.getId();
             final ObjectNode extImpNode = imp.getExt();
             final ExtImp extImp = getExtImp(extImpNode, impId);
             final ExtImpPrebid extImpPrebid = extImp != null ? extImp.getPrebid() : null;
-            if (extImpPrebid == null) {
+
+            final ExtStoredAuctionResponse storedAuctionResponse =
+                    extImpPrebid != null ? extImpPrebid.getStoredAuctionResponse() : null;
+            final List<ExtStoredBidResponse> storedBidResponse =
+                    extImpPrebid != null ? extImpPrebid.getStoredBidResponse() : null;
+
+            if (storedAuctionResponse == null && storedBidResponse == null) {
                 requiredRequestImps.add(imp);
                 continue;
             }
 
-            final ExtStoredAuctionResponse storedAuctionResponse = extImpPrebid.getStoredAuctionResponse();
             final String storedAuctionResponseId = storedAuctionResponse != null ? storedAuctionResponse.getId() : null;
             if (StringUtils.isNotEmpty(storedAuctionResponseId)) {
                 storedResponseIdToImpId.put(storedAuctionResponseId, impId);
                 continue;
             }
 
-            resolveStoredBidResponse(requiredRequestImps, storedResponseIdToImpId, aliases, imp, impId, extImpNode,
-                    extImpPrebid);
+            resolveStoredBidResponse(storedBidResponse, imp, aliases, requiredRequestImps, storedResponseIdToImpId);
         }
     }
 
@@ -138,22 +147,25 @@ public class StoredResponseProcessor {
         try {
             return mapper.mapper().treeToValue(extImpNode, ExtImp.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.imp.ext for impId = %s : %s",
-                    impId, e.getMessage()));
+            throw new InvalidRequestException(String.format(
+                    "Error decoding bidRequest.imp.ext for impId = %s : %s", impId, e.getMessage()));
         }
     }
 
-    private void resolveStoredBidResponse(List<Imp> requiredRequestImps, Map<String, String> storedResponseIdToImpId,
-                                          BidderAliases aliases, Imp imp, String impId,
-                                          ObjectNode extImpNode, ExtImpPrebid extImpPrebid) {
+    private void resolveStoredBidResponse(List<ExtStoredBidResponse> storedBidResponse,
+                                          Imp imp,
+                                          BidderAliases aliases,
+                                          List<Imp> requiredRequestImps,
+                                          Map<String, String> storedResponseIdToImpId) {
 
-        final List<ExtStoredBidResponse> storedBidResponse = extImpPrebid.getStoredBidResponse();
+        final String impId = imp.getId();
+
         final Map<String, String> bidderToStoredId = storedBidResponse != null
                 ? getBidderToStoredResponseId(storedBidResponse, impId)
                 : Collections.emptyMap();
         if (!bidderToStoredId.isEmpty()) {
-            final Imp resolvedBiddersImp = removeStoredResponseBidders(imp, extImpNode, bidderToStoredId.keySet());
-            if (hasValidBidder(aliases, resolvedBiddersImp)) {
+            final Imp resolvedBiddersImp = removeStoredResponseBidders(imp, bidderToStoredId.keySet());
+            if (hasValidBidder(resolvedBiddersImp, aliases)) {
                 requiredRequestImps.add(resolvedBiddersImp);
             }
             storedResponseIdToImpId.putAll(bidderToStoredId.values().stream()
@@ -165,6 +177,7 @@ public class StoredResponseProcessor {
 
     private Map<String, String> getBidderToStoredResponseId(List<ExtStoredBidResponse> extStoredBidResponses,
                                                             String impId) {
+
         final Map<String, String> bidderToStoredResponseId = new HashMap<>();
         for (final ExtStoredBidResponse extStoredBidResponse : extStoredBidResponses) {
             final String bidder = extStoredBidResponse.getBidder();
@@ -184,26 +197,29 @@ public class StoredResponseProcessor {
         return bidderToStoredResponseId;
     }
 
-    private Imp removeStoredResponseBidders(Imp imp, ObjectNode extImp, Set<String> bidders) {
-        boolean isUpdated = false;
-        for (final String bidder : bidders) {
-            if (extImp.hasNonNull(bidder)) {
-                extImp.remove(bidder);
-                isUpdated = true;
-            }
+    private Imp removeStoredResponseBidders(Imp imp, Set<String> bidders) {
+        final ObjectNode ext = imp.getExt();
+        final JsonNode bidderParams = bidderParamsFromImpExt(ext);
+
+        if (bidderParams == null || StreamUtil.asStream(bidderParams.fieldNames()).noneMatch(bidders::contains)) {
+            return imp;
         }
-        return isUpdated ? imp.toBuilder().ext(extImp).build() : imp;
+
+        final ObjectNode modifiedExt = ext.deepCopy();
+        ((ObjectNode) bidderParamsFromImpExt(modifiedExt)).remove(bidders);
+
+        return imp.toBuilder().ext(modifiedExt).build();
     }
 
-    private boolean hasValidBidder(BidderAliases aliases, Imp resolvedBiddersImp) {
-        return asStream(resolvedBiddersImp.getExt().fieldNames())
-                .anyMatch(bidder -> !Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT)
-                        && isValidBidder(bidder, aliases));
+    private static JsonNode bidderParamsFromImpExt(ObjectNode ext) {
+        return ext.get(PREBID_EXT).get(BIDDER_EXT);
     }
 
-    private <T> Stream<T> asStream(Iterator<T> iterator) {
-        final Iterable<T> iterable = () -> iterator;
-        return StreamSupport.stream(iterable.spliterator(), false);
+    private boolean hasValidBidder(Imp imp, BidderAliases aliases) {
+        final JsonNode bidderParams = bidderParamsFromImpExt(imp.getExt());
+
+        return bidderParams != null
+                && StreamUtil.asStream(bidderParams.fieldNames()).anyMatch(bidder -> isValidBidder(bidder, aliases));
     }
 
     private boolean isValidBidder(String bidder, BidderAliases aliases) {

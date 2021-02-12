@@ -13,6 +13,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.GeneratedBidIds;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
@@ -21,8 +22,6 @@ import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.model.DebugHttpCall;
-import org.prebid.server.cache.proto.BidCacheResult;
-import org.prebid.server.cache.proto.request.BannerValue;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
@@ -35,8 +34,6 @@ import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -51,7 +48,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -112,41 +108,6 @@ public class CacheService {
 
     public String getCachedAssetURLTemplate() {
         return cachedAssetUrlTemplate;
-    }
-
-    /**
-     * Makes cache for {@link Bid}s (legacy).
-     * <p>
-     * The returned result will always have the same number of elements as the values argument.
-     */
-    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, Timeout timeout, String accountId) {
-        return doCache(bids, timeout, accountId, this::createPutObject, this::createBidCacheResult);
-    }
-
-    /**
-     * Makes cache for {@link Bid}s with video media type only (legacy).
-     * <p>
-     * The returned result will always have the same number of elements as the values argument.
-     */
-    public Future<List<BidCacheResult>> cacheBidsVideoOnly(List<Bid> bids, Timeout timeout, String accountId) {
-        return doCache(bids, timeout, accountId, CacheService::createPutObjectVideoOnly, this::createBidCacheResult);
-    }
-
-    /**
-     * Generic method to work with cache service (legacy).
-     */
-    private <T, R> Future<List<R>> doCache(List<T> bids,
-                                           Timeout timeout,
-                                           String accountId,
-                                           Function<T, CachedCreative> requestItemCreator,
-                                           Function<CacheObject, R> responseItemCreator) {
-
-        final List<CachedCreative> cachedCreatives = bidsToCachedCreatives(bids, requestItemCreator);
-
-        updateCreativeMetrics(accountId, cachedCreatives);
-
-        return makeRequest(toBidCacheRequest(cachedCreatives), bids.size(), timeout, accountId)
-                .map(bidCacheResponse -> toResponse(bidCacheResponse, responseItemCreator));
     }
 
     /**
@@ -366,15 +327,16 @@ public class CacheService {
                                                       EventsContext eventsContext) {
 
         final Account account = auctionContext.getAccount();
-        final Map<String, List<String>> biddersToCacheBidIds = cacheContext.getBidderToBidIds();
-        final Map<String, List<String>> bidderToVideoBidIdsToModify = cacheContext.getBidderToVideoBidIdsToModify();
+        final GeneratedBidIds biddersToCacheBidIds = cacheContext.getBidderToBidsToGeneratedIds();
+        final GeneratedBidIds bidderToVideoBidIdsToModify = cacheContext.getBidderToVideoGeneratedBidIdsToModify();
+
         final Map<String, Map<String, String>> biddersToBidsCategories = cacheContext.getBiddersToBidsCategories();
         final String hbCacheId = MapUtils.isEmpty(biddersToBidsCategories) ? null : idGenerator.generateId();
         final List<CachedCreative> cachedCreatives = Stream.concat(
                 bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(
                         cacheBid, biddersToCacheBidIds, account, eventsContext)),
                 videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, bidderToVideoBidIdsToModify,
-                        biddersToCacheBidIds, hbCacheId, biddersToBidsCategories, account, eventsContext)))
+                        hbCacheId, biddersToBidsCategories, account, eventsContext)))
                 .collect(Collectors.toList());
 
         if (cachedCreatives.isEmpty()) {
@@ -470,33 +432,11 @@ public class CacheService {
     }
 
     /**
-     * Makes put object from {@link Bid}. Used for legacy auction request.
-     */
-    private CachedCreative createPutObject(Bid bid) {
-        final PutObject payload = MediaType.video.equals(bid.getMediaType())
-                ? videoPutObject(bid)
-                : bannerPutObject(bid);
-
-        return CachedCreative.of(payload, creativeSizeFromAdm(bid));
-    }
-
-    /**
-     * Makes put object from {@link Bid} with video media type only. Used for legacy auction request.
-     */
-    private static CachedCreative createPutObjectVideoOnly(Bid bid) {
-        if (!MediaType.video.equals(bid.getMediaType())) {
-            return null;
-        }
-
-        return CachedCreative.of(videoPutObject(bid), creativeSizeFromAdm(bid));
-    }
-
-    /**
      * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}.
      * Used for OpenRTB auction request. Also, adds win url to result object if events are enabled.
      */
     private CachedCreative createJsonPutObjectOpenrtb(CacheBid cacheBid,
-                                                      Map<String, List<String>> biddersToCacheBidIds,
+                                                      GeneratedBidIds biddersToCacheBidIds,
                                                       Account account,
                                                       EventsContext eventsContext) {
 
@@ -521,8 +461,7 @@ public class CacheService {
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
     private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid,
-                                                     Map<String, List<String>> bidderToVideoBidIdsToModify,
-                                                     Map<String, List<String>> biddersToCacheBidIds,
+                                                     GeneratedBidIds bidderToVideoBidIdsToModify,
                                                      String hbCacheId,
                                                      Map<String, Map<String, String>> biddersToBidsCategories,
                                                      Account account,
@@ -531,7 +470,7 @@ public class CacheService {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
         final String vastXml = resolveVastXmlFrom(bid);
         final String bidId = bid.getId();
-        final String bidder = findBidderForBidId(biddersToCacheBidIds, bidId).orElse(null);
+        final String bidder = bidderToVideoBidIdsToModify.getBidderForBid(bid.getId(), bid.getImpid()).orElse(null);
         final String customCacheKey = resolveCustomCacheKey(hbCacheId, bidder, bidId, biddersToBidsCategories);
         final String eventUrl = generateVastUrlTracking(bidderToVideoBidIdsToModify, bid, account, eventsContext);
         final String effectiveVastXml = eventUrl != null ? appendTrackingUrlToVastXml(vastXml, eventUrl) : vastXml;
@@ -570,16 +509,17 @@ public class CacheService {
         return bid.getAdm();
     }
 
-    private String generateWinUrl(Map<String, List<String>> biddersToCacheBidIds,
+    private String generateWinUrl(GeneratedBidIds biddersToCacheBidIds,
                                   com.iab.openrtb.response.Bid bid,
                                   Account account,
                                   EventsContext eventsContext) {
 
         if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
             final String bidId = bid.getId();
-            return findBidderForBidId(biddersToCacheBidIds, bidId)
+            final String impId = bid.getImpid();
+            return biddersToCacheBidIds.getBidderForBid(bidId, impId)
                     .map(bidder -> eventsService.winUrl(
-                            bidId,
+                            biddersToCacheBidIds.getGeneratedId(bidder, bidId, impId),
                             bidder,
                             account.getId(),
                             eventsContext.getAuctionTimestamp(),
@@ -590,16 +530,17 @@ public class CacheService {
         return null;
     }
 
-    private String generateVastUrlTracking(Map<String, List<String>> bidderToVideoBidIdsToModify,
+    private String generateVastUrlTracking(GeneratedBidIds bidderToVideoBidIdsToModify,
                                            com.iab.openrtb.response.Bid bid,
                                            Account account,
                                            EventsContext eventsContext) {
 
         if (eventsContext.isEnabledForAccount()) {
             final String bidId = bid.getId();
-            return findBidderForBidId(bidderToVideoBidIdsToModify, bidId)
+            final String impId = bid.getImpid();
+            return bidderToVideoBidIdsToModify.getBidderForBid(bidId, impId)
                     .map(bidder -> eventsService.vastUrlTracking(
-                            bidId,
+                            bidderToVideoBidIdsToModify.getGeneratedId(bidder, bidId, impId),
                             bidder,
                             account.getId(),
                             eventsContext.getAuctionTimestamp(),
@@ -608,13 +549,6 @@ public class CacheService {
         }
 
         return null;
-    }
-
-    private static Optional<String> findBidderForBidId(Map<String, List<String>> biddersToCacheBidIds, String bidId) {
-        return biddersToCacheBidIds.entrySet().stream()
-                .filter(biddersAndBidIds -> biddersAndBidIds.getValue().contains(bidId))
-                .findFirst()
-                .map(Map.Entry::getKey);
     }
 
     private String appendTrackingUrlToVastXml(String vastXml, String vastUrlTracking) {
@@ -635,24 +569,6 @@ public class CacheService {
         }
 
         return vastXml.replaceFirst(closeTag, closeTag + openTag + impressionUrl + closeTag);
-    }
-
-    private static <T> List<CachedCreative> bidsToCachedCreatives(
-            List<T> bids, Function<T, CachedCreative> requestItemCreator) {
-
-        return bids.stream()
-                .filter(Objects::nonNull)
-                .map(requestItemCreator)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Transforms {@link CacheObject} into {@link BidCacheResult}. Used for legacy auction request.
-     */
-    private BidCacheResult createBidCacheResult(CacheObject cacheObject) {
-        final String uuid = cacheObject.getUuid();
-        return BidCacheResult.of(uuid, cachedAssetUrlTemplate.concat(uuid));
     }
 
     /**
@@ -769,27 +685,6 @@ public class CacheService {
         return new URL(cacheSchema + "://" + cacheHost);
     }
 
-    /**
-     * Creates video {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
-     */
-    private static PutObject videoPutObject(Bid bid) {
-        return PutObject.builder()
-                .type("xml")
-                .value(new TextNode(bid.getAdm()))
-                .build();
-    }
-
-    /**
-     * Creates banner {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
-     */
-    private PutObject bannerPutObject(Bid bid) {
-        return PutObject.builder()
-                .type("json")
-                .value(mapper.mapper().valueToTree(BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(),
-                        bid.getHeight())))
-                .build();
-    }
-
     private void updateCreativeMetrics(String accountId, List<CachedCreative> cachedCreatives) {
         for (final CachedCreative cachedCreative : cachedCreatives) {
             metrics.updateCacheCreativeSize(accountId, cachedCreative.getSize());
@@ -797,10 +692,6 @@ public class CacheService {
     }
 
     private static int creativeSizeFromAdm(com.iab.openrtb.response.Bid bid) {
-        return lengthOrZero(bid.getAdm());
-    }
-
-    private static int creativeSizeFromAdm(Bid bid) {
         return lengthOrZero(bid.getAdm());
     }
 

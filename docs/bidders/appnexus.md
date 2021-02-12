@@ -37,9 +37,13 @@ that would match with the test creative.
 			}]
 		},
 		"ext": {
-			"appnexus": {
-				"placementId": 13144370
-			}
-		}
+            "prebid": {
+                "bidder":{
+			        "appnexus": {
+				        "placementId": 13144370
+			        }
+		        }
+            }
+        }
 	}]
 ```
