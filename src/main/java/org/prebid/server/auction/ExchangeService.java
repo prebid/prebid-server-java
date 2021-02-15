@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
@@ -39,7 +40,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
@@ -424,7 +424,8 @@ public class ExchangeService {
      * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
      * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
      * <p>
-     * Also, removes user.ext.prebid (if present) and user.ext.data (in case bidder does not use first party data).
+     * Also, removes user.ext.prebid (if present), user.ext.data and user.data (in case bidder does not use first
+     * party data).
      */
     private User prepareUser(User user,
                              ExtUser extUser,
@@ -436,12 +437,13 @@ public class ExchangeService {
                              ExtBidderConfigFpd fpdConfig) {
 
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
-        final boolean shouldCleanPrebid = extUser != null && extUser.getPrebid() != null;
-        final boolean shouldCleanData = extUser != null && extUser.getData() != null && !useFirstPartyData;
-        final boolean shouldUpdateUserExt = shouldCleanData || shouldCleanPrebid;
+        final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
+        final boolean shouldCleanExtData = extUser != null && extUser.getData() != null && !useFirstPartyData;
+        final boolean shouldUpdateUserExt = shouldCleanExtData || shouldCleanExtPrebid;
+        final boolean shouldCleanData = user != null && user.getData() != null && !useFirstPartyData;
 
         User maskedUser = user;
-        if (updatedBuyerUid != null || shouldUpdateUserExt) {
+        if (updatedBuyerUid != null || shouldUpdateUserExt || shouldCleanData) {
             final User.UserBuilder userBuilder = user == null ? User.builder() : user.toBuilder();
             if (updatedBuyerUid != null) {
                 userBuilder.buyeruid(updatedBuyerUid);
@@ -449,10 +451,14 @@ public class ExchangeService {
 
             if (shouldUpdateUserExt) {
                 final ExtUser updatedExtUser = extUser.toBuilder()
-                        .prebid(shouldCleanPrebid ? null : extUser.getPrebid())
-                        .data(shouldCleanData ? null : extUser.getData())
+                        .prebid(shouldCleanExtPrebid ? null : extUser.getPrebid())
+                        .data(shouldCleanExtData ? null : extUser.getData())
                         .build();
                 userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
+            }
+
+            if (shouldCleanData) {
+                userBuilder.data(null);
             }
 
             maskedUser = userBuilder.build();
@@ -606,12 +612,18 @@ public class ExchangeService {
      * </ul>
      */
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
+        final ObjectNode modifiedImpExt = impExt.deepCopy();
+
         final JsonNode impExtPrebid = cleanBidderParamsFromImpExtPrebid(impExt.get(PREBID_EXT));
-        final JsonNode impExtBidder = bidderParamsFromImpExt(impExt).get(bidder);
+        if (impExtPrebid == null) {
+            modifiedImpExt.remove(PREBID_EXT);
+        } else {
+            modifiedImpExt.set(PREBID_EXT, impExtPrebid);
+        }
 
-        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExtBidder));
+        modifiedImpExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
 
-        return fpdResolver.resolveImpExt(impExt, result, useFirstPartyData);
+        return fpdResolver.resolveImpExt(modifiedImpExt, useFirstPartyData);
     }
 
     private JsonNode cleanBidderParamsFromImpExtPrebid(JsonNode extImpPrebidNode) {
@@ -637,14 +649,21 @@ public class ExchangeService {
     }
 
     /**
-     * Checks whether to pass the app.ext.data depending on request having a first party data
+     * Checks whether to pass the app.ext.data and app.content.data depending on request having a first party data
      * allowed for given bidder or not. And merge masked app with fpd config.
      */
     private App prepareApp(App app, ObjectNode fpdApp, boolean useFirstPartyData) {
         final ExtApp appExt = app != null ? app.getExt() : null;
+        final Content content = app != null ? app.getContent() : null;
 
-        final App maskedApp = appExt != null && appExt.getData() != null && !useFirstPartyData
-                ? app.toBuilder().ext(maskExtApp(appExt)).build()
+        final boolean shouldCleanExtData = appExt != null && appExt.getData() != null && !useFirstPartyData;
+        final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
+
+        final App maskedApp = shouldCleanExtData || shouldCleanContentData
+                ? app.toBuilder()
+                .ext(shouldCleanExtData ? maskExtApp(appExt) : appExt)
+                .content(shouldCleanContentData ? prepareContent(content) : content)
+                .build()
                 : app;
 
         return useFirstPartyData
@@ -658,19 +677,34 @@ public class ExchangeService {
     }
 
     /**
-     * Checks whether to pass the site.ext.data depending on request having a first party data
+     * Checks whether to pass the site.ext.data  and site.content.data depending on request having a first party data
      * allowed for given bidder or not. And merge masked site with fpd config.
      */
     private Site prepareSite(Site site, ObjectNode fpdSite, boolean useFirstPartyData) {
         final ExtSite siteExt = site != null ? site.getExt() : null;
+        final Content content = site != null ? site.getContent() : null;
 
-        final Site maskedSite = siteExt != null && siteExt.getData() != null && !useFirstPartyData
-                ? site.toBuilder().ext(maskExtSite(siteExt)).build()
+        final boolean shouldCleanExtData = siteExt != null && siteExt.getData() != null && !useFirstPartyData;
+        final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
+
+        final Site maskedSite = shouldCleanExtData || shouldCleanContentData
+                ? site.toBuilder()
+                .ext(shouldCleanExtData ? maskExtSite(siteExt) : siteExt)
+                .content(shouldCleanContentData ? prepareContent(content) : content)
+                .build()
                 : site;
 
         return useFirstPartyData
                 ? fpdResolver.resolveSite(maskedSite, fpdSite)
                 : maskedSite;
+    }
+
+    private Content prepareContent(Content content) {
+        final Content updatedContent = content.toBuilder()
+                .data(null)
+                .build();
+
+        return updatedContent.isEmpty() ? null : updatedContent;
     }
 
     private ExtSite maskExtSite(ExtSite siteExt) {
