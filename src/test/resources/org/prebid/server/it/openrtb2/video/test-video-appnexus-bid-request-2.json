@@ -92,9 +92,9 @@
         "includewinners": true,
         "includebidderkeys": true,
         "includebrandcategory": {
-          "primaryadserver": 1,
           "publisher": "",
-          "withcategory": true
+          "withcategory": true,
+          "translatecategories": false
         }
       },
       "cache": {

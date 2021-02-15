@@ -56,7 +56,6 @@ public class AppnexusVideoTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = jsonFrom("openrtb2/video/test-video-appnexus-response.json");
-        System.out.println(response.asString());
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

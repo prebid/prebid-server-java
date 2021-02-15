@@ -213,8 +213,6 @@ public class BidResponseCreator {
                                                            ExtRequestTargeting targeting,
                                                            boolean debugEnabled) {
 
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-
         final List<BidderResponse> updatedBidderResponses = bidderResponses.stream()
                 .map(bidResponseReducer::removeRedundantBids)
                 .collect(Collectors.toList());
