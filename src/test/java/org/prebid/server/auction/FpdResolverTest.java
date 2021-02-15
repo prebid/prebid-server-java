@@ -725,6 +725,20 @@ public class FpdResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveBidRequestExtShouldTolerateMissingBidders() {
+        // given
+        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"))).build());
+
+        // when
+        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
+                Targeting.of(null, null, null)); // no bidders
+
+        // then
+        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
+    }
+
+    @Test
     public void resolveBidRequestExtShouldMergeBidders() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
