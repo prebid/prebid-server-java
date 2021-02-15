@@ -45,6 +45,11 @@ public class ExtRequestTargeting {
     Boolean includebidderkeys;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.targeting.includeformat
+     */
+    Boolean includeformat;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.targeting.truncateattrchars
      */
     Integer truncateattrchars;

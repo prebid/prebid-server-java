@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
@@ -31,7 +30,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -43,7 +41,6 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpSmartrtb>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String CREATIVE_TYPE_BANNER = "BANNER";
     private static final String CREATIVE_TYPE_VIDEO = "VIDEO";
 
@@ -91,7 +88,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
         final String body = mapper.encode(outgoingRequest);
         final String requestUrl = endpointUrl + pubId;
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -121,16 +118,11 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
@@ -141,7 +133,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                 try {
                     smartrtbResponseExt = parseResponseExt(ext);
                 } catch (PreBidException e) {
-                    return Result.emptyWithError(BidderError.badServerResponse("Invalid bid extension from endpoint."));
+                    return Result.withError(BidderError.badServerResponse("Invalid bid extension from endpoint."));
                 }
                 final BidType bidType;
                 switch (smartrtbResponseExt.getFormat()) {
@@ -152,15 +144,15 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                         bidType = BidType.video;
                         break;
                     default:
-                        return Result.emptyWithError(BidderError.badServerResponse(String.format(
+                        return Result.withError(BidderError.badServerResponse(String.format(
                                 "Unsupported creative type %s.", smartrtbResponseExt.getFormat())));
                 }
                 final Bid updatedBid = bid.toBuilder().ext(null).build();
-                final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, DEFAULT_BID_CURRENCY);
+                final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, bidResponse.getCur());
                 bidderBids.add(bidderBid);
             }
         }
-        return Result.of(bidderBids, Collections.emptyList());
+        return Result.withValues(bidderBids);
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
@@ -180,10 +172,5 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

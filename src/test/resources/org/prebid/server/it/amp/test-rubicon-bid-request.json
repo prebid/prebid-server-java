@@ -38,7 +38,7 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "google.com",
     "page": "https://google.com",
     "publisher": {
       "ext": {

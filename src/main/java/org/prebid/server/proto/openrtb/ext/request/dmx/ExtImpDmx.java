@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 /**
  * Defines the contract for bidRequest.imp[i].ext.dmx
  */
@@ -20,9 +22,10 @@ public class ExtImpDmx {
     @JsonProperty("memberid")
     String memberId;
 
-    @JsonProperty("publisher_id")
     String publisherId;
 
-    @JsonProperty("seller_id")
     String sellerId;
+
+    @JsonProperty("bidfloor")
+    BigDecimal bidFloor;
 }

@@ -16,6 +16,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -23,6 +24,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -96,13 +98,90 @@ public class HttpApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnEmptyResult() {
+    public void getAccountByIdShouldReturnFetchedAccount() throws JsonProcessingException {
+        // given
+        final Account account = Account.builder()
+                .id("someId")
+                .enforceCcpa(true)
+                .priceGranularity("testPriceGranularity")
+                .build();
+        HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+
         // when
-        final Future<Account> future = httpApplicationSettings.getAccountById(null, null);
+        final Future<Account> future = httpApplicationSettings.getAccountById("someId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getId()).isEqualTo("someId");
+        assertThat(future.result().getEnforceCcpa()).isEqualTo(true);
+        assertThat(future.result().getPriceGranularity()).isEqualTo("testPriceGranularity");
+
+        verify(httpClient).get(eq("http://stored-requests?account-ids=[\"someId\"]"), any(),
+                anyLong());
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnFaildedFutureIfResponseIsNotPresent() throws JsonProcessingException {
+        // given
+        HttpAccountsResponse response = HttpAccountsResponse.of(null);
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("notFoundId", timeout);
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(PreBidException.class).hasMessage("Not supported");
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Account with id : notFoundId not found");
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnErrorIdAccountNotFound() throws JsonProcessingException {
+        // given
+        HttpAccountsResponse response = HttpAccountsResponse.of(Collections.emptyMap());
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("notExistingId", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Account with id : notExistingId not found");
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnErrorIfResponseStatusIsDifferentFromOk() {
+        // given
+        givenHttpClientReturnsResponse(400, null);
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Error fetching accounts [accountId] via http: unexpected response status 400");
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnErrorIfResponseHasInvalidStructure() {
+        // given
+        givenHttpClientReturnsResponse(200, "not valid response");
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessageContaining("Error fetching accounts [accountId] via http: "
+                        + "failed to parse response: Failed to decode:");
     }
 
     @Test
@@ -128,7 +207,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnEmptyResultIfEmptyRequestsIdsGiven() {
         // when
-        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(emptySet(), emptySet(), null);
+        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(null, emptySet(),
+                emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -142,7 +222,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnResultWithErrorIfTimeoutAlreadyExpired() {
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), expiredTimeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), expiredTimeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -159,8 +239,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         // when
-        httpApplicationSettings.getStoredData(new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")),
-                timeout);
+        httpApplicationSettings.getStoredData(null, new HashSet<>(asList("id1", "id2")),
+                new HashSet<>(asList("id3", "id4")), timeout);
 
         // then
         verify(httpClient).get(eq("http://stored-requests?request-ids=[\"id2\",\"id1\"]&imp-ids=[\"id4\",\"id3\"]"),
@@ -175,7 +255,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 "http://some-domain?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT);
 
         // when
-        httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);
+        httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
         verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=[\"id1\"]&imp-ids=[\"id2\"]"), any(),
@@ -189,7 +269,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -206,7 +286,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -223,7 +303,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -242,7 +322,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -262,7 +342,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -282,7 +362,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(
-                new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")), timeout);
+                null, new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -306,7 +386,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -325,7 +405,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         // when
-        httpApplicationSettings.getAmpStoredData(singleton("id1"), singleton("id2"), timeout);
+        httpApplicationSettings.getAmpStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);

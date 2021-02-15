@@ -27,28 +27,22 @@ public class TelariaTest extends IntegrationTest {
         // given
         // ValueImpression bid response
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/telaria-exchange/"))
-
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
-                .withHeader("Accept-Encoding", equalTo("gzip"))
                 .withHeader("Accept-Language", equalTo("en"))
-                .withHeader("Content-Length", equalTo("677"))
+                .withHeader("Content-Length", equalTo("633"))
                 .withHeader("DNT", equalTo("2"))
                 .withHeader("Host", equalTo("localhost:8090"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/telaria/test-telaria-bid-request-1.json")))
-                .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/telaria/test-telaria-bid-response-1.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/telaria/test-telaria-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/telaria/test-telaria-bid-response-1.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/telaria/test-cache-telaria-request.json")))
-                .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/telaria/test-cache-telaria-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/telaria/test-cache-telaria-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/telaria/test-cache-telaria-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -62,10 +56,8 @@ public class TelariaTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/telaria/test-auction-telaria-response.json",
-                response, singletonList("telaria"));
+                "openrtb2/telaria/test-auction-telaria-response.json", response, singletonList("telaria"));
 
-        String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

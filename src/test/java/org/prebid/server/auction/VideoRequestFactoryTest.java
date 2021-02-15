@@ -207,7 +207,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         final BidRequestVideo requestVideo = BidRequestVideo.builder().device(
                 Device.builder().ua("123").build()).build();
         given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(requestVideo)));
-        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any()))
+        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(mergedBidRequest));
         given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
@@ -220,7 +220,7 @@ public class VideoRequestFactoryTest extends VertxTest {
 
         // then
         verify(routingContext).getBody();
-        verify(videoStoredRequestProcessor).processVideoRequest(null, emptySet(), requestVideo);
+        verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
         verify(auctionRequestFactory).validateRequest(bidRequest);
         verify(auctionRequestFactory).fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
         verify(auctionRequestFactory).toAuctionContext(
@@ -237,14 +237,14 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.request().getHeader(HttpUtil.USER_AGENT_HEADER)).willReturn("user-agent-123");
 
         final WithPodErrors<BidRequest> emptyMergeObject = WithPodErrors.of(null, null);
-        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any()))
+        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(emptyMergeObject));
 
         // when
         factory.fromRequest(routingContext, 0L);
 
         // then
-        verify(videoStoredRequestProcessor).processVideoRequest(any(), any(), eq(BidRequestVideo.builder()
+        verify(videoStoredRequestProcessor).processVideoRequest(any(), any(), any(), eq(BidRequestVideo.builder()
                 .device(Device.builder()
                         .ua("user-agent-123")
                         .build())
