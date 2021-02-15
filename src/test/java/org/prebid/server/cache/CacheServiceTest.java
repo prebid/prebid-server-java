@@ -17,6 +17,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.GeneratedBidIds;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheInfo;
@@ -109,6 +110,7 @@ public class CacheServiceTest extends VertxTest {
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
+                100L,
                 eventsService,
                 metrics,
                 clock,
@@ -526,6 +528,7 @@ public class CacheServiceTest extends VertxTest {
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
+                100L,
                 eventsService,
                 metrics,
                 clock,
@@ -563,6 +566,7 @@ public class CacheServiceTest extends VertxTest {
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
+                100L,
                 eventsService,
                 metrics,
                 clock,
@@ -598,6 +602,7 @@ public class CacheServiceTest extends VertxTest {
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
+                100L,
                 eventsService,
                 metrics,
                 clock,
@@ -690,6 +695,33 @@ public class CacheServiceTest extends VertxTest {
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
                 .containsEntry(bid, CacheInfo.of(null, "uuid1", null, null));
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldAddDebugLogCacheAlongWithBids() throws IOException {
+        // given
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.impid("impId1"));
+        final Imp imp = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp)))
+                .toBuilder().cachedDebugLog(new CachedDebugLog(true, 100, null, jacksonMapper)).build();
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bid),
+                auctionContext,
+                CacheContext.builder()
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoGeneratedBidIdsToModify(videoCachedBidIds)
+                        .bidderToBidsToGeneratedIds(allBidIds)
+                        .build(),
+                eventsContext);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .extracting(PutObject::getKey)
+                .contains("log_null");
     }
 
     @Test
@@ -1210,6 +1242,33 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         verify(eventsService).vastUrlTracking(eq("bidId1"), eq("bidder1"), eq("account"), eq(1000L), eq("pbjs"));
+    }
+
+    @Test
+    public void cacheVideoDebugLogShouldCacheDebugLogWithItsOwnKey() {
+        // given
+        final CachedDebugLog cachedDebugLog = new CachedDebugLog(true, 100, null, jacksonMapper);
+        cachedDebugLog.setCacheKey("cacheKey");
+
+        // when
+        final String cacheKey = cacheService.cacheVideoDebugLog(cachedDebugLog, 1000);
+
+        // then
+        assertThat(cacheKey).isEqualTo("cacheKey");
+        verify(httpClient).post(anyString(), any(), anyString(), anyLong());
+    }
+
+    @Test
+    public void cacheVideoDebugLogShouldCacheDebugLogWithGeneratedKey() {
+        // given
+        final CachedDebugLog cachedDebugLog = new CachedDebugLog(true, 100, null, jacksonMapper);
+        given(idGenerator.generateId()).willReturn("generatedKey");
+        // when
+        final String cacheKey = cacheService.cacheVideoDebugLog(cachedDebugLog, 1000);
+
+        // then
+        assertThat(cacheKey).isEqualTo("generatedKey");
+        verify(httpClient).post(anyString(), any(), anyString(), anyLong());
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,

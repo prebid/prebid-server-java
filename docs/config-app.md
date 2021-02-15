@@ -100,6 +100,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `auction.video.escape-log-cache-regex` - regex to remove from cache debug log xml.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.

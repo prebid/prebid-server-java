@@ -14,7 +14,9 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.cache.CacheService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
@@ -23,9 +25,11 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.response.VideoResponse;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -41,17 +45,24 @@ public class VideoHandler implements Handler<RoutingContext> {
     private final VideoRequestFactory videoRequestFactory;
     private final VideoResponseFactory videoResponseFactory;
     private final ExchangeService exchangeService;
+    private final CacheService cacheService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
 
-    public VideoHandler(VideoRequestFactory videoRequestFactory, VideoResponseFactory videoResponseFactory,
-                        ExchangeService exchangeService, AnalyticsReporterDelegator analyticsDelegator, Metrics metrics,
-                        Clock clock, JacksonMapper mapper) {
+    public VideoHandler(VideoRequestFactory videoRequestFactory,
+                        VideoResponseFactory videoResponseFactory,
+                        ExchangeService exchangeService,
+                        CacheService cacheService,
+                        AnalyticsReporterDelegator analyticsDelegator,
+                        Metrics metrics,
+                        Clock clock,
+                        JacksonMapper mapper) {
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
+        this.cacheService = Objects.requireNonNull(cacheService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -76,7 +87,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
                         .map(bidResponse -> Tuple2.of(bidResponse, contextToErrors)))
 
-                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData().getBidRequest(),
+                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData(),
                         result.getLeft(), result.getRight().getPodErrors()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
@@ -89,21 +100,23 @@ public class VideoHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private void handleResult(AsyncResult<VideoResponse> responseResult, VideoEvent.VideoEventBuilder videoEventBuilder,
-                              RoutingContext context, long startTime) {
+    private void handleResult(AsyncResult<VideoResponse> responseResult,
+                              VideoEvent.VideoEventBuilder videoEventBuilder,
+                              RoutingContext context,
+                              long startTime) {
         final boolean responseSucceeded = responseResult.succeeded();
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
         final int status;
         final String body;
-
+        final VideoResponse videoResponse = responseSucceeded ? responseResult.result() : null;
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK.code();
             context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            body = mapper.encode(responseResult.result());
+            body = mapper.encode(videoResponse);
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
@@ -135,11 +148,40 @@ public class VideoHandler implements Handler<RoutingContext> {
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
-        final VideoEvent videoEvent = videoEventBuilder.status(status).errors(errorMessages).build();
+        VideoEvent videoEvent = videoEventBuilder.status(status).errors(errorMessages).build();
         final AuctionContext auctionContext = videoEvent.getAuctionContext();
+        final CachedDebugLog cachedDebugLog = auctionContext != null ? auctionContext.getCachedDebugLog() : null;
+        final String cacheKey = shouldCacheLog(status, cachedDebugLog)
+                ? cacheDebugLog(auctionContext, videoEvent.getErrors())
+                : null;
+        if (status != 200 && cacheKey != null) {
+            videoEvent = updateEventWithDebugCacheMessage(videoEvent, cacheKey);
+        }
+
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
         respondWith(context, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);
+    }
+
+    private boolean shouldCacheLog(int status, CachedDebugLog cachedDebugLog) {
+        return cachedDebugLog != null && cachedDebugLog.isEnabled() && (status != 200 || !cachedDebugLog.hasBids());
+    }
+
+    private String cacheDebugLog(AuctionContext auctionContext, List<String> errors) {
+        final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
+        cachedDebugLog.setErrors(errors);
+        final Account account = auctionContext.getAccount();
+        final Integer videoCacheTtl = account != null ? account.getVideoCacheTtl() : null;
+        return cacheService.cacheVideoDebugLog(cachedDebugLog, videoCacheTtl);
+    }
+
+    private VideoEvent updateEventWithDebugCacheMessage(VideoEvent videoEvent, String cacheKey) {
+        final String cacheDebugMessage = String.format("[Debug cache ID: %s]", cacheKey);
+        final List<String> errors = new ArrayList<>();
+        errors.add(cacheDebugMessage);
+        errors.addAll(videoEvent.getErrors());
+        videoEvent = videoEvent.toBuilder().errors(errors).build();
+        return videoEvent;
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
