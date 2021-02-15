@@ -277,7 +277,7 @@ public class FpdResolver {
     }
 
     private ExtRequestPrebidData resolveExtRequestPrebidData(ExtRequestPrebidData data, List<String> fpdBidders) {
-        if (CollectionUtils.isEmpty(fpdBidders) && data == null) {
+        if (CollectionUtils.isEmpty(fpdBidders)) {
             return null;
         }
         final List<String> originBidders = data != null ? data.getBidders() : Collections.emptyList();
