@@ -14,6 +14,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.GeneratedBidIds;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
@@ -69,6 +70,7 @@ public class CacheService {
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
+    private final long expectedCacheTimeMs;
     private final EventsService eventsService;
     private final Metrics metrics;
     private final Clock clock;
@@ -79,6 +81,7 @@ public class CacheService {
                         HttpClient httpClient,
                         URL endpointUrl,
                         String cachedAssetUrlTemplate,
+                        long expectedCacheTimeMs,
                         EventsService eventsService,
                         Metrics metrics,
                         Clock clock,
@@ -89,6 +92,7 @@ public class CacheService {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
+        this.expectedCacheTimeMs = expectedCacheTimeMs;
         this.eventsService = Objects.requireNonNull(eventsService);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -108,6 +112,21 @@ public class CacheService {
 
     public String getCachedAssetURLTemplate() {
         return cachedAssetUrlTemplate;
+    }
+
+    /**
+     * Makes cache for debugLog only and returns generated cache object key without wait for result.
+     */
+    public String cacheVideoDebugLog(CachedDebugLog cachedDebugLog, Integer videoCacheTtl) {
+        final String cacheKey = cachedDebugLog.getCacheKey() == null
+                ? idGenerator.generateId()
+                : cachedDebugLog.getCacheKey();
+        final List<CachedCreative> cachedCreatives = Collections.singletonList(
+                makeDebugCacheCreative(cachedDebugLog, cacheKey, videoCacheTtl));
+        final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
+        httpClient.post(endpointUrl.toString(), HttpUtil.headers(), mapper.encode(bidCacheRequest),
+                expectedCacheTimeMs);
+        return cacheKey;
     }
 
     /**
@@ -343,6 +362,12 @@ public class CacheService {
             return Future.succeededFuture(CacheServiceResult.empty());
         }
 
+        final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
+        final Integer videoCacheTtl = account.getVideoCacheTtl();
+        if (CollectionUtils.isNotEmpty(cachedCreatives) && cachedDebugLog != null && cachedDebugLog.isEnabled()) {
+            cachedCreatives.add(makeDebugCacheCreative(cachedDebugLog, hbCacheId, videoCacheTtl));
+        }
+
         final long remainingTimeout = auctionContext.getTimeout().remaining();
         if (remainingTimeout <= 0) {
             return Future.succeededFuture(CacheServiceResult.of(null, new TimeoutException("Timeout has been exceeded"),
@@ -363,6 +388,18 @@ public class CacheService {
                 .map(response -> processResponseOpenrtb(response, httpRequest, cachedCreatives.size(), bids, videoBids,
                         hbCacheId, accountId, startTime))
                 .otherwise(exception -> failResponseOpenrtb(exception, accountId, httpRequest, startTime));
+    }
+
+    private CachedCreative makeDebugCacheCreative(CachedDebugLog videoCacheDebugLog, String hbCacheId,
+                                                  Integer videoCacheTtl) {
+        final JsonNode value = mapper.mapper().valueToTree(videoCacheDebugLog.buildCacheBody());
+        videoCacheDebugLog.setCacheKey(hbCacheId);
+        return CachedCreative.of(PutObject.builder()
+                .type(CachedDebugLog.CACHE_TYPE)
+                .value(new TextNode(videoCacheDebugLog.buildCacheBody()))
+                .expiry(videoCacheTtl != null ? videoCacheTtl : videoCacheDebugLog.getTtl())
+                .key(String.format("log_%s", hbCacheId))
+                .build(), creativeSizeFromTextNode(value));
     }
 
     /**
