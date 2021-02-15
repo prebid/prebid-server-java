@@ -34,9 +34,13 @@ If you have any questions regarding setting up, please reach out to your account
     ]
   },
   "ext": {
-    "openx": {
-      "delDomain": "mobile-d.openx.net",
-      "unit": "541028953"
+    "prebid": {
+      "bidder":{
+        "openx": {
+          "delDomain": "mobile-d.openx.net",
+          "unit": "541028953"
+        }
+      }
     }
   }
 }
@@ -56,10 +60,14 @@ If you have any questions regarding setting up, please reach out to your account
     ]
   },
   "ext": {
-    "openx": {
-      "unit": "540949380",
-      "delDomain": "sademo-d.openx.net"
-    },
+    "prebid": {
+      "bidder":{
+        "openx": {
+          "unit": "540949380",
+          "delDomain": "sademo-d.openx.net"
+        }
+      }
+    }
   }
 }
 ```

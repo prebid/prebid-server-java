@@ -101,6 +101,11 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     @Override
+    public int vendorId() {
+        return 0;
+    }
+
+    @Override
     public void initialize() {
         vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
         fetchRemoteConfig();
