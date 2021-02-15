@@ -1,10 +1,14 @@
 package org.prebid.server.bidder.dmx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -13,6 +17,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.dmx.model.DmxPublisherExtId;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -20,8 +25,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,6 +38,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -52,103 +59,135 @@ public class DmxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfUserOrAppIsAbsent() {
+    public void makeHttpRequestsShouldReturnErrorWhenUserAndAppIsAbsent() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.app(null).user(null), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No user id or app id found. Could not send request to DMX."));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("No user id or app id found. Could not send request to DMX."));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfUserIdIsEmpty() {
+    public void makeHttpRequestsShouldReturnErrorWhenRequestContainsNoIdentifierIdIsEmpty() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpDmx.builder()
-                                        .tagId("tagId")
-                                        .dmxId("dmxId")
-                                        .memberId("memberId")
-                                        .publisherId("publisherId")
-                                        .sellerId("sellerId")
-                                        .build())))
-                        .build()))
-                .user(User.builder().build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .app(App.builder().id(null).build())
+                        .user(User.builder().id(null).ext(ExtUser.builder().eids(emptyList()).build()).build()),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("This request contained no identifier");
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("This request contained no identifier"));
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpIfBannerFormatIsNotEmpty() {
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final Imp givenImp = Imp.builder()
-                .id("id")
-                .bidfloor(BigDecimal.ONE)
-                .banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(300).h(500).build()))
-                        .build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenExtPublisherIdAndMemberIdAreBlank() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpDmx.builder()
-                                .tagId("tagId")
-                                .dmxId("dmxId")
-                                .memberId("memberId")
-                                .publisherId("publisherId")
-                                .sellerId("sellerId")
-                                .build())))
-                .build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp))
-                .user(User.builder().id("userId").build())
-                .build();
+                                .memberId("")
+                                .publisherId("")
+                                .build()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Imp expectedImp = givenImp.toBuilder()
-                .tagid("dmxId")
-                .secure(1)
-                .build();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Missing Params for auction to be send"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyImpWhenBannerFormatIsNotEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(expectedImp);
+                .extracting(Imp::getTagid, Imp::getSecure, Imp::getBidfloor)
+                .containsOnly(tuple("dmxId", 1, BigDecimal.ONE));
     }
 
     @Test
-    public void makeHttpRequestsShouldWriteTagIdToImpIfItIsPresentAndDmxIsMissing() {
+    public void makeHttpRequestsShouldModifyImpWhenVideoIsNotEmpty() {
         // given
-        final Imp givenImp = Imp.builder()
-                .banner(Banner.builder()
-                        .format(singletonList(Format.builder().build()))
-                        .build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.banner(null).video(Video.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).hasSize(1)
+                .extracting(Imp::getTagid, Imp::getSecure, Imp::getBidfloor)
+                .containsOnly(tuple("dmxId", 1, BigDecimal.ONE));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipImpWhenExtDmxAndExtTagIdAndImpTagIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpDmx.builder()
+                                .tagId("")
+                                .dmxId("")
+                                .memberId("memberId")
+                                .publisherId("publisherId")
+                                .build()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateImpTagIdFromTagIdWhenExtTagIdIsPresentAndDmxIdIsBlank() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpDmx.builder()
                                 .tagId("tagId")
                                 .dmxId("")
                                 .memberId("memberId")
                                 .publisherId("publisherId")
-                                .build())))
-                .build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp))
-                .user(User.builder().id("userId").build())
-                .build();
+                                .build()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
@@ -163,26 +202,16 @@ public class DmxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpIfTagIdAndDmxIdAreBlank() {
+    public void makeHttpRequestsShouldUpdateImpTagIdFromDmxIdWhenExtTagIdAndDmxIdIsPresent() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder()
-                                .id("id")
-                                .banner(Banner.builder()
-                                        .format(singletonList(Format.builder().w(300).h(500).build()))
-                                        .build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpDmx.builder()
-                                                .tagId("")
-                                                .dmxId("")
-                                                .memberId("memberId")
-                                                .publisherId("publisherId")
-                                                .sellerId("sellerId")
-                                                .build())))
-                                .build()))
-                .user(User.builder().id("userId").build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpDmx.builder()
+                                .tagId("tagId")
+                                .dmxId("dmxId")
+                                .memberId("memberId")
+                                .publisherId("publisherId")
+                                .build()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
@@ -192,48 +221,116 @@ public class DmxBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .isEmpty();
+                .extracting(Imp::getTagid)
+                .containsExactly("dmxId");
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+    public void makeHttpRequestsShouldUpdateAppPublisherWhenAppAndExtImpPublisherIdIsPresent() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder()
-                                .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()))
-                .user(User.builder().id("userId").build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getApp)
+                .flatExtracting(App::getPublisher)
+                .containsExactly(expectedPublisher("publisherId", true));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateAppPublisherWhenAppAndMemberIdPresentAndImpExtPubIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpDmx.builder()
+                                .memberId("memberId")
+                                .publisherId(null)
+                                .build()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getApp)
+                .flatExtracting(App::getPublisher)
+                .containsExactly(expectedPublisher("memberId", true));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateSitePublisherWhenSiteAndExtImpPublisherIdIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.site(Site.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .flatExtracting(Site::getPublisher)
+                .containsExactly(expectedPublisher("publisherId", false));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateSitePublisherWhenSiteAndMemberIdPresentAndImpExtPubIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder().publisher(Publisher.builder().build()).build()),
+                builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpDmx.builder()
+                                .memberId("memberId")
+                                .publisherId(null)
+                                .build()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .flatExtracting(Site::getPublisher)
+                .containsExactly(expectedPublisher("memberId", true));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateSitePublisherWithoutExtWhenSiteAndMemberIdPresentAndImpExtPubIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder().build()),
+                builder -> builder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpDmx.builder()
+                                .memberId("memberId")
+                                .publisherId(null)
+                                .build()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .flatExtracting(Site::getPublisher)
+                .containsExactly(expectedPublisher("memberId", false));
     }
 
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder()
-                                .id("123")
-                                .banner(Banner.builder().id("banner_id").build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpDmx.builder()
-                                                .tagId("tagId")
-                                                .dmxId("dmxId")
-                                                .memberId("memberId")
-                                                .publisherId("publisherId")
-                                                .sellerId("sellerId")
-                                                .build())))
-                                .build()))
-                .user(User.builder().id("userId").build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
@@ -260,11 +357,9 @@ public class DmxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnCorrectBidderBidForVideo() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(identity())))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.banner(null).video(Video.builder().build()));
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
@@ -278,23 +373,26 @@ public class DmxBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = dmxBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = "<Impression><![CDATA[https://gce-sc]]></Impression><Impression><![CDATA[nurl]]>"
-                + "</Impression><Impression><![CDATA[https://us-east]]></Impression>";
-        final BidderBid expected = BidderBid.of(Bid.builder().impid("123").adm(adm).nurl("nurl").build(), BidType.video,
+        final String adm = "<Impression><![CDATA[https://gce-sc]]></Impression>"
+                + "<Impression><![CDATA[nurl]]></Impression>"
+                + "<Impression><![CDATA[https://us-east]]></Impression>";
+        final BidderBid expectedBidderBid = BidderBid.of(Bid.builder()
+                        .impid("123")
+                        .adm(adm)
+                        .nurl("nurl")
+                        .build(),
+                video,
                 "USD");
 
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull()
-                .hasSize(1).element(0).isEqualTo(expected);
+        assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expectedBidderBid);
     }
 
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = dmxBidder.makeBids(httpCall,
@@ -347,20 +445,36 @@ public class DmxBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
+                .app(App.builder().id("appId").build())
                 .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static Publisher expectedPublisher(String extPublisherId, boolean isAddExt) {
+        final DmxPublisherExtId dmxPublisherExtId = DmxPublisherExtId.of(extPublisherId);
+        final ObjectNode encodedPublisherExt = mapper.valueToTree(dmxPublisherExtId);
+        final ExtPublisher extPublisher = ExtPublisher.empty();
+        extPublisher.addProperty("dmx", encodedPublisherExt);
+
+        return Publisher.builder()
+                .id(extPublisherId)
+                .ext(isAddExt ? extPublisher : null)
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build())
-                .video(Video.builder().build())
+                .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(500).build())).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpDmx.builder()
                                 .tagId("tagId")
@@ -368,6 +482,7 @@ public class DmxBidderTest extends VertxTest {
                                 .memberId("memberId")
                                 .publisherId("publisherId")
                                 .sellerId("sellerId")
+                                .bidFloor(BigDecimal.ONE)
                                 .build()))))
                 .build();
     }
@@ -375,7 +490,8 @@ public class DmxBidderTest extends VertxTest {
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
     }

@@ -40,7 +40,7 @@ The fields hold the following information:
 
 If `capabilities.app` or `capabilities.site` do not exist, then this Bidder does not support that platform.
 OpenRTB Requests which define a `request.app` or `request.site` property will fail if a
-`request.imp[i].ext.{bidderName}` exists for a Bidder which doesn't support them.
+`request.imp[i].ext.prebid.bidder.{bidderName}` exists for a Bidder which doesn't support them.
 
 
 ## `GET /info/bidders/all`

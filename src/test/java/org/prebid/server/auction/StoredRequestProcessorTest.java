@@ -10,6 +10,8 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.FileSystem;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,6 +23,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
@@ -52,6 +55,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -59,9 +63,13 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class StoredRequestProcessorTest extends VertxTest {
 
+    private static final int DEFAULT_TIMEOUT = 500;
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private FileSystem fileSystem;
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock
@@ -75,14 +83,17 @@ public class StoredRequestProcessorTest extends VertxTest {
     public void setUp() {
         given(idGenerator.generateId()).willReturn("generated-stored-id");
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
-        storedRequestProcessor = new StoredRequestProcessor(
-                500,
+        storedRequestProcessor = StoredRequestProcessor.create(
+                DEFAULT_TIMEOUT,
+                null,
                 false,
+                fileSystem,
                 applicationSettings,
                 idGenerator,
                 metrics,
                 timeoutFactory,
-                jacksonMapper);
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
     }
 
     @Test
@@ -164,16 +175,67 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnMergedDefaultAndBidRequest() throws IOException {
+        // given
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(BidRequest.builder().at(1).build())));
+
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+        storedRequestProcessor = StoredRequestProcessor.create(
+                DEFAULT_TIMEOUT,
+                "path/to/default/request.json",
+                false,
+                fileSystem,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("123"))
+                        .build())));
+
+        final String storedRequestBidRequestJson = mapper.writeValueAsString(BidRequest.builder()
+                .id("test-request-id")
+                .tmax(1000L)
+                .imp(singletonList(Imp.builder().build()))
+                .build());
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("123", storedRequestBidRequestJson), emptyMap(),
+                                emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("test-request-id")
+                .at(1)
+                .tmax(1000L)
+                .imp(singletonList(Imp.builder().build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))
+                .build());
+    }
+
+    @Test
     public void processStoredRequestsShouldGenerateIdWhenAppAndFlagIsTrue() throws IOException {
         // given
-        storedRequestProcessor = new StoredRequestProcessor(
+        storedRequestProcessor = StoredRequestProcessor.create(
                 500,
+                null,
                 true,
+                fileSystem,
                 applicationSettings,
                 idGenerator,
                 metrics,
                 new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())),
-                jacksonMapper);
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
 
         final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .app(App.builder().build())
@@ -251,16 +313,54 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnMergedDefaultAndAmpRequest() throws IOException {
+        // given
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(BidRequest.builder().at(1).build())));
+
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+        storedRequestProcessor = StoredRequestProcessor.create(
+                DEFAULT_TIMEOUT,
+                "path/to/default/request.json",
+                false,
+                fileSystem,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
+
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", mapper.writeValueAsString(
+                                BidRequest.builder().id("test-request-id").build())), emptyMap(), emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("test-request-id")
+                .at(1)
+                .build());
+    }
+
+    @Test
     public void processAmpRequestShouldReplaceBidIdWhenGenerateIdFlagIsTrue() throws IOException {
         // given
-        storedRequestProcessor = new StoredRequestProcessor(
+        storedRequestProcessor = StoredRequestProcessor.create(
                 500,
+                null,
                 true,
+                fileSystem,
                 applicationSettings,
                 idGenerator,
                 metrics,
                 new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())),
-                jacksonMapper);
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
 
         given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(

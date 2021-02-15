@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -38,17 +39,20 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 public class ConversantBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String UUID_REGEX = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
+            + "-[0-9a-fA-F]{12}";
 
     private ConversantBidder conversantBidder;
 
     @Before
     public void setUp() {
-        conversantBidder = new ConversantBidder(ENDPOINT_URL, jacksonMapper);
+        conversantBidder = new ConversantBidder(ENDPOINT_URL, false, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new ConversantBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ConversantBidder("invalid_url", false, jacksonMapper));
     }
 
     @Test
@@ -79,8 +83,7 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .hasSize(1)
-                .containsOnly(BidderError.badInput("Impression[0] missing ext.bidder object"));
+                .containsExactly(BidderError.badInput("Impression[0] missing ext.bidder object"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -98,8 +101,8 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Impression[0] requires ext.bidder.site_id"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Impression[0] requires ext.bidder.site_id"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -120,7 +123,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getId)
-                .containsOnly("site id");
+                .containsExactly("site id");
     }
 
     @Test
@@ -140,7 +143,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
                 .extracting(App::getId)
-                .containsOnly("site id");
+                .containsExactly("site id");
     }
 
     @Test
@@ -161,11 +164,11 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getId)
-                .containsOnly("site id");
+                .containsExactly("site id");
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpDisplaymanagerAndDisplaymanagerver() {
+    public void makeHttpRequestsShouldSetImpDisplayManagerAndDisplayManagerVer() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -178,11 +181,11 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
-                .containsOnly(tuple("prebid-s2s", "2.0.0"));
+                .containsExactly(tuple("prebid-s2s", "2.0.0"));
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpBidfloorFromImpExtIfPresent() {
+    public void makeHttpRequestsShouldSetImpBidFloorFromImpExtIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -197,7 +200,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor)
-                .containsOnly(BigDecimal.valueOf(9.99));
+                .containsExactly(BigDecimal.valueOf(9.99));
     }
 
     @Test
@@ -216,7 +219,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsOnly("tag id");
+                .containsExactly("tag id");
     }
 
     @Test
@@ -235,7 +238,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getSecure)
-                .containsOnly(1);
+                .containsExactly(1);
     }
 
     @Test
@@ -254,7 +257,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getSecure)
-                .containsOnly(1);
+                .containsExactly(1);
     }
 
     @Test
@@ -274,16 +277,35 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner, Imp::getVideo)
-                .containsOnly(tuple(
+                .containsExactly(tuple(
                         Banner.builder().pos(5).build(),
                         requestVideo));
     }
 
     @Test
-    public void makeHttpRequestsShouldNotChangeVideoPosFromImpExtIfNotInRange() {
+    public void makeHttpRequestsShouldSetPosBannerToNullIfExtPosIsNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.video(Video.builder().pos(7).build()),
+                impBuilder -> impBuilder.banner(Banner.builder().pos(23).build()),
+                extBuilder -> extBuilder.position(null));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(Banner.builder().pos(null).build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetPosBannerToNullIfExtPosIsNotValid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().pos(23).build()),
                 extBuilder -> extBuilder.position(9));
 
         // when
@@ -294,9 +316,27 @@ public class ConversantBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getVideo)
-                .extracting(Video::getPos)
-                .containsOnly(7);
+                .extracting(Imp::getBanner)
+                .containsExactly(Banner.builder().pos(null).build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetPosBannerToPosFromExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().pos(23).build()),
+                extBuilder -> extBuilder.position(7));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(Banner.builder().pos(7).build());
     }
 
     @Test
@@ -336,7 +376,27 @@ public class ConversantBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getVideo)
                 .flatExtracting(Video::getMimes)
-                .containsOnly("mime");
+                .containsExactly("mime");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetMimesFromExtIfExtMimesNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.video(Video.builder().mimes(singletonList("videoMimes")).build()),
+                extBuilder -> extBuilder.mimes(Collections.emptyList()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo)
+                .flatExtracting(Video::getMimes)
+                .containsExactly("videoMimes");
     }
 
     @Test
@@ -356,7 +416,7 @@ public class ConversantBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getVideo)
                 .extracting(Video::getMaxduration)
-                .containsOnly(1000);
+                .containsExactly(1000);
     }
 
     @Test
@@ -376,7 +436,7 @@ public class ConversantBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getVideo)
                 .flatExtracting(Video::getApi)
-                .containsOnly(2, 5);
+                .containsExactly(2, 5);
     }
 
     @Test
@@ -416,7 +476,7 @@ public class ConversantBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getVideo)
                 .flatExtracting(Video::getProtocols)
-                .containsOnly(1, 10);
+                .containsExactly(1, 10);
     }
 
     @Test
@@ -448,9 +508,11 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -465,8 +527,7 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Empty bid request"));
+                .containsExactly(BidderError.badServerResponse("Empty bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -481,8 +542,7 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Empty bid request"));
+                .containsExactly(BidderError.badServerResponse("Empty bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -501,7 +561,22 @@ public class ConversantBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfNoBidsFromSeatArePresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder().build())).build()));
+
+        // when
+        final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse("Empty bids array"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -520,7 +595,29 @@ public class ConversantBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldUpdateBidWithUUIDIfGenerateBidIdIsTrue() throws JsonProcessingException {
+        // given
+        conversantBidder = new ConversantBidder(ENDPOINT_URL, true, jacksonMapper);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(builder -> builder.id("123")
+                        .banner(Banner.builder().build())),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = conversantBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getId)
+                .element(0)
+                .matches(id -> id.matches(UUID_REGEX), "matches UUID format");
     }
 
     private static BidRequest givenBidRequest(
@@ -553,7 +650,6 @@ public class ConversantBidderTest extends VertxTest {
 
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         extCustomizer.apply(ExtImpConversant.builder().siteId("site id")).build()))))
                 .build();
