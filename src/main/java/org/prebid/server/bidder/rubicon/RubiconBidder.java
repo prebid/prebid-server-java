@@ -125,6 +125,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_PAGE_FIELD = "page";
     private static final String FPD_REF_FIELD = "ref";
     private static final String FPD_SEARCH_FIELD = "search";
+    private static final String FPD_CONTEXT_FIELD = "context";
     private static final String FPD_DATA_FIELD = "data";
     private static final String FPD_PBADSLOT_FIELD = "pbadslot";
     private static final String FPD_ADSERVER_FIELD = "adserver";
@@ -471,17 +472,24 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private void mergeFirstPartyDataFromImp(Imp imp, ExtImpRubicon rubiconImpExt, ObjectNode result) {
         final ExtImpContext context = extImpContext(imp);
+        final JsonNode data = imp.getExt().get(FPD_DATA_FIELD);
 
         mergeFirstPartyDataFromData(imp, context, result);
-        mergeFirstPartyDataKeywords(context, result);
+        mergeFirstPartyDataKeywords(imp, context, result);
         // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
         mergeCollectionAttributeIntoArray(result, rubiconImpExt, ExtImpRubicon::getKeywords, FPD_KEYWORDS_FIELD);
         // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
         mergeStringAttributeIntoArray(result, context, ExtImpContext::getSearch, FPD_SEARCH_FIELD);
+        // merge OPENRTB.imp[].ext.data.search to XAPI.imp[].ext.rp.target.search
+        mergeStringAttributeIntoArray(
+                result,
+                data,
+                node -> getTextValueFromNodeByPath(node, FPD_SEARCH_FIELD),
+                FPD_SEARCH_FIELD);
     }
 
     private ExtImpContext extImpContext(Imp imp) {
-        final JsonNode context = imp.getExt().get("context");
+        final JsonNode context = imp.getExt().get(FPD_CONTEXT_FIELD);
         if (context == null || context.isNull()) {
             return null;
         }
@@ -499,19 +507,28 @@ public class RubiconBidder implements Bidder<BidRequest> {
             populateFirstPartyDataAttributes(contextDataNode, result);
         }
 
+        // merge OPENRTB.imp[].ext.data.* to XAPI.imp[].ext.rp.target.*
+        final JsonNode dataNode = imp.getExt().get(FPD_DATA_FIELD);
+        if (dataNode != null && dataNode.isObject()) {
+            populateFirstPartyDataAttributes((ObjectNode) dataNode, result);
+        }
+
         copyAdslot(imp, context, result);
     }
 
     private void copyAdslot(Imp imp, ExtImpContext context, ObjectNode result) {
-        // copy OPENRTB.imp[].ext.context.data.adslot or imp[].ext.context.adserver.adslot to
-        // XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
+        // copy adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
         final ObjectNode contextDataNode = context != null ? context.getData() : null;
         final JsonNode dataNode = imp.getExt().get(FPD_DATA_FIELD);
 
         final String adSlot = ObjectUtils.firstNonNull(
+                // or imp[].ext.context.data.adserver.adslot
                 getAdSlotFromAdServer(contextDataNode),
+                // or imp[].ext.data.adserver.adslot
                 getAdSlotFromAdServer(dataNode),
+                // or imp[].ext.context.data.pbadslot
                 getTextValueFromNodeByPath(contextDataNode, FPD_PBADSLOT_FIELD),
+                // or imp[].ext.data.pbadslot
                 getTextValueFromNodeByPath(dataNode, FPD_PBADSLOT_FIELD));
 
         if (StringUtils.isNotBlank(adSlot)) {
@@ -520,11 +537,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void mergeFirstPartyDataKeywords(ExtImpContext context, ObjectNode result) {
+    private void mergeFirstPartyDataKeywords(Imp imp, ExtImpContext context, ObjectNode result) {
         // merge OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
-        final String keywords = context != null ? context.getKeywords() : null;
-        if (StringUtils.isNotBlank(keywords)) {
-            mergeIntoArray(result, FPD_KEYWORDS_FIELD, keywords.split(","));
+        final String contextKeywords = context != null ? context.getKeywords() : null;
+        if (StringUtils.isNotBlank(contextKeywords)) {
+            mergeIntoArray(result, FPD_KEYWORDS_FIELD, contextKeywords.split(","));
+        }
+
+        // merge OPENRTB.imp[].ext.data.keywords to XAPI.imp[].ext.rp.target.keywords
+        final String dataKeywords = getTextValueFromNodeByPath(imp.getExt().get(FPD_DATA_FIELD), FPD_KEYWORDS_FIELD);
+        if (StringUtils.isNotBlank(dataKeywords)) {
+            mergeIntoArray(result, FPD_KEYWORDS_FIELD, dataKeywords.split(","));
         }
     }
 
