@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -21,7 +22,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CategoryMappingResult;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
@@ -29,6 +29,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
+import org.prebid.server.proto.openrtb.ext.request.ExtDealTier;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -52,8 +55,8 @@ import java.util.stream.Stream;
 
 public class CategoryMappingService {
 
-    private static final TypeReference<Map<String, ExtImpDealTier>> EXT_IMP_DEAL_TIER_REFERENCE =
-            new TypeReference<Map<String, ExtImpDealTier>>() {
+    private static final TypeReference<Map<String, DealTierContainer>> EXT_IMP_DEAL_TIER_REFERENCE =
+            new TypeReference<Map<String, DealTierContainer>>() {
             };
 
     private static final String FREEWHEEL = "freewheel";
@@ -80,8 +83,8 @@ public class CategoryMappingService {
                                                                ExtRequestTargeting targeting,
                                                                Timeout timeout) {
         if (targeting == null || targeting.getIncludebrandcategory() == null) {
-            return Future.succeededFuture(CategoryMappingResult.of(Collections.emptyMap(), bidderResponses,
-                    Collections.emptyList()));
+            return Future.succeededFuture(CategoryMappingResult.of(Collections.emptyMap(), Collections.emptyMap(),
+                    bidderResponses, Collections.emptyList()));
         }
         final ExtIncludeBrandCategory includeBrandCategory = targeting.getIncludebrandcategory();
         final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(includeBrandCategory.getWithCategory(), false);
@@ -275,7 +278,7 @@ public class CategoryMappingService {
         final boolean appendBidderNames = BooleanUtils.toBooleanDefaultIfNull(targeting.getAppendbiddernames(), false);
         Collections.sort(durations);
         final List<String> errors = new ArrayList<>();
-        final Map<String, Map<String, DealTier>> impIdToBiddersDealTear = extractDealsSupported(bidRequest)
+        final Map<String, Map<String, ExtDealTier>> impIdToBiddersDealTear = extractDealsSupported(bidRequest)
                 ? extractDealTierPerImpAndBidder(bidRequest.getImp(), errors)
                 : Collections.emptyMap();
 
@@ -291,8 +294,17 @@ public class CategoryMappingService {
         errors.addAll(rejectedBids.stream().map(RejectedBid::getErrorMessage).collect(Collectors.toList()));
         return CategoryMappingResult.of(
                 makeBidderToBidCategoryDuration(uniqueCatKeysToCategoryBids, rejectedBids),
+                makeBidsSatisfiedPriority(uniqueCatKeysToCategoryBids),
                 removeRejectedBids(bidderResponses, rejectedBids),
                 errors);
+    }
+
+    private Map<String, Map<String, Boolean>> makeBidsSatisfiedPriority(
+            Map<String, Set<CategoryBidContext>> uniqueCatKeysToCategoryBids) {
+        return uniqueCatKeysToCategoryBids.values().stream()
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(CategoryBidContext::getBidder,
+                        Collectors.toMap(CategoryBidContext::getBidId, CategoryBidContext::isSatisfiedPriority)));
     }
 
     /**
@@ -336,45 +348,45 @@ public class CategoryMappingService {
     }
 
     /**
-     * Extracts {@link DealTier}s from {@link List<Imp>} per imp per bidder.
+     * Extracts {@link ExtDealTier}s from {@link List<Imp>} per imp per bidder.
      */
-    private Map<String, Map<String, DealTier>> extractDealTierPerImpAndBidder(List<Imp> imps, List<String> errors) {
+    private Map<String, Map<String, ExtDealTier>> extractDealTierPerImpAndBidder(List<Imp> imps, List<String> errors) {
         return imps.stream().collect(Collectors.toMap(Imp::getId, imp -> extractBidderToDealTiers(imp, errors)));
     }
 
     /**
-     * Extracts {@link DealTier}ss from {@link Imp} per bidder.
+     * Extracts {@link ExtDealTier}ss from {@link Imp} per bidder.
      */
-    private Map<String, DealTier> extractBidderToDealTiers(Imp imp, List<String> errors) {
-        final Map<String, ExtImpDealTier> biddersToImpExtDealTiers =
-                jacksonMapper.mapper().convertValue(imp.getExt(), EXT_IMP_DEAL_TIER_REFERENCE);
+    private Map<String, ExtDealTier> extractBidderToDealTiers(Imp imp, List<String> errors) {
+        final ObjectNode impExt = imp.getExt();
+        final Map<String, DealTierContainer> biddersToImpExtDealTiers =
+                jacksonMapper.mapper().convertValue(impExt, EXT_IMP_DEAL_TIER_REFERENCE);
+
+        final ExtImp extImp = decodeImpExt(impExt);
+        final ExtImpPrebid extImpPrebid = extImp != null ? extImp.getPrebid() : null;
+        final ObjectNode bidders = extImpPrebid != null ? extImpPrebid.getBidder() : null;
+        final Map<String, DealTierContainer> biddersToImpExtPrebidDealTiers =
+                bidders != null
+                        ? jacksonMapper.mapper().convertValue(bidders, EXT_IMP_DEAL_TIER_REFERENCE)
+                        : Collections.emptyMap();
+
+        biddersToImpExtPrebidDealTiers.forEach((bidder, dealTierContainer)
+                -> biddersToImpExtDealTiers.merge(bidder, dealTierContainer, (value1, value2) -> value2));
 
         return biddersToImpExtDealTiers
                 .entrySet().stream()
                 .filter(bidderToImpExtDealTier -> isValidBidder(bidderToImpExtDealTier.getKey()))
-                .map(bidderToImpExtDealTier -> Tuple2.of(bidderToImpExtDealTier.getKey(),
-                        normalizeExtDealTier(bidderToImpExtDealTier.getValue())))
-                .filter(biddersToImpExtDealTier -> isValidExtDealTier(biddersToImpExtDealTier.getLeft(),
-                        biddersToImpExtDealTier.getRight(), imp.getId(), errors))
-                .collect(Collectors.toMap(Tuple2::getLeft, tuple2 -> tuple2.getRight().getDealTier()));
+                .filter(biddersToImpExtDealTier -> isValidExtDealTier(biddersToImpExtDealTier.getKey(),
+                        biddersToImpExtDealTier.getValue(), imp.getId(), errors))
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getDealTier()));
     }
 
-    /**
-     * Normalizes {@link ExtImpDealTier} fields to correct format.
-     */
-    private ExtImpDealTier normalizeExtDealTier(ExtImpDealTier extImpDealTier) {
-        if (extImpDealTier == null) {
-            return null;
+    private ExtImp decodeImpExt(ObjectNode impExt) {
+        try {
+            return jacksonMapper.mapper().treeToValue(impExt, ExtImp.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Failed to decode imp.ext");
         }
-
-        final DealTier dealTier = extImpDealTier.getDealTier();
-        if (dealTier == null) {
-            return extImpDealTier;
-        }
-
-        final String prefix = dealTier.getPrefix();
-        final String normalizedPrefix = prefix != null ? StringUtils.replaceAll(prefix, " ", "") : null;
-        return ExtImpDealTier.of(DealTier.of(normalizedPrefix, dealTier.getMinDealTier()));
     }
 
     /**
@@ -385,16 +397,16 @@ public class CategoryMappingService {
     }
 
     /**
-     * Returns true if {@link ExtImpDealTier} is not null and has valid {@link DealTier} fields.
+     * Returns true if {@link DealTierContainer} is not null and has valid {@link ExtDealTier} fields.
      */
-    private boolean isValidExtDealTier(String bidder, ExtImpDealTier extImpDealTier, String impId,
+    private boolean isValidExtDealTier(String bidder, DealTierContainer dealTierContainer, String impId,
                                        List<String> errors) {
-        if (extImpDealTier == null || extImpDealTier.getDealTier() == null) {
+        if (dealTierContainer == null || dealTierContainer.getDealTier() == null) {
             errors.add(String.format("DealTier configuration not defined for bidder '%s', imp ID '%s'", bidder, impId));
             return false;
         }
 
-        final DealTier dealTier = extImpDealTier.getDealTier();
+        final ExtDealTier dealTier = dealTierContainer.getDealTier();
         if (StringUtils.isBlank(dealTier.getPrefix())) {
             errors.add(String.format("DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason:"
                     + " dealTier.prefix empty string or null", bidder, impId));
@@ -456,7 +468,7 @@ public class CategoryMappingService {
                                              PriceGranularity priceGranularity,
                                              boolean withCategory,
                                              boolean appendBidderName,
-                                             Map<String, Map<String, DealTier>> impToBiddersDealTier,
+                                             Map<String, Map<String, ExtDealTier>> impToBiddersDealTier,
                                              Map<String, Map<String, String>> bidderToBidCategory,
                                              List<RejectedBid> rejectedBids) {
         final BidderBid bidderBid = categoryBidContext.getBidderBid();
@@ -475,10 +487,11 @@ public class CategoryMappingService {
         final String category = bidderToBidCategory.get(bidder).get(bidId);
         final String categoryUniqueKey = makeCategoryUniqueKey(rowPrice, duration, category,
                 withCategory);
-        final Map<String, DealTier> impsDealTiers = impToBiddersDealTier.get(bid.getImpid());
-        final DealTier dealTier = impsDealTiers != null ? impsDealTiers.get(bidder) : null;
+        final Map<String, ExtDealTier> impsDealTiers = impToBiddersDealTier.get(bid.getImpid());
+        final ExtDealTier dealTier = impsDealTiers != null ? impsDealTiers.get(bidder) : null;
         final int dealPriority = bidderBid.getDealPriority() != null ? bidderBid.getDealPriority() : 0;
-        final String categoryDuration = makeCategoryDuration(rowPrice, category, duration, dealPriority,
+        final boolean satisfiedPriority = dealTier != null && dealPriority >= dealTier.getMinDealTier();
+        final String categoryDuration = makeCategoryDuration(rowPrice, category, duration, satisfiedPriority,
                 dealTier, withCategory, appendBidderName, bidder);
 
         return CategoryBidContext.builder()
@@ -486,6 +499,7 @@ public class CategoryMappingService {
                 .bidder(bidder)
                 .categoryDuration(categoryDuration)
                 .categoryUniqueKey(categoryUniqueKey)
+                .satisfiedPriority(satisfiedPriority)
                 .price(price)
                 .build();
     }
@@ -529,9 +543,10 @@ public class CategoryMappingService {
     /**
      * Creates category duration.
      */
-    private String makeCategoryDuration(String price, String category, int duration, int bidPriority, DealTier dealTier,
-                                        boolean withCategory, boolean appendBidderName, String bidder) {
-        final String categoryPrefix = dealTier != null && bidPriority >= dealTier.getMinDealTier()
+    private String makeCategoryDuration(String price, String category, int duration, boolean satisfiedPriority,
+                                        ExtDealTier dealTier, boolean withCategory, boolean appendBidderName,
+                                        String bidder) {
+        final String categoryPrefix = dealTier != null && satisfiedPriority
                 ? String.format("%s%d", dealTier.getPrefix(), dealTier.getMinDealTier())
                 : price;
         final String categoryDuration = withCategory
@@ -664,22 +679,14 @@ public class CategoryMappingService {
         String categoryDuration;
         String categoryUniqueKey;
         BigDecimal price;
+        boolean satisfiedPriority;
     }
 
     @Value
     @AllArgsConstructor(staticName = "of")
-    private static class ExtImpDealTier {
+    private static class DealTierContainer {
         @JsonProperty("dealTier")
-        DealTier dealTier;
-    }
-
-    @Value
-    @AllArgsConstructor(staticName = "of")
-    private static class DealTier {
-        String prefix;
-
-        @JsonProperty("minDealTier")
-        Integer minDealTier;
+        ExtDealTier dealTier;
     }
 }
 

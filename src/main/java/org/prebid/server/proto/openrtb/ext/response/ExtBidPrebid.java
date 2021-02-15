@@ -28,4 +28,6 @@ public class ExtBidPrebid {
     Events events;
 
     ExtBidPrebidVideo video;
+
+    Boolean dealtiersatisfied;
 }
