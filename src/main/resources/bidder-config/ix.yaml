@@ -10,13 +10,20 @@ adapters:
     meta-info:
       maintainer-email: pdu-supply-prebid@indexexchange.com
       app-media-types:
+        - banner
+        - video
+        - native
+        - audio
       site-media-types:
         - banner
+        - video
+        - native
+        - audio
       supported-vendors:
       vendor-id: 10
     usersync:
-      url: https://ssum.casalemedia.com/usermatchredir?s=189517&cb=
-      redirect-url: /setuid?bidder=ix&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
+      url:
+      redirect-url:
       cookie-family-name: ix
       type: redirect
       support-cors: false

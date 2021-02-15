@@ -233,8 +233,8 @@
     }
   ],
   "site": {
-    "domain": "example.com",
-    "page": "prebid.com",
+    "domain": "prebid.com",
+    "page": "https://prebid.com",
     "content": {
       "episode": 6,
       "title": "episodeName",
@@ -297,7 +297,12 @@
           "precision": 2
         },
         "includewinners": true,
-        "includebidderkeys": true
+        "includebidderkeys": true,
+        "includebrandcategory": {
+          "publisher": "",
+          "withcategory": true,
+          "translatecategories": false
+        }
       },
       "cache": {
         "vastxml": {}
@@ -305,6 +310,10 @@
       "channel": {
         "name": "web"
       }
+    },
+    "appnexus": {
+      "include_brand_category": true,
+      "brand_category_uniqueness": true
     }
   }
 }

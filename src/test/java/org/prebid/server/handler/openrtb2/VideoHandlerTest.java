@@ -17,7 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
@@ -69,7 +69,7 @@ public class VideoHandlerTest extends VertxTest {
     @Mock
     private CacheService cacheService;
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
     @Mock
@@ -105,7 +105,7 @@ public class VideoHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
         videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, cacheService,
-                analyticsReporter, metrics, clock, jacksonMapper);
+                analyticsReporterDelegator, metrics, clock, jacksonMapper);
     }
 
     @Test
@@ -250,7 +250,7 @@ public class VideoHandlerTest extends VertxTest {
         // then
         verify(cacheService).cacheVideoDebugLog(any(), anyInt());
         final ArgumentCaptor<VideoEvent> videoEventArgumentCaptor = ArgumentCaptor.forClass(VideoEvent.class);
-        verify(analyticsReporter).processEvent(videoEventArgumentCaptor.capture());
+        verify(analyticsReporterDelegator).processEvent(videoEventArgumentCaptor.capture(), any());
         assertThat(videoEventArgumentCaptor.getValue().getErrors())
                 .contains("[Debug cache ID: cacheKey]");
     }
@@ -282,7 +282,7 @@ public class VideoHandlerTest extends VertxTest {
         // then
         verify(cacheService).cacheVideoDebugLog(any(), anyInt());
         final ArgumentCaptor<VideoEvent> videoEventArgumentCaptor = ArgumentCaptor.forClass(VideoEvent.class);
-        verify(analyticsReporter).processEvent(videoEventArgumentCaptor.capture());
+        verify(analyticsReporterDelegator).processEvent(videoEventArgumentCaptor.capture(), any());
         assertThat(videoEventArgumentCaptor.getValue().getErrors())
                 .doesNotContain("[Debug cache ID: cacheKey]");
     }

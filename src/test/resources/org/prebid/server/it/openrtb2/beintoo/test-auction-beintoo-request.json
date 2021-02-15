@@ -12,8 +12,12 @@
         ]
       },
       "ext": {
-        "beintoo": {
-          "tagid": "25251"
+        "prebid": {
+          "bidder": {
+            "beintoo": {
+              "tagid": "25251"
+            }
+          }
         }
       }
     }

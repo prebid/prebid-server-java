@@ -13,21 +13,18 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.prebid.server.analytics.CompositeAnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
@@ -145,7 +142,6 @@ public class WebConfiguration {
     Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
-                  AuctionHandler auctionHandler,
                   org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
                   AmpHandler openrtbAmpHandler,
                   VideoHandler openrtbVideoHandler,
@@ -166,7 +162,6 @@ public class WebConfiguration {
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
-        router.post("/auction").handler(auctionHandler);
         router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
         router.get("/openrtb2/amp").handler(openrtbAmpHandler);
         router.post("/openrtb2/video").handler(openrtbVideoHandler);
@@ -211,39 +206,10 @@ public class WebConfiguration {
     }
 
     @Bean
-    AuctionHandler auctionHandler(
-            ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog,
-            PreBidRequestContextFactory preBidRequestContextFactory,
-            CacheService cacheService,
-            Metrics metrics,
-            HttpAdapterConnector httpAdapterConnector,
-            Clock clock,
-            TcfDefinerService tcfDefinerService,
-            PrivacyEnforcementService privacyEnforcementService,
-            JacksonMapper mapper,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId) {
-
-        return new AuctionHandler(
-                applicationSettings,
-                bidderCatalog,
-                preBidRequestContextFactory,
-                cacheService,
-                metrics,
-                httpAdapterConnector,
-                clock,
-                tcfDefinerService,
-                privacyEnforcementService,
-                mapper,
-                hostVendorId
-        );
-    }
-
-    @Bean
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
             HttpInteractionLogger httpInteractionLogger,
@@ -263,7 +229,7 @@ public class WebConfiguration {
     AmpHandler openrtbAmpHandler(
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
             BidderCatalog bidderCatalog,
@@ -291,7 +257,7 @@ public class WebConfiguration {
             VideoResponseFactory videoResponseFactory,
             ExchangeService exchangeService,
             CacheService cacheService,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -328,13 +294,14 @@ public class WebConfiguration {
             PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporterDelegator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId,
-                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
+                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporterDelegator, metrics, timeoutFactory,
+                mapper);
     }
 
     @Bean
@@ -346,7 +313,7 @@ public class WebConfiguration {
             PrivacyEnforcementService privacyEnforcementService,
             TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
@@ -420,10 +387,10 @@ public class WebConfiguration {
     }
 
     @Bean
-    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter,
+    NotificationEventHandler eventNotificationHandler(AnalyticsReporterDelegator analyticsReporterDelegator,
                                                       TimeoutFactory timeoutFactory,
                                                       ApplicationSettings applicationSettings) {
-        return new NotificationEventHandler(compositeAnalyticsReporter, timeoutFactory, applicationSettings);
+        return new NotificationEventHandler(analyticsReporterDelegator, timeoutFactory, applicationSettings);
     }
 
     @Bean

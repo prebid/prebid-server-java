@@ -20,7 +20,7 @@
     ]
   },
   "site": {
-    "page": "prebid.com"
+    "page": "https://prebid.com"
   },
   "user": {
     "ext": {
@@ -55,8 +55,8 @@
     "macmd5": "macmd5"
   },
   "includebrandcategory": {
-    "primaryadserver": 1,
-    "publisher": ""
+    "publisher": "",
+    "translatecategories": false
   },
   "video": {
     "w": 640,
