@@ -1,5 +1,6 @@
 package org.prebid.server.currency;
 
+import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -10,6 +11,9 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
@@ -19,7 +23,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Clock;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,14 +68,16 @@ public class CurrencyConversionService implements Initializable {
     @Override
     public void initialize() {
         if (externalConversionProperties != null) {
-            final Long refreshPeriod = externalConversionProperties.getRefreshPeriod();
-            final Long defaultTimeout = externalConversionProperties.getDefaultTimeout();
+            final Long refreshPeriod = externalConversionProperties.getRefreshPeriodMs();
+            final Long defaultTimeout = externalConversionProperties.getDefaultTimeoutMs();
             final HttpClient httpClient = externalConversionProperties.getHttpClient();
 
             final Vertx vertx = externalConversionProperties.getVertx();
             vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout,
                     httpClient));
             populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient);
+
+            externalConversionProperties.getMetrics().createCurrencyRatesGauge(this::isRatesStale);
         }
     }
 
@@ -82,7 +88,7 @@ public class CurrencyConversionService implements Initializable {
         httpClient.get(currencyServerUrl, defaultTimeout)
                 .map(this::processResponse)
                 .map(this::updateCurrencyRates)
-                .recover(CurrencyConversionService::failResponse);
+                .otherwise(this::handleErrorResponse);
     }
 
     /**
@@ -104,21 +110,37 @@ public class CurrencyConversionService implements Initializable {
         }
     }
 
-    private CurrencyConversionRates updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
+    private Void updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
             externalCurrencyRates = receivedCurrencyRates;
-            lastUpdated = ZonedDateTime.now(Clock.systemUTC());
+            lastUpdated = now();
         }
-        return currencyConversionRates;
+
+        return null;
     }
 
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private static Future<CurrencyConversionRates> failResponse(Throwable exception) {
+    private Void handleErrorResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
-        return Future.failedFuture(exception);
+
+        if (externalRatesAreStale()) {
+            externalCurrencyRates = null;
+        }
+
+        return null;
+    }
+
+    private boolean externalRatesAreStale() {
+        final Long stalePeriodMs = externalConversionProperties.getStalePeriodMs();
+
+        return stalePeriodMs != null && Duration.between(lastUpdated, now()).toMillis() > stalePeriodMs;
+    }
+
+    private ZonedDateTime now() {
+        return ZonedDateTime.now(externalConversionProperties.getClock());
     }
 
     public boolean isExternalRatesActive() {
@@ -130,7 +152,7 @@ public class CurrencyConversionService implements Initializable {
     }
 
     public Long getRefreshPeriod() {
-        return externalConversionProperties != null ? externalConversionProperties.getRefreshPeriod() : null;
+        return externalConversionProperties != null ? externalConversionProperties.getRefreshPeriodMs() : null;
     }
 
     public ZonedDateTime getLastUpdated() {
@@ -142,12 +164,22 @@ public class CurrencyConversionService implements Initializable {
     }
 
     /**
+     * Converts price from fromCurrency to toCurrency using rates from {@link BidRequest} or external currency service.
+     * If bidrequest.prebid.currecy.usepbsrates is true it takes rates from prebid server, if false from request.
+     * Default value of usepbsrates is true.
+     * Throws {@link PreBidException} in case conversion is not possible.
+     */
+    public BigDecimal convertCurrency(BigDecimal price, BidRequest bidRequest, String fromCurrency, String toCurrency) {
+        return convertCurrency(price, currencyRates(bidRequest), fromCurrency, toCurrency, usepbsrates(bidRequest));
+    }
+
+    /**
      * Converts price from bidCurrency to adServerCurrency using rates and usepbsrates flag defined in request.
      * If usepbsrates is true it takes rates from prebid server, if false from request. Default value of usepbsrates
      * is true.
      * Throws {@link PreBidException} in case conversion is not possible.
      */
-    public BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+    private BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                       String adServerCurrency, String bidCurrency, Boolean usepbsrates) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
@@ -172,10 +204,29 @@ public class CurrencyConversionService implements Initializable {
                 adServerCurrency, effectiveBidCurrency);
 
         if (conversionRate == null) {
-            throw new PreBidException("no currency conversion available");
+            throw new PreBidException(
+                    String.format("Unable to convert bid currency %s to desired ad server currency %s",
+                            effectiveBidCurrency, adServerCurrency));
         }
 
         return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
+    }
+
+    private static Map<String, Map<String, BigDecimal>> currencyRates(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
+        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
+        return currency != null ? currency.getRates() : null;
+    }
+
+    private static ExtRequestPrebid extRequestPrebid(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        return requestExt != null ? requestExt.getPrebid() : null;
+    }
+
+    private static Boolean usepbsrates(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
+        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
+        return currency != null ? currency.getUsepbsrates() : null;
     }
 
     /**
@@ -260,5 +311,16 @@ public class CurrencyConversionService implements Initializable {
             }
         }
         return conversionRate;
+    }
+
+    private boolean isRatesStale() {
+        if (lastUpdated == null) {
+            return false;
+        }
+
+        final ZonedDateTime stalenessBoundary = ZonedDateTime.now(externalConversionProperties.getClock())
+                .minus(Duration.ofMillis(externalConversionProperties.getStaleAfterMs()));
+
+        return lastUpdated.isBefore(stalenessBoundary);
     }
 }

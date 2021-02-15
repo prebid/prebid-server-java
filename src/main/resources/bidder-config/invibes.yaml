@@ -1,0 +1,21 @@
+adapters:
+  invibes:
+    enabled: false
+    endpoint: https://{{Host}}/bid/ServerBidAdContent
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: system_operations@invibes.com
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 436
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: invibes
+      type: redirect
+      support-cors: false

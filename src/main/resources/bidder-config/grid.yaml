@@ -1,7 +1,7 @@
 adapters:
   grid:
     enabled: false
-    endpoint: http://grid.bidswitch.net/sp_bid?sp=prebid
+    endpoint: https://grid.bidswitch.net/sp_bid?sp=prebid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
