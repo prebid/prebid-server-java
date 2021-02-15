@@ -9,7 +9,7 @@ import lombok.Value;
 public class ExtBidderConfigFpd {
 
     /**
-     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.site
+     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.context
      */
     ObjectNode context;
 
