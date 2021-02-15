@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.marsmedia;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -9,17 +8,16 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -32,10 +30,12 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Marsmedia {@link Bidder} implementation.
+ */
 public class MarsmediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMarsmedia>> MARSMEDIA_EXT_TYPE_REFERENCE =
@@ -52,37 +52,35 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final String requestZone;
+        final String firstImpZone;
         final BidRequest outgoingRequest;
         try {
-            requestZone = resolveRequestZone(bidRequest.getImp().get(0));
-            outgoingRequest = createOutgoingRequest(bidRequest);
+            firstImpZone = resolveExtZone(bidRequest.getImp().get(0));
+            outgoingRequest = createRequest(bidRequest);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = endpointUrl + "&zone=" + requestZone;
+        final String uri = String.format("%s%s%s", endpointUrl, "&zone=", firstImpZone);
         final MultiMap headers = resolveHeaders(bidRequest.getDevice());
 
         final String body = mapper.encode(outgoingRequest);
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(uri)
-                        .headers(headers)
-                        .body(body)
-                        .payload(outgoingRequest)
-                        .build()),
-                Collections.emptyList());
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(uri)
+                .headers(headers)
+                .body(body)
+                .payload(outgoingRequest)
+                .build());
     }
 
-    private String resolveRequestZone(Imp firstImp) {
+    private String resolveExtZone(Imp imp) {
         final ExtImpMarsmedia extImpMarsmedia;
         try {
-            extImpMarsmedia = mapper.mapper().convertValue(firstImp.getExt(), MARSMEDIA_EXT_TYPE_REFERENCE).getBidder();
+            extImpMarsmedia = mapper.mapper().convertValue(imp.getExt(), MARSMEDIA_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException("ext.bidder not provided");
         }
 
         final String zoneId = extImpMarsmedia.getZone();
@@ -93,22 +91,18 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
         return zoneId;
     }
 
-    private static BidRequest createOutgoingRequest(BidRequest bidRequest) {
+    private static BidRequest createRequest(BidRequest request) {
         final List<Imp> validImps = new ArrayList<>();
-
-        final List<Imp> requestImps = bidRequest.getImp();
-        boolean shouldUpdateImps = false;
-        for (Imp imp : requestImps) {
+        for (Imp imp : request.getImp()) {
             final Banner banner = imp.getBanner();
             if (banner != null) {
-                final boolean hasFormats = CollectionUtils.isNotEmpty(banner.getFormat());
-                //a shortcut to avoid cases when the call bidRequest.toBuilder() can be redundant as there are
-                // no changes to be made
-                if (!shouldUpdateImps) {
-                    shouldUpdateImps = hasFormats;
+                if (CollectionUtils.isNotEmpty(banner.getFormat())) {
+                    validImps.add(imp.toBuilder().banner(updateBanner(banner)).build());
+                } else if (banner.getW() != null && banner.getH() != null) {
+                    validImps.add(imp);
+                } else {
+                    throw new PreBidException("No valid banner format in the bid request");
                 }
-
-                validImps.add(checkBannerImp(banner, imp, hasFormats));
             } else if (imp.getVideo() != null) {
                 validImps.add(imp);
             }
@@ -118,88 +112,61 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             throw new PreBidException("No valid impression in the bid request");
         }
 
-        return shouldUpdateImps || !Objects.equals(bidRequest.getAt(), 1)
-                ? bidRequest.toBuilder().imp(validImps).at(1).build()
-                : bidRequest;
+        return request.toBuilder().at(1).imp(validImps).build();
     }
 
-    private static Imp checkBannerImp(Banner banner, Imp imp, boolean hasFormats) {
-        if (hasFormats) {
-            final Format firstFormat = banner.getFormat().get(0);
-            final Banner modifiedBanner = banner.toBuilder()
-                    .w(firstFormat.getW())
-                    .h(firstFormat.getH())
-                    .build();
-
-            return imp.toBuilder().banner(modifiedBanner).build();
-        }
-
-        if (banner.getW() != null && banner.getH() != null) {
-            return imp;
-        }
-
-        throw new PreBidException("No valid banner format in the bid request");
+    private static Banner updateBanner(Banner banner) {
+        final Format firstFormat = banner.getFormat().get(0);
+        return banner.toBuilder()
+                .w(ObjectUtils.defaultIfNull(firstFormat.getW(), 0))
+                .h(ObjectUtils.defaultIfNull(firstFormat.getH(), 0))
+                .build();
     }
 
     private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Forwarded-For", device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Accept-Language", device.getLanguage());
-
-            final Integer deviceDnt = device.getDnt();
-            if (deviceDnt != null) {
-                headers.add("DNT", deviceDnt.toString());
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
         return headers;
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final HttpResponse response = httpCall.getResponse();
-        if (response.getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
-            final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
     }
 
     private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
-        return seatbid.get(0).getBid().stream()
+        final SeatBid firstSeatBid = seatbid.get(0);
+        return firstSeatBid != null ? firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList())
+                : Collections.emptyList();
     }
 
     private static BidType getBidType(String impid, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impid)) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                return BidType.banner;
+                return imp.getVideo() != null ? BidType.video : BidType.banner;
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

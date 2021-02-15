@@ -1,0 +1,25 @@
+adapters:
+  revcontent:
+    enabled: false
+    endpoint: https://trends.revcontent.com/rtb
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: developers@revcontent.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 203
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: revcontent
+      type: redirect
+      support-cors: false

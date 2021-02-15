@@ -44,8 +44,6 @@ public class TcfDefinerService {
             new ConditionalLogger("app_corrupt_consent", logger);
     private static final ConditionalLogger SITE_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("site_corrupt_consent", logger);
-    private static final ConditionalLogger LEGACY_CORRUPT_CONSENT_LOGGER =
-            new ConditionalLogger("site_corrupt_consent", logger);
     private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
@@ -85,14 +83,13 @@ public class TcfDefinerService {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public Future<TcfContext> resolveTcfContext(
-            Privacy privacy,
-            String country,
-            String ipAddress,
-            AccountGdprConfig accountGdprConfig,
-            MetricName requestType,
-            RequestLogInfo requestLogInfo,
-            Timeout timeout) {
+    public Future<TcfContext> resolveTcfContext(Privacy privacy,
+                                                String country,
+                                                String ipAddress,
+                                                AccountGdprConfig accountGdprConfig,
+                                                MetricName requestType,
+                                                RequestLogInfo requestLogInfo,
+                                                Timeout timeout) {
 
         if (!isGdprEnabled(accountGdprConfig, requestType)) {
             return Future.succeededFuture(TcfContext.empty());
@@ -105,11 +102,11 @@ public class TcfDefinerService {
     public Future<TcfContext> resolveTcfContext(Privacy privacy,
                                                 String ipAddress,
                                                 AccountGdprConfig accountGdprConfig,
+                                                MetricName requestType,
                                                 RequestLogInfo requestLogInfo,
                                                 Timeout timeout) {
 
-        return resolveTcfContext(privacy, null, ipAddress, accountGdprConfig, MetricName.legacy, requestLogInfo,
-                timeout);
+        return resolveTcfContext(privacy, null, ipAddress, accountGdprConfig, requestType, requestLogInfo, timeout);
     }
 
     public Future<TcfResponse<Integer>> resultForVendorIds(Set<Integer> vendorIds, TcfContext tcfContext) {
@@ -398,6 +395,8 @@ public class TcfDefinerService {
             return TCStringEmpty.create();
         }
 
+        final int version = tcString.getVersion();
+        metrics.updatePrivacyTcfRequestsMetric(version);
         return tcString;
     }
 
@@ -411,7 +410,7 @@ public class TcfDefinerService {
     }
 
     private static void logWarn(String consent, String message, RequestLogInfo requestLogInfo) {
-        if (requestLogInfo == null) {
+        if (requestLogInfo == null || requestLogInfo.getRequestType() == null) {
             final String exceptionMessage = String.format("Parsing consent string:\"%s\" failed for undefined type "
                     + "with exception %s", consent, message);
             UNDEFINED_CORRUPT_CONSENT_LOGGER.info(exceptionMessage, 100);
@@ -431,11 +430,9 @@ public class TcfDefinerService {
                 SITE_CORRUPT_CONSENT_LOGGER.info(
                         logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
                 break;
-            case legacy:
-                LEGACY_CORRUPT_CONSENT_LOGGER.info(
-                        logMessage(consent, MetricName.legacy.toString(), requestLogInfo, message), 100);
-                break;
             case video:
+            case cookiesync:
+            case setuid:
             default:
                 UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
                         logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);
@@ -448,7 +445,7 @@ public class TcfDefinerService {
                 consent, type, requestLogInfo.getAccountId(), requestLogInfo.getRefUrl(), message);
     }
 
-    public static boolean isConsentValid(TCString consent) {
+    private static boolean isConsentValid(TCString consent) {
         return consent != null && !(consent instanceof TCStringEmpty);
     }
 

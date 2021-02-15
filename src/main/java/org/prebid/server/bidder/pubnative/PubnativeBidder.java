@@ -7,9 +7,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +18,6 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -32,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -54,7 +52,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         if (device == null || StringUtils.isBlank(device.getOs())) {
-            return Result.emptyWithError(BidderError.badInput("Impression is missing device OS information"));
+            return Result.withError(BidderError.badInput("Impression is missing device OS information"));
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
@@ -128,21 +126,16 @@ public class PubnativeBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final HttpResponse httpResponse = httpCall.getResponse();
-        if (httpResponse.getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpResponse.getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
     }
@@ -153,26 +146,68 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency))
+                .map(bid -> createBidderBid(imps, currency, bid))
                 .collect(Collectors.toList());
     }
 
-    private static BidType resolveBidType(String impid, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impid)) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-            }
-        }
-        return BidType.banner;
+    private static BidderBid createBidderBid(List<Imp> imps, String currency, Bid bid) {
+        final Imp imp = findImpById(bid.getImpid(), imps);
+        return BidderBid.of(updateBidWithSize(bid, imp), resolveBidType(imp), currency);
     }
 
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
+    private static Bid updateBidWithSize(Bid bid, Imp imp) {
+        if (bid.getW() != null && bid.getH() != null) {
+            return bid;
+        }
+
+        final Format format = imp != null && imp.getBanner() != null
+                ? resolveBidSizeFromBanner(imp.getBanner())
+                : null;
+        return format != null
+                ? bid.toBuilder().w(format.getW()).h(format.getH()).build()
+                : bid;
+    }
+
+    private static Imp findImpById(String impId, List<Imp> imps) {
+        return imps.stream()
+                .filter(imp -> imp.getId().equals(impId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static BidType resolveBidType(Imp imp) {
+        if (imp == null) {
+            return BidType.banner;
+        } else if (imp.getVideo() != null) {
+            return BidType.video;
+        } else if (imp.getXNative() != null) {
+            return BidType.xNative;
+        } else {
+            return BidType.banner;
+        }
+    }
+
+    private static Format resolveBidSizeFromBanner(Banner banner) {
+        Format result = null;
+        final Integer width = banner.getW();
+        final Integer height = banner.getH();
+
+        final List<Format> formats = banner.getFormat();
+        if (width != null && height != null) {
+            result = isOnlyOneSize(width, height, formats)
+                    ? Format.builder().w(width).h(height).build()
+                    : null;
+        } else if (formats.size() == 1) {
+            result = formats.get(0);
+        }
+        return result;
+    }
+
+    private static boolean isOnlyOneSize(Integer width, Integer height, List<Format> formats) {
+        return CollectionUtils.isEmpty(formats) || (formats.size() == 1 && isSameFormat(width, height, formats.get(0)));
+    }
+
+    private static boolean isSameFormat(Integer width, Integer height, Format format) {
+        return width.equals(format.getW()) && height.equals(format.getH());
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -21,6 +22,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
+import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtRequestSynacormedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -28,16 +30,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Synacormedia {@link Bidder} implementation.
+ */
 public class SynacormediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSynacormedia>> SYNACORMEDIA_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpSynacormedia>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -50,53 +53,54 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-
         final List<Imp> validImps = new ArrayList<>();
         ExtImpSynacormedia firstExtImp = null;
-        for (Imp imp : bidRequest.getImp()) {
-            try {
-                final ExtImpSynacormedia extImpSynacormedia = parseExtImp(imp.getExt());
-                if (StringUtils.isBlank(extImpSynacormedia.getSeatId())
-                        || StringUtils.isBlank(extImpSynacormedia.getTagId())) {
-                    errors.add(BidderError.badInput("Invalid Impression"));
-                    continue;
-                }
-                final Imp updatedImp = imp.toBuilder().tagid(extImpSynacormedia.getTagId()).build();
-                validImps.add(updatedImp);
 
-                if (firstExtImp == null) {
-                    firstExtImp = extImpSynacormedia;
-                }
+        for (Imp imp : bidRequest.getImp()) {
+            final ExtImpSynacormedia extImpSynacormedia;
+            try {
+                extImpSynacormedia = parseAndValidateExtImp(imp.getExt());
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                errors.add(BidderError.badInput(String.format("Invalid Impression: %s", e.getMessage())));
+                continue;
+            }
+
+            final Imp updatedImp = imp.toBuilder().tagid(extImpSynacormedia.getTagId()).build();
+            validImps.add(updatedImp);
+
+            if (firstExtImp == null) {
+                firstExtImp = extImpSynacormedia;
             }
         }
 
         if (validImps.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
-        }
-
-        if (firstExtImp == null || StringUtils.isBlank(firstExtImp.getSeatId())
-                || StringUtils.isBlank(firstExtImp.getTagId())) {
-            errors.add(BidderError.badInput("Invalid Impression"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(validImps)
-                .ext(mapper.fillExtension(ExtRequest.empty(), firstExtImp))
+                .ext(mapper.fillExtension(ExtRequest.empty(), ExtRequestSynacormedia.of(firstExtImp.getSeatId())))
                 .build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .headers(HttpUtil.headers())
                         .uri(endpointUrl.replaceAll("\\{\\{Host}}", firstExtImp.getSeatId()))
-                        .body(body)
+                        .body(mapper.encode(outgoingRequest))
                         .payload(outgoingRequest)
                         .build()),
                 errors);
+    }
+
+    private ExtImpSynacormedia parseAndValidateExtImp(ObjectNode impExt) {
+        final ExtImpSynacormedia extImp = parseExtImp(impExt);
+
+        if (StringUtils.isBlank(extImp.getSeatId()) || StringUtils.isBlank(extImp.getTagId())) {
+            throw new PreBidException("imp.ext has no seatId or tagId");
+        }
+
+        return extImp;
     }
 
     private ExtImpSynacormedia parseExtImp(ObjectNode impExt) {
@@ -111,9 +115,9 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -128,12 +132,21 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getMediaTypeForImp(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .map(bid -> mapBidToBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidType getMediaTypeForImp(String impId, List<Imp> imps) {
+    private static BidderBid mapBidToBidderBid(Bid bid, List<Imp> imps, String currency) {
+        final BidType mediaType = getBidType(bid.getImpid(), imps);
+
+        if (mediaType == BidType.banner || mediaType == BidType.video) {
+            return BidderBid.of(bid, mediaType, currency);
+        }
+        return null;
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
@@ -151,10 +164,5 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

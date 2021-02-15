@@ -5,25 +5,30 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHeaders;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.UnauthorizedUidsException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -32,7 +37,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SetuidHandler implements Handler<RoutingContext> {
@@ -56,7 +60,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TcfDefinerService tcfDefinerService;
     private final Integer gdprHostVendorId;
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
     private final Map<String, String> activeCookieFamilyNamesToType;
@@ -68,7 +72,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                          PrivacyEnforcementService privacyEnforcementService,
                          TcfDefinerService tcfDefinerService,
                          Integer gdprHostVendorId,
-                         AnalyticsReporter analyticsReporter,
+                         AnalyticsReporterDelegator analyticsDelegator,
                          Metrics metrics,
                          TimeoutFactory timeoutFactory) {
 
@@ -77,113 +81,153 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
-        this.gdprHostVendorId = gdprHostVendorId;
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.gdprHostVendorId = validateHostVendorId(gdprHostVendorId);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
 
-        activeCookieFamilyNamesToType = bidderCatalog.names().stream()
+        this.activeCookieFamilyNamesToType = bidderCatalog.names().stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, Usersyncer::getType));
     }
 
+    private static Integer validateHostVendorId(Integer gdprHostVendorId) {
+        if (gdprHostVendorId == null) {
+            logger.warn("gdpr.host-vendor-id not specified. Will skip host company GDPR checks");
+        }
+        return gdprHostVendorId;
+    }
+
     @Override
     public void handle(RoutingContext context) {
-        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
-        if (!uidsCookie.allowsSync()) {
-            final int status = HttpResponseStatus.UNAUTHORIZED.code();
-            respondWith(context, status, null);
-            metrics.updateUserSyncOptoutMetric();
-            analyticsReporter.processEvent(SetuidEvent.error(status));
-            return;
-        }
+        toSetuidContext(context)
+                .setHandler(setuidContextResult -> handleSetuidContextResult(setuidContextResult, context));
+    }
 
-        final String cookieName = context.request().getParam(BIDDER_PARAM);
-        final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
-        if (isCookieNameBlank || !activeCookieFamilyNamesToType.containsKey(cookieName)) {
-            final int status = HttpResponseStatus.BAD_REQUEST.code();
-            final String body = "\"bidder\" query param is ";
-            respondWith(context, status, body + (isCookieNameBlank ? "required" : "invalid"));
-            metrics.updateUserSyncBadRequestMetric();
-            analyticsReporter.processEvent(SetuidEvent.error(status));
-            return;
-        }
-        final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
-        final String requestAccount = context.request().getParam(ACCOUNT_PARAM);
+    private Future<SetuidContext> toSetuidContext(RoutingContext routingContext) {
+        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
+        final HttpServerRequest httpRequest = routingContext.request();
+        final String cookieName = httpRequest.getParam(BIDDER_PARAM);
+        final String requestAccount = httpRequest.getParam(ACCOUNT_PARAM);
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
-        final String cookieType = activeCookieFamilyNamesToType.get(cookieName);
 
-        accountById(requestAccount, timeout)
-                .compose(account -> privacyEnforcementService.contextFromSetuidRequest(
-                        context.request(), account, timeout))
-                .compose(privacyContext -> tcfDefinerService.resultForVendorIds(
-                        vendorIds, privacyContext.getTcfContext()))
-                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName, cookieType));
+        return accountById(requestAccount, timeout)
+                .compose(account -> privacyEnforcementService.contextFromSetuidRequest(httpRequest, account, timeout)
+                        .map(privacyContext -> SetuidContext.builder()
+                                .routingContext(routingContext)
+                                .uidsCookie(uidsCookie)
+                                .timeout(timeout)
+                                .account(account)
+                                .cookieName(cookieName)
+                                .cookieType(activeCookieFamilyNamesToType.get(cookieName))
+                                .privacyContext(privacyContext)
+                                .build()));
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
         return StringUtils.isBlank(accountId)
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(Account.empty(accountId));
+                        .otherwise(Account.empty(accountId));
     }
 
-    private void handleResult(AsyncResult<TcfResponse<Integer>> asyncResult, RoutingContext context,
-                              UidsCookie uidsCookie, String bidder, String cookieType) {
-        if (asyncResult.failed()) {
-            respondWithError(context, bidder, asyncResult.cause());
-        } else {
-            // allow cookie only if user is not in GDPR scope or vendor passed GDPR check
-            final TcfResponse<Integer> tcfResponse = asyncResult.result();
-
-            final boolean notInGdprScope = BooleanUtils.isFalse(tcfResponse.getUserInGdprScope());
-
-            final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getActions();
-            final PrivacyEnforcementAction privacyEnforcementAction = vendorIdToAction != null
-                    ? vendorIdToAction.get(gdprHostVendorId)
-                    : null;
-            final boolean blockPixelSync = privacyEnforcementAction == null
-                    || privacyEnforcementAction.isBlockPixelSync();
-
-            final boolean allowedCookie = notInGdprScope || !blockPixelSync;
-
-            if (allowedCookie) {
-                respondWithCookie(context, bidder, uidsCookie, cookieType);
-            } else {
-                respondWithoutCookie(context, UNAVAILABLE_FOR_LEGAL_REASONS,
-                        "The gdpr_consent param prevents cookies from being saved", bidder);
+    private void handleSetuidContextResult(AsyncResult<SetuidContext> setuidContextResult,
+                                           RoutingContext routingContext) {
+        if (setuidContextResult.succeeded()) {
+            final SetuidContext setuidContext = setuidContextResult.result();
+            final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
+            final Exception exception = validateSetuidContext(setuidContext);
+            if (exception != null) {
+                handleErrors(exception, routingContext, tcfContext);
+                return;
             }
-        }
-    }
 
-    private void respondWithError(RoutingContext context, String bidder, Throwable exception) {
-        final int status;
-        final String body;
-
-        if (exception instanceof InvalidRequestException) {
-            status = HttpResponseStatus.BAD_REQUEST.code();
-            body = String.format("GDPR processing failed with error: %s", exception.getMessage());
+            isAllowedForHostVendorId(tcfContext)
+                    .setHandler(hostTcfResponseResult -> respondByTcfResponse(hostTcfResponseResult, setuidContext));
         } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
-            body = "Unexpected GDPR processing error";
-            logger.warn(body, exception);
+            final Throwable error = setuidContextResult.cause();
+            handleErrors(error, routingContext, null);
+        }
+    }
+
+    private Exception validateSetuidContext(SetuidContext setuidContext) {
+        final String cookieName = setuidContext.getCookieName();
+        final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
+        if (isCookieNameBlank || !activeCookieFamilyNamesToType.containsKey(cookieName)) {
+            final String cookieNameError = isCookieNameBlank ? "required" : "invalid";
+            return new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
         }
 
-        respondWithoutCookie(context, status, body, bidder);
+        final UidsCookie uidsCookie = setuidContext.getUidsCookie();
+        if (!uidsCookie.allowsSync()) {
+            return new UnauthorizedUidsException("Sync is not allowed for this uids");
+        }
+
+        return null;
     }
 
-    private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {
-        respondWith(context, status, body);
-        metrics.updateUserSyncTcfBlockedMetric(bidder);
-        analyticsReporter.processEvent(SetuidEvent.error(status));
+    /**
+     * If host vendor id is null, host allowed to setuid.
+     */
+    private Future<HostVendorTcfResponse> isAllowedForHostVendorId(TcfContext tcfContext) {
+        return gdprHostVendorId == null
+                ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
+                : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
+                        .map(this::toHostVendorTcfResponse);
     }
 
-    private void respondWithCookie(RoutingContext context, String bidder, UidsCookie uidsCookie, String cookieType) {
-        final String uid = context.request().getParam(UID_PARAM);
+    private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {
+        return HostVendorTcfResponse.of(tcfResponse.getUserInGdprScope(), tcfResponse.getCountry(),
+                isSetuidAllowed(tcfResponse));
+    }
+
+    private boolean isSetuidAllowed(TcfResponse<Integer> hostTcfResponseToSetuidContext) {
+        // allow cookie only if user is not in GDPR scope or vendor passed GDPR check
+        final boolean notInGdprScope = BooleanUtils.isFalse(hostTcfResponseToSetuidContext.getUserInGdprScope());
+
+        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = hostTcfResponseToSetuidContext.getActions();
+        final PrivacyEnforcementAction hostPrivacyAction = vendorIdToAction != null
+                ? vendorIdToAction.get(gdprHostVendorId)
+                : null;
+        final boolean blockPixelSync = hostPrivacyAction == null || hostPrivacyAction.isBlockPixelSync();
+
+        return notInGdprScope || !blockPixelSync;
+    }
+
+    private void respondByTcfResponse(AsyncResult<HostVendorTcfResponse> hostTcfResponseResult,
+                                      SetuidContext setuidContext) {
+        final String bidderCookieName = setuidContext.getCookieName();
+        final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
+        final RoutingContext routingContext = setuidContext.getRoutingContext();
+
+        if (hostTcfResponseResult.succeeded()) {
+            final HostVendorTcfResponse hostTcfResponse = hostTcfResponseResult.result();
+            if (hostTcfResponse.isVendorAllowed()) {
+                respondWithCookie(setuidContext);
+            } else {
+                metrics.updateUserSyncTcfBlockedMetric(bidderCookieName);
+
+                final int status = UNAVAILABLE_FOR_LEGAL_REASONS;
+                respondWith(routingContext, status, "The gdpr_consent param prevents cookies from being saved");
+                analyticsDelegator.processEvent(SetuidEvent.error(status), tcfContext);
+            }
+
+        } else {
+            final Throwable error = hostTcfResponseResult.cause();
+            metrics.updateUserSyncTcfBlockedMetric(bidderCookieName);
+            handleErrors(error, routingContext, tcfContext);
+        }
+    }
+
+    private void respondWithCookie(SetuidContext setuidContext) {
+        final RoutingContext routingContext = setuidContext.getRoutingContext();
+        final String uid = routingContext.request().getParam(UID_PARAM);
         final UidsCookie updatedUidsCookie;
         boolean successfullyUpdated = false;
 
+        final String bidder = setuidContext.getCookieName();
+        final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (StringUtils.isBlank(uid)) {
             updatedUidsCookie = uidsCookie.deleteUid(bidder);
         } else if (UidsCookie.isFacebookSentinel(bidder, uid)) {
@@ -197,33 +241,61 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
-        addCookie(context, cookie);
+        addCookie(routingContext, cookie);
 
         final int status = HttpResponseStatus.OK.code();
 
         // Send pixel file to response if "format=img"
-        final String format = context.request().getParam(FORMAT_PARAM);
-        if (shouldRespondWithPixel(format, cookieType)) {
-            context.response().sendFile(PIXEL_FILE_PATH);
+        final String format = routingContext.request().getParam(FORMAT_PARAM);
+        if (shouldRespondWithPixel(format, setuidContext.getCookieType())) {
+            routingContext.response().sendFile(PIXEL_FILE_PATH);
         } else {
-            respondWith(context, status, null);
+            respondWith(routingContext, status, null);
         }
 
-        analyticsReporter.processEvent(SetuidEvent.builder()
+        final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
+        analyticsDelegator.processEvent(SetuidEvent.builder()
                 .status(status)
                 .bidder(bidder)
                 .uid(uid)
                 .success(successfullyUpdated)
-                .build());
-    }
-
-    private void addCookie(RoutingContext context, Cookie cookie) {
-        context.response().headers().add(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie));
+                .build(), tcfContext);
     }
 
     private boolean shouldRespondWithPixel(String format, String cookieType) {
         return StringUtils.equals(format, IMG_FORMAT_PARAM)
                 || !StringUtils.equals(format, BLANK_FORMAT_PARAM) && StringUtils.equals(cookieType, REDIRECT);
+    }
+
+    private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
+        final String message = error.getMessage();
+        final int status;
+        final String body;
+        if (error instanceof InvalidRequestException) {
+            metrics.updateUserSyncBadRequestMetric();
+            status = HttpResponseStatus.BAD_REQUEST.code();
+            body = String.format("Invalid request format: %s", message);
+
+        } else if (error instanceof UnauthorizedUidsException) {
+            metrics.updateUserSyncOptoutMetric();
+            status = HttpResponseStatus.UNAUTHORIZED.code();
+            body = String.format("Unauthorized: %s", message);
+        } else {
+            status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+            body = String.format("Unexpected setuid processing error: %s", message);
+            logger.warn(body, error);
+        }
+
+        respondWith(routingContext, status, body);
+        if (tcfContext == null) {
+            analyticsDelegator.processEvent(SetuidEvent.error(status));
+        } else {
+            analyticsDelegator.processEvent(SetuidEvent.error(status), tcfContext);
+        }
+    }
+
+    private void addCookie(RoutingContext context, Cookie cookie) {
+        context.response().headers().add(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie));
     }
 
     private static void respondWith(RoutingContext context, int status, String body) {

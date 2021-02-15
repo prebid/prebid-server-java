@@ -16,7 +16,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 public class IxTest extends IntegrationTest {
@@ -58,43 +57,5 @@ public class IxTest extends IntegrationTest {
                 response, singletonList(IX));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
-    }
-
-    @Test
-    public void auctionShouldRespondWithBidsFromIx() throws IOException {
-        // given
-        // ix bid response for ad unit 7
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("auction/ix/test-ix-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/ix/test-ix-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("auction/ix/test-cache-ix-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/ix/test-cache-ix-response.json"))));
-
-        // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"ix":"IE-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7Iml4IjoiSUUtVUlEIn19")
-                .queryParam("debug", "1")
-                .body(jsonFrom("auction/ix/test-auction-ix-request.json"))
-                .post("/auction");
-
-        // then
-        assertThat(response.header("Cache-Control")).isEqualTo("no-cache, no-store, must-revalidate");
-        assertThat(response.header("Pragma")).isEqualTo("no-cache");
-        assertThat(response.header("Expires")).isEqualTo("0");
-        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
-        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
-
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(
-                "auction/ix/test-auction-ix-response.json",
-                response, singletonList(IX));
-        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 }

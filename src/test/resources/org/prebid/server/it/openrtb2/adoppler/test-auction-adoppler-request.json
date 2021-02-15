@@ -9,7 +9,8 @@
       },
       "ext": {
         "adoppler": {
-          "adunit": "unit1"
+          "adunit": "unit1",
+          "client": "testClient"
         }
       }
     }
@@ -68,12 +69,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {
