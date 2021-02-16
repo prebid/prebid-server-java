@@ -231,11 +231,12 @@ public class AmxBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = amxBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors())
-                .containsExactly(
-                        BidderError.badInput("Cannot deserialize instance of `java.lang.String` out "
-                                + "of START_OBJECT token\n at [Source: UNKNOWN; line: -1, column: -1] (through "
-                                + "reference chain: org.prebid.server.bidder.amx.model.AmxBidExt[\"startdelay\"])"));
+        assertThat(result.getErrors()).hasSize(1)
+                .satisfies(error -> {
+                    assertThat(error).extracting(BidderError::getType).containsExactly(BidderError.Type.bad_input);
+                    assertThat(error).extracting(BidderError::getMessage)
+                            .element(0).asString().startsWith("Cannot deserialize instance");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
