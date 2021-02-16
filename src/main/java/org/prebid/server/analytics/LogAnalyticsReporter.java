@@ -51,6 +51,11 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
         logger.debug(mapper.encode(logEvent));
     }
 
+    @Override
+    public int vendorId() {
+        return 0;
+    }
+
     @AllArgsConstructor
     @Value
     private static class LogEvent<T> {

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.dmx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -8,14 +9,15 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.dmx.model.DmxPublisherExtId;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -25,11 +27,13 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,9 +62,10 @@ public class DmxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        if (request.getUser() == null && request.getApp() == null) {
-            return Result.withError(
-                    BidderError.badInput("No user id or app id found. Could not send request to DMX."));
+        try {
+            validateUserAndApp(request.getApp(), request.getUser());
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -70,8 +75,8 @@ public class DmxBidder implements Bidder<BidRequest> {
         String updatedSellerId = null;
         try {
             final ExtImpDmx extImp = parseImpExt(imps.get(0));
-            final String publisherId = extImp.getPublisherId();
-            updatedPublisherId = StringUtils.isNotBlank(publisherId) ? publisherId : extImp.getMemberId();
+            final String extImpPublisherId = extImp.getPublisherId();
+            updatedPublisherId = StringUtils.isNotBlank(extImpPublisherId) ? extImpPublisherId : extImp.getMemberId();
             updatedSellerId = extImp.getSellerId();
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -80,7 +85,12 @@ public class DmxBidder implements Bidder<BidRequest> {
         final List<Imp> validImps = new ArrayList<>();
         for (Imp imp : imps) {
             try {
-                final Imp validImp = validateAndModifyImp(imp, parseImpExt(imp));
+                final ExtImpDmx extImp = parseImpExt(imp);
+                if (StringUtils.isAllBlank(extImp.getPublisherId(), extImp.getMemberId())) {
+                    return Result.withError(BidderError.badInput("Missing Params for auction to be send"));
+                }
+
+                final Imp validImp = modifyImp(imp, extImp);
                 if (validImp != null) {
                     validImps.add(validImp);
                 }
@@ -89,15 +99,12 @@ public class DmxBidder implements Bidder<BidRequest> {
             }
         }
 
-        final Site modifiedSite = modifySite(request.getSite(), updatedPublisherId);
-        try {
-            checkIfHasId(request.getApp(), request.getUser());
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput("This request contained no identifier"));
-        }
+        final BidRequest outgoingRequest = request.toBuilder()
+                .imp(validImps)
+                .site(modifySite(request.getSite(), updatedPublisherId))
+                .app(modifyApp(request.getApp(), updatedPublisherId))
+                .build();
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(validImps).site(modifiedSite).build();
-        final String body = mapper.encode(outgoingRequest);
         final String urlParameter = StringUtils.isNotBlank(updatedSellerId)
                 ? "?sellerid=" + HttpUtil.encodeUrl(updatedSellerId)
                 : "";
@@ -108,7 +115,7 @@ public class DmxBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(uri)
                         .headers(HttpUtil.headers())
-                        .body(body)
+                        .body(mapper.encode(outgoingRequest))
                         .payload(outgoingRequest)
                         .build()),
                 errors);
@@ -122,89 +129,104 @@ public class DmxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Imp validateAndModifyImp(Imp imp, ExtImpDmx extImp) {
-        Imp modifiedImp = null;
-        final Imp updatedImp = updateImp(imp, extImp);
-        if (updatedImp != null) {
-            final Banner banner = imp.getBanner();
-
-            if (banner != null) {
-                if (CollectionUtils.isNotEmpty(banner.getFormat())) {
-                    modifiedImp = updatedImp.toBuilder().banner(banner).build();
-                }
-            }
-
-            final Video video = imp.getVideo();
-            if (video != null) {
-                modifiedImp = updatedImp.toBuilder().video(video).build();
-            }
+    private static Imp modifyImp(Imp imp, ExtImpDmx extImp) {
+        final Imp updatedImp = fetchParams(imp, extImp);
+        if (updatedImp == null) {
+            return null;
         }
-        return modifiedImp;
-    }
 
-    private static Imp updateImp(Imp imp, ExtImpDmx extImp) {
-        if (StringUtils.isNotBlank(extImp.getPublisherId()) || StringUtils.isNotBlank(extImp.getMemberId())) {
-            return fetchParams(imp, extImp);
-        } else {
-            throw new PreBidException("Missing Params for auction to be send");
+        if (updatedImp.getVideo() != null) {
+            return updatedImp;
         }
+
+        final Banner banner = updatedImp.getBanner();
+        if (banner != null && CollectionUtils.isNotEmpty(banner.getFormat())) {
+            return updatedImp;
+        }
+
+        return null;
     }
 
     private static Imp fetchParams(Imp imp, ExtImpDmx extImp) {
-        Imp updatedImp = null;
-
-        final String tagId = extImp.getTagId();
-        if (StringUtils.isNotBlank(tagId)) {
-            updatedImp = imp.toBuilder()
-                    .tagid(tagId)
-                    .secure(SECURE)
-                    .build();
-        }
-
+        final String impTagId = imp.getTagid();
+        final String extTagId = extImp.getTagId();
         final String dmxId = extImp.getDmxId();
-        if (StringUtils.isNotBlank(dmxId)) {
-            updatedImp = imp.toBuilder()
-                    .tagid(dmxId)
-                    .secure(SECURE)
-                    .build();
+
+        final String tagId = StringUtils.defaultIfBlank(StringUtils.defaultIfBlank(dmxId, extTagId), impTagId);
+        if (StringUtils.isBlank(tagId)) {
+            return null;
         }
 
-        return updatedImp;
-    }
-
-    private static Site modifySite(Site site, String updatedPublisherId) {
-        Publisher updatedPublisher = null;
-        if (site != null) {
-            final Publisher publisher = site.getPublisher();
-            updatedPublisher = publisher == null
-                    ? Publisher.builder().id(updatedPublisherId).build()
-                    : publisher.toBuilder().id(updatedPublisherId).build();
+        BigDecimal bidFloor = imp.getBidfloor();
+        final BigDecimal extBidFloor = extImp.getBidFloor();
+        if (extBidFloor != null && extBidFloor.compareTo(BigDecimal.ZERO) > 0) {
+            bidFloor = extBidFloor;
         }
-        return site != null ? site.toBuilder().publisher(updatedPublisher).build() : null;
+
+        return imp.toBuilder()
+                .tagid(tagId)
+                .secure(StringUtils.isAllBlank(extTagId, dmxId) ? imp.getSecure() : SECURE)
+                .bidfloor(bidFloor)
+                .build();
     }
 
-    private static void checkIfHasId(App app, User user) {
-        boolean anyHasId = false;
-        if (app != null) {
-            if (StringUtils.isNotBlank(app.getId())) {
-                anyHasId = true;
-            }
+    private static void validateUserAndApp(App app, User user) {
+        if (user == null && app == null) {
+            throw new PreBidException("No user id or app id found. Could not send request to DMX.");
+        }
+
+        if (app != null && StringUtils.isNotBlank(app.getId())) {
+            return;
         }
 
         if (user != null) {
             if (StringUtils.isNotBlank(user.getId())) {
-                anyHasId = true;
+                return;
             }
+
             final ExtUser userExt = user.getExt();
-            if (userExt != null) {
-                if (CollectionUtils.isNotEmpty(userExt.getEids())) {
-                    anyHasId = true;
-                }
+            // Notice that digitrust is absent to keep prebid convention
+            if (userExt != null && CollectionUtils.isNotEmpty(userExt.getEids())) {
+                return;
             }
         }
 
-        if (!anyHasId) {
-            throw new PreBidException("This request contained no identifier");
+        throw new PreBidException("This request contained no identifier");
+    }
+
+    private Site modifySite(Site site, String updatedPublisherId) {
+        return site == null
+                ? null
+                : site.toBuilder()
+                        .publisher(modifyPublisher(site.getPublisher(), updatedPublisherId, false))
+                        .build();
+    }
+
+    private App modifyApp(App app, String updatedPublisherId) {
+        return app == null
+                ? null
+                : app.toBuilder()
+                        .publisher(modifyPublisher(app.getPublisher(), updatedPublisherId, true))
+                        .build();
+    }
+
+    private Publisher modifyPublisher(Publisher publisher, String updatedPublisherId, boolean extOnEmptyPublisher) {
+
+        final DmxPublisherExtId dmxPublisherExtId = DmxPublisherExtId.of(updatedPublisherId);
+        final ObjectNode encodedPublisherExt = mapper.mapper().valueToTree(dmxPublisherExtId);
+        final ExtPublisher extPublisher = ExtPublisher.empty();
+        extPublisher.addProperty("dmx", encodedPublisherExt);
+
+        if (publisher == null) {
+            return Publisher.builder()
+                    .id(updatedPublisherId)
+                    .ext(extOnEmptyPublisher ? extPublisher : null)
+                    .build();
+        } else {
+            return publisher.toBuilder()
+                    .id(ObjectUtils.firstNonNull(publisher.getId(), updatedPublisherId))
+                    .ext(extPublisher)
+                    .build();
         }
     }
 

@@ -19,7 +19,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
@@ -40,6 +40,8 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -75,7 +77,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
     private final BidderCatalog bidderCatalog;
@@ -86,7 +88,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
                       ExchangeService exchangeService,
-                      AnalyticsReporter analyticsReporter,
+                      AnalyticsReporterDelegator analyticsDelegator,
                       Metrics metrics,
                       Clock clock,
                       BidderCatalog bidderCatalog,
@@ -97,7 +99,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -348,7 +350,10 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
 
         final AmpEvent ampEvent = ampEventBuilder.status(status).errors(errorMessages).build();
-        respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent);
+
+        final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
+        final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
+        respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent, tcfContext);
 
         httpInteractionLogger.maybeLogOpenrtb2Amp(auctionContext, routingContext, status, body);
     }
@@ -367,7 +372,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, AmpEvent event) {
+                             MetricName metricRequestStatus, AmpEvent event, TcfContext tcfContext) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -380,7 +385,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event);
+            analyticsDelegator.processEvent(event, tcfContext);
         }
     }
 

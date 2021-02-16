@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
@@ -39,7 +40,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
@@ -81,8 +81,7 @@ public class ExchangeService {
     private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
 
     private static final String PREBID_EXT = "prebid";
-    private static final String CONTEXT_EXT = "context";
-    private static final String DATA = "data";
+    private static final String BIDDER_EXT = "bidder";
     private static final String ALL_BIDDERS_CONFIG = "*";
     private static final String EID_ALLOWED_FOR_ALL_BIDDERS = "*";
 
@@ -272,9 +271,9 @@ public class ExchangeService {
      * i.e. the bidders will not see any other extension fields. If Imp extension name is alias, which is also defined
      * in bidRequest.ext.prebid.aliases and valid, separate {@link BidRequest} will be created for this alias and sent
      * to appropriate bidder.
-     * For example suppose {@link BidRequest} has two {@link Imp}s. First one with imp.ext[].rubicon and
-     * imp.ext[].rubiconAlias and second with imp.ext[].appnexus and imp.ext[].rubicon. Three {@link BidRequest}s will
-     * be created:
+     * For example suppose {@link BidRequest} has two {@link Imp}s. First one with imp.ext.prebid.bidder.rubicon and
+     * imp.ext.prebid.bidder.rubiconAlias and second with imp.ext.prebid.bidder.appnexus and
+     * imp.ext.prebid.bidder.rubicon. Three {@link BidRequest}s will be created:
      * 1. {@link BidRequest} with one {@link Imp}, where bidder extension points to rubiconAlias extension and will be
      * sent to Rubicon bidder.
      * 2. {@link BidRequest} with two {@link Imp}s, where bidder extension points to appropriate rubicon extension from
@@ -294,20 +293,23 @@ public class ExchangeService {
     private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context,
                                                               List<Imp> requestedImps,
                                                               BidderAliases aliases) {
-        // sanity check: discard imps without extension
+
         final List<Imp> imps = requestedImps.stream()
-                .filter(imp -> imp.getExt() != null)
+                .filter(imp -> bidderParamsFromImpExt(imp.getExt()) != null)
                 .collect(Collectors.toList());
 
         // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
-                .flatMap(imp -> StreamUtil.asStream(imp.getExt().fieldNames())
-                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT))
+                .flatMap(imp -> StreamUtil.asStream(bidderParamsFromImpExt(imp.getExt()).fieldNames())
                         .filter(bidder -> isValidBidder(bidder, aliases)))
                 .distinct()
                 .collect(Collectors.toList());
 
         return makeBidderRequests(bidders, context, aliases, imps);
+    }
+
+    private static JsonNode bidderParamsFromImpExt(ObjectNode ext) {
+        return ext.get(PREBID_EXT).get(BIDDER_EXT);
     }
 
     /**
@@ -441,7 +443,8 @@ public class ExchangeService {
      * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
      * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
      * <p>
-     * Also, removes user.ext.prebid (if present) and user.ext.data (in case bidder does not use first party data).
+     * Also, removes user.ext.prebid (if present), user.ext.data and user.data (in case bidder does not use first
+     * party data).
      */
     private User prepareUser(User user,
                              ExtUser extUser,
@@ -458,12 +461,13 @@ public class ExchangeService {
         final List<ExtUserEid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions, aliases);
         final boolean shouldUpdateUserEids = extUser != null
                 && allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
-        final boolean shouldCleanPrebid = extUser != null && extUser.getPrebid() != null;
-        final boolean shouldCleanData = extUser != null && extUser.getData() != null && !useFirstPartyData;
-        final boolean shouldUpdateUserExt = shouldCleanData || shouldCleanPrebid || shouldUpdateUserEids;
+        final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
+        final boolean shouldCleanExtData = extUser != null && extUser.getData() != null && !useFirstPartyData;
+        final boolean shouldUpdateUserExt = shouldCleanExtData || shouldCleanExtPrebid || shouldUpdateUserEids;
+        final boolean shouldCleanData = user != null && user.getData() != null && !useFirstPartyData;
 
         User maskedUser = user;
-        if (updatedBuyerUid != null || shouldUpdateUserExt) {
+        if (updatedBuyerUid != null || shouldUpdateUserExt || shouldCleanData) {
             final User.UserBuilder userBuilder = user == null ? User.builder() : user.toBuilder();
             if (updatedBuyerUid != null) {
                 userBuilder.buyeruid(updatedBuyerUid);
@@ -471,11 +475,15 @@ public class ExchangeService {
 
             if (shouldUpdateUserExt) {
                 final ExtUser updatedExtUser = extUser.toBuilder()
-                        .prebid(shouldCleanPrebid ? null : extUser.getPrebid())
-                        .data(shouldCleanData ? null : extUser.getData())
+                        .prebid(shouldCleanExtPrebid ? null : extUser.getPrebid())
+                        .data(shouldCleanExtData ? null : extUser.getData())
                         .eids(shouldUpdateUserEids ? nullIfEmpty(allowedUserEids) : userEids)
                         .build();
                 userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
+            }
+
+            if (shouldCleanData) {
+                userBuilder.data(null);
             }
 
             maskedUser = userBuilder.build();
@@ -647,7 +655,7 @@ public class ExchangeService {
      */
     private List<Imp> prepareImps(String bidder, List<Imp> imps, boolean useFirstPartyData) {
         return imps.stream()
-                .filter(imp -> imp.getExt().hasNonNull(bidder))
+                .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> imp.toBuilder()
                         .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
                         .build())
@@ -658,34 +666,35 @@ public class ExchangeService {
      * Creates a new imp extension for particular bidder having:
      * <ul>
      * <li>"prebid" field populated with an imp.ext.prebid field value, may be null</li>
+     * <li>"bidder" field populated with an imp.ext.prebid.bidder.{bidder} field value, not null</li>
      * <li>"context" field populated with an imp.ext.context field value, may be null</li>
-     * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
+     * <li>"data" field populated with an imp.ext.data field value, may be null</li>
      * </ul>
      */
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
-        final JsonNode impExtPrebid = prepareImpExtPrebid(bidder, impExt.get(PREBID_EXT));
-        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExt.get(bidder)));
+        final ObjectNode modifiedImpExt = impExt.deepCopy();
 
-        final JsonNode contextNode = impExt.get(CONTEXT_EXT);
-        final boolean isContextNodePresent = contextNode != null && !contextNode.isNull();
-        if (isContextNodePresent) {
-            final JsonNode contextNodeCopy = contextNode.deepCopy();
-            if (!useFirstPartyData && contextNodeCopy.isObject()) {
-                ((ObjectNode) contextNodeCopy).remove(DATA);
-            }
-            result.set(CONTEXT_EXT, contextNodeCopy);
+        final JsonNode impExtPrebid = cleanBidderParamsFromImpExtPrebid(impExt.get(PREBID_EXT));
+        if (impExtPrebid == null) {
+            modifiedImpExt.remove(PREBID_EXT);
+        } else {
+            modifiedImpExt.set(PREBID_EXT, impExtPrebid);
         }
-        return result;
+
+        modifiedImpExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
+
+        return fpdResolver.resolveImpExt(modifiedImpExt, useFirstPartyData);
     }
 
-    private JsonNode prepareImpExtPrebid(String bidder, JsonNode extImpPrebidNode) {
-        if (extImpPrebidNode != null && extImpPrebidNode.hasNonNull(bidder)) {
-            final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode).toBuilder()
-                    .bidder((ObjectNode) extImpPrebidNode.get(bidder)) // leave appropriate bidder related data
-                    .build();
-            return mapper.mapper().valueToTree(extImpPrebid);
+    private JsonNode cleanBidderParamsFromImpExtPrebid(JsonNode extImpPrebidNode) {
+        if (extImpPrebidNode.size() > 1) {
+            return mapper.mapper().valueToTree(
+                    extImpPrebid(extImpPrebidNode).toBuilder()
+                            .bidder(null)
+                            .build());
         }
-        return extImpPrebidNode;
+
+        return null;
     }
 
     /**
@@ -700,14 +709,21 @@ public class ExchangeService {
     }
 
     /**
-     * Checks whether to pass the app.ext.data depending on request having a first party data
+     * Checks whether to pass the app.ext.data and app.content.data depending on request having a first party data
      * allowed for given bidder or not. And merge masked app with fpd config.
      */
     private App prepareApp(App app, ObjectNode fpdApp, boolean useFirstPartyData) {
         final ExtApp appExt = app != null ? app.getExt() : null;
+        final Content content = app != null ? app.getContent() : null;
 
-        final App maskedApp = appExt != null && appExt.getData() != null && !useFirstPartyData
-                ? app.toBuilder().ext(maskExtApp(appExt)).build()
+        final boolean shouldCleanExtData = appExt != null && appExt.getData() != null && !useFirstPartyData;
+        final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
+
+        final App maskedApp = shouldCleanExtData || shouldCleanContentData
+                ? app.toBuilder()
+                .ext(shouldCleanExtData ? maskExtApp(appExt) : appExt)
+                .content(shouldCleanContentData ? prepareContent(content) : content)
+                .build()
                 : app;
 
         return useFirstPartyData
@@ -721,19 +737,34 @@ public class ExchangeService {
     }
 
     /**
-     * Checks whether to pass the site.ext.data depending on request having a first party data
+     * Checks whether to pass the site.ext.data  and site.content.data depending on request having a first party data
      * allowed for given bidder or not. And merge masked site with fpd config.
      */
     private Site prepareSite(Site site, ObjectNode fpdSite, boolean useFirstPartyData) {
         final ExtSite siteExt = site != null ? site.getExt() : null;
+        final Content content = site != null ? site.getContent() : null;
 
-        final Site maskedSite = siteExt != null && siteExt.getData() != null && !useFirstPartyData
-                ? site.toBuilder().ext(maskExtSite(siteExt)).build()
+        final boolean shouldCleanExtData = siteExt != null && siteExt.getData() != null && !useFirstPartyData;
+        final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
+
+        final Site maskedSite = shouldCleanExtData || shouldCleanContentData
+                ? site.toBuilder()
+                .ext(shouldCleanExtData ? maskExtSite(siteExt) : siteExt)
+                .content(shouldCleanContentData ? prepareContent(content) : content)
+                .build()
                 : site;
 
         return useFirstPartyData
                 ? fpdResolver.resolveSite(maskedSite, fpdSite)
                 : maskedSite;
+    }
+
+    private Content prepareContent(Content content) {
+        final Content updatedContent = content.toBuilder()
+                .data(null)
+                .build();
+
+        return updatedContent.isEmpty() ? null : updatedContent;
     }
 
     private ExtSite maskExtSite(ExtSite siteExt) {

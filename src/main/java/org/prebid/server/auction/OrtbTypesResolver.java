@@ -245,16 +245,16 @@ public class OrtbTypesResolver {
         }
     }
 
-    public void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
-                                       List<String> warnings) {
+    private void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
+                                        List<String> warnings) {
         final JsonNode data = containerNode.get(DATA);
-        if (data == null || data.isNull()) {
+        if (data == null || !data.isObject()) {
             return;
         }
         final JsonNode extData = containerNode.path(EXT).path(DATA);
         final JsonNode ext = containerNode.get(EXT);
         if (!extData.isNull() && !extData.isMissingNode()) {
-            final JsonNode resolvedExtData = jsonMerger.merge(extData, data);
+            final JsonNode resolvedExtData = jsonMerger.merge(data, extData);
             ((ObjectNode) ext).set(DATA, resolvedExtData);
         } else {
             copyDataToExtData(containerNode, containerName, nodePrefix, warnings, data);

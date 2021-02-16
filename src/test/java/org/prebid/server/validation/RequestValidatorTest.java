@@ -280,7 +280,8 @@ public class RequestValidatorTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(null)
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -304,7 +305,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .h(250)
                                 .format(null)
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -324,7 +326,8 @@ public class RequestValidatorTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -347,7 +350,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .w(300)
                                 .format(emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -370,7 +374,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .h(600)
                                 .format(emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -394,7 +399,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .h(0)
                                 .format(emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -418,7 +424,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .h(0)
                                 .format(singletonList(Format.builder().build()))
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -441,7 +448,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .w(0)
                                 .format(emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -465,7 +473,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .w(0)
                                 .format(singletonList(Format.builder().build()))
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -488,7 +497,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .w(-300)
                                 .format(emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -512,7 +522,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .w(-300)
                                 .format(singletonList(Format.builder().build()))
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -535,7 +546,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .w(600)
                                 .format(emptyList())
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -559,7 +571,8 @@ public class RequestValidatorTest extends VertxTest {
                                 .w(600)
                                 .format(singletonList(Format.builder().build()))
                                 .build())
-                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
                         .build()))
                 .build();
 
@@ -1152,7 +1165,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenNoImpExtBiddersPresent() {
+    public void validateShouldReturnValidationMessageWhenNoImpExtPrebidPresent() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder().ext(null).build()))
@@ -1163,11 +1176,58 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext must contain at least one bidder");
+                .containsOnly("request.imp[0].ext.prebid must be non-empty object");
     }
 
     @Test
-    public void validateShouldReturnValidationMessagesWhenImpExtBidderIsUnknown() {
+    public void validateShouldReturnValidationMessageWhenImpExtPrebidIsNotObject() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder().ext(mapper.valueToTree(singletonMap("prebid", "test"))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].ext.prebid must be non-empty object");
+    }
+
+    @Test
+    public void validateShouldReturnEmptyValidationMessagesWhenOnlyImpExtPrebidExist() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("attr", "value")))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenImpExtPrebidBidderIsNotObject() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", "test"))))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].ext.prebid.bidder must be object");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenImpExtPrebidBidderIsUnknown() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(false);
@@ -1177,22 +1237,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext contains unknown bidder: rubicon");
-    }
-
-    @Test
-    public void validateShouldReturnEmptyValidationMessagesWhenOnlyPrebidImpExtExist() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .imp(singletonList(validImpBuilder()
-                        .ext(mapper.valueToTree(singletonMap("prebid", "test"))).build()))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
+                .containsOnly("request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon");
     }
 
     @Test
@@ -1207,7 +1252,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
+                .containsOnly(
+                        "request.imp[0].ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
     }
 
     @Test
@@ -1884,7 +1930,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp.[0].ext.native contains empty request value");
+                .containsOnly("request.imp[0].native contains empty request value");
     }
 
     @Test
@@ -1897,7 +1943,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Error while parsing request.imp.[0].ext.native.request");
+                .containsOnly("Error while parsing request.imp[0].native.request");
     }
 
     @Test
@@ -2654,7 +2700,7 @@ public class RequestValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().wmin(1).wratio(5).hratio(1).build()))
                         .build())
                 .pmp(Pmp.builder().deals(singletonList(Deal.builder().id("1").build())).build())
-                .ext(mapper.valueToTree(singletonMap("rubicon", 0)));
+                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))));
     }
 
     private static BidRequest overwriteBannerFormatInFirstImp(

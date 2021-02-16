@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Source;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -14,6 +15,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,7 +48,7 @@ public class SchainResolver {
             bidderSchain = existingSchainOrNull(bidder, bidderSchain, schain);
         }
 
-        return enrich(ObjectUtils.defaultIfNull(bidderSchain, catchAllSchain));
+        return enrich(ObjectUtils.defaultIfNull(bidderSchain, catchAllSchain), bidRequest);
     }
 
     private static ExtRequestPrebidSchainSchainNode globalNodeOrNull(String globalNodeString, JacksonMapper mapper) {
@@ -80,22 +82,48 @@ public class SchainResolver {
         return schainEntry.getSchain();
     }
 
-    private ExtRequestPrebidSchainSchain enrich(ExtRequestPrebidSchainSchain schain) {
+    private ExtRequestPrebidSchainSchain enrich(ExtRequestPrebidSchainSchain bidderSpecificSchain,
+                                                BidRequest bidRequest) {
+
         if (globalNode == null) {
-            return schain;
+            return bidderSpecificSchain;
         }
 
-        if (schain == null) {
-            return ExtRequestPrebidSchainSchain.of(null, null, Collections.singletonList(globalNode), null);
+        if (bidderSpecificSchain != null) {
+            return enrichSchainWithGlobalNode(bidderSpecificSchain);
         }
 
-        final List<ExtRequestPrebidSchainSchainNode> nodes = new ArrayList<>(ListUtils.emptyIfNull(schain.getNodes()));
-        nodes.add(globalNode);
+        final ExtRequestPrebidSchainSchain requestSchain = requestSchain(bidRequest);
+        if (requestSchain != null) {
+            return enrichSchainWithGlobalNode(requestSchain);
+        }
 
+        return newSchainWithGlobalNode();
+    }
+
+    private ExtRequestPrebidSchainSchain requestSchain(BidRequest bidRequest) {
+        final Source source = bidRequest.getSource();
+        final ExtSource extSource = source != null ? source.getExt() : null;
+
+        return extSource != null ? extSource.getSchain() : null;
+    }
+
+    private ExtRequestPrebidSchainSchain enrichSchainWithGlobalNode(ExtRequestPrebidSchainSchain requestSchain) {
         return ExtRequestPrebidSchainSchain.of(
-                schain.getVer(),
-                schain.getComplete(),
-                nodes,
-                schain.getExt());
+                requestSchain.getVer(),
+                requestSchain.getComplete(),
+                appendGlobalNode(requestSchain.getNodes()),
+                requestSchain.getExt());
+    }
+
+    private List<ExtRequestPrebidSchainSchainNode> appendGlobalNode(List<ExtRequestPrebidSchainSchainNode> nodes) {
+        final ArrayList<ExtRequestPrebidSchainSchainNode> updatedNodes = new ArrayList<>(ListUtils.emptyIfNull(nodes));
+        updatedNodes.add(globalNode);
+
+        return updatedNodes;
+    }
+
+    private ExtRequestPrebidSchainSchain newSchainWithGlobalNode() {
+        return ExtRequestPrebidSchainSchain.of(null, null, Collections.singletonList(globalNode), null);
     }
 }

@@ -22,8 +22,6 @@ public class BidderCatalogTest {
     private Usersyncer usersyncer;
     @Mock
     private Bidder bidder;
-    @Mock
-    private Adapter adapter;
 
     private BidderDeps bidderDeps;
     private BidderCatalog bidderCatalog;
@@ -233,73 +231,5 @@ public class BidderCatalogTest {
 
         // when and then
         assertThat(bidderCatalog.bidderByName("unknown_bidder")).isNull();
-    }
-
-    @Test
-    public void adapterByNameShouldReturnAdapterForKnownBidder() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(emptyList())
-                .adapter(adapter)
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.adapterByName(BIDDER)).isSameAs(adapter);
-    }
-
-    @Test
-    public void adapterByNameShouldReturnNullForUnknownBidder() {
-        // given
-        bidderCatalog = new BidderCatalog(emptyList());
-
-        // when and then
-        assertThat(bidderCatalog.adapterByName("unknown_bidder")).isNull();
-    }
-
-    @Test
-    public void isValidAdapterNameShouldReturnTrueIfNameIsValidAndAdapterIsDefined() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(emptyList())
-                .adapter(adapter)
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isTrue();
-    }
-
-    @Test
-    public void isValidAdapterNameShouldReturnFalseIfNameIsInvalid() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name("invalid")
-                .deprecatedNames(emptyList())
-                .aliases(emptyList())
-                .adapter(adapter)
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isFalse();
-    }
-
-    @Test
-    public void isValidAdapterNameShouldReturnFalseIfAdapterIsNotDefined() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(emptyList())
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isFalse();
     }
 }
