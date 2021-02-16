@@ -82,13 +82,6 @@ public abstract class IntegrationTest extends VertxTest {
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
     }
 
-    static String legacyAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
-            throws IOException {
-
-        return auctionResponseFrom(templatePath, response,
-                "bidder_status.find { it.bidder == '%s' }.response_time_ms", bidders);
-    }
-
     static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
             throws IOException {
 

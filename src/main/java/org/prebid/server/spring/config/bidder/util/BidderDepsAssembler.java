@@ -1,9 +1,7 @@
 package org.prebid.server.spring.config.bidder.util;
 
-import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.DisabledAdapter;
 import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.BidderInfo;
@@ -25,7 +23,6 @@ public class BidderDepsAssembler {
     private BidderInfo bidderInfo;
     private Supplier<Usersyncer> usersyncerCreator;
     private Supplier<Bidder<?>> bidderCreator;
-    private Supplier<Adapter<?, ?>> adapterCreator;
 
     private BidderDepsAssembler() {
         enabled = false;
@@ -52,11 +49,6 @@ public class BidderDepsAssembler {
         return this;
     }
 
-    public BidderDepsAssembler adapterCreator(Supplier<Adapter<?, ?>> adapterCreator) {
-        this.adapterCreator = adapterCreator;
-        return this;
-    }
-
     public BidderDepsAssembler withConfig(BidderConfigurationProperties configProperties) {
         enabled = configProperties.getEnabled();
         deprecatedNames = configProperties.getDeprecatedNames();
@@ -70,9 +62,6 @@ public class BidderDepsAssembler {
         final Bidder<?> bidder = enabled ? bidderCreator.get()
                 : new DisabledBidder(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
 
-        final Adapter<?, ?> adapter = enabled ? (adapterCreator != null ? adapterCreator.get() : null)
-                : new DisabledAdapter(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
-
         return BidderDeps.builder()
                 .name(bidderName)
                 .deprecatedNames(deprecatedNames)
@@ -80,7 +69,6 @@ public class BidderDepsAssembler {
                 .bidderInfo(bidderInfo)
                 .usersyncer(usersyncer)
                 .bidder(bidder)
-                .adapter(adapter)
                 .build();
     }
 }
