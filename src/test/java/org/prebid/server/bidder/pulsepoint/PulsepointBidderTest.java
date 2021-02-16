@@ -189,7 +189,7 @@ public class PulsepointBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getApp)
                 .extracting(App::getPublisher)
                 .extracting(Publisher::getId)
