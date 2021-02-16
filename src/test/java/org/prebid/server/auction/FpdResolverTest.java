@@ -18,7 +18,7 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
@@ -499,11 +499,10 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldNotSetContextIfContextIsAbsent() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode();
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
+        final ObjectNode impExt = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("context")).isNull();
@@ -512,32 +511,31 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldNotRemoveDataFromContextIfFPDEnabled() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .set("context", mapper.createObjectNode()
                         .set("data", mapper.createObjectNode()
                                 .put("attr1", "value1")));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
 
         // then
-        assertThat(result.get("context")).isNotSameAs(originalExtImp.get("context"));
-        assertThat(result.get("context")).isEqualTo(originalExtImp.get("context"));
+        assertThat(result.get("context")).isEqualTo(mapper.createObjectNode()
+                .set("data", mapper.createObjectNode()
+                        .put("attr1", "value1")));
     }
 
     @Test
     public void resolveImpExtShouldRemoveDataFromContextIfFPDDisabled() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .set("context", mapper.createObjectNode()
                         .put("keyword", "keyw1")
                         .set("data", mapper.createObjectNode()
                                 .put("attr1", "value1")));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, false);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
 
         // then
         assertThat(result.get("context")).isEqualTo(mapper.createObjectNode()
@@ -547,28 +545,26 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldTolerateNonObjectContextIfFPDDisabled() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .set("context", mapper.createArrayNode().add("value1"));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, false);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
 
         // then
-        assertThat(result.get("context")).isEqualTo(originalExtImp.get("context"));
+        assertThat(result.get("context")).isEqualTo(mapper.createArrayNode().add("value1"));
     }
 
     @Test
     public void resolveImpExtShouldNotSetContextIfEmpty() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .set("context", mapper.createObjectNode()
                         .set("data", mapper.createObjectNode()
                                 .put("attr1", "value1")));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, false);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
 
         // then
         assertThat(result.get("context")).isNull();
@@ -577,11 +573,10 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldNotSetDataIfDataIsAbsent() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode();
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
+        final ObjectNode impExt = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isNull();
@@ -590,13 +585,12 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldNotSetDataIfFPDDisabled() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .set("data", mapper.createObjectNode()
                         .put("attr1", "value1"));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, false);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
 
         // then
         assertThat(result.get("data")).isNull();
@@ -605,33 +599,31 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldSetDataFromContextDataIfDataIsAbsent() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .set("context", mapper.createObjectNode()
                         .set("data", mapper.createObjectNode()
                                 .put("attr1", "value1")));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
 
         // then
-        assertThat(result.get("data")).isNotSameAs(originalExtImp.get("context").get("data"));
-        assertThat(result.get("data")).isEqualTo(originalExtImp.get("context").get("data"));
+        assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
+                .put("attr1", "value1"));
     }
 
     @Test
     public void resolveImpExtShouldMergeDataWithContextDataIfDataIsPresent() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .<ObjectNode>set("context", mapper.createObjectNode()
                         .set("data", mapper.createObjectNode()
                                 .put("attr1", "value1")))
                 .set("data", mapper.createObjectNode()
                         .put("attr2", "value2"));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
@@ -642,14 +634,13 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldNotChangeDataIfContextDataIsAbsent() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .<ObjectNode>set("context", mapper.createObjectNode())
                 .set("data", mapper.createObjectNode()
                         .put("attr2", "value2"));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
@@ -659,36 +650,66 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldTolerateNonObjectData() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .<ObjectNode>set("context", mapper.createObjectNode()
                         .set("data", mapper.createObjectNode()
                                 .put("attr1", "value1")))
                 .set("data", mapper.createArrayNode()
                         .add("attr2"));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
 
         // then
-        assertThat(result.get("data")).isEqualTo(originalExtImp.get("data"));
+        assertThat(result.get("data")).isEqualTo(mapper.createArrayNode()
+                .add("attr2"));
     }
 
     @Test
     public void resolveImpExtShouldNotMergeNonObjectContextData() {
         // given
-        final ObjectNode originalExtImp = mapper.createObjectNode()
+        final ObjectNode impExt = mapper.createObjectNode()
                 .<ObjectNode>set("context", mapper.createArrayNode()
                         .add("attr1"))
                 .set("data", mapper.createObjectNode()
                         .put("attr2", "value2"));
-        final ObjectNode updatedExtImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(originalExtImp, updatedExtImp, true);
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
 
         // then
-        assertThat(result.get("data")).isEqualTo(originalExtImp.get("data"));
+        assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
+                .put("attr2", "value2"));
+    }
+
+    @Test
+    public void resolveImpExtShouldNotRemoveUninvolvedFields() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode()
+                .set("all", mapper.createObjectNode()
+                        .put("attr1", "value1"));
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+
+        // then
+        assertThat(result.get("all")).isEqualTo(mapper.createObjectNode()
+                .put("attr1", "value1"));
+    }
+
+    @Test
+    public void resolveImpExtShouldNotRemoveUninvolvedFieldsIfFPDDisabled() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode()
+                .set("all", mapper.createObjectNode()
+                        .put("attr1", "value1"));
+
+        // when
+        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
+
+        // then
+        assertThat(result.get("all")).isEqualTo(mapper.createObjectNode()
+                .put("attr1", "value1"));
     }
 
     @Test
@@ -701,6 +722,20 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         assertThat(result).isSameAs(givenExtRequest);
+    }
+
+    @Test
+    public void resolveBidRequestExtShouldTolerateMissingBidders() {
+        // given
+        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"))).build());
+
+        // when
+        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
+                Targeting.of(null, null, null)); // no bidders
+
+        // then
+        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
     }
 
     @Test
@@ -781,10 +816,13 @@ public class FpdResolverTest extends VertxTest {
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, targeting);
 
         // then
+        final ExtRequestPrebidBidderConfig expectedBidderConfig = ExtRequestPrebidBidderConfig.of(
+                Collections.singletonList("*"),
+                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode)));
+
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
-                        Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                                siteNode, null, userNode))))).build()));
+                .bidderconfig(Collections.singletonList(expectedBidderConfig))
+                .build()));
     }
 
     @Test
@@ -815,7 +853,7 @@ public class FpdResolverTest extends VertxTest {
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                 .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform")))
                 .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
-                        Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigFpd.of(
+                        Collections.singletonList("*"), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
                                 mapper.valueToTree(Site.builder().id("id").build()), null,
                                 mapper.valueToTree(User.builder().id("id").build())))))).build()));
     }
