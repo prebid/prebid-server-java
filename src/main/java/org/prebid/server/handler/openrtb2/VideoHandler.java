@@ -7,18 +7,21 @@ import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.util.HttpUtil;
 
@@ -38,18 +41,18 @@ public class VideoHandler implements Handler<RoutingContext> {
     private final VideoRequestFactory videoRequestFactory;
     private final VideoResponseFactory videoResponseFactory;
     private final ExchangeService exchangeService;
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
 
     public VideoHandler(VideoRequestFactory videoRequestFactory, VideoResponseFactory videoResponseFactory,
-                        ExchangeService exchangeService, AnalyticsReporter analyticsReporter, Metrics metrics,
+                        ExchangeService exchangeService, AnalyticsReporterDelegator analyticsDelegator, Metrics metrics,
                         Clock clock, JacksonMapper mapper) {
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -133,11 +136,14 @@ public class VideoHandler implements Handler<RoutingContext> {
             }
         }
         final VideoEvent videoEvent = videoEventBuilder.status(status).errors(errorMessages).build();
-        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent);
+        final AuctionContext auctionContext = videoEvent.getAuctionContext();
+        final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
+        final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
+        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, VideoEvent event) {
+                             MetricName metricRequestStatus, VideoEvent event, TcfContext tcfContext) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -150,7 +156,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event);
+            analyticsDelegator.processEvent(event, tcfContext);
         }
     }
 

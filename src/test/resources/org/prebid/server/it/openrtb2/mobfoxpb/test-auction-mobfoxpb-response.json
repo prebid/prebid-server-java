@@ -1,0 +1,65 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "impId001",
+          "price": 3.33,
+          "adm": "<iframe id=\"adm-banner-16\" width=\"300\" height=\"250\" frameborder=\"0\" marginheight=\"0\" marginwidth=\"0\" style=\"{overflow:hidden}\" src=\"https://bes.mobfox.com/?c=o&m=adm&k=882b2510ed6d6c94fa69c99aa522a708\"></iframe>",
+          "cid": "test_cid",
+          "crid": "test_crid",
+          "dealid": "test_dealid",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "3.30",
+                "hb_size_mobfoxpb": "300x250",
+                "hb_bidder_mobfoxpb": "mobfoxpb",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_size": "300x250",
+                "hb_deal_mobfoxpb": "test_dealid",
+                "hb_deal": "test_dealid",
+                "hb_cache_host_mobfoxpb": "{{ cache.host }}",
+                "hb_cache_path_mobfoxpb": "{{ cache.path }}",
+                "hb_cache_id_mobfoxpb": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_bidder": "mobfoxpb",
+                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_pb_mobfoxpb": "3.30",
+                "hb_cache_host": "{{ cache.host }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb"
+                }
+              }
+            },
+            "bidder": {
+              "prebid": {
+                "type": "banner"
+              }
+            }
+          }
+        }
+      ],
+      "seat": "mobfoxpb",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "mobfoxpb": "{{ mobfoxpb.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}

@@ -3,7 +3,6 @@ package org.prebid.server.analytics;
 /**
  * Type of component that does transactional logging.
  */
-@FunctionalInterface
 public interface AnalyticsReporter {
 
     /**
@@ -13,4 +12,9 @@ public interface AnalyticsReporter {
      * Implementation note: this method is executed on Vert.x event loop thread so it must never use blocking API.
      */
     <T> void processEvent(T event);
+
+    /**
+     * Method for defining analytics reporter ID for TCF checks.
+     */
+    int vendorId();
 }

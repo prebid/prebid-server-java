@@ -13,7 +13,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -190,6 +190,64 @@ public class FpdResolver {
                 : impExt.set(CONTEXT, jacksonMapper.mapper().createObjectNode().set(DATA, resolvedData));
     }
 
+    /**
+     * @param impExt might be modified within method
+     */
+    public ObjectNode resolveImpExt(ObjectNode impExt, boolean useFirstPartyData) {
+        removeOrReplace(impExt, CONTEXT, sanitizeImpExtContext(impExt, useFirstPartyData));
+        removeOrReplace(impExt, DATA, sanitizeImpExtData(impExt, useFirstPartyData));
+
+        return impExt;
+    }
+
+    private JsonNode sanitizeImpExtContext(ObjectNode originalImpExt, boolean useFirstPartyData) {
+        if (!originalImpExt.hasNonNull(CONTEXT)) {
+            return null;
+        }
+
+        final JsonNode updatedContextNode = originalImpExt.get(CONTEXT).deepCopy();
+        if (!useFirstPartyData && updatedContextNode.hasNonNull(DATA)) {
+            ((ObjectNode) updatedContextNode).remove(DATA);
+        }
+
+        return updatedContextNode.isObject() && updatedContextNode.isEmpty() ? null : updatedContextNode;
+    }
+
+    private JsonNode sanitizeImpExtData(ObjectNode impExt, boolean useFirstPartyData) {
+        if (!useFirstPartyData) {
+            return null;
+        }
+
+        final JsonNode contextNode = impExt.hasNonNull(CONTEXT) ? impExt.get(CONTEXT) : null;
+        final JsonNode contextDataNode =
+                contextNode != null && contextNode.hasNonNull(DATA) ? contextNode.get(DATA) : null;
+
+        final JsonNode dataNode = impExt.get(DATA);
+
+        final boolean dataIsNullOrObject =
+                dataNode == null || dataNode.isObject();
+        final boolean contextDataIsObject =
+                contextDataNode != null && !contextDataNode.isNull() && contextDataNode.isObject();
+
+        final JsonNode mergedDataNode = dataIsNullOrObject && contextDataIsObject
+                ? dataNode != null ? jsonMerger.merge(contextDataNode, dataNode) : contextDataNode
+                : dataNode;
+
+        if (mergedDataNode != null && !mergedDataNode.isNull()) {
+            return mergedDataNode;
+        }
+
+        return null;
+    }
+
+    private void removeOrReplace(ObjectNode impExt, String field, JsonNode jsonNode) {
+        if (jsonNode == null) {
+            impExt.remove(field);
+        } else {
+            impExt.set(field, jsonNode);
+        }
+    }
+
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
         if (targeting == null) {
             return extRequest;
@@ -219,7 +277,7 @@ public class FpdResolver {
     }
 
     private ExtRequestPrebidData resolveExtRequestPrebidData(ExtRequestPrebidData data, List<String> fpdBidders) {
-        if (CollectionUtils.isEmpty(fpdBidders) && data == null) {
+        if (CollectionUtils.isEmpty(fpdBidders)) {
             return null;
         }
         final List<String> originBidders = data != null ? data.getBidders() : Collections.emptyList();
@@ -237,7 +295,7 @@ public class FpdResolver {
         final List<String> bidders = Collections.singletonList(ALLOW_ALL_BIDDERS);
 
         return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
-                ExtBidderConfig.of(ExtBidderConfigFpd.of(siteNode, null, userNode))));
+                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode))));
     }
 
     private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
@@ -248,7 +306,7 @@ public class FpdResolver {
 
     private ObjectNode mergeExtData(JsonNode fpdData, JsonNode originData) {
         if (fpdData.isMissingNode() || !fpdData.isObject()) {
-            return originData != null && originData.isObject() ? (ObjectNode) originData : null;
+            return originData != null && originData.isObject() ? ((ObjectNode) originData).deepCopy() : null;
         }
 
         if (originData != null && originData.isObject()) {

@@ -79,22 +79,25 @@
               ]
             },
             "ext": {
-              "yieldlab": {
-                "adslotId": "12345",
-                "supplyId": "123456789",
-                "adSize": "400x300",
+              "prebid": {
+                "bidder": {
+                  "yieldlab": {
+                    "adslotId": "12345",
+                    "supplyId": "123456789",
+                    "adSize": "400x300",
                 "targeting": {
-                  "key1": "value1",
-                  "key2": "value2"
-                },
-                "extId": "abc"
+                      "key1": "value1",
+                      "key2": "value2"
+                    },
+                    "extId": "abc"
+                  }
+                }
               }
             }
           }
         ],
         "site": {
           "id": "siteId",
-          "domain": "example.com",
           "page": "http://localhost:9090/gdpr.html",
           "publisher": {
             "id": "publisherId"

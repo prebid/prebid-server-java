@@ -9,4 +9,9 @@ public class NoneIdGenerator implements IdGenerator {
     public String generateId() {
         return null;
     }
+
+    @Override
+    public IdGeneratorType getType() {
+        return IdGeneratorType.none;
+    }
 }

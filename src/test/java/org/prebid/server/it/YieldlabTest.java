@@ -65,6 +65,7 @@ public class YieldlabTest extends IntegrationTest {
                 response, singletonList("yieldlab"));
 
         final String actualStr = response.asString();
+
         JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 }

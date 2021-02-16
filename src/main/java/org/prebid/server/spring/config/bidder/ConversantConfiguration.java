@@ -1,7 +1,9 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.conversant.ConversantAdapter;
 import org.prebid.server.bidder.conversant.ConversantBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
@@ -17,8 +19,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/conversant.yaml", factory = YamlPropertySourceFactory.class)
@@ -35,12 +39,12 @@ public class ConversantConfiguration {
 
     @Autowired
     @Qualifier("conversantConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
+    private ConversantConfigurationProperties configProperties;
 
     @Bean("conversantConfigurationProperties")
     @ConfigurationProperties("adapters.conversant")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
+    ConversantConfigurationProperties configurationProperties() {
+        return new ConversantConfigurationProperties();
     }
 
     @Bean
@@ -51,9 +55,18 @@ public class ConversantConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new ConversantBidder(configProperties.getEndpoint(), mapper))
-                .adapterCreator(() -> new ConversantAdapter(usersync.getCookieFamilyName(),
-                        configProperties.getEndpoint(), mapper))
+                .bidderCreator(() -> new ConversantBidder(configProperties.getEndpoint(),
+                        configProperties.getGenerateBidId(), mapper))
                 .assemble();
+    }
+
+    @Validated
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class ConversantConfigurationProperties extends BidderConfigurationProperties {
+
+        @NotNull
+        private Boolean generateBidId;
     }
 }

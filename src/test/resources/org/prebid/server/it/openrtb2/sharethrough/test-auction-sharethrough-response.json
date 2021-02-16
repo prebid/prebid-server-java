@@ -79,14 +79,18 @@
               ]
             },
             "ext": {
-              "sharethrough": {
-                "pkey": "abc123",
-                "iframe": true,
-                "iframeSize": [
-                  50,
-                  50
-                ],
-                "bidfloor": 3.5
+              "prebid": {
+                "bidder": {
+                  "sharethrough": {
+                    "pkey": "abc123",
+                    "iframe": true,
+                    "iframeSize": [
+                      50,
+                      50
+                    ],
+                    "bidfloor": 3.5
+                  }
+                }
               }
             }
           }

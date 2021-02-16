@@ -20,7 +20,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 public class AdformTest extends IntegrationTest {
@@ -40,9 +39,9 @@ public class AdformTest extends IntegrationTest {
                 .withQueryParam("gdpr", equalTo("0"))
                 .withQueryParam("gdpr_consent", equalTo("consentValue"))
                 .withQueryParam("url", equalTo("https://adform.com?a=b"))
-                // bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
-                // "mid=15&rcur=USD&mkv=color:red&mkw=red&cdims=300X600&minp=2.50"
-                .withQueryParam("bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA",
+                // bWlkPTE1JnJjdXI9Q1pLJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
+                // "mid=15&rcur=CZK&mkv=color:red&mkw=red&cdims=300x600&minp=2.50"
+                .withQueryParam("bWlkPTE1JnJjdXI9Q1pLJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA",
                         equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -75,60 +74,5 @@ public class AdformTest extends IntegrationTest {
                 response, singletonList("adform"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
-    }
-
-    @Test
-    public void auctionShouldRespondWithBidsFromAdform() throws IOException {
-        // given
-        // adform bid response for ad unit 12
-        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/adform-exchange"))
-                .withQueryParam("CC", equalTo("1"))
-                .withQueryParam("rp", equalTo("4"))
-                .withQueryParam("fd", equalTo("1"))
-                .withQueryParam("stid", equalTo("tid"))
-                .withQueryParam("ip", equalTo("193.168.244.1"))
-                .withQueryParam("adid", equalTo("ifaId"))
-                .withQueryParam("gdpr", equalTo("1"))
-                .withQueryParam("gdpr_consent", equalTo("consent1"))
-                .withQueryParam("pt", equalTo("gross"))
-                // bWlkPTE1JnJjdXI9VVNE is Base64 encoded "mid=15&rcur=USD"
-                .withQueryParam("bWlkPTE1JnJjdXI9VVNE", equalTo(""))
-                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", equalTo("application/json"))
-                .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.3"))
-                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
-                .withHeader("Cookie", equalTo("uid=AF-UID"))
-                .withRequestBody(absent())
-                .willReturn(aResponse().withBody(jsonFrom("auction/adform/test-adform-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("auction/adform/test-cache-adform-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/adform/test-cache-adform-response.json"))));
-
-        // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"adform":"AF-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7ImFkZm9ybSI6IkFGLVVJRCJ9fQ==")
-                .queryParam("debug", "1")
-                .body(jsonFrom("auction/adform/test-auction-adform-request.json"))
-                .post("/auction");
-
-        // then
-        assertThat(response.header("Cache-Control")).isEqualTo("no-cache, no-store, must-revalidate");
-        assertThat(response.header("Pragma")).isEqualTo("no-cache");
-        assertThat(response.header("Expires")).isEqualTo("0");
-        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
-        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
-
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(
-                "auction/adform/test-auction-adform-response.json",
-                response, singletonList("adform"));
-        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 }

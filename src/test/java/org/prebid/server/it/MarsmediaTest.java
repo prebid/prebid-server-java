@@ -25,11 +25,13 @@ public class MarsmediaTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromMarsmedia() throws IOException, JSONException {
         // given
         // Marsmedia bid response for imp 001
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/marsmedia-exchange&zone=zone_1"))
-                //.withQueryParam("zone", equalTo("zone_1"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/marsmedia-exchange"))
+                .withQueryParam("zone", equalTo("zone_1"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withHeader("DNT", equalTo("2"))
                 .withHeader("Accept-Language", equalTo("en"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/marsmedia/test-marsmedia-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/marsmedia/test-marsmedia-bid-response-1.json"))));
 

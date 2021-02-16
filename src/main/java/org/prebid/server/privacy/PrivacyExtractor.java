@@ -14,7 +14,6 @@ import org.prebid.server.privacy.model.PrivacyExtractorResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.request.PreBidRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,12 +51,6 @@ public class PrivacyExtractor {
                 .originPrivacy(originPrivacy)
                 .validPrivacy(toValidPrivacy(originPrivacy, errors))
                 .errors(errors).build();
-    }
-
-    @Deprecated
-    public Privacy validPrivacyFrom(PreBidRequest preBidRequest) {
-        final Privacy originPrivacy = extractOriginPrivacy(preBidRequest.getRegs(), preBidRequest.getUser());
-        return extractPrivacy(originPrivacy, null);
     }
 
     public Privacy validPrivacyFrom(CookieSyncRequest request) {
