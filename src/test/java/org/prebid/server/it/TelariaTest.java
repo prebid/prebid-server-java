@@ -32,7 +32,6 @@ public class TelariaTest extends IntegrationTest {
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
-                .withHeader("Accept-Encoding", equalTo("gzip"))
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("Content-Length", equalTo("633"))
                 .withHeader("DNT", equalTo("2"))

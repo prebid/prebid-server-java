@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.pulsepoint;
 
 import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -26,63 +25,31 @@ public class PulsepointBidder extends OpenrtbBidder<ExtImpPulsepoint> {
 
     @Override
     protected Imp modifyImp(Imp imp, ExtImpPulsepoint extImpPulsepoint) throws PreBidException {
-        // imp validation
-        if (imp.getBanner() == null) {
-            throw new PreBidException(String.format("Invalid MediaType. Pulsepoint supports only Banner type. "
-                    + "Ignoring ImpID=%s", imp.getId()));
-        }
-
-        // imp.ext validation
-        final Integer publisherId = extImpPulsepoint.getPublisherId();
-        if (publisherId == null || publisherId == 0) {
-            throw new PreBidException("Missing PublisherId param cp");
-        }
-        final Integer tagId = extImpPulsepoint.getTagId();
-        if (tagId == null || tagId == 0) {
-            throw new PreBidException("Missing TagId param ct");
-        }
-        final String adSize = extImpPulsepoint.getAdSize();
-        if (StringUtils.isEmpty(adSize)) {
-            throw new PreBidException("Missing AdSize param cf");
-        }
-        if (adSize.toLowerCase().split("x").length != 2) {
-            throw new PreBidException(String.format("Invalid AdSize param %s", adSize));
-        }
-
-        // impression modifications and additional validation
-        final String[] sizes = extImpPulsepoint.getAdSize().toLowerCase().split("x");
-        final int width;
-        final int height;
-        try {
-            width = Integer.parseInt(sizes[0]);
-            height = Integer.parseInt(sizes[1]);
-        } catch (NumberFormatException e) {
-            throw new PreBidException(String.format("Invalid Width or Height param %s x %s", sizes[0], sizes[1]));
-        }
-        final Banner modifiedBanner = imp.getBanner().toBuilder().w(width).h(height).build();
-
-        return imp.toBuilder()
-                .tagid(String.valueOf(extImpPulsepoint.getTagId()))
-                .banner(modifiedBanner)
-                .build();
+        return imp.toBuilder().tagid(Objects.toString(extImpPulsepoint.getTagId())).build();
     }
 
     @Override
     protected void modifyRequest(BidRequest bidRequest, BidRequest.BidRequestBuilder requestBuilder,
                                  List<ImpWithExt<ExtImpPulsepoint>> impsWithExts) {
-        final Integer pubId = impsWithExts.stream()
+        final String pubId = impsWithExts.stream()
                 .map(ImpWithExt::getImpExt)
                 .map(ExtImpPulsepoint::getPublisherId)
-                .filter(Objects::nonNull)
-                .reduce((first, second) -> second)
-                .orElse(null);
+                .filter(this::isValidPublisherId)
+                .findFirst()
+                .map(Objects::toString)
+                .orElse(StringUtils.EMPTY);
+
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
         if (site != null) {
-            requestBuilder.site(modifySite(site, String.valueOf(pubId)));
+            requestBuilder.site(modifySite(site, pubId));
         } else if (app != null) {
-            requestBuilder.app(modifyApp(app, String.valueOf(pubId)));
+            requestBuilder.app(modifyApp(app, pubId));
         }
+    }
+
+    private boolean isValidPublisherId(Integer publisherId) {
+        return publisherId != null && publisherId > 0;
     }
 
     private static Site modifySite(Site site, String publisherId) {
@@ -101,8 +68,22 @@ public class PulsepointBidder extends OpenrtbBidder<ExtImpPulsepoint> {
                 .build();
     }
 
-    @Override
     protected BidType getBidType(Bid bid, List<Imp> imps) {
-        return BidType.banner;
+        final String impId = bid.getImpid();
+        BidType bidType = null;
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    bidType = BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    bidType = BidType.video;
+                } else if (imp.getAudio() != null) {
+                    bidType = BidType.audio;
+                } else if (imp.getXNative() != null) {
+                    bidType = BidType.xNative;
+                }
+            }
+        }
+        return bidType;
     }
 }
