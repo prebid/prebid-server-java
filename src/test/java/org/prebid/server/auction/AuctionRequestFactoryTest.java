@@ -27,7 +27,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
@@ -50,6 +49,7 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -65,6 +65,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -77,6 +78,7 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -91,6 +93,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
@@ -277,6 +280,32 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.cause())
                 .isInstanceOf(UnauthorizedAccountException.class)
                 .hasMessage("Unauthorized account id: absentId");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfAccountIsInactive() {
+        // given
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(Account.builder()
+                .id("accountId")
+                .status(AccountStatus.inactive)
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().id("accountId").build())
+                        .build())
+                .build();
+
+        givenBidRequest(bidRequest);
+
+        // when
+        final Future<AuctionContext> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isFailed();
+        assertThat(future.cause())
+                .isInstanceOf(UnauthorizedAccountException.class)
+                .hasMessage("Account accountId is inactive");
     }
 
     @Test
@@ -535,20 +564,24 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsSecureAndImpSecurityIsZero() {
         // given
-        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().secure(0).build())).build());
+        final List<Imp> imps = singletonList(Imp.builder().secure(0).build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getImp()).extracting(Imp::getSecure).containsOnly(0);
+        assertThat(request.getImp()).isSameAs(imps);
     }
 
     @Test
     public void shouldUpdateImpsOnlyWithNotDefinedSecurityWithSecurityOneIfRequestIsSecure() {
         // given
-        givenBidRequest(BidRequest.builder().imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
+        givenBidRequest(BidRequest.builder()
+                .imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
                 .build());
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
@@ -562,14 +595,119 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined() {
         // given
-        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
+        final List<Imp> imps = singletonList(Imp.builder().build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getImp()).extracting(Imp::getSecure).containsNull();
+        assertThat(request.getImp()).isSameAs(imps);
+    }
+
+    @Test
+    public void shouldMoveBidderParametersToImpExtPrebidBidderAndMergeWithExisting() {
+        // given
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                .<ObjectNode>set("bidder2", mapper.createObjectNode().put("param2", "value2"))
+                                .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
+                                .<ObjectNode>set("all", mapper.createObjectNode().put("all-data", "all-value"))
+                                .<ObjectNode>set("general", mapper.createObjectNode()
+                                        .put("general-data", "general-value"))
+                                .<ObjectNode>set("skadn", mapper.createObjectNode()
+                                        .put("skadn-data", "skadn-value"))
+                                .<ObjectNode>set("data", mapper.createObjectNode()
+                                        .put("data-data", "data-value"))
+                                .set("prebid", mapper.createObjectNode()
+                                        .<ObjectNode>set("bidder", mapper.createObjectNode()
+                                                .set("bidder2", mapper.createObjectNode().put("param22", "value22")))
+                                        .set("storedrequest", mapper.createObjectNode().put("id", "storedreq1"))))
+                        .build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getImp()).containsOnly(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .<ObjectNode>set("context", mapper.createObjectNode().put("data", "datavalue"))
+                                .<ObjectNode>set("all", mapper.createObjectNode().put("all-data", "all-value"))
+                                .<ObjectNode>set("general", mapper.createObjectNode()
+                                        .put("general-data", "general-value"))
+                                .<ObjectNode>set("skadn", mapper.createObjectNode()
+                                        .put("skadn-data", "skadn-value"))
+                                .<ObjectNode>set("data", mapper.createObjectNode()
+                                        .put("data-data", "data-value"))
+                                .set("prebid", mapper.createObjectNode()
+                                        .<ObjectNode>set("bidder", mapper.createObjectNode()
+                                                .<ObjectNode>set(
+                                                        "bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                                .<ObjectNode>set(
+                                                        "bidder2", mapper.createObjectNode()
+                                                                .put("param2", "value2")
+                                                                .put("param22", "value22")))
+                                        .set("storedrequest", mapper.createObjectNode().put("id", "storedreq1"))))
+                        .build());
+    }
+
+    @Test
+    public void shouldMoveBidderParametersToImpExtPrebidBidderWhenImpExtPrebidAbsent() {
+        // given
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .<ObjectNode>set("bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                .set("bidder2", mapper.createObjectNode().put("param2", "value2")))
+                        .build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getImp()).containsOnly(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("bidder", mapper.createObjectNode()
+                                                .<ObjectNode>set(
+                                                        "bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                                .<ObjectNode>set(
+                                                        "bidder2", mapper.createObjectNode().put("param2", "value2")))))
+                        .build());
+    }
+
+    @Test
+    public void shouldNotChangeImpExtWhenBidderParametersAreAtImpExtPrebidBidderOnly() {
+        // given
+        final List<Imp> imps = singletonList(
+                Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("bidder", mapper.createObjectNode()
+                                                .<ObjectNode>set(
+                                                        "bidder1", mapper.createObjectNode().put("param1", "value1"))
+                                                .<ObjectNode>set(
+                                                        "bidder2", mapper.createObjectNode().put("param2", "value2")))))
+                        .build());
+
+        givenBidRequest(BidRequest.builder().imp(imps).build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getImp()).isSameAs(imps);
     }
 
     @Test
@@ -579,8 +717,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(mapper.createObjectNode().set("bidder2",
                         mapper.createObjectNode().put("key2", "value2"))).build()))
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.createObjectNode().set("bidder1",
-                                mapper.createObjectNode().put("key1", "value1"))).build())).build());
+                        .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                                .set("bidder", mapper.createObjectNode()
+                                        .set("bidder1", mapper.createObjectNode().put("key1", "value1")))))
+                        .build())).build());
 
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
@@ -588,9 +728,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        final ObjectNode expectedResult = mapper.createObjectNode().set("bidder2",
-                mapper.createObjectNode().put("key2", "value2"));
-        expectedResult.set("bidder1", mapper.createObjectNode().put("key1", "value1"));
+        final ObjectNode expectedResult = mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .<ObjectNode>set("bidder2", mapper.createObjectNode().put("key2", "value2"))
+                                .set("bidder1", mapper.createObjectNode().put("key1", "value1"))));
 
         assertThat(request.getImp()).extracting(Imp::getExt)
                 .element(0).isNotNull().isEqualTo(expectedResult);
@@ -603,8 +745,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(mapper.createObjectNode().set("bidder1",
                         mapper.createObjectNode().put("key1", "value1-request").put("key2", "value2"))).build()))
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.createObjectNode().set("bidder1",
-                                mapper.createObjectNode().put("key1", "value1-imp"))).build())).build());
+                        .ext(mapper.createObjectNode()
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("bidder", mapper.createObjectNode()
+                                                .set("bidder1", mapper.createObjectNode().put("key1", "value1-imp")))))
+                        .build())).build());
 
         given(jsonMerger.merge(any(), any())).willReturn(mapper.createObjectNode().put("key1", "value1-imp")
                 .put("key2", "value2"));
@@ -615,10 +760,13 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        final ObjectNode expectedResult = mapper.createObjectNode().set("bidder1",
-                mapper.createObjectNode().put("key1", "value1-imp").put("key2", "value2"));
-        assertThat(request.getImp()).extracting(Imp::getExt)
-                .element(0).isNotNull().isEqualTo(expectedResult);
+        final ObjectNode expectedResult = mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .set("bidder1", mapper.createObjectNode().put("key1", "value1-imp")
+                                        .put("key2", "value2"))));
+
+        assertThat(request.getImp()).extracting(Imp::getExt).element(0).isNotNull().isEqualTo(expectedResult);
     }
 
     @Test
@@ -643,9 +791,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        final ObjectNode expectedResult = mapper.createObjectNode().set("bidder2",
-                mapper.createObjectNode().put("key1", "value1"));
-        expectedResult.set("bidder1", mapper.createObjectNode().put("key1", "value1").put("key2", "value2"));
+        final ObjectNode expectedResult = mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .<ObjectNode>set("bidder1", mapper.createObjectNode().put("key1", "value1")
+                                        .put("key2", "value2"))
+                                .set("bidder2", mapper.createObjectNode().put("key1", "value1"))));
 
         assertThat(request.getImp()).extracting(Imp::getExt)
                 .element(0).isNotNull().isEqualTo(expectedResult);
@@ -661,8 +812,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(requestBidderParams).build()))
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.createObjectNode().set("bidder1",
-                                mapper.createObjectNode().put("key1", "value1"))).build())).build());
+                        .ext(mapper.createObjectNode()
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("bidder", mapper.createObjectNode()
+                                                .set("bidder1", mapper.createObjectNode().put("key1", "value1")))))
+                        .build())).build());
 
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
@@ -671,8 +825,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getImp()).extracting(Imp::getExt)
-                .element(0).isNotNull().isEqualTo(mapper.createObjectNode().set("bidder1",
-                mapper.createObjectNode().put("key1", "value1")));
+                .element(0).isNotNull().isEqualTo(mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .set("bidder1", mapper.createObjectNode().put("key1", "value1")))));
     }
 
     @Test
@@ -760,9 +916,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldNotSetSitePageIfDomainCouldNotBeDerived() {
         // given
-        givenBidRequest(BidRequest.builder()
-                .site(Site.builder().domain("home.com").build())
-                .build());
+        givenValidBidRequest();
 
         given(paramsExtractor.refererFrom(any())).willReturn("http://not-valid-site");
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
@@ -772,7 +926,28 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getSite()).isEqualTo(
-                Site.builder().domain("home.com").ext(ExtSite.of(0, null)).build());
+                Site.builder().ext(ExtSite.of(0, null)).build());
+    }
+
+    @Test
+    public void shouldSetDomainFromPageInsteadOfReferer() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().page("http://page.site.com/page1.html").build())
+                .build());
+
+        given(paramsExtractor.refererFrom(any())).willReturn("http://any-site/referer.html");
+        given(paramsExtractor.domainFrom(anyString())).willReturn("site.com");
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        verify(paramsExtractor).domainFrom(eq("http://page.site.com/page1.html"));
+
+        assertThat(singleton(request.getSite()))
+                .extracting(Site::getPage, Site::getDomain)
+                .containsOnly(tuple("http://page.site.com/page1.html", "site.com"));
     }
 
     @Test
@@ -1251,6 +1426,31 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestPrebid::getCache)
                 .extracting(ExtRequestPrebidCache::getBids, ExtRequestPrebidCache::getVastxml)
                 .containsOnly(tuple(cacheBids, cacheVastxml));
+    }
+
+    @Test
+    public void shouldNotChangeAnyOtherExtRequestPrebidTargetingFields() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder()
+                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true))
+                                .truncateattrchars(10)
+                                .build())
+                        .build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebrandcategory, ExtRequestTargeting::getTruncateattrchars)
+                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true), 10));
     }
 
     @Test
@@ -1785,7 +1985,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
         assertThat(auctionContextFuture.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
     }
 
@@ -1798,7 +1998,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
         assertThat(auctionContextFuture.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2app);
     }
 
@@ -1820,7 +2020,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
 
         // then
-        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture).isSucceeded();
 
         final AuctionContext auctionContext = auctionContextFuture.result();
         assertThat(auctionContext.getBidRequest().getDevice()).isEqualTo(

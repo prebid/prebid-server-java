@@ -1,5 +1,6 @@
 package org.prebid.server.currency;
 
+import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -10,6 +11,9 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
@@ -160,12 +164,22 @@ public class CurrencyConversionService implements Initializable {
     }
 
     /**
+     * Converts price from fromCurrency to toCurrency using rates from {@link BidRequest} or external currency service.
+     * If bidrequest.prebid.currecy.usepbsrates is true it takes rates from prebid server, if false from request.
+     * Default value of usepbsrates is true.
+     * Throws {@link PreBidException} in case conversion is not possible.
+     */
+    public BigDecimal convertCurrency(BigDecimal price, BidRequest bidRequest, String fromCurrency, String toCurrency) {
+        return convertCurrency(price, currencyRates(bidRequest), fromCurrency, toCurrency, usepbsrates(bidRequest));
+    }
+
+    /**
      * Converts price from bidCurrency to adServerCurrency using rates and usepbsrates flag defined in request.
      * If usepbsrates is true it takes rates from prebid server, if false from request. Default value of usepbsrates
      * is true.
      * Throws {@link PreBidException} in case conversion is not possible.
      */
-    public BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+    private BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                       String adServerCurrency, String bidCurrency, Boolean usepbsrates) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
@@ -196,6 +210,23 @@ public class CurrencyConversionService implements Initializable {
         }
 
         return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
+    }
+
+    private static Map<String, Map<String, BigDecimal>> currencyRates(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
+        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
+        return currency != null ? currency.getRates() : null;
+    }
+
+    private static ExtRequestPrebid extRequestPrebid(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        return requestExt != null ? requestExt.getPrebid() : null;
+    }
+
+    private static Boolean usepbsrates(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
+        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
+        return currency != null ? currency.getUsepbsrates() : null;
     }
 
     /**

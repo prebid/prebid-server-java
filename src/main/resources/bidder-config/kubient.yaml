@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: support@kubient.com
+      maintainer-email: prebid@kubient.com
       app-media-types:
         - banner
         - video

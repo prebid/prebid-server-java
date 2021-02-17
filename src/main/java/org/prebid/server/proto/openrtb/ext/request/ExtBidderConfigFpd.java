@@ -1,6 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -9,17 +9,12 @@ import lombok.Value;
 public class ExtBidderConfigFpd {
 
     /**
-     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.site
+     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.context
      */
-    ObjectNode site;
-
-    /**
-     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.app
-     */
-    ObjectNode app;
+    JsonNode context;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd.user
      */
-    ObjectNode user;
+    JsonNode user;
 }

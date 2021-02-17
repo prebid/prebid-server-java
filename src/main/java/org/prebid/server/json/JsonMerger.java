@@ -48,7 +48,7 @@ public class JsonMerger {
 
     public <T> T merge(T originalObject, T mergingObject, Class<T> classToCast) {
         if (!ObjectUtils.allNotNull(originalObject, mergingObject)) {
-            return ObjectUtils.firstNonNull(originalObject, mergingObject);
+            return ObjectUtils.defaultIfNull(originalObject, mergingObject);
         }
 
         final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
@@ -66,11 +66,13 @@ public class JsonMerger {
     }
 
     /**
-     * Merges @param mergingObject to @originalObject, where the first object fields has priority over the last.
+     * Returns 'toNode' with merged properties from 'fromNode'
+     * <p>
+     * fromNode object fields has priority over the toNode
      */
-    public JsonNode merge(JsonNode originalObject, JsonNode mergingObject) {
+    public JsonNode merge(JsonNode fromNode, JsonNode toNode) {
         try {
-            return JsonMergePatch.fromJson(originalObject).apply(mergingObject);
+            return JsonMergePatch.fromJson(fromNode).apply(toNode);
         } catch (JsonPatchException e) {
             throw new InvalidRequestException("Couldn't create merge patch for json nodes");
         }

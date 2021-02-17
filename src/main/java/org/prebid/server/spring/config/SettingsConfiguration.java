@@ -15,12 +15,14 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
+import org.prebid.server.settings.EnrichingApplicationSettings;
 import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
+import org.prebid.server.spring.config.model.AccountConfigurationProperties;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
@@ -327,12 +329,32 @@ public class SettingsConfiguration {
     }
 
     @Configuration
+    static class EnrichingSettingsConfiguration {
+
+        @Bean
+        @ConfigurationProperties("settings.default-account-config")
+        AccountConfigurationProperties defaultAccountConfigurationProperties() {
+            return new AccountConfigurationProperties();
+        }
+
+        @Bean
+        EnrichingApplicationSettings enrichingApplicationSettings(
+                CompositeApplicationSettings compositeApplicationSettings,
+                AccountConfigurationProperties defaultAccountConfigurationProperties,
+                JacksonMapper mapper) {
+
+            return new EnrichingApplicationSettings(
+                    compositeApplicationSettings, defaultAccountConfigurationProperties.toAccount(mapper));
+        }
+    }
+
+    @Configuration
     static class CachingSettingsConfiguration {
 
         @Bean
         @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
         CachingApplicationSettings cachingApplicationSettings(
-                CompositeApplicationSettings compositeApplicationSettings,
+                EnrichingApplicationSettings enrichingApplicationSettings,
                 ApplicationSettingsCacheProperties cacheProperties,
                 @Qualifier("settingsCache") SettingsCache cache,
                 @Qualifier("ampSettingsCache") SettingsCache ampCache,
@@ -340,7 +362,7 @@ public class SettingsConfiguration {
                 Metrics metrics) {
 
             return new CachingApplicationSettings(
-                    compositeApplicationSettings,
+                    enrichingApplicationSettings,
                     cache,
                     ampCache,
                     videoCache,
@@ -356,8 +378,8 @@ public class SettingsConfiguration {
         @Bean
         ApplicationSettings applicationSettings(
                 @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
-                @Autowired(required = false) CompositeApplicationSettings compositeApplicationSettings) {
-            return ObjectUtils.defaultIfNull(cachingApplicationSettings, compositeApplicationSettings);
+                EnrichingApplicationSettings enrichingApplicationSettings) {
+            return ObjectUtils.defaultIfNull(cachingApplicationSettings, enrichingApplicationSettings);
         }
     }
 

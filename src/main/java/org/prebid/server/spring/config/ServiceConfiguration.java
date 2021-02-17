@@ -11,14 +11,15 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.BidResponseReducer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.SchainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -29,7 +30,6 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
-import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
@@ -38,7 +38,6 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
-import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
@@ -136,6 +135,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    SchainResolver schainResolver(
+            @Value("${auction.host-schain-node}") String globalSchainNode,
+            JacksonMapper mapper) {
+
+        return SchainResolver.create(globalSchainNode, mapper);
+    }
+
+    @Bean
     TimeoutResolver timeoutResolver(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,
@@ -163,26 +170,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PreBidRequestContextFactory preBidRequestContextFactory(
-            TimeoutResolver timeoutResolver,
-            ImplicitParametersExtractor implicitParametersExtractor,
-            IpAddressHelper ipAddressHelper,
-            ApplicationSettings applicationSettings,
-            UidsCookieService uidsCookieService,
-            TimeoutFactory timeoutFactory,
-            JacksonMapper mapper) {
-
-        return new PreBidRequestContextFactory(
-                timeoutResolver,
-                implicitParametersExtractor,
-                ipAddressHelper,
-                applicationSettings,
-                uidsCookieService,
-                timeoutFactory,
-                mapper);
-    }
-
-    @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
@@ -202,7 +189,7 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
             PrivacyEnforcementService privacyEnforcementService,
-            IdGenerator idGenerator,
+            IdGenerator sourceIdGenerator,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitToList(blacklistedAppsString);
@@ -227,14 +214,21 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
-                idGenerator,
+                sourceIdGenerator,
                 privacyEnforcementService,
                 mapper);
     }
 
     @Bean
-    IdGenerator idGenerator(@Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType) {
-        return idGeneratorType == IdGeneratorType.uuid
+    IdGenerator bidIdGenerator(@Value("${auction.generate-bid-id}") boolean generateBidId) {
+        return generateBidId
+                ? new UUIDIdGenerator()
+                : new NoneIdGenerator();
+    }
+
+    @Bean
+    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") boolean generateSourceTid) {
+        return generateSourceTid
                 ? new UUIDIdGenerator()
                 : new NoneIdGenerator();
     }
@@ -456,7 +450,8 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            @Value("${auction.generate-bid-id}") boolean generateBidId,
+            BidResponseReducer bidResponseReducer,
+            IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
@@ -466,7 +461,8 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 eventsService,
                 storedRequestProcessor,
-                generateBidId,
+                bidResponseReducer,
+                bidIdGenerator,
                 truncateAttrChars,
                 clock,
                 mapper);
@@ -479,6 +475,7 @@ public class ServiceConfiguration {
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
+            SchainResolver schainResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -494,6 +491,7 @@ public class ServiceConfiguration {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
+                schainResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
@@ -527,6 +525,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    BidResponseReducer bidResponseReducer() {
+        return new BidResponseReducer();
+    }
+
+    @Bean
     StoredResponseProcessor storedResponseProcessor(ApplicationSettings applicationSettings,
                                                     BidderCatalog bidderCatalog,
                                                     JacksonMapper mapper) {
@@ -551,15 +554,6 @@ public class ServiceConfiguration {
     @Bean
     PrivacyExtractor privacyExtractor() {
         return new PrivacyExtractor();
-    }
-
-    @Bean
-    HttpAdapterConnector httpAdapterConnector(HttpClient httpClient,
-                                              PrivacyExtractor privacyExtractor,
-                                              Clock clock,
-                                              JacksonMapper mapper) {
-
-        return new HttpAdapterConnector(httpClient, privacyExtractor, clock, mapper);
     }
 
     @Bean
