@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
@@ -59,8 +58,6 @@ public class RubiconConfiguration {
                         configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(),
                         configProperties.getMetaInfo().getSupportedVendors(), configProperties.getGenerateBidId(),
                         currencyConversionService, mapper))
-                .adapterCreator(() -> new RubiconAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint(),
-                        configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(), mapper))
                 .assemble();
     }
 
