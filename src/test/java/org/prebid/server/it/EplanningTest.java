@@ -31,7 +31,7 @@ public class EplanningTest extends IntegrationTest {
                 .withQueryParam("r", equalTo("pbs"))
                 .withQueryParam("ncb", equalTo("1"))
                 .withQueryParam("ur", equalTo("https://www.example.com"))
-                .withQueryParam("e", equalTo("testadunitcode:600x300"))
+                .withQueryParam("e", equalTo("testadunitcode:300x600"))
                 .withQueryParam("ip", equalTo("193.168.244.1"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
