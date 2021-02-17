@@ -15,7 +15,6 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.request.PreBidRequest;
 
 import java.util.ArrayList;
 
@@ -187,20 +186,6 @@ public class PrivacyExtractorTest extends VertxTest {
         // when
         final Privacy privacy = privacyExtractor
                 .validPrivacyFrom(BidRequest.builder().regs(regs).user(user).build(), new ArrayList<>());
-
-        // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("1Yn-"), 0));
-    }
-
-    @Test
-    public void shouldReturnPrivacyWithParametersExtractedFromPreBidRequest() {
-        // given
-        final Regs regs = Regs.of(null, ExtRegs.of(0, "1Yn-"));
-        final User user = User.builder().ext(ExtUser.builder().consent("consent").build()).build();
-
-        // when
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(
-                PreBidRequest.builder().regs(regs).user(user).build());
 
         // then
         assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("1Yn-"), 0));
