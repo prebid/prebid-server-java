@@ -2,8 +2,8 @@ package org.prebid.server.settings;
 
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.helper.StoredDataFetcher;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -49,15 +49,6 @@ public class CompositeApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return proxy.getAccountById(accountId, timeout);
-    }
-
-    /**
-     * Runs a process to get AdUnit config by id from a chain of retrievers
-     * and returns {@link Future&lt;{@link String}&gt;}.
-     */
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return proxy.getAdUnitConfigById(adUnitConfigId, timeout);
     }
 
     /**
@@ -112,12 +103,6 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         public Future<Account> getAccountById(String accountId, Timeout timeout) {
             return getConfig(accountId, timeout, applicationSettings::getAccountById,
                     next != null ? next::getAccountById : null);
-        }
-
-        @Override
-        public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-            return getConfig(adUnitConfigId, timeout, applicationSettings::getAdUnitConfigById,
-                    next != null ? next::getAdUnitConfigById : null);
         }
 
         private static <T> Future<T> getConfig(String key, Timeout timeout,
