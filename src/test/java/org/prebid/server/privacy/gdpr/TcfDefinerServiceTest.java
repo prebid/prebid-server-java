@@ -247,7 +247,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, vendorConsent, null, null), null, null, null, null);
+                Privacy.of(null, vendorConsent, null, null), null, null, null, null, null);
 
         // then
         assertThat(result).isSucceeded();
