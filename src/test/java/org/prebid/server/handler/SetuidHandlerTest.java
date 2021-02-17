@@ -35,6 +35,7 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 
 import java.io.IOException;
@@ -316,7 +317,9 @@ public class SetuidHandlerTest extends VertxTest {
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                 .build();
-        final Account account = Account.builder().gdpr(accountGdprConfig).build();
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.of(null, accountGdprConfig, null))
+                .build();
         final Future<Account> accountFuture = Future.succeededFuture(account);
         given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);
 

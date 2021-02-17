@@ -11,31 +11,13 @@ public class Account {
 
     String id;
 
-    String priceGranularity;
-
-    Integer bannerCacheTtl;
-
-    Integer videoCacheTtl;
-
-    Boolean eventsEnabled;
-
-    Boolean enforceCcpa;
-
-    AccountGdprConfig gdpr;
-
-    AccountCcpaConfig ccpa;
-
-    Integer analyticsSamplingFactor;
-
-    Integer truncateTargetAttr;
-
-    String defaultIntegration;
-
-    AccountAnalyticsConfig analyticsConfig;
-
-    AccountBidValidationConfig bidValidations;
-
     AccountStatus status;
+
+    AccountAuctionConfig auction;
+
+    AccountPrivacyConfig privacy;
+
+    AccountAnalyticsConfig analytics;
 
     @JsonProperty("cookie-sync")
     AccountCookieSyncConfig cookieSync;
@@ -45,19 +27,10 @@ public class Account {
     public Account merge(Account another) {
         return Account.builder()
                 .id(ObjectUtils.defaultIfNull(id, another.id))
-                .priceGranularity(ObjectUtils.defaultIfNull(priceGranularity, another.priceGranularity))
-                .bannerCacheTtl(ObjectUtils.defaultIfNull(bannerCacheTtl, another.bannerCacheTtl))
-                .videoCacheTtl(ObjectUtils.defaultIfNull(videoCacheTtl, another.videoCacheTtl))
-                .eventsEnabled(ObjectUtils.defaultIfNull(eventsEnabled, another.eventsEnabled))
-                .enforceCcpa(ObjectUtils.defaultIfNull(enforceCcpa, another.enforceCcpa))
-                .gdpr(ObjectUtils.defaultIfNull(gdpr, another.gdpr))
-                .analyticsSamplingFactor(ObjectUtils.defaultIfNull(
-                        analyticsSamplingFactor, another.analyticsSamplingFactor))
-                .truncateTargetAttr(ObjectUtils.defaultIfNull(truncateTargetAttr, another.truncateTargetAttr))
-                .defaultIntegration(ObjectUtils.defaultIfNull(defaultIntegration, another.defaultIntegration))
-                .analyticsConfig(ObjectUtils.defaultIfNull(analyticsConfig, another.analyticsConfig))
-                .bidValidations(ObjectUtils.defaultIfNull(bidValidations, another.bidValidations))
                 .status(ObjectUtils.defaultIfNull(status, another.status))
+                .auction(ObjectUtils.defaultIfNull(auction, another.auction))
+                .privacy(ObjectUtils.defaultIfNull(privacy, another.privacy))
+                .analytics(ObjectUtils.defaultIfNull(analytics, another.analytics))
                 .cookieSync(ObjectUtils.defaultIfNull(cookieSync, another.cookieSync))
                 .build();
     }

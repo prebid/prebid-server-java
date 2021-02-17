@@ -25,6 +25,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -38,9 +40,9 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -195,7 +197,11 @@ public class VtrackHandlerTest extends VertxTest {
                 .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder")));
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
@@ -238,7 +244,7 @@ public class VtrackHandlerTest extends VertxTest {
                 .willReturn(givenVtrackRequest(putObjects));
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(null).build()));
+                .willReturn(Future.succeededFuture(Account.builder().build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
@@ -269,7 +275,11 @@ public class VtrackHandlerTest extends VertxTest {
         given(bidderCatalog.isModifyingVastXmlAllowed("updatable_bidder")).willReturn(true);
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         singletonList(CacheObject.of("uuid1")))));
@@ -300,7 +310,11 @@ public class VtrackHandlerTest extends VertxTest {
         given(bidderCatalog.isModifyingVastXmlAllowed(any())).willReturn(true);
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
@@ -337,7 +351,11 @@ public class VtrackHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(any())).willReturn(false);
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));

@@ -24,6 +24,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
@@ -239,7 +241,12 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().id("accountId").eventsEnabled(false).build()));
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(false))
+                                .build())
+                        .build()));
 
         // when
         notificationHandler.handle(routingContext);
@@ -259,7 +266,11 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("b", "bidId")
                 .add("a", "accountId"));
 
-        final Account account = Account.builder().eventsEnabled(true).build();
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(true))
+                        .build())
+                .build();
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(account));
 
@@ -328,7 +339,11 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("f", "i"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
 
         // when
         notificationHandler.handle(routingContext);
@@ -350,7 +365,11 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
 
         // when
         notificationHandler.handle(routingContext);
@@ -370,7 +389,11 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("ts", "1000")
                 .add("int", "pbjs"));
 
-        final Account account = Account.builder().eventsEnabled(true).build();
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(true))
+                        .build())
+                .build();
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(account));
 
