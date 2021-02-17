@@ -77,11 +77,11 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnSeatBidsForAuctionResponseId() throws JsonProcessingException {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().id("impId")
-                .ext(mapper.valueToTree(
-                        ExtImp.of(
-                                ExtImpPrebid.builder().storedAuctionResponse(ExtStoredAuctionResponse.of("1")).build(),
-                                null)))
+        final List<Imp> imps = singletonList(Imp.builder()
+                .id("impId")
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder().storedAuctionResponse(ExtStoredAuctionResponse.of("1")).build(),
+                        null)))
                 .build());
 
         given(applicationSettings.getStoredResponses(any(), any()))
@@ -95,26 +95,32 @@ public class StoredResponseProcessorTest extends VertxTest {
                 aliases, timeout);
 
         // then
-        assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
-                singletonList(SeatBid.builder().seat("rubicon")
-                        .bid(singletonList(Bid.builder().id("id").impid("impId").build())).build())));
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(
+                emptyList(),
+                singletonList(SeatBid.builder()
+                        .seat("rubicon")
+                        .bid(singletonList(Bid.builder().id("id").impid("impId").build()))
+                        .build())));
     }
 
     @Test
     public void getStoredResponseResultShouldNotChangeImpsAndReturnSeatBidsWhenThereAreNoStoredIds() {
         // given
-        final List<Imp> imps = singletonList(Imp.builder()
-                .ext(mapper.createObjectNode().put("rubicon", 1))
-                .build());
+        final Imp imp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder().bidder(mapper.createObjectNode().put("rubicon", 1)).build(),
+                        null)))
+                .build();
+
         given(bidderCatalog.isValidName(any())).willReturn(true);
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(singletonList(imp), aliases, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
-                singletonList(Imp.builder().ext(mapper.createObjectNode().put("rubicon", 1)).build()),
+                singletonList(imp),
                 emptyList()));
         verifyZeroInteractions(applicationSettings);
     }
@@ -122,22 +128,24 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldAddImpToRequiredRequestWhenItsStoredBidResponseIsEmpty() {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().id("impId1")
-                .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                        .storedBidResponse(emptyList())
-                        .build(), null)))
+        final List<Imp> imps = singletonList(Imp.builder()
+                .id("impId1")
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder().storedBidResponse(emptyList()).build(),
+                        null)))
                 .build());
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
-                singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                                .storedBidResponse(emptyList())
-                                .build(), null)))
+                singletonList(Imp.builder()
+                        .id("impId1")
+                        .ext(mapper.valueToTree(ExtImp.of(
+                                ExtImpPrebid.builder().storedBidResponse(emptyList()).build(),
+                                null)))
                         .build()),
                 emptyList()));
         verifyZeroInteractions(applicationSettings);
@@ -156,8 +164,8 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture(new PreBidException("Failed.")));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -169,9 +177,11 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnSeatBidsForBidStoredResponseId() throws JsonProcessingException {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().id("impId1")
+        final List<Imp> imps = singletonList(Imp.builder()
+                .id("impId1")
                 .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                                .storedBidResponse(asList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"),
+                                .storedBidResponse(asList(
+                                        ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"),
                                         ExtStoredBidResponse.of("appnexus", "storedBidResponseId2")))
                                 .build(),
                         null)))
@@ -179,39 +189,49 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final Map<String, String> storedResponse = new HashMap<>();
         storedResponse.put("storedBidResponseId1", mapper.writeValueAsString(singletonList(
-                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id1").build()))
-                        .build())));
+                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id1").build())).build())));
         storedResponse.put("storedBidResponseId2", mapper.writeValueAsString(singletonList(
-                SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id2").build()))
-                        .build())));
+                SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id2").build())).build())));
 
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, emptyList())));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
-        assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(
+                emptyList(),
                 asList(
-                        SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id2").impid("impId1")
-                                .build())).build(),
-                        SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id1").impid("impId1")
-                                .build())).build())));
+                        SeatBid.builder()
+                                .seat("appnexus")
+                                .bid(singletonList(Bid.builder().id("id2").impid("impId1").build()))
+                                .build(),
+                        SeatBid.builder()
+                                .seat("rubicon")
+                                .bid(singletonList(Bid.builder().id("id1").impid("impId1").build()))
+                                .build())));
     }
 
     @Test
     public void getStoredResponseResultShouldReturnSeatBidsForBidAndAuctionStoredResponseId()
             throws JsonProcessingException {
+
         // given
         final List<Imp> imps = asList(
-                Imp.builder().id("impId1")
-                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                                .storedAuctionResponse(ExtStoredAuctionResponse.of("storedAuctionRequest"))
-                                .build(), null))).build(),
-                Imp.builder().id("impId2")
-                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
+                Imp.builder()
+                        .id("impId1")
+                        .ext(mapper.valueToTree(ExtImp.of(
+                                ExtImpPrebid.builder()
+                                        .storedAuctionResponse(ExtStoredAuctionResponse.of("storedAuctionRequest"))
+                                        .build(),
+                                null)))
+                        .build(),
+                Imp.builder()
+                        .id("impId2")
+                        .ext(mapper.valueToTree(ExtImp.of(
+                                ExtImpPrebid.builder()
                                         .storedBidResponse(singletonList(
                                                 ExtStoredBidResponse.of("rubicon", "storedBidRequest")))
                                         .build(),
@@ -220,114 +240,143 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final Map<String, String> storedResponse = new HashMap<>();
         storedResponse.put("storedAuctionRequest", mapper.writeValueAsString(singletonList(
-                SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id1").build()))
-                        .build())));
+                SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id1").build())).build())));
         storedResponse.put("storedBidRequest", mapper.writeValueAsString(singletonList(
-                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id2").build()))
-                        .build())));
+                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id2").build())).build())));
 
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, emptyList())));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
-        assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(
+                emptyList(),
                 asList(
-                        SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id1").impid("impId1")
-                                .build())).build(),
-                        SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id2").impid("impId2")
-                                .build())).build())));
+                        SeatBid.builder()
+                                .seat("appnexus")
+                                .bid(singletonList(Bid.builder().id("id1").impid("impId1").build()))
+                                .build(),
+                        SeatBid.builder()
+                                .seat("rubicon")
+                                .bid(singletonList(Bid.builder().id("id2").impid("impId2").build()))
+                                .build())));
     }
 
     @Test
     public void getStoredResponseResultShouldRemoveMockedBiddersFromImps() throws JsonProcessingException {
-        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1")))
-                .build(), null));
-        impExt.put("rubicon", 1);
-        impExt.put("appnexus", 2);
+        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(
+                ExtImpPrebid.builder()
+                        .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1")))
+                        .bidder(mapper.createObjectNode()
+                                .put("rubicon", 1)
+                                .put("appnexus", 2))
+                        .build(),
+                null));
 
         given(bidderCatalog.isValidName(any())).willReturn(true);
 
-        final List<Imp> imps = singletonList(Imp.builder().id("impId1").ext(impExt).build());
+        final List<Imp> imps = singletonList(Imp.builder()
+                .id("impId1")
+                .ext(impExt).build());
 
         final Map<String, String> storedResponse = new HashMap<>();
         storedResponse.put("storedBidResponseId1", mapper.writeValueAsString(singletonList(
-                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id1").build()))
+                SeatBid.builder()
+                        .seat("rubicon")
+                        .bid(singletonList(Bid.builder().id("id1").build()))
                         .build())));
 
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, emptyList())));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
-        final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1")))
-                .build(), null));
-        impExtResult.put("appnexus", 2);
+        final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(
+                ExtImpPrebid.builder()
+                        .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1")))
+                        .bidder(mapper.createObjectNode()
+                                .put("appnexus", 2))
+                        .build(),
+                null));
 
-        assertThat(result.result()).isEqualTo(StoredResponseResult.of(singletonList(Imp.builder().id("impId1")
-                        .ext(impExtResult).build()),
-                singletonList(SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().impid("impId1")
-                        .id("id1").build())).build())));
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(
+                singletonList(Imp.builder().id("impId1").ext(impExtResult).build()),
+                singletonList(SeatBid.builder()
+                        .seat("rubicon")
+                        .bid(singletonList(Bid.builder().impid("impId1").id("id1").build()))
+                        .build())));
     }
 
     @Test
     public void getStoredResponseResultShouldMergeStoredSeatBidsForTheSameBidder() throws JsonProcessingException {
         // given
         final List<Imp> imps = asList(
-                Imp.builder().id("impId1")
-                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
+                Imp.builder()
+                        .id("impId1")
+                        .ext(mapper.valueToTree(ExtImp.of(
+                                ExtImpPrebid.builder()
                                         .storedAuctionResponse(ExtStoredAuctionResponse.of("storedAuctionRequest"))
                                         .build(),
-                                null))).build(),
-                Imp.builder().id("impId2")
-                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                                .storedBidResponse(
-                                        singletonList(
+                                null)))
+                        .build(),
+                Imp.builder()
+                        .id("impId2")
+                        .ext(mapper.valueToTree(ExtImp.of(
+                                ExtImpPrebid.builder()
+                                        .storedBidResponse(singletonList(
                                                 ExtStoredBidResponse.of("rubicon", "storedBidRequest")))
-                                .build(), null)))
+                                        .build(),
+                                null)))
                         .build());
 
         final Map<String, String> storedResponse = new HashMap<>();
         storedResponse.put("storedAuctionRequest", mapper.writeValueAsString(asList(
-                SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id1").build()))
-                        .build(), SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id3").build()))
-                        .build())));
+                SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id1").build())).build(),
+                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id3").build())).build())));
         storedResponse.put("storedBidRequest", mapper.writeValueAsString(singletonList(
-                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id2").build()))
-                        .build())));
+                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id2").build())).build())));
 
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, emptyList())));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
-        assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(
+                emptyList(),
                 asList(
-                        SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id1").impid("impId1")
-                                .build())).build(),
-                        SeatBid.builder().seat("rubicon").bid(asList(Bid.builder().id("id3").impid("impId1").build(),
-                                Bid.builder().id("id2").impid("impId2").build())).build())));
+                        SeatBid.builder()
+                                .seat("appnexus")
+                                .bid(singletonList(Bid.builder().id("id1").impid("impId1").build()))
+                                .build(),
+                        SeatBid.builder()
+                                .seat("rubicon")
+                                .bid(asList(
+                                        Bid.builder().id("id3").impid("impId1").build(),
+                                        Bid.builder().id("id2").impid("impId2").build()))
+                                .build())));
     }
 
     @Test
     public void getStoredResponseResultShouldSupportAliasesWhenDecidingIfImpRequiredRequestToExchange()
             throws JsonProcessingException {
-        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1")))
-                .build(), null));
-        impExt.put("rubicon", 1);
-        impExt.put("appnexusAlias", 2);
+
+        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(
+                ExtImpPrebid.builder()
+                        .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1")))
+                        .bidder(mapper.createObjectNode()
+                                .put("rubicon", 1)
+                                .put("appnexusAlias", 2))
+                        .build(),
+                null));
 
         given(bidderCatalog.isValidName(any())).willReturn(false);
 
@@ -335,7 +384,9 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final Map<String, String> storedResponse = new HashMap<>();
         storedResponse.put("storedBidResponseId1", mapper.writeValueAsString(singletonList(
-                SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id1").build()))
+                SeatBid.builder()
+                        .seat("rubicon")
+                        .bid(singletonList(Bid.builder().id("id1").build()))
                         .build())));
 
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
@@ -343,33 +394,39 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         given(aliases.isAliasDefined(eq("appnexusAlias"))).willReturn(true);
         given(aliases.resolveBidder(eq("appnexusAlias"))).willReturn("appnexus");
-        given(aliases.resolveAliasVendorId(eq("appnexusAlias"))).willReturn(1);
 
         // when
         final Future<StoredResponseResult> result =
                 storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
-        final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1")))
-                .build(), null));
-        impExtResult.put("appnexusAlias", 2);
+        final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(
+                ExtImpPrebid.builder()
+                        .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1")))
+                        .bidder(mapper.createObjectNode()
+                                .put("appnexusAlias", 2))
+                        .build(),
+                null));
 
-        assertThat(result.result()).isEqualTo(StoredResponseResult.of(singletonList(Imp.builder().ext(impExtResult)
-                        .id("impId1").build()),
-                singletonList(SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder()
-                        .id("id1").impid("impId1").build())).build())));
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(
+                singletonList(Imp.builder().ext(impExtResult).id("impId1").build()),
+                singletonList(SeatBid.builder()
+                        .seat("rubicon")
+                        .bid(singletonList(Bid.builder().id("id1").impid("impId1").build()))
+                        .build())));
     }
 
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenImpExtIsNotValid() {
         // given
-        final List<Imp> imps = singletonList(Imp.builder().id("impId").ext(mapper.createObjectNode()
-                .put("prebid", 5)).build());
+        final List<Imp> imps = singletonList(Imp.builder()
+                .id("impId")
+                .ext(mapper.createObjectNode().put("prebid", 5))
+                .build());
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -380,14 +437,16 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenBidderIsMissedInStoredBidResponse() {
         // given
-        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                .storedBidResponse(singletonList(ExtStoredBidResponse.of(null, "storedBidResponseId1")))
-                .build(), null));
+        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(
+                ExtImpPrebid.builder()
+                        .storedBidResponse(singletonList(ExtStoredBidResponse.of(null, "storedBidResponseId1")))
+                        .build(),
+                null));
         final List<Imp> imps = singletonList(Imp.builder().id("impId").ext(impExt).build());
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -398,13 +457,16 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenIdIsMissedInStoredBidResponse() {
         // given
-        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
-                .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", null))).build(), null));
+        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(
+                ExtImpPrebid.builder()
+                        .storedBidResponse(singletonList(ExtStoredBidResponse.of("rubicon", null)))
+                        .build(),
+                null));
         final List<Imp> imps = singletonList(Imp.builder().ext(impExt).id("impId").build());
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -415,6 +477,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenSeatIsEmptyInStoredSeatBid()
             throws JsonProcessingException {
+
         // given
         final List<Imp> imps = singletonList(Imp.builder()
                 .ext(mapper.valueToTree(ExtImp.of(
@@ -423,14 +486,17 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build());
 
         given(applicationSettings.getStoredResponses(any(), any()))
-                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(singletonMap("responseId",
-                        mapper.writeValueAsString(singletonList(SeatBid.builder().bid(singletonList(
-                                Bid.builder().id("id").build())).build()))),
+                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(
+                        singletonMap(
+                                "responseId",
+                                mapper.writeValueAsString(singletonList(SeatBid.builder()
+                                        .bid(singletonList(Bid.builder().id("id").build()))
+                                        .build()))),
                         emptyList())));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -441,6 +507,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenBidsAreEmptyInStoredSeatBid()
             throws JsonProcessingException {
+
         // given
         final List<Imp> imps = singletonList(Imp.builder()
                 .ext(mapper.valueToTree(ExtImp.of(
@@ -449,15 +516,17 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build());
 
         given(applicationSettings.getStoredResponses(any(), any()))
-                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(singletonMap("responseId",
-                        mapper.writeValueAsString(singletonList(SeatBid.builder()
-                                .seat("seat")
-                                .build()))),
+                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(
+                        singletonMap(
+                                "responseId",
+                                mapper.writeValueAsString(singletonList(SeatBid.builder()
+                                        .seat("seat")
+                                        .build()))),
                         emptyList())));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -466,20 +535,20 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
-    public void getStoredResponseResultShouldReturnFailedFutureSeatBidsCantBeParsed() {
+    public void getStoredResponseResultShouldReturnFailedFutureSeatBidsCannotBeParsed() {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId")
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder().storedAuctionResponse(ExtStoredAuctionResponse.of("1")).build(),
-                        null))).build());
+                        null)))
+                .build());
 
-        given(applicationSettings.getStoredResponses(any(), any()))
-                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(
-                        singletonMap("1", "{invalid"), emptyList())));
+        given(applicationSettings.getStoredResponses(any(), any())).willReturn(Future.succeededFuture(
+                StoredResponseDataResult.of(singletonMap("1", "{invalid"), emptyList())));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                aliases, timeout);
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -490,121 +559,210 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void mergeWithBidderResponsesShouldReturnMergedStoredSeatWithResponse() {
         // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
-                emptyList()), 100));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
+                        emptyList()),
+                100));
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().id("bid2").impid("storedImp").build())).build());
+                .seat("rubicon")
+                .bid(singletonList(Bid.builder().id("bid2").impid("storedImp").build()))
+                .build());
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result = storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid,
-                imps);
+        final List<BidderResponse> result =
+                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid, imps);
 
         // then
-        assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
-                asList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "USD"),
-                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
-                emptyList()), 100));
+        assertThat(result).contains(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        asList(
+                                BidderBid.of(
+                                        Bid.builder()
+                                                .id("bid2")
+                                                .impid("storedImp")
+                                                .build(),
+                                        BidType.banner,
+                                        "USD"),
+                                BidderBid.of(
+                                        Bid.builder()
+                                                .id("bid1")
+                                                .build(),
+                                        BidType.banner,
+                                        "USD")),
+                        emptyList(),
+                        emptyList()),
+                100));
     }
 
     @Test
     public void mergeWithBidderResponsesShouldMergeBidderResponsesWithoutCorrespondingStoredSeatBid() {
         // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
-                emptyList()), 100));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
+                        emptyList()),
+                100));
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("appnexus").bid(singletonList(Bid.builder().id("bid2").impid("storedImp").build())).build());
+                .seat("appnexus")
+                .bid(singletonList(Bid.builder().id("bid2").impid("storedImp").build()))
+                .build());
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result = storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid,
-                imps);
+        final List<BidderResponse> result =
+                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid, imps);
 
         // then
         assertThat(result).contains(
-                BidderResponse.of("rubicon", BidderSeatBid.of(
-                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
-                        emptyList(),
-                        emptyList()), 100),
-                BidderResponse.of("appnexus", BidderSeatBid.of(
-                        singletonList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(),
-                                BidType.banner, "USD")), emptyList(), emptyList()), 0));
+                BidderResponse.of(
+                        "rubicon",
+                        BidderSeatBid.of(
+                                singletonList(BidderBid.of(
+                                        Bid.builder().id("bid1").build(),
+                                        BidType.banner,
+                                        "USD")),
+                                emptyList(),
+                                emptyList()),
+                        100),
+                BidderResponse.of(
+                        "appnexus",
+                        BidderSeatBid.of(
+                                singletonList(BidderBid.of(
+                                        Bid.builder().id("bid2").impid("storedImp").build(),
+                                        BidType.banner,
+                                        "USD")),
+                                emptyList(),
+                                emptyList()),
+                        0));
     }
 
     @Test
     public void mergeWithBidderResponsesShouldMergeStoredSeatBidsWithoutBidderResponses() {
         // given
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().id("bid2").impid("storedImp").build())).build());
-
-        final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
-
-        // when
-        final List<BidderResponse> result = storedResponseProcessor.mergeWithBidderResponses(emptyList(), seatBid,
-                imps);
-
-        // then
-        assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "USD")),
-                emptyList(), emptyList()), 0));
-    }
-
-    @Test
-    public void mergeWithBidderResponsesShouldResolveCurrencyFromBidderResponse() {
-        // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR")), emptyList(),
-                emptyList()), 100));
-
-        final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().id("bid2").impid("storedImp").build())).build());
-
-        final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
-
-        // when
-        final List<BidderResponse> result = storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid,
-                imps);
-
-        // then
-        assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
-                asList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "EUR"),
-                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR")), emptyList(),
-                emptyList()), 100));
-    }
-
-    @Test
-    public void mergeWithBidderResponsesShouldResolveBidTypeFromStoredBidExt() {
-        // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
-                emptyList()), 100));
-
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().type(BidType.video).build();
-
-        final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().ext(mapper.createObjectNode()
-                        .set("prebid", mapper.valueToTree(extBidPrebid))).id("bid2").impid("storedImp").build()))
+                .seat("rubicon")
+                .bid(singletonList(Bid.builder().id("bid2").impid("storedImp").build()))
                 .build());
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result = storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid,
-                imps);
+        final List<BidderResponse> result =
+                storedResponseProcessor.mergeWithBidderResponses(emptyList(), seatBid, imps);
 
         // then
-        assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
-                asList(BidderBid.of(
-                        Bid.builder().id("bid2").impid("storedImp").ext(mapper.createObjectNode()
-                                .set("prebid", mapper.valueToTree(extBidPrebid))).build(), BidType.video, "USD"),
-                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
-                emptyList()), 100));
+        assertThat(result).contains(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(
+                                Bid.builder().id("bid2").impid("storedImp").build(),
+                                BidType.banner,
+                                "USD")),
+                        emptyList(),
+                        emptyList()),
+                0));
+    }
+
+    @Test
+    public void mergeWithBidderResponsesShouldResolveCurrencyFromBidderResponse() {
+        // given
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR")),
+                        emptyList(),
+                        emptyList()),
+                100));
+
+        final List<SeatBid> seatBid = singletonList(SeatBid.builder()
+                .seat("rubicon")
+                .bid(singletonList(Bid.builder().id("bid2").impid("storedImp").build()))
+                .build());
+
+        final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
+
+        // when
+        final List<BidderResponse> result =
+                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid, imps);
+
+        // then
+        assertThat(result).contains(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        asList(
+                                BidderBid.of(
+                                        Bid.builder().id("bid2").impid("storedImp").build(),
+                                        BidType.banner,
+                                        "EUR"),
+                                BidderBid.of(
+                                        Bid.builder().id("bid1").build(),
+                                        BidType.banner,
+                                        "EUR")),
+                        emptyList(),
+                        emptyList()),
+                100));
+    }
+
+    @Test
+    public void mergeWithBidderResponsesShouldResolveBidTypeFromStoredBidExt() {
+        // given
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
+                        emptyList()),
+                100));
+
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().type(BidType.video).build();
+
+        final List<SeatBid> seatBid = singletonList(SeatBid.builder()
+                .seat("rubicon")
+                .bid(singletonList(Bid.builder()
+                        .id("bid2")
+                        .impid("storedImp")
+                        .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
+                        .build()))
+                .build());
+
+        final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
+
+        // when
+        final List<BidderResponse> result =
+                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid, imps);
+
+        // then
+        assertThat(result).contains(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        asList(BidderBid.of(
+                                Bid.builder()
+                                        .id("bid2")
+                                        .impid("storedImp")
+                                        .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
+                                        .build(),
+                                BidType.video,
+                                "USD"),
+                                BidderBid.of(
+                                        Bid.builder()
+                                                .id("bid1")
+                                                .build(),
+                                        BidType.banner,
+                                        "USD")),
+                        emptyList(),
+                        emptyList()),
+                100));
     }
 
     @Test
@@ -613,8 +771,13 @@ public class StoredResponseProcessorTest extends VertxTest {
         final ObjectNode extBidPrebid = mapper.createObjectNode().put("type", "invalid");
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().ext(mapper.createObjectNode()
-                        .set("prebid", extBidPrebid)).id("bid2").impid("storedImp").build())).build());
+                .seat("rubicon")
+                .bid(singletonList(Bid.builder()
+                        .id("bid2")
+                        .impid("storedImp")
+                        .ext(mapper.createObjectNode().set("prebid", extBidPrebid))
+                        .build()))
+                .build());
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
@@ -626,19 +789,27 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void mergeWithBidderResponsesShouldReturnSameResponseWhenThereAreNoStoredResponses() {
         // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
-                emptyList()), 100));
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
+                        emptyList()),
+                100));
 
         final List<Imp> imps = singletonList(Imp.builder().banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result = storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
-                emptyList(), imps);
+        final List<BidderResponse> result =
+                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, emptyList(), imps);
 
         // then
-        assertThat(result).containsOnly(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
-                emptyList()), 100));
+        assertThat(result).containsOnly(BidderResponse.of(
+                "rubicon",
+                BidderSeatBid.of(
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
+                        emptyList()),
+                100));
     }
 }

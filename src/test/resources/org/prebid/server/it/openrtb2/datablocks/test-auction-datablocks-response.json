@@ -129,9 +129,13 @@
               ]
             },
             "ext": {
-              "datablocks": {
-                "host": "localhost:8090",
-                "sourceId": 1
+              "prebid": {
+                "bidder": {
+                  "datablocks": {
+                    "host": "localhost:8090",
+                    "sourceId": 1
+                  }
+                }
               }
             }
           },
@@ -146,9 +150,13 @@
               "pos": 1
             },
             "ext": {
-              "datablocks": {
-                "host": "localhost:8090",
-                "sourceId": 2
+              "prebid": {
+                "bidder": {
+                  "datablocks": {
+                    "host": "localhost:8090",
+                    "sourceId": 2
+                  }
+                }
               }
             }
           }

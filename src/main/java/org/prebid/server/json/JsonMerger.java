@@ -65,9 +65,12 @@ public class JsonMerger {
         }
     }
 
-    public JsonNode merge(JsonNode originalObject, JsonNode mergingObject) {
+    /**
+     * Returns 'toNode' with merged properties from 'fromNode'.
+     */
+    public JsonNode merge(JsonNode fromNode, JsonNode toNode) {
         try {
-            return JsonMergePatch.fromJson(originalObject).apply(mergingObject);
+            return JsonMergePatch.fromJson(fromNode).apply(toNode);
         } catch (JsonPatchException e) {
             throw new InvalidRequestException("Couldn't create merge patch for json nodes");
         }

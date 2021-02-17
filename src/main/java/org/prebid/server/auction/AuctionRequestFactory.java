@@ -53,11 +53,13 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -69,8 +71,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Used in OpenRTB request processing.
@@ -81,8 +81,14 @@ public class AuctionRequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
-    public static final String WEB_CHANNEL = "web";
-    public static final String APP_CHANNEL = "app";
+    private static final String WEB_CHANNEL = "web";
+    private static final String APP_CHANNEL = "app";
+
+    private static final String PREBID_EXT = "prebid";
+    private static final String BIDDER_EXT = "bidder";
+
+    private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS = Collections.unmodifiableSet(new HashSet<>(
+            Arrays.asList(PREBID_EXT, "context", "all", "general", "skadn", "data")));
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -100,7 +106,7 @@ public class AuctionRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
-    private final IdGenerator idGenerator;
+    private final IdGenerator sourceIdGenerator;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -122,7 +128,7 @@ public class AuctionRequestFactory {
                                  TimeoutResolver timeoutResolver,
                                  TimeoutFactory timeoutFactory,
                                  ApplicationSettings applicationSettings,
-                                 IdGenerator idGenerator,
+                                 IdGenerator sourceIdGenerator,
                                  PrivacyEnforcementService privacyEnforcementService,
                                  JacksonMapper mapper) {
 
@@ -143,7 +149,7 @@ public class AuctionRequestFactory {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.idGenerator = Objects.requireNonNull(idGenerator);
+        this.sourceIdGenerator = Objects.requireNonNull(sourceIdGenerator);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -404,44 +410,37 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (domain, page).
      */
     private Site populateSite(Site site, HttpServerRequest request) {
-        Site result = null;
+        final String page = site != null ? StringUtils.trimToNull(site.getPage()) : null;
+        final String updatedPage = page == null ? paramsExtractor.refererFrom(request) : null;
 
-        final String page = site != null ? site.getPage() : null;
-        final String domain = site != null ? site.getDomain() : null;
-        final ExtSite siteExt = site != null ? site.getExt() : null;
-        final ObjectNode data = siteExt != null ? siteExt.getData() : null;
-        final boolean shouldSetExtAmp = siteExt == null || siteExt.getAmp() == null;
-        final ExtSite modifiedSiteExt = shouldSetExtAmp
-                ? ExtSite.of(0, data)
+        final String domain = site != null ? StringUtils.trimToNull(site.getDomain()) : null;
+        final String updatedDomain = domain == null
+                ? getDomainOrNull(ObjectUtils.defaultIfNull(updatedPage, page))
                 : null;
 
-        String referer = null;
-        String parsedDomain = null;
-        if (StringUtils.isBlank(page) || StringUtils.isBlank(domain)) {
-            referer = paramsExtractor.refererFrom(request);
-            if (StringUtils.isNotBlank(referer)) {
-                try {
-                    parsedDomain = paramsExtractor.domainFrom(referer);
-                } catch (PreBidException e) {
-                    logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
-                    logger.debug("Error occurred while populating bid request", e);
-                }
-            }
-        }
-        final boolean shouldModifyPageOrDomain = referer != null && parsedDomain != null;
+        final ExtSite siteExt = site != null ? site.getExt() : null;
+        final ExtSite updatedSiteExt = siteExt == null || siteExt.getAmp() == null
+                ? ExtSite.of(0, getIfNotNull(siteExt, ExtSite::getData))
+                : null;
 
-        if (shouldModifyPageOrDomain || shouldSetExtAmp) {
-            final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
-            if (shouldModifyPageOrDomain) {
-                builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
-                builder.page(StringUtils.isNotBlank(page) ? page : referer);
-            }
-            if (shouldSetExtAmp) {
-                builder.ext(modifiedSiteExt);
-            }
-            result = builder.build();
+        if (updatedPage != null || updatedDomain != null || updatedSiteExt != null) {
+            return (site == null ? Site.builder() : site.toBuilder())
+                    // do not set page if domain was not parsed successfully
+                    .page(domain == null && updatedDomain == null ? page : ObjectUtils.defaultIfNull(updatedPage, page))
+                    .domain(ObjectUtils.defaultIfNull(updatedDomain, domain))
+                    .ext(ObjectUtils.defaultIfNull(updatedSiteExt, siteExt))
+                    .build();
         }
-        return result;
+        return null;
+    }
+
+    private String getDomainOrNull(String url) {
+        try {
+            return paramsExtractor.domainFrom(url);
+        } catch (PreBidException e) {
+            logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -450,7 +449,7 @@ public class AuctionRequestFactory {
     private Source populateSource(Source source) {
         final String tid = source != null ? source.getTid() : null;
         if (StringUtils.isEmpty(tid)) {
-            final String generatedId = idGenerator.generateId();
+            final String generatedId = sourceIdGenerator.generateId();
             if (StringUtils.isNotEmpty(generatedId)) {
                 final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
                 return builder
@@ -462,18 +461,93 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Updates imps with security 1, when secured request was received and imp security was not defined.
+     * - Updates imps with security 1, when secured request was received and imp security was not defined.
+     * - Moves bidder parameters from imp.ext._bidder_ to imp.ext.prebid.bidder._bidder_
      */
     private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
-        List<Imp> result = null;
-
-        if (Objects.equals(paramsExtractor.secureFrom(request), 1)
-                && imps.stream().map(Imp::getSecure).anyMatch(Objects::isNull)) {
-            result = imps.stream()
-                    .map(imp -> imp.getSecure() == null ? imp.toBuilder().secure(1).build() : imp)
-                    .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(imps)) {
+            return null;
         }
-        return result;
+
+        final Integer secureFromRequest = paramsExtractor.secureFrom(request);
+
+        if (!shouldModifyImps(imps, secureFromRequest)) {
+            return imps;
+        }
+
+        return imps.stream()
+                .map(imp -> populateImp(imp, secureFromRequest))
+                .collect(Collectors.toList());
+    }
+
+    private boolean shouldModifyImps(List<Imp> imps, Integer secureFromRequest) {
+        return imps.stream()
+                .anyMatch(imp -> shouldSetImpSecure(imp, secureFromRequest) || shouldMoveBidderParams(imp));
+    }
+
+    private boolean shouldSetImpSecure(Imp imp, Integer secureFromRequest) {
+        return imp.getSecure() == null && Objects.equals(secureFromRequest, 1);
+    }
+
+    private boolean shouldMoveBidderParams(Imp imp) {
+        return imp.getExt() != null
+                && StreamUtil.asStream(imp.getExt().fieldNames()).anyMatch(this::isImpExtBidderField);
+    }
+
+    private boolean isImpExtBidderField(String field) {
+        return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
+    }
+
+    private Imp populateImp(Imp imp, Integer secureFromRequest) {
+        final boolean shouldSetSecure = shouldSetImpSecure(imp, secureFromRequest);
+        final boolean shouldMoveBidderParams = shouldMoveBidderParams(imp);
+
+        if (shouldSetSecure || shouldMoveBidderParams) {
+            final ObjectNode impExt = imp.getExt();
+
+            return imp.toBuilder()
+                    .secure(shouldSetSecure ? Integer.valueOf(1) : imp.getSecure())
+                    .ext(shouldMoveBidderParams ? populateImpExt(impExt) : impExt)
+                    .build();
+        }
+
+        return imp;
+    }
+
+    private ObjectNode populateImpExt(ObjectNode impExt) {
+        final ObjectNode modifiedExt = impExt.deepCopy();
+
+        final ObjectNode modifiedExtPrebid = getOrCreateChildObjectNode(modifiedExt, PREBID_EXT);
+        modifiedExt.replace(PREBID_EXT, modifiedExtPrebid);
+        final ObjectNode modifiedExtPrebidBidder = getOrCreateChildObjectNode(modifiedExtPrebid, BIDDER_EXT);
+        modifiedExtPrebid.replace(BIDDER_EXT, modifiedExtPrebidBidder);
+
+        final Set<String> bidderFields = StreamUtil.asStream(modifiedExt.fieldNames())
+                .filter(this::isImpExtBidderField)
+                .collect(Collectors.toSet());
+
+        for (final String currentBidderField : bidderFields) {
+            final ObjectNode modifiedExtPrebidBidderCurrentBidder =
+                    getOrCreateChildObjectNode(modifiedExtPrebidBidder, currentBidderField);
+            modifiedExtPrebidBidder.replace(currentBidderField, modifiedExtPrebidBidderCurrentBidder);
+
+            final JsonNode extCurrentBidder = modifiedExt.remove(currentBidderField);
+            if (isObjectNode(extCurrentBidder)) {
+                modifiedExtPrebidBidderCurrentBidder.setAll((ObjectNode) extCurrentBidder);
+            }
+        }
+
+        return modifiedExt;
+    }
+
+    private static ObjectNode getOrCreateChildObjectNode(ObjectNode parentNode, String fieldName) {
+        final JsonNode childNode = parentNode.get(fieldName);
+
+        return isObjectNode(childNode) ? (ObjectNode) childNode : parentNode.objectNode();
+    }
+
+    private static boolean isObjectNode(JsonNode node) {
+        return node != null && node.isObject();
     }
 
     /**
@@ -558,22 +632,17 @@ public class AuctionRequestFactory {
         final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
         final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
 
-        final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
-            result = ExtRequestTargeting.builder()
-                    .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
+            return targeting.toBuilder()
+                    .pricegranularity(resolvePriceGranularity(targeting, isPriceGranularityNull,
                             isPriceGranularityTextual, impMediaTypes))
-                    .mediatypepricegranularity(targeting.getMediatypepricegranularity())
                     .includewinners(isIncludeWinnersNull || targeting.getIncludewinners())
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
-                    .includeformat(targeting.getIncludeformat())
                     .build();
-        } else {
-            result = null;
         }
-        return result;
+        return null;
     }
 
     /**
@@ -591,9 +660,8 @@ public class AuctionRequestFactory {
      * In case of valid string price granularity replaced it with appropriate custom view.
      * In case of invalid string value throws {@link InvalidRequestException}.
      */
-    private JsonNode populatePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
-                                              boolean isPriceGranularityTextual, Set<BidType> impMediaTypes) {
-        final JsonNode priceGranularityNode = targeting.getPricegranularity();
+    private JsonNode resolvePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
+                                             boolean isPriceGranularityTextual, Set<BidType> impMediaTypes) {
 
         final boolean hasAllMediaTypes = checkExistingMediaTypes(targeting.getMediatypepricegranularity())
                 .containsAll(impMediaTypes);
@@ -601,6 +669,8 @@ public class AuctionRequestFactory {
         if (isPriceGranularityNull && !hasAllMediaTypes) {
             return mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
         }
+
+        final JsonNode priceGranularityNode = targeting.getPricegranularity();
         if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
             try {
@@ -610,6 +680,7 @@ public class AuctionRequestFactory {
             }
             return mapper.mapper().valueToTree(ExtPriceGranularity.from(priceGranularity));
         }
+
         return priceGranularityNode;
     }
 
@@ -649,7 +720,7 @@ public class AuctionRequestFactory {
         final Map<String, String> resolvedAliases = imps.stream()
                 .filter(Objects::nonNull)
                 .filter(imp -> imp.getExt() != null) // request validator is not called yet
-                .flatMap(imp -> asStream(imp.getExt().fieldNames())
+                .flatMap(imp -> StreamUtil.asStream(biddersFromImp(imp))
                         .filter(bidder -> !aliases.containsKey(bidder))
                         .filter(bidderCatalog::isAlias))
                 .distinct()
@@ -663,6 +734,13 @@ public class AuctionRequestFactory {
             result.putAll(resolvedAliases);
         }
         return result;
+    }
+
+    private Iterator<String> biddersFromImp(Imp imp) {
+        final JsonNode extPrebid = imp.getExt().get(PREBID_EXT);
+        final JsonNode extPrebidBidder = isObjectNode(extPrebid) ? extPrebid.get(BIDDER_EXT) : null;
+
+        return isObjectNode(extPrebidBidder) ? extPrebidBidder.fieldNames() : Collections.emptyIterator();
     }
 
     /**
@@ -728,11 +806,6 @@ public class AuctionRequestFactory {
         return !Objects.equals(requestTimeout, timeout) ? timeout : null;
     }
 
-    private static <T> Stream<T> asStream(Iterator<T> iterator) {
-        final Iterable<T> iterable = () -> iterator;
-        return StreamSupport.stream(iterable.spliterator(), false);
-    }
-
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
         return target != null ? getter.apply(target) : null;
     }
@@ -776,8 +849,8 @@ public class AuctionRequestFactory {
         return blankAccountId
                 ? responseForEmptyAccount(routingContext)
                 : applicationSettings.getAccountById(accountId, timeout)
-                        .compose(this::ensureAccountActive,
-                                exception -> accountFallback(exception, accountId, routingContext));
+                .compose(this::ensureAccountActive,
+                        exception -> accountFallback(exception, accountId, routingContext));
     }
 
     /**
