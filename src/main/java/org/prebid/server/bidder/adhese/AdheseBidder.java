@@ -111,15 +111,19 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     private AdheseRequestBody buildBody(BidRequest request, ExtImpAdhese extImpAdhese) {
-        Map<String, List<String>> parameterMap = new TreeMap<>();
+        final Map<String, List<String>> parameterMap = new TreeMap<>();
         parameterMap.putAll(getTargetParameters(extImpAdhese));
         parameterMap.putAll(getGdprParameter(request.getUser()));
         parameterMap.putAll(getRefererParameter(request.getSite()));
         parameterMap.putAll(getIfaParameter(request.getDevice()));
 
-        return new AdheseRequestBody(
-                Collections.singletonList(AdheseRequestBody.Slot.create(getSlotParameter(extImpAdhese))),
-                parameterMap);
+        return AdheseRequestBody.builder()
+                .slots(Collections.singletonList(
+                        AdheseRequestBody.Slot.builder()
+                                .slotname(getSlotParameter(extImpAdhese))
+                                .build()))
+                .parameters(parameterMap)
+                .build();
     }
 
     private String getUrl(ExtImpAdhese extImpAdhese) {
