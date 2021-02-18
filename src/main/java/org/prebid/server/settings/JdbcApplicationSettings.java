@@ -132,19 +132,6 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Runs a process to get AdUnit config by id from database
-     * and returns {@link Future&lt;{@link String}&gt;}.
-     */
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return jdbcClient.executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1",
-                Collections.singletonList(adUnitConfigId),
-                result -> mapToModelOrError(result, row -> row.getString(0)),
-                timeout)
-                .compose(result -> failedIfNull(result, adUnitConfigId, "AdUnitConfig"));
-    }
-
-    /**
      * Transforms the first row of {@link ResultSet} to required object or returns null.
      * <p>
      * Note: mapper should never throws exception in case of using

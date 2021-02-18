@@ -61,7 +61,7 @@ public class FileApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnEmptyWhenAccountsAreMissing() {
         // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs:"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("domains:"));
 
         final FileApplicationSettings applicationSettings =
                 new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
@@ -169,56 +169,6 @@ public class FileApplicationSettingsTest {
 
         // then
         assertThat(account.failed()).isTrue();
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyWhenConfigsAreMissing() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> config = applicationSettings.getAdUnitConfigById("123", null);
-
-        // then
-        assertThat(config.failed()).isTrue();
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnPresentConfig() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
-                "configs: [ {id: '123', config: '{\"bidder\": \"rubicon\"}'}, {id: '456'} ]"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> adUnitConfigById1 = applicationSettings.getAdUnitConfigById("123", null);
-        final Future<String> adUnitConfigById2 = applicationSettings.getAdUnitConfigById("456", null);
-
-        // then
-        assertThat(adUnitConfigById1.succeeded()).isTrue();
-        assertThat(adUnitConfigById1.result()).isEqualTo("{\"bidder\": \"rubicon\"}");
-        assertThat(adUnitConfigById2.succeeded()).isTrue();
-        assertThat(adUnitConfigById2.result()).isEqualTo("");
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyForUnknownConfig() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs: [ id: '123', id: '456' ]"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> config = applicationSettings.getAdUnitConfigById("789", null);
-
-        // then
-        assertThat(config.failed()).isTrue();
     }
 
     @Test

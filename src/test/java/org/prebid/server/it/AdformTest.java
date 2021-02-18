@@ -39,9 +39,9 @@ public class AdformTest extends IntegrationTest {
                 .withQueryParam("gdpr", equalTo("0"))
                 .withQueryParam("gdpr_consent", equalTo("consentValue"))
                 .withQueryParam("url", equalTo("https://adform.com?a=b"))
-                // bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
-                // "mid=15&rcur=USD&mkv=color:red&mkw=red&cdims=300X600&minp=2.50"
-                .withQueryParam("bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA",
+                // bWlkPTE1JnJjdXI9Q1pLJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
+                // "mid=15&rcur=CZK&mkv=color:red&mkw=red&cdims=300x600&minp=2.50"
+                .withQueryParam("bWlkPTE1JnJjdXI9Q1pLJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA",
                         equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
