@@ -1395,6 +1395,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private static ExtUser notMaskedExtUser() {
         return ExtUser.builder()
+                .digitrust(mapper.createObjectNode())
                 .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
                 .prebid(ExtUserPrebid.of(singletonMap("key", "value")))
                 .build();
