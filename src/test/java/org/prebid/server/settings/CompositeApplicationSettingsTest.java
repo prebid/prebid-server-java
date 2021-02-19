@@ -108,55 +108,6 @@ public class CompositeApplicationSettingsTest {
     }
 
     @Test
-    public void getAdUnitConfigByIdShouldReturnConfigFromFirstDelegateIfPresent() {
-        // given
-        given(delegate1.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.succeededFuture("adUnitConfig1"));
-
-        // when
-        final Future<String> future = compositeApplicationSettings.getAdUnitConfigById("ignore", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo("adUnitConfig1");
-        verifyZeroInteractions(delegate2);
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnConfigFromSecondDelegateIfFirstDelegateFails() {
-        // given
-        given(delegate1.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error1")));
-
-        given(delegate2.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.succeededFuture("adUnitConfig1"));
-
-        // when
-        final Future<String> future = compositeApplicationSettings.getAdUnitConfigById("ignore", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo("adUnitConfig1");
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyResultIfAllDelegatesFail() {
-        // given
-        given(delegate1.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error1")));
-
-        given(delegate2.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error2")));
-
-        // when
-        final Future<String> future = compositeApplicationSettings.getAdUnitConfigById("ignore", null);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("error2");
-    }
-
-    @Test
     public void getStoredDataShouldReturnResultFromFirstDelegateIfPresent() {
         // given
         given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
