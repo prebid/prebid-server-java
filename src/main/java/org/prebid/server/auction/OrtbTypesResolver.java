@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.ConditionalLogger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +34,8 @@ import java.util.stream.StreamSupport;
 public class OrtbTypesResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(OrtbTypesResolver.class);
+    private static final ConditionalLogger ORTB_TYPES_RESOLVING_LOGGER =
+            new ConditionalLogger("ortb_resolving_warnings", logger);
 
     private static final String USER = "user";
     private static final String APP = "app";
@@ -343,12 +346,10 @@ public class OrtbTypesResolver {
         if (CollectionUtils.isNotEmpty(resolverWarning)) {
             warnings.addAll(updateWithWarningPrefix(resolverWarning));
             // log only 1% of cases
-            if (System.currentTimeMillis() % 100 == 0) {
-                logger.info(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
-                        String.join("\n", resolverWarning),
-                        StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
-                        containerName, containerValue));
-            }
+            ORTB_TYPES_RESOLVING_LOGGER.warn(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
+                    String.join("\n", resolverWarning),
+                    StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
+                    containerName, containerValue), 0.01);
         }
     }
 
