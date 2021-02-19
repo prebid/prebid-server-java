@@ -10,6 +10,7 @@ import java.util.function.Function;
  */
 class ValidationMetrics extends UpdatableMetrics {
 
+    private final SpecificValidationMetrics priceValidationMetrics;
     private final SpecificValidationMetrics sizeValidationMetrics;
     private final SpecificValidationMetrics secureValidationMetrics;
 
@@ -17,6 +18,8 @@ class ValidationMetrics extends UpdatableMetrics {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 nameCreator(createPrefix(Objects.requireNonNull(prefix))));
 
+        priceValidationMetrics = new SpecificValidationMetrics(
+                metricRegistry, counterType, createPrefix(prefix), "price");
         sizeValidationMetrics = new SpecificValidationMetrics(
                 metricRegistry, counterType, createPrefix(prefix), "size");
         secureValidationMetrics = new SpecificValidationMetrics(
@@ -29,6 +32,10 @@ class ValidationMetrics extends UpdatableMetrics {
 
     private static String createPrefix(String prefix) {
         return String.format("%s.validation", prefix);
+    }
+
+    SpecificValidationMetrics price() {
+        return priceValidationMetrics;
     }
 
     SpecificValidationMetrics size() {

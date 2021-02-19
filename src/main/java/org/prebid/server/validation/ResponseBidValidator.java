@@ -8,8 +8,6 @@ import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.BidderAliases;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -48,54 +46,66 @@ public class ResponseBidValidator {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public ValidationResult validate(
-            BidderBid bidderBid, String bidder, AuctionContext auctionContext, BidderAliases aliases) {
+    public ValidationResult validate(BidderBid bidderBid,
+                                     String resolvedBidder,
+                                     BidRequest bidRequest,
+                                     Account account) {
 
         final List<String> warnings = new ArrayList<>();
 
         try {
-            validateCommonFields(bidderBid.getBid());
+            final Bid bid = bidderBid.getBid();
+            final String accountId = account.getId();
+
+            validateCommonFields(bid, resolvedBidder, accountId);
             validateCurrency(bidderBid.getBidCurrency());
 
             if (bidderBid.getType() == BidType.banner) {
-                warnings.addAll(validateBannerFields(bidderBid, bidder, auctionContext, aliases));
+                warnings.addAll(validateBannerFields(bid, resolvedBidder, account, bidRequest));
             }
 
-            warnings.addAll(validateSecureMarkup(bidderBid, bidder, auctionContext, aliases));
+            warnings.addAll(validateSecureMarkup(bid, resolvedBidder, bidRequest, accountId));
         } catch (ValidationException e) {
             return ValidationResult.error(warnings, e.getMessage());
         }
         return ValidationResult.success(warnings);
     }
 
-    private static void validateCommonFields(Bid bid) throws ValidationException {
+    private void validateCommonFields(Bid bid, String bidder, String accountId) throws ValidationException {
         if (bid == null) {
+            metrics.updateEmptyBidValidationMetrics(bidder, accountId);
             throw new ValidationException("Empty bid object submitted.");
         }
 
         final String bidId = bid.getId();
         if (StringUtils.isBlank(bidId)) {
+            metrics.updateBidIdValidationMetrics(bidder, accountId);
             throw new ValidationException("Bid missing required field 'id'");
         }
 
         if (StringUtils.isBlank(bid.getImpid())) {
+            metrics.updateImpIdValidationMetrics(bidder, accountId);
             throw new ValidationException("Bid \"%s\" missing required field 'impid'", bidId);
         }
 
         final BigDecimal price = bid.getPrice();
         if (price == null) {
+            metrics.updatePriceEmptyValidationMetrics(bidder, accountId);
             throw new ValidationException("Bid \"%s\" does not contain a 'price'", bidId);
         }
 
         if (price.compareTo(BigDecimal.ZERO) < 0) {
+            metrics.updatePriceNegativeValidationMetrics(bidder, accountId);
             throw new ValidationException("Bid \"%s\" `price `has negative value", bidId);
         }
 
         if (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(bid.getDealid())) {
+            metrics.updatePriceZeroNonDealValidationMetrics(bidder, accountId);
             throw new ValidationException("Non deal bid \"%s\" has 0 price", bidId);
         }
 
         if (StringUtils.isEmpty(bid.getCrid())) {
+            metrics.updateCridValidationMetrics(bidder, accountId);
             throw new ValidationException("Bid \"%s\" missing creative ID", bidId);
         }
     }
@@ -110,22 +120,17 @@ public class ResponseBidValidator {
         }
     }
 
-    private List<String> validateBannerFields(BidderBid bidderBid,
-                                              String bidder,
-                                              AuctionContext auctionContext,
-                                              BidderAliases aliases) throws ValidationException {
-
-        final Bid bid = bidderBid.getBid();
-        final Account account = auctionContext.getAccount();
+    private List<String> validateBannerFields(Bid bid,
+                                              String resolvedBidder,
+                                              Account account,
+                                              BidRequest bidRequest) throws ValidationException {
 
         final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
-        if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip
-                && bannerSizeIsNotValid(bid, auctionContext.getBidRequest())) {
+        if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip && bannerSizeIsNotValid(bid, bidRequest)) {
 
             return singleWarningOrValidationException(
                     bannerMaxSizeEnforcement,
-                    metricName -> metrics.updateSizeValidationMetrics(
-                            aliases.resolveBidder(bidder), account.getId(), metricName),
+                    metricName -> metrics.updateSizeValidationMetrics(resolvedBidder, account.getId(), metricName),
                     "Bid \"%s\" has 'w' and 'h' that are not valid. Bid dimensions: '%dx%d'",
                     bid.getId(), bid.getW(), bid.getH());
         }
@@ -168,23 +173,21 @@ public class ResponseBidValidator {
         return ListUtils.emptyIfNull(banner != null ? banner.getFormat() : null);
     }
 
-    private List<String> validateSecureMarkup(BidderBid bidderBid,
-                                              String bidder,
-                                              AuctionContext auctionContext,
-                                              BidderAliases aliases) throws ValidationException {
+    private List<String> validateSecureMarkup(Bid bid,
+                                              String resolvedBidder,
+                                              BidRequest bidRequest,
+                                              String accountId) throws ValidationException {
 
         if (secureMarkupEnforcement == BidValidationEnforcement.skip) {
             return Collections.emptyList();
         }
 
-        final Bid bid = bidderBid.getBid();
-        final Imp imp = findCorrespondingImp(auctionContext.getBidRequest(), bidderBid.getBid());
+        final Imp imp = findCorrespondingImp(bidRequest, bid);
 
         if (isImpSecure(imp) && markupIsNotSecure(bid)) {
             return singleWarningOrValidationException(
                     secureMarkupEnforcement,
-                    metricName -> metrics.updateSecureValidationMetrics(
-                            aliases.resolveBidder(bidder), auctionContext.getAccount().getId(), metricName),
+                    metricName -> metrics.updateSecureValidationMetrics(resolvedBidder, accountId, metricName),
                     "Bid \"%s\" has insecure creative but should be in secure context",
                     bid.getId());
         }
