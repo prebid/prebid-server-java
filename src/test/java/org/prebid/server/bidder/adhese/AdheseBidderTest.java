@@ -123,7 +123,7 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],"
+                .containsExactly("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],"
                         + "\"parameters\":{\"ag\":[\"55\"],\"ci\":[\"gent\",\"brussels\"],"
                         + "\"tl\":[\"all\"],\"xt\":[\"dummy\"],\"xz\":[\"dum-my\"]}}");
     }
