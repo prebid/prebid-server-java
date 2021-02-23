@@ -957,36 +957,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return result.size() > 0 ? result : null;
     }
 
-    private void enrichWithIabAttrubute(ObjectNode target, List<Data> data) {
-        if (shouldBeCopiedSegmentIds(data)) {
-            final ArrayNode iab = target.putArray("iab");
-            addIdsToIabAttribute(iab, data);
-        }
-    }
-
-    private boolean shouldBeCopiedSegmentIds(List<Data> data) {
-        return CollectionUtils.isNotEmpty(data) && data.stream()
-                .map(record -> convertToDataExt(record.getExt()))
-                .filter(Objects::nonNull)
-                .anyMatch(ext -> StringUtils.containsIgnoreCase(ext.getTaxonomyname(), "IAB"));
-    }
-
-    private static void addIdsToIabAttribute(ArrayNode iab, List<Data> data) {
-        data.stream()
-                .map(Data::getSegment)
-                .flatMap(segments -> segments.stream()
-                        .map(Segment::getId))
-                .forEach(iab::add);
-    }
-
-    private RubiconDataExt convertToDataExt(ObjectNode ext) {
-        try {
-            return mapper.mapper().convertValue(ext, RubiconDataExt.class);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
     private ObjectNode existingRubiconUserExtRpTarget(User user) {
         final ExtUser userExt = user != null ? user.getExt() : null;
         final RubiconUserExt userRubiconExt = userExt != null
@@ -1014,6 +984,36 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (userExt != null) {
             populateFirstPartyDataAttributes(userExt.getData(), result);
         }
+    }
+
+    private void enrichWithIabAttrubute(ObjectNode target, List<Data> data) {
+        if (shouldBeCopiedSegmentIds(data)) {
+            final ArrayNode iab = target.putArray("iab");
+            addIdsToIabAttribute(iab, data);
+        }
+    }
+
+    private boolean shouldBeCopiedSegmentIds(List<Data> data) {
+        return CollectionUtils.isNotEmpty(data) && data.stream()
+                .map(record -> convertToDataExt(record.getExt()))
+                .filter(Objects::nonNull)
+                .anyMatch(ext -> StringUtils.containsIgnoreCase(ext.getTaxonomyname(), "IAB"));
+    }
+
+    private RubiconDataExt convertToDataExt(ObjectNode ext) {
+        try {
+            return mapper.mapper().convertValue(ext, RubiconDataExt.class);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static void addIdsToIabAttribute(ArrayNode iab, List<Data> data) {
+        data.stream()
+                .map(Data::getSegment)
+                .flatMap(segments -> segments.stream()
+                        .map(Segment::getId))
+                .forEach(iab::add);
     }
 
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
