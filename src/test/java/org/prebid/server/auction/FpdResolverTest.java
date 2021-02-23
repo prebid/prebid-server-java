@@ -18,7 +18,7 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
@@ -725,6 +725,20 @@ public class FpdResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveBidRequestExtShouldTolerateMissingBidders() {
+        // given
+        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"))).build());
+
+        // when
+        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
+                Targeting.of(null, null, null)); // no bidders
+
+        // then
+        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
+    }
+
+    @Test
     public void resolveBidRequestExtShouldMergeBidders() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
@@ -802,10 +816,13 @@ public class FpdResolverTest extends VertxTest {
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, targeting);
 
         // then
+        final ExtRequestPrebidBidderConfig expectedBidderConfig = ExtRequestPrebidBidderConfig.of(
+                Collections.singletonList("*"),
+                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode)));
+
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
-                        Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                                siteNode, null, userNode))))).build()));
+                .bidderconfig(Collections.singletonList(expectedBidderConfig))
+                .build()));
     }
 
     @Test
@@ -836,7 +853,7 @@ public class FpdResolverTest extends VertxTest {
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                 .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform")))
                 .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
-                        Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigFpd.of(
+                        Collections.singletonList("*"), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
                                 mapper.valueToTree(Site.builder().id("id").build()), null,
                                 mapper.valueToTree(User.builder().id("id").build())))))).build()));
     }
