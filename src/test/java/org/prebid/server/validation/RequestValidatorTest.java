@@ -1050,7 +1050,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))
                         .build())
                 .build();
 
@@ -1067,7 +1067,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))
                         .build())
                 .build();
 
@@ -1084,7 +1084,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))
                         .build())
                 .build();
 
@@ -1101,7 +1101,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))
                         .build())
                 .build();
 
@@ -1119,7 +1119,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))
                         .build())
                 .build();
 
@@ -1137,7 +1137,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))
                         .build())
                 .build();
 
