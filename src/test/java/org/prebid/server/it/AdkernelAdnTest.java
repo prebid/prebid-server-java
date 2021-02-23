@@ -47,9 +47,12 @@ public class AdkernelAdnTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adkerneladn/test-cache-adkerneladn-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/adkerneladn/test-cache-adkerneladn-response.json"))));
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/adkerneladn/test-cache-adkerneladn-request.json")))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/adkerneladn/test-cache-matcher-adkerneladn.json")));
 
         // when
         final Response response = given(SPEC)

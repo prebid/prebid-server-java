@@ -31,7 +31,6 @@ import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -39,6 +38,7 @@ import static java.util.function.Function.identity;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -183,7 +183,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
         // when
@@ -204,18 +204,20 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("not found")));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), eq("pbjs"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), any(), eq(singleton("bidder")), eq("accountId"),
+                eq("pbjs"), any());
     }
 
     @Test
-    public void shouldSendToCacheEmptyUpdatableBiddersIfAccountEventsEnabledIsNull() throws JsonProcessingException {
+    public void shouldSendToCacheNullInAccountEnabledAndValidBiddersWhenAccountEventsEnabledIsNull()
+            throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = singletonList(
                 PutObject.builder().bidid("bidId").bidder("bidder").value(new TextNode("value")).build());
@@ -224,16 +226,15 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(null).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(bidderCatalog);
-
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), eq("pbjs"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), isNull(), eq(singleton("bidder")), eq("accountId"),
+                eq("pbjs"), any());
     }
 
     @Test
@@ -256,7 +257,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         singletonList(CacheObject.of("uuid1")))));
 
@@ -265,7 +266,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         verify(cacheService).cachePutObjects(
-                eq(putObjects), eq(singleton("updatable_bidder")), eq("accountId"), eq("pbjs"), any());
+                eq(putObjects), any(), eq(singleton("updatable_bidder")), eq("accountId"), eq("pbjs"), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"}]}"));
     }
@@ -287,7 +288,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
@@ -296,7 +297,8 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), eq("pbjs"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), any(), eq(expectedBidders), eq("accountId"), eq("pbjs"),
+                any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }
@@ -323,7 +325,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
@@ -332,7 +334,8 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), eq("pbjs"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), any(), eq(expectedBidders), eq("accountId"), eq("pbjs"),
+                any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }

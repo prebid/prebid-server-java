@@ -30,8 +30,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
-                "imp": "http://localhost:8080/event?t=imp&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
+                "win": "{{ event.url }}t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
+                "imp": "{{ event.url }}t=imp&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
               }
             }
           }
@@ -68,8 +68,8 @@
                 "hb_cache_path_appnexus": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
-                "imp": "http://localhost:8080/event?t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
+                "win": "{{ event.url }}t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
+                "imp": "{{ event.url }}t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
               },
               "cache": {
                 "bids": {
@@ -120,8 +120,8 @@
                 "hb_cache_path_appnexus": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
-                "imp": "http://localhost:8080/event?t=imp&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
+                "win": "{{ event.url }}t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
+                "imp": "{{ event.url }}t=imp&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
               },
               "cache": {
                 "bids": {
@@ -174,8 +174,8 @@
                 "hb_cache_path_appnexusAlias": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i&int=dmbjs",
-                "imp": "http://localhost:8080/event?t=imp&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i&int=dmbjs"
+                "win": "{{ event.url }}t=win&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i&int=dmbjs",
+                "imp": "{{ event.url }}t=imp&b=7706636740145184840&a=5001&ts=1000&bidder=appnexusAlias&f=i&int=dmbjs"
               },
               "cache": {
                 "bids": {
@@ -229,8 +229,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
-                "imp": "http://localhost:8080/event?t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+                "win": "{{ event.url }}t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+                "imp": "{{ event.url }}t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               }
             }
           }
@@ -257,8 +257,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
-                "imp": "http://localhost:8080/event?t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+                "win": "{{ event.url }}t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+                "imp": "{{ event.url }}t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               }
             }
           }
@@ -267,7 +267,7 @@
           "id": "880290288",
           "impid": "impId1",
           "price": 8.43,
-          "adm": "<Impression><![CDATA[]]><\/Impression>",
+          "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[{{ event.url }}t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=dmbjs]]></Impression>",
           "crid": "crid1",
           "w": 300,
           "h": 250,
@@ -292,8 +292,8 @@
                 "hb_cache_path_rubicon": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
-                "imp": "http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+                "win": "{{ event.url }}t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+                "imp": "{{ event.url }}t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               },
               "cache": {
                 "vastXml": {
@@ -346,8 +346,8 @@
                 "hb_cache_path_rubicon": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
-                "imp": "http://localhost:8080/event?t=imp&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+                "win": "{{ event.url }}t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+                "imp": "{{ event.url }}t=imp&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               },
               "cache": {
                 "bids": {
