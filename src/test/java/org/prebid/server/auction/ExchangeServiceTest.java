@@ -1284,6 +1284,40 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldPassImpExtSkadnToEachImpression() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode()
+                .<ObjectNode>set("prebid", mapper.createObjectNode()
+                        .<ObjectNode>set("bidder", mapper.createObjectNode()
+                                .put("someBidder", 1)))
+                .put("skadn", "skadnValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build())
+                        .ext(impExt)
+                        .build()),
+                identity());
+        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
+                        givenBid(Bid.builder().price(TEN).build())))));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        assertThat(bidRequestCaptor.getAllValues())
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(impExtNode -> impExtNode.get("skadn"))
+                .containsOnly(new TextNode("skadnValue"));
+    }
+
+    @Test
     public void shouldSetUserBuyerIdsFromUserExtPrebidAndClearPrebidBuyerIdsAfterwards() {
         // given
         givenBidder(givenEmptySeatBid());
