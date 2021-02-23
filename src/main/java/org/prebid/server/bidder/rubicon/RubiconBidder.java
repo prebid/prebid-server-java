@@ -8,11 +8,13 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -40,6 +42,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconDataExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBidders;
@@ -945,9 +948,43 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         copyLiveintentSegment(sourceToUserEidExt, result);
 
-        mergeFirstPartyDataFromUser(user, result);
+        if (user != null) {
+            mergeFirstPartyDataFromUser(user.getExt(), result);
+
+            enrichWithIabAttrubute(result, user.getData());
+        }
 
         return result.size() > 0 ? result : null;
+    }
+
+    private void enrichWithIabAttrubute(ObjectNode target, List<Data> data) {
+        if (shouldBeCopiedSegmentIds(data)) {
+            final ArrayNode iab = target.putArray("iab");
+            addIdsToIabAttribute(iab, data);
+        }
+    }
+
+    private boolean shouldBeCopiedSegmentIds(List<Data> data) {
+        return CollectionUtils.isNotEmpty(data) && data.stream()
+                .map(record -> convertToDataExt(record.getExt()))
+                .filter(Objects::nonNull)
+                .anyMatch(ext -> StringUtils.containsIgnoreCase(ext.getTaxonomyname(), "IAB"));
+    }
+
+    private static void addIdsToIabAttribute(ArrayNode iab, List<Data> data) {
+        data.stream()
+                .map(Data::getSegment)
+                .flatMap(segments -> segments.stream()
+                        .map(Segment::getId))
+                .forEach(iab::add);
+    }
+
+    private RubiconDataExt convertToDataExt(ObjectNode ext) {
+        try {
+            return mapper.mapper().convertValue(ext, RubiconDataExt.class);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private ObjectNode existingRubiconUserExtRpTarget(User user) {
@@ -972,9 +1009,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void mergeFirstPartyDataFromUser(User user, ObjectNode result) {
+    private void mergeFirstPartyDataFromUser(ExtUser userExt, ObjectNode result) {
         // merge OPENRTB.user.ext.data.* to XAPI.user.ext.rp.target.*
-        final ExtUser userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
             populateFirstPartyDataAttributes(userExt.getData(), result);
         }

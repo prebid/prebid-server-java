@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.rubicon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -9,6 +10,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
@@ -18,6 +20,7 @@ import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -40,6 +43,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconDataExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
@@ -664,6 +668,39 @@ public class RubiconBidderTest extends VertxTest {
                                                 Visitor.of(singletonList("new"), singletonList("iphone")))))
                                         .build()))
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeIfTaxonomynameContainsIab() {
+
+        ObjectNode userNode = mapper.convertValue(RubiconDataExt.of("contains IaB"), ObjectNode.class);
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(singletonList(Data.builder()
+                        .segment(singletonList(Segment.builder().id("segmentId")
+                                .build()))
+                        .ext(userNode).build())).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedTarget = mapper.createObjectNode();
+        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
+        expectedIabAttribute.add("segmentId");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtUser.builder().build(),
+                        RubiconUserExt.builder()
+                                .rp(RubiconUserExtRp.of(expectedTarget))
+                                .build()));
     }
 
     @Test
