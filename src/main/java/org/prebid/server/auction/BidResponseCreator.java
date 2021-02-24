@@ -97,6 +97,7 @@ public class BidResponseCreator {
 
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
+    private static final String SKADN_PROPERTY = "skadn";
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
@@ -810,13 +811,13 @@ public class BidResponseCreator {
         final ObjectNode existingBidExt = bid.getExt();
         JsonNode skadnObject = mapper.mapper().createObjectNode();
         if (bid.getExt() != null && !existingBidExt.isEmpty()) {
-            skadnObject = existingBidExt.get("skadn");
-            existingBidExt.remove("skadn");
+            skadnObject = existingBidExt.get(SKADN_PROPERTY);
+            existingBidExt.remove(SKADN_PROPERTY);
         }
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, existingBidExt);
         final ObjectNode updatedBidExt = mapper.mapper().valueToTree(bidExt);
         if (skadnObject != null && !skadnObject.isEmpty()) {
-            updatedBidExt.set("skadn", skadnObject);
+            updatedBidExt.set(SKADN_PROPERTY, skadnObject);
         }
 
         bid.setExt(updatedBidExt);
