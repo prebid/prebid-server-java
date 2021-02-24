@@ -806,8 +806,20 @@ public class BidResponseCreator {
                 .video(extBidPrebidVideo)
                 .build();
 
-        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, bid.getExt());
-        bid.setExt(mapper.mapper().valueToTree(bidExt));
+        // will be updated in https://github.com/prebid/prebid-server-java/pull/1126
+        final ObjectNode existingBidExt = bid.getExt();
+        JsonNode skadnObject = mapper.mapper().createObjectNode();
+        if (bid.getExt() != null && !existingBidExt.isEmpty()) {
+            skadnObject = existingBidExt.get("skadn");
+            existingBidExt.remove("skadn");
+        }
+        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, existingBidExt);
+        final ObjectNode updatedBidExt = mapper.mapper().valueToTree(bidExt);
+        if (skadnObject != null && !skadnObject.isEmpty()) {
+            updatedBidExt.set("skadn", skadnObject);
+        }
+
+        bid.setExt(updatedBidExt);
 
         final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
         bid.setExp(ttl);
