@@ -97,6 +97,7 @@ public class BidResponseCreator {
 
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
+    private static final String SKADN_PROPERTY = "skadn";
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
@@ -806,8 +807,7 @@ public class BidResponseCreator {
                 .video(extBidPrebidVideo)
                 .build();
 
-        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, bid.getExt());
-        bid.setExt(mapper.mapper().valueToTree(bidExt));
+        bid.setExt(createBidExt(bid.getExt(), extBidPrebid));
 
         final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
         bid.setExp(ttl);
@@ -1057,5 +1057,21 @@ public class BidResponseCreator {
                 .convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE);
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
         return extBidPrebid != null ? extBidPrebid.getVideo() : null;
+    }
+
+    // will be updated in https://github.com/prebid/prebid-server-java/pull/1126
+    private ObjectNode createBidExt(ObjectNode existingBidExt, ExtBidPrebid extBidPrebid) {
+        JsonNode skadnObject = mapper.mapper().createObjectNode();
+        if (existingBidExt != null && !existingBidExt.isEmpty()) {
+            skadnObject = existingBidExt.get(SKADN_PROPERTY);
+            existingBidExt.remove(SKADN_PROPERTY);
+        }
+        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, existingBidExt);
+        final ObjectNode updatedBidExt = mapper.mapper().valueToTree(bidExt);
+        if (skadnObject != null && !skadnObject.isEmpty()) {
+            updatedBidExt.set(SKADN_PROPERTY, skadnObject);
+        }
+
+        return updatedBidExt;
     }
 }

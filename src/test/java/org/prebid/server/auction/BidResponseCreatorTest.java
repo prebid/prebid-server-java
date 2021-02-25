@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Asset;
@@ -80,6 +81,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -600,6 +602,40 @@ public class BidResponseCreatorTest extends VertxTest {
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldNotWriteSkadnAttributeToBidderSection() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()));
+        final Map<String, Object> bidExtProperties = new HashMap<>();
+        bidExtProperties.put("skadn", singletonMap("skadnKey", "skadnValue"));
+        bidExtProperties.put("anotherProp", "anotherPropValue");
+        final Bid bid = Bid.builder()
+                .id("bidId")
+                .price(BigDecimal.ONE)
+                .adm(BID_ADM)
+                .impid(IMP_ID)
+                .ext(mapper.valueToTree(bidExtProperties))
+                .build();
+
+        final String bidder = "bidder1";
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(bidder,
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
+
+        // then
+        final ObjectNode expectedBidExt = mapper.valueToTree(ExtPrebid.of(
+                ExtBidPrebid.builder().type(banner).build(),
+                singletonMap("anotherProp", "anotherPropValue")));
+        expectedBidExt.set("skadn", mapper.convertValue(singletonMap("skadnKey", "skadnValue"), JsonNode.class));
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
     }
 
     @Test
