@@ -755,7 +755,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
 
         if (validRubiconSizeIds.isEmpty()) {
-            // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits HB-10418
+            // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits (PR #1003)
             if (isInterstitial) {
                 validRubiconSizeIds.add(resolveNotStandardSizeForInstl(sizes.get(0)));
             } else {
