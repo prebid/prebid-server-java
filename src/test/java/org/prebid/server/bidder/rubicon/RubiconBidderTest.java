@@ -43,7 +43,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconDataExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
@@ -672,9 +671,9 @@ public class RubiconBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeIfTaxonomynameContainsIab() {
-
-        ObjectNode userNode = mapper.convertValue(RubiconDataExt.of("contains IaB"), ObjectNode.class);
         // given
+        final ObjectNode userNode = mapper.createObjectNode();
+        userNode.put("taxonomyname", "contains IaB");
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().data(singletonList(Data.builder()
                         .segment(singletonList(Segment.builder().id("segmentId")
@@ -701,6 +700,34 @@ public class RubiconBidderTest extends VertxTest {
                         RubiconUserExt.builder()
                                 .rp(RubiconUserExtRp.of(expectedTarget))
                                 .build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIgnoreNotTextualTaxonomynameProperty() {
+        // given
+        final ObjectNode userNode = mapper.createObjectNode();
+        final ArrayNode wrongTaxonomyAttributeType = userNode.putArray("taxonomyname");
+        wrongTaxonomyAttributeType.add("contains IaB value");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(singletonList(Data.builder()
+                        .segment(singletonList(Segment.builder().id("segmentId")
+                                .build()))
+                        .ext(userNode).build())).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .hasSize(1)
+                .containsNull();
     }
 
     @Test
