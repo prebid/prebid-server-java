@@ -425,7 +425,7 @@ public class AuctionRequestFactory {
 
         // osv format expected: "[major].[minor]". Example: 14.0
         final String[] versionParts = StringUtils.split(osv, '.');
-        if (versionParts.length != 2) {
+        if (versionParts.length < 2) {
             return null;
         }
 
