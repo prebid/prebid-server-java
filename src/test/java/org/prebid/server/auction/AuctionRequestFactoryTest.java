@@ -960,7 +960,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .app(App.builder().build())
                 .device(Device.builder()
                         .os("iOS")
-                        .osv("15.0")
+                        .osv("14.2")
                         .ext(ExtDevice.of(1, null))
                         .build())
                 .build());
