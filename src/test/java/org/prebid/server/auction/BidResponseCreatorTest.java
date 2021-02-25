@@ -609,7 +609,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()));
         final Map<String, Object> bidExtProperties = new HashMap<>();
-        bidExtProperties.put("skadn", singletonMap("soeSkadnKey", "soeSkadnValue"));
+        bidExtProperties.put("skadn", singletonMap("skadnKey", "skadnValue"));
         bidExtProperties.put("anotherProp", "anotherPropValue");
         final Bid bid = Bid.builder()
                 .id("bidId")
@@ -631,19 +631,11 @@ public class BidResponseCreatorTest extends VertxTest {
         final ObjectNode expectedBidExt = mapper.valueToTree(ExtPrebid.of(
                 ExtBidPrebid.builder().type(banner).build(),
                 singletonMap("anotherProp", "anotherPropValue")));
-        expectedBidExt.set("skadn", mapper.convertValue(singletonMap("soeSkadnKey", "soeSkadnValue"), JsonNode.class));
+        expectedBidExt.set("skadn", mapper.convertValue(singletonMap("skadnKey", "skadnValue"), JsonNode.class));
         assertThat(bidResponse.getSeatbid())
-                .containsOnly(SeatBid.builder()
-                        .seat(bidder)
-                        .group(0)
-                        .bid(singletonList(Bid.builder()
-                                .id("bidId")
-                                .impid(IMP_ID)
-                                .price(BigDecimal.ONE)
-                                .adm(BID_ADM)
-                                .ext(expectedBidExt)
-                                .build()))
-                        .build());
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
     }
 
     @Test
