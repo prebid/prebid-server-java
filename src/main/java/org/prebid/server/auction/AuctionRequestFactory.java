@@ -407,13 +407,13 @@ public class AuctionRequestFactory {
         return requestIp != null && requestIp.getVersion() == version ? requestIp.getIp() : null;
     }
 
-    private void logWarnIfNoIp(String resolvedIp, String resolvedIpv6) {
+    private static void logWarnIfNoIp(String resolvedIp, String resolvedIpv6) {
         if (resolvedIp == null && resolvedIpv6 == null) {
             logger.warn("No IP address found in OpenRTB request and HTTP request headers.");
         }
     }
 
-    private Integer resolveLmt(Device device, App app) {
+    private static Integer resolveLmt(Device device, App app) {
         if (app == null || device == null || !StringUtils.equalsIgnoreCase(device.getOs(), "ios")) {
             return null;
         }
@@ -429,8 +429,8 @@ public class AuctionRequestFactory {
             return null;
         }
 
-        final Integer versionMajor = tryParse(versionParts[0]);
-        final Integer versionMinor = tryParse(versionParts[1]);
+        final Integer versionMajor = tryParseAsNumber(versionParts[0]);
+        final Integer versionMinor = tryParseAsNumber(versionParts[1]);
         if (versionMajor == null || versionMinor == null) {
             return null;
         }
@@ -442,7 +442,7 @@ public class AuctionRequestFactory {
         return resolveLmtForIos14AndHigher(device, versionMinor);
     }
 
-    private static Integer tryParse(String number) {
+    private static Integer tryParseAsNumber(String number) {
         try {
             return Integer.parseUnsignedInt(number);
         } catch (NumberFormatException e) {
@@ -450,7 +450,7 @@ public class AuctionRequestFactory {
         }
     }
 
-    private Integer resolveLmtForIos14AndHigher(Device device, Integer versionMinor) {
+    private static Integer resolveLmtForIos14AndHigher(Device device, Integer versionMinor) {
         if (versionMinor == 0 || versionMinor == 1) {
             return resolveLmtForIos14Minor0And1(device);
         }
@@ -470,24 +470,26 @@ public class AuctionRequestFactory {
             return !Objects.equals(lmt, 1) ? 1 : null;
         }
 
-        return !Objects.equals(lmt, 0) ? 0 : null;
+        return lmt == null ? 0 : null;
     }
 
     private static Integer resolveLmtForIos14Minor2AndHigher(Device device) {
-        final ExtDevice deviceExt = device.getExt();
-        final Integer atts = deviceExt != null ? deviceExt.getAtts() : null;
         final Integer lmt = device.getLmt();
+        if (lmt != null) {
+            return null;
+        }
 
+        final Integer atts = getIfNotNull(device.getExt(), ExtDevice::getAtts);
         if (atts == null) {
             return null;
         }
 
         if (atts == 1 || atts == 2) {
-            return !Objects.equals(lmt, 1) ? 1 : null;
+            return 1;
         }
 
         if (atts == 0 || atts == 3) {
-            return !Objects.equals(lmt, 0) ? 0 : null;
+            return 0;
         }
 
         return null;
