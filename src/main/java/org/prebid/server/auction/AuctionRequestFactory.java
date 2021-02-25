@@ -425,7 +425,7 @@ public class AuctionRequestFactory {
 
         // osv format expected: "[major].[minor]". Example: 14.0
         final String[] versionParts = StringUtils.split(osv, '.');
-        if (versionParts.length != 2) {
+        if (versionParts.length < 2) {
             return null;
         }
 
@@ -435,11 +435,7 @@ public class AuctionRequestFactory {
             return null;
         }
 
-        if (versionMajor < 14) {
-            return null;
-        }
-
-        return resolveLmtForIos14AndHigher(device, versionMinor);
+        return resolveLmtForIos(device, versionMajor, versionMinor);
     }
 
     private static Integer tryParseAsNumber(String number) {
@@ -450,12 +446,16 @@ public class AuctionRequestFactory {
         }
     }
 
-    private static Integer resolveLmtForIos14AndHigher(Device device, Integer versionMinor) {
-        if (versionMinor == 0 || versionMinor == 1) {
+    private static Integer resolveLmtForIos(Device device, Integer versionMajor, Integer versionMinor) {
+        if (versionMajor < 14) {
+            return null;
+        }
+
+        if (versionMajor == 14 && (versionMinor == 0 || versionMinor == 1)) {
             return resolveLmtForIos14Minor0And1(device);
         }
 
-        if (versionMinor >= 2) {
+        if (versionMajor > 14 || versionMinor >= 2) {
             return resolveLmtForIos14Minor2AndHigher(device);
         }
 

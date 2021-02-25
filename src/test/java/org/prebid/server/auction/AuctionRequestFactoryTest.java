@@ -631,6 +631,24 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotSetDeviceLmtForIosMissingVersionMinor() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isNull();
+    }
+
+    @Test
     public void shouldNotSetDeviceLmtForIosLowerThan14() {
         // given
         givenBidRequest(BidRequest.builder()
@@ -646,6 +664,24 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getDevice().getLmt()).isNull();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtOneForIos14WithPatchVersion() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14.0.patch-version")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
     }
 
     @Test
@@ -945,7 +981,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .lmt(0)
                         .os("iOS")
                         .osv("14.2")
-                        .ext(ExtDevice.of(2, null))
+                        .ext(ExtDevice.of(1, null))
                         .build())
                 .build());
 
@@ -957,13 +993,32 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetDeviceLmtOneForIos14Minor3AndAtts2() {
+    public void shouldSetDeviceLmtOneForIos15Minor0AndAtts1() {
         // given
         givenBidRequest(BidRequest.builder()
                 .app(App.builder().build())
                 .device(Device.builder()
                         .os("iOS")
-                        .osv("14.3")
+                        .osv("15.0")
+                        .ext(ExtDevice.of(1, null))
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtOneForIos15Minor0AndAtts2() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("15.0")
                         .ext(ExtDevice.of(2, null))
                         .build())
                 .build());
