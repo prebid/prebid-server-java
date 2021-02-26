@@ -2371,6 +2371,45 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldNotReduceBidderAmountForBidsWithSameImpId() throws JsonProcessingException {
+        // given
+        final Bid firstBid = Bid.builder()
+                .id("firstBidId")
+                .impid("impId")
+                .price(ONE)
+                .build();
+
+        final Bid secondBid = Bid.builder()
+                .id("secondBidId")
+                .impid("impId")
+                .price(ONE)
+                .build();
+
+        final String bidResponse = mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(Arrays.asList(firstBid, secondBid))
+                        .build()))
+                .build());
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(builder -> builder.video(Video.builder().build())),
+                bidResponse);
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("impId").video(Video.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getId)
+                .containsExactlyInAnyOrder("firstBidId", "secondBidId");
+    }
+
+    @Test
     public void makeBidsShouldNotReturnImpIfNonDealBidPriceLessThanZero() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
