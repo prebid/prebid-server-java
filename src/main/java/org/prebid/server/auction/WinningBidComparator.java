@@ -7,7 +7,11 @@ import java.util.Comparator;
 import java.util.Objects;
 
 /**
- * Re
+ * Compares its two {@link BidInfo} arguments for order.
+ * <p>
+ * Returns a negative integer when first is less valuable than second
+ * Zero when arguments are equal by their winning value
+ * Positive integer when first have more value then second
  */
 public class WinningBidComparator implements Comparator<BidInfo> {
 
