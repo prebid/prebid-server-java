@@ -49,6 +49,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -69,6 +70,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -148,6 +150,7 @@ public class ExchangeService {
         final String publisherId = account.getId();
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final boolean debugEnabled = isDebugEnabled(bidRequest);
+        final Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids = bidderToMultiBids(bidRequest);
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
@@ -173,6 +176,7 @@ public class ExchangeService {
                         bidderResponses,
                         context,
                         cacheInfo,
+                        bidderToMultiBids,
                         debugEnabled))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                         context.getRoutingContext(), uidsCookie, bidRequest, bidResponse, account));
@@ -247,6 +251,17 @@ public class ExchangeService {
     private static ExtRequestPrebid extRequestPrebid(BidRequest bidRequest) {
         final ExtRequest requestExt = bidRequest.getExt();
         return requestExt != null ? requestExt.getPrebid() : null;
+    }
+
+    private static Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids(BidRequest bidRequest) {
+        final ExtRequestPrebid extRequestPrebid = extRequestPrebid(bidRequest);
+        final List<ExtRequestPrebidMultiBid> multiBids = extRequestPrebid != null
+                ? extRequestPrebid.getMultibid()
+                : null;
+        return multiBids == null
+                ? Collections.emptyMap()
+                : multiBids.stream()
+                        .collect(Collectors.toMap(ExtRequestPrebidMultiBid::getBidder, Function.identity()));
     }
 
     /**
@@ -529,8 +544,7 @@ public class ExchangeService {
      * Extracts a map of bidders to their arguments from {@link ObjectNode} prebid.bidders.
      */
     private static Map<String, JsonNode> bidderToPrebidBidders(BidRequest bidRequest) {
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         final ObjectNode bidders = prebid == null ? null : prebid.getBidders();
 
         if (bidders == null || bidders.isNull()) {
