@@ -10,14 +10,16 @@ adapters:
     meta-info:
       maintainer-email: tappx@tappx.com
       app-media-types:
+        - banner
+        - video
       site-media-types:
         - banner
         - video
       supported-vendors:
       vendor-id: 628
     usersync:
-      url:
-      redirect-url:
+      url: https://ssp.api.tappx.com/cs/usersync.php?gdpr_optin={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&type=iframe&ruid=
+      redirect-url: /setuid?bidder=tappx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={{TPPXUID}}
       cookie-family-name: tappx
-      type: redirect
+      type: iframe
       support-cors: false
