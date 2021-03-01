@@ -8,11 +8,13 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -945,7 +947,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         copyLiveintentSegment(sourceToUserEidExt, result);
 
-        mergeFirstPartyDataFromUser(user, result);
+        if (user != null) {
+            mergeFirstPartyDataFromUser(user.getExt(), result);
+
+            enrichWithIabAttribute(result, user.getData());
+        }
 
         return result.size() > 0 ? result : null;
     }
@@ -972,12 +978,36 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void mergeFirstPartyDataFromUser(User user, ObjectNode result) {
+    private void mergeFirstPartyDataFromUser(ExtUser userExt, ObjectNode result) {
         // merge OPENRTB.user.ext.data.* to XAPI.user.ext.rp.target.*
-        final ExtUser userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
             populateFirstPartyDataAttributes(userExt.getData(), result);
         }
+    }
+
+    private void enrichWithIabAttribute(ObjectNode target, List<Data> data) {
+        final List<String> iabValue = CollectionUtils.emptyIfNull(data).stream()
+                .filter(Objects::nonNull)
+                .filter(dataRecord -> containsIabTaxonomyName(dataRecord.getExt()))
+                .map(Data::getSegment)
+                .filter(Objects::nonNull)
+                .flatMap(segments -> segments.stream()
+                        .map(Segment::getId))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (CollectionUtils.isNotEmpty(iabValue)) {
+            final ArrayNode iab = target.putArray("iab");
+            iabValue.forEach(iab::add);
+        }
+    }
+
+    private boolean containsIabTaxonomyName(ObjectNode ext) {
+        final JsonNode taxonomyname = ext.get("taxonomyname");
+        if (taxonomyname != null && taxonomyname.isTextual()) {
+            return StringUtils.containsIgnoreCase(taxonomyname.textValue(), "iab");
+        }
+        return false;
     }
 
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
