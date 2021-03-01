@@ -703,6 +703,45 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldFillWithIabAttributeOnlyIfContainsIabInTaxonomynameAttribute() {
+        // given
+        final ObjectNode firstUserDataNode = mapper.createObjectNode();
+        firstUserDataNode.put("taxonomyname", "contains IaB");
+        final ObjectNode secondUserDataNode = mapper.createObjectNode();
+        secondUserDataNode.put("taxonomyname", "not contain");
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(asList(Data.builder()
+                        .segment(singletonList(Segment.builder().id("segmentId")
+                                .build()))
+                        .ext(firstUserDataNode).build(),
+                        Data.builder()
+                        .segment(singletonList(Segment.builder().id("secondSegmentId")
+                                .build()))
+                        .ext(secondUserDataNode).build())).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedTarget = mapper.createObjectNode();
+        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
+        expectedIabAttribute.add("segmentId");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtUser.builder().build(),
+                        RubiconUserExt.builder()
+                                .rp(RubiconUserExtRp.of(expectedTarget))
+                                .build()));
+    }
+
+    @Test
     public void makeHttpRequestsShouldIgnoreNotTextualTaxonomynameProperty() {
         // given
         final ObjectNode userNode = mapper.createObjectNode();
