@@ -2187,7 +2187,8 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(result.result().getSeatbid())
                 .flatExtracting(SeatBid::getBid).hasSize(1)
                 .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getEvents())
-                .containsOnly(Events.of("http://win-url?param=value&int=integration",
+                .containsOnly(Events.of(
+                        "http://win-url?param=value&int=integration",
                         "http://imp-url?param=value&int=integration"));
     }
 
