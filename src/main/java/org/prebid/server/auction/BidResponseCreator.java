@@ -27,6 +27,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingBidInfo;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderError;
@@ -54,7 +55,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
@@ -99,8 +99,7 @@ public class BidResponseCreator {
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
     private static final String SKADN_PROPERTY = "skadn";
-    private static final int DEFAULT_BID_LIMIT_MIN = 1;
-    private static final int DEFAULT_BID_LIMIT_MAX = 9;
+    private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
@@ -151,7 +150,7 @@ public class BidResponseCreator {
     Future<BidResponse> create(List<BidderResponse> bidderResponses,
                                AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
-                               Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids,
+                               Map<String, MultiBidConfig> bidderToMultiBids,
                                boolean debugEnabled) {
 
         final long auctionTimestamp = auctionTimestamp(auctionContext);
@@ -202,7 +201,7 @@ public class BidResponseCreator {
     private Future<BidResponse> cacheBidsAndCreateResponse(List<BidderResponse> bidderResponses,
                                                            AuctionContext auctionContext,
                                                            BidRequestCacheInfo cacheInfo,
-                                                           Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids,
+                                                           Map<String, MultiBidConfig> bidderToMultiBids,
                                                            long auctionTimestamp,
                                                            boolean debugEnabled) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
@@ -261,7 +260,7 @@ public class BidResponseCreator {
     private Map<BidderResponse, List<TargetingBidInfo>> toBidderResponseWithTargetingBidInfos(
             List<BidderResponse> bidderResponses,
             List<Imp> imps,
-            Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids) {
+            Map<String, MultiBidConfig> bidderToMultiBids) {
 
         final Map<BidderResponse, List<BidInfo>> bidderResponseToReducedBidInfos = bidderResponses.stream()
                 .collect(Collectors.toMap(
@@ -303,16 +302,13 @@ public class BidResponseCreator {
 
     private List<BidInfo> toSortedMultiBidInfo(BidderResponse bidderResponse,
                                                List<Imp> imps,
-                                               Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids) {
+                                               Map<String, MultiBidConfig> bidderToMultiBids) {
         final List<BidInfo> bidInfos = toBidInfo(bidderResponse, imps);
         final Map<String, List<BidInfo>> impIdToBidInfos = bidInfos.stream()
                 .collect(Collectors.groupingBy(bidInfo -> bidInfo.getCorrespondingImp().getId()));
 
-        final ExtRequestPrebidMultiBid multiBid = bidderToMultiBids.get(bidderResponse.getBidder());
-        final Integer maxBids = multiBid != null ? multiBid.getMaxBids() : null;
-        final int bidLimit = maxBids == null || maxBids < DEFAULT_BID_LIMIT_MIN
-                ? DEFAULT_BID_LIMIT_MIN
-                : maxBids > 9 ? DEFAULT_BID_LIMIT_MAX : maxBids;
+        final MultiBidConfig multiBid = bidderToMultiBids.get(bidderResponse.getBidder());
+        final Integer bidLimit = multiBid != null ? multiBid.getMaxBids() : DEFAULT_BID_LIMIT_MIN;
 
         return impIdToBidInfos.values().stream()
                 .map(impIdBidInfos -> sortReducedBidInfo(impIdBidInfos, bidLimit))
@@ -360,7 +356,7 @@ public class BidResponseCreator {
 
     private List<TargetingBidInfo> toTargetingBidInfo(List<BidInfo> bidderBidInfos,
                                                       String bidder,
-                                                      Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids,
+                                                      Map<String, MultiBidConfig> bidderToMultiBids,
                                                       Set<BidInfo> winningBids,
                                                       Set<BidInfo> winningBidsByBidder) {
         final Map<String, List<BidInfo>> impIdToBidInfos = bidderBidInfos.stream()
@@ -375,12 +371,12 @@ public class BidResponseCreator {
 
     private List<TargetingBidInfo> createTargetingBidInfo(List<BidInfo> bidderImpIdBidInfos,
                                                           String bidder,
-                                                          Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids,
+                                                          Map<String, MultiBidConfig> bidderToMultiBids,
                                                           Set<BidInfo> winningBids,
                                                           Set<BidInfo> winningBidsByBidder) {
         final List<TargetingBidInfo> targetingBidInfos = new ArrayList<>();
 
-        final ExtRequestPrebidMultiBid multiBid = bidderToMultiBids.get(bidder);
+        final MultiBidConfig multiBid = bidderToMultiBids.get(bidder);
         final String bidderCodePrefix = multiBid != null ? multiBid.getTargetBidderCodePrefix() : null;
 
         final int multiBidSize = bidderImpIdBidInfos.size();
@@ -434,11 +430,15 @@ public class BidResponseCreator {
         final ExtResponseDebug extResponseDebug = debugEnabled
                 ? ExtResponseDebug.of(toExtHttpCalls(bidderResponses, cacheResult), bidRequest)
                 : null;
+
         final Map<String, List<ExtBidderError>> errors =
                 toExtBidderErrors(bidderResponses, auctionContext, cacheResult, videoStoredDataResult, bidErrors);
+        final Map<String, List<ExtBidderError>> warnings = debugEnabled
+                ? toExtBidderWarnings(auctionContext)
+                : null;
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponses, cacheResult);
 
-        return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null,
+        return ExtBidResponse.of(extResponseDebug, errors, warnings, responseTimeMillis, bidRequest.getTmax(), null,
                 ExtBidResponsePrebid.of(auctionTimestamp));
     }
 
@@ -646,6 +646,22 @@ public class BidResponseCreator {
                 errors.put(errorEntry.getKey(), errorEntry.getValue());
             }
         }
+    }
+
+    private Map<String, List<ExtBidderError>> toExtBidderWarnings(AuctionContext auctionContext) {
+        final Map<String, List<ExtBidderError>> warnings = new HashMap<>(extractContextWarnings(auctionContext));
+
+        return warnings.isEmpty() ? null : warnings;
+    }
+
+    private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
+        final List<ExtBidderError> contextWarnings = auctionContext.getDebugWarnings().stream()
+                .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
+                .collect(Collectors.toList());
+
+        return contextWarnings.isEmpty()
+                ? Collections.emptyMap()
+                : Collections.singletonMap(PREBID_EXT, contextWarnings);
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {

@@ -25,6 +25,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -64,13 +65,13 @@ import org.prebid.server.validation.model.ValidationResult;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -83,6 +84,8 @@ public class ExchangeService {
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
     private static final String ALL_BIDDERS_CONFIG = "*";
+    private static final Integer DEFAULT_MULTIBID_LIMIT_MIN = 1;
+    private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
 
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
@@ -144,13 +147,14 @@ public class ExchangeService {
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
         final Account account = context.getAccount();
+        final List<String> debugWarnings = context.getDebugWarnings();
 
         final List<SeatBid> storedResponse = new ArrayList<>();
         final BidderAliases aliases = aliases(bidRequest);
         final String publisherId = account.getId();
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final boolean debugEnabled = isDebugEnabled(bidRequest);
-        final Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids = bidderToMultiBids(bidRequest);
+        final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
@@ -176,7 +180,7 @@ public class ExchangeService {
                         bidderResponses,
                         context,
                         cacheInfo,
-                        bidderToMultiBids,
+                        bidderToMultiBid,
                         debugEnabled))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                         context.getRoutingContext(), uidsCookie, bidRequest, bidResponse, account));
@@ -253,15 +257,70 @@ public class ExchangeService {
         return requestExt != null ? requestExt.getPrebid() : null;
     }
 
-    private static Map<String, ExtRequestPrebidMultiBid> bidderToMultiBids(BidRequest bidRequest) {
+    private static Map<String, MultiBidConfig> bidderToMultiBids(BidRequest bidRequest, List<String> debugWarnings) {
         final ExtRequestPrebid extRequestPrebid = extRequestPrebid(bidRequest);
-        final List<ExtRequestPrebidMultiBid> multiBids = extRequestPrebid != null
-                ? extRequestPrebid.getMultibid()
-                : null;
-        return multiBids == null
-                ? Collections.emptyMap()
-                : multiBids.stream()
-                        .collect(Collectors.toMap(ExtRequestPrebidMultiBid::getBidder, Function.identity()));
+        final Collection<ExtRequestPrebidMultiBid> multiBids = extRequestPrebid != null
+                ? CollectionUtils.emptyIfNull(extRequestPrebid.getMultibid())
+                : Collections.emptyList();
+
+        final Map<String, MultiBidConfig> bidderToMultiBid = new HashMap<>();
+        for (ExtRequestPrebidMultiBid prebidMultiBid : multiBids) {
+            final String bidder = prebidMultiBid.getBidder();
+            final List<String> bidders = prebidMultiBid.getBidders();
+            final Integer maxBids = prebidMultiBid.getMaxBids();
+            final String codePrefix = prebidMultiBid.getTargetBidderCodePrefix();
+
+            if (bidder != null && CollectionUtils.isNotEmpty(bidders)) {
+                debugWarnings.add(String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
+                        + "Only bidder %s will be used.", bidder, bidders, bidder));
+
+                tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
+                continue;
+            }
+
+            if (bidder != null) {
+                tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
+            } else if (CollectionUtils.isNotEmpty(bidders)) {
+                if (codePrefix != null) {
+                    debugWarnings.add(String.format("Invalid MultiBid: CodePrefix %s that was specified for bidders %s "
+                            + "will be skipped.", codePrefix, bidders));
+                }
+
+                bidders.forEach(currentBidder ->
+                        tryAddBidderWithMultiBid(currentBidder, maxBids, null, bidderToMultiBid, debugWarnings));
+            } else {
+                debugWarnings.add("Invalid MultiBid: Bidder and bidders was not specified.");
+            }
+        }
+
+        return bidderToMultiBid;
+    }
+
+    private static void tryAddBidderWithMultiBid(String bidder,
+                                                 Integer maxBids,
+                                                 String codePrefix,
+                                                 Map<String, MultiBidConfig> bidderToMultiBid,
+                                                 List<String> debugWarnings) {
+        if (bidderToMultiBid.containsKey(bidder)) {
+            debugWarnings.add(String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder));
+            return;
+        }
+
+        if (maxBids == null) {
+            debugWarnings.add(String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
+                    + "will be skipped.", bidder));
+            return;
+        }
+
+        bidderToMultiBid.put(bidder, toMultiBid(bidder, maxBids, codePrefix));
+    }
+
+    private static MultiBidConfig toMultiBid(String bidder, Integer maxBids, String codePrefix) {
+        final int bidLimit = maxBids < DEFAULT_MULTIBID_LIMIT_MIN
+                ? DEFAULT_MULTIBID_LIMIT_MIN
+                : maxBids > DEFAULT_MULTIBID_LIMIT_MAX ? DEFAULT_MULTIBID_LIMIT_MAX : maxBids;
+
+        return MultiBidConfig.of(bidder, bidLimit, codePrefix);
     }
 
     /**

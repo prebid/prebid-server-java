@@ -38,6 +38,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -92,6 +93,8 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -688,14 +691,24 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void shouldCallBidResponseCreatorWithExpectedParams() {
+    public void shouldCallBidResponseCreatorWithExpectedParamsAndUpdateDebugErrors() {
         // given
         givenBidder("bidder1", mock(Bidder.class), givenEmptySeatBid());
 
         final Bid thirdBid = Bid.builder().id("bidId3").impid("impId1").price(BigDecimal.valueOf(7.89)).build();
         givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(thirdBid))));
 
-        final ExtRequestPrebidMultiBid multiBid1 = ExtRequestPrebidMultiBid.of("bidder1", 2, "bi");
+        final ExtRequestPrebidMultiBid multiBid1 = ExtRequestPrebidMultiBid.of("bidder1", null, 2, "bi1");
+        final ExtRequestPrebidMultiBid multiBid2 = ExtRequestPrebidMultiBid.of("bidder2", singletonList("invalid"), 4,
+                "bi2");
+        final ExtRequestPrebidMultiBid multiBid3 = ExtRequestPrebidMultiBid.of("bidder3", singletonList("invalid"),
+                null, "bi3");
+        final ExtRequestPrebidMultiBid duplicateMultiBid1 = ExtRequestPrebidMultiBid.of("bidder1", null, 100, "bi1_2");
+        final ExtRequestPrebidMultiBid duplicateMultiBids1 = ExtRequestPrebidMultiBid.of(null, singletonList("bidder1"),
+                100, "bi1_3");
+        final ExtRequestPrebidMultiBid multiBid4 = ExtRequestPrebidMultiBid.of(null,
+                Arrays.asList("bidder4", "bidder5"), 3, "ignored");
+
         final ExtRequestTargeting targeting = givenTargeting(true);
         final ObjectNode events = mapper.createObjectNode();
         final BidRequest bidRequest = givenBidRequest(asList(
@@ -706,10 +719,12 @@ public class ExchangeServiceTest extends VertxTest {
                         .targeting(targeting)
                         .auctiontimestamp(1000L)
                         .events(events)
-                        .multibid(singletonList(multiBid1))
+                        .multibid(Arrays.asList(multiBid1, multiBid2, multiBid3, duplicateMultiBid1,
+                                duplicateMultiBids1, multiBid4))
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(53, true),
                                 ExtRequestPrebidCacheVastxml.of(34, true), true))
-                        .build())));
+                        .build()))
+        );
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         // when
@@ -727,10 +742,35 @@ public class ExchangeServiceTest extends VertxTest {
                 .shouldCacheWinningBidsOnly(false)
                 .build();
 
-        final Map<String, ExtRequestPrebidMultiBid> expectedMultiBidMap = singletonMap("bidder1", multiBid1);
+        final MultiBidConfig expectedMultiBid1 = MultiBidConfig.of(multiBid1.getBidder(), multiBid1.getMaxBids(),
+                multiBid1.getTargetBidderCodePrefix());
+        final MultiBidConfig expectedMultiBid2 = MultiBidConfig.of(multiBid2.getBidder(), multiBid2.getMaxBids(),
+                multiBid2.getTargetBidderCodePrefix());
+        final MultiBidConfig expectedFirstMultiBid4 = MultiBidConfig.of("bidder4", multiBid4.getMaxBids(), null);
+        final MultiBidConfig expectedSecondMultiBid4 = MultiBidConfig.of("bidder5", multiBid4.getMaxBids(), null);
+
+        final Map<String, MultiBidConfig> expectedMultiBidMap = new HashMap<>();
+        expectedMultiBidMap.put(expectedMultiBid1.getBidder(), expectedMultiBid1);
+        expectedMultiBidMap.put(expectedMultiBid2.getBidder(), expectedMultiBid2);
+        expectedMultiBidMap.put(expectedFirstMultiBid4.getBidder(), expectedFirstMultiBid4);
+        expectedMultiBidMap.put(expectedSecondMultiBid4.getBidder(), expectedSecondMultiBid4);
+
+        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
+                .debugWarnings(asList(
+                        "Invalid MultiBid: bidder bidder2 and bidders [invalid] specified."
+                                + " Only bidder bidder2 will be used.",
+                        "Invalid MultiBid: bidder bidder3 and bidders [invalid] specified."
+                                + " Only bidder bidder3 will be used.",
+                        "Invalid MultiBid: MaxBids for bidder bidder3 is not specified and will be skipped.",
+                        "Invalid MultiBid: Bidder bidder1 specified multiple times.",
+                        "Invalid MultiBid: CodePrefix bi1_3 that was specified for bidders [bidder1] will be skipped.",
+                        "Invalid MultiBid: Bidder bidder1 specified multiple times.",
+                        "Invalid MultiBid: CodePrefix ignored that was specified for bidders [bidder4, bidder5]"
+                                + " will be skipped."))
+                .build();
 
         final ArgumentCaptor<List<BidderResponse>> captor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(captor.capture(), eq(auctionContext), eq(expectedCacheInfo),
+        verify(bidResponseCreator).create(captor.capture(), eq(expectedAuctionContext), eq(expectedCacheInfo),
                 eq(expectedMultiBidMap), eq(false));
 
         assertThat(captor.getValue()).containsOnly(
@@ -2387,6 +2427,7 @@ public class ExchangeServiceTest extends VertxTest {
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
+                .debugWarnings(new ArrayList<>())
                 .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .timeout(timeout)
@@ -2511,7 +2552,7 @@ public class ExchangeServiceTest extends VertxTest {
     private static BidResponse givenBidResponseWithError(Map<String, List<ExtBidderError>> errors) {
         return BidResponse.builder()
                 .seatbid(emptyList())
-                .ext(mapper.valueToTree(ExtBidResponse.of(null, errors, null, null, null, null)))
+                .ext(mapper.valueToTree(ExtBidResponse.of(null, errors, null, null, null, null, null)))
                 .build();
     }
 }
