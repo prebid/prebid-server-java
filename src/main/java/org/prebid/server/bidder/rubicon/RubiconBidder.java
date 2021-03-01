@@ -1003,11 +1003,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private boolean containsIabTaxonomyName(ObjectNode ext) {
-        final JsonNode taxonomyname = ext.get("taxonomyname");
-        if (taxonomyname != null && taxonomyname.isTextual()) {
-            return StringUtils.containsIgnoreCase(taxonomyname.textValue(), "iab");
-        }
-        return false;
+        final JsonNode taxonomyName = ext != null ? ext.get("taxonomyname") : null;
+        return taxonomyName != null && taxonomyName.isTextual()
+                && StringUtils.containsIgnoreCase(taxonomyName.textValue(), "iab");
     }
 
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
