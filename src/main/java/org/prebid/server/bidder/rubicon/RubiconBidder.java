@@ -986,25 +986,28 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private void enrichWithIabAttribute(ObjectNode target, List<Data> data) {
-        if (containsIabTaxonomyName(data)) {
+        final List<String> iabValue = CollectionUtils.emptyIfNull(data).stream()
+                .filter(Objects::nonNull)
+                .filter(dataRecord -> containsIabTaxonomyName(dataRecord.getExt()))
+                .map(Data::getSegment)
+                .filter(Objects::nonNull)
+                .flatMap(segments -> segments.stream()
+                        .map(Segment::getId))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (CollectionUtils.isNotEmpty(iabValue)) {
             final ArrayNode iab = target.putArray("iab");
-            data.stream()
-                    .map(Data::getSegment)
-                    .flatMap(segments -> segments.stream()
-                            .map(Segment::getId))
-                    .forEach(iab::add);
+            iabValue.forEach(iab::add);
         }
     }
 
-    private boolean containsIabTaxonomyName(List<Data> data) {
-        return CollectionUtils.emptyIfNull(data).stream()
-                .map(Data::getExt)
-                .filter(Objects::nonNull)
-                .map(ext -> ext.get("taxonomyname"))
-                .filter(Objects::nonNull)
-                .filter(JsonNode::isTextual)
-                .map(JsonNode::textValue)
-                .anyMatch(value -> StringUtils.containsIgnoreCase(value, "iab"));
+    private boolean containsIabTaxonomyName(ObjectNode ext) {
+        final JsonNode taxonomyname = ext.get("taxonomyname");
+        if (taxonomyname != null && taxonomyname.isTextual()) {
+            return StringUtils.containsIgnoreCase(taxonomyname.textValue(), "iab");
+        }
+        return false;
     }
 
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
