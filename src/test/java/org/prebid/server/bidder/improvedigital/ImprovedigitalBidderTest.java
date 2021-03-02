@@ -187,7 +187,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresent2() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfImpNotFoundForId() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
