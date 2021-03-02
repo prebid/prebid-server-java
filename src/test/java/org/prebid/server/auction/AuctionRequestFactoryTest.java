@@ -560,6 +560,95 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotSetDeviceLmtForNonIos() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("plan9")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isNull();
+    }
+
+    @Test
+    public void shouldNotSetDeviceLmtForIosInvalidVersion() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("invalid-version")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isNull();
+    }
+
+    @Test
+    public void shouldNotSetDeviceLmtForIosInvalidVersionMajor() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("invalid-major.0")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isNull();
+    }
+
+    @Test
+    public void shouldNotSetDeviceLmtForIosInvalidVersionMinor() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14.invalid-minor")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isNull();
+    }
+
+    @Test
+    public void shouldNotSetDeviceLmtForIosMissingVersionMinor() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isNull();
+    }
+
+    @Test
     public void shouldNotSetDeviceLmtForIosLowerThan14() {
         // given
         givenBidRequest(BidRequest.builder()
@@ -578,13 +667,13 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetDeviceLmtForIosInvalidVersion() {
+    public void shouldSetDeviceLmtOneForIos14WithPatchVersion() {
         // given
         givenBidRequest(BidRequest.builder()
                 .app(App.builder().build())
                 .device(Device.builder()
                         .os("iOS")
-                        .osv("version")
+                        .osv("14.0.patch-version")
                         .build())
                 .build());
 
@@ -592,34 +681,15 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getDevice().getLmt()).isNull();
+        assertThat(request.getDevice().getLmt()).isOne();
     }
 
     @Test
-    public void shouldSetDeviceLmtForIos14() {
+    public void shouldSetDeviceLmtOneForIos14Minor0() {
         // given
         givenBidRequest(BidRequest.builder()
                 .app(App.builder().build())
                 .device(Device.builder()
-                        .os("iOS")
-                        .osv("14.0")
-                        .build())
-                .build());
-
-        // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(request.getDevice().getLmt()).isNotNegative();
-    }
-
-    @Test
-    public void shouldOverrideDeviceLmtForIos14() {
-        // given
-        givenBidRequest(BidRequest.builder()
-                .app(App.builder().build())
-                .device(Device.builder()
-                        .lmt(0)
                         .os("iOS")
                         .osv("14.0")
                         .build())
@@ -640,6 +710,141 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .device(Device.builder()
                         .os("iOS")
                         .osv("14.0")
+                        .ifa("")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldOverrideDeviceLmtForIos14Minor0AndEmptyIfa() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .lmt(0)
+                        .os("iOS")
+                        .osv("14.0")
+                        .ifa("")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtOneForIos14Minor0AndZerosIfa() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14.0")
+                        .ifa("00000000-0000-0000-0000-000000000000")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtZeroForIos14Minor0AndNonZerosIfa() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14.1")
+                        .ifa("12345")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isZero();
+    }
+
+    @Test
+    public void shouldNotOverrideDeviceLmtForIos14Minor0AndNonZerosIfaWhenLmtAlreadySet() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .lmt(1)
+                        .os("iOS")
+                        .osv("14.0")
+                        .ifa("12345")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtOneForIos14Minor1() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14.1")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtOneForIos14Minor1AndEmptyIfa() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14.1")
+                        .ifa("")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldOverrideDeviceLmtForIos14Minor1AndEmptyIfa() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .lmt(0)
+                        .os("iOS")
+                        .osv("14.1")
                         .ifa("")
                         .build())
                 .build());
@@ -690,6 +895,65 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotOverrideDeviceLmtForIos14Minor1AndNonZerosIfaWhenLmtAlreadySet() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .lmt(1)
+                        .os("iOS")
+                        .osv("14.1")
+                        .ifa("12345")
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtZeroForIos14Minor2AndAtts0() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("14.2")
+                        .ext(ExtDevice.of(0, null))
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isZero();
+    }
+
+    @Test
+    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts0() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .lmt(1)
+                        .os("iOS")
+                        .osv("14.2")
+                        .ext(ExtDevice.of(0, null))
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
     public void shouldSetDeviceLmtOneForIos14Minor2AndAtts1() {
         // given
         givenBidRequest(BidRequest.builder()
@@ -709,13 +973,52 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetDeviceLmtOneForIos14Minor3AndAtts2() {
+    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts1() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .lmt(0)
+                        .os("iOS")
+                        .osv("14.2")
+                        .ext(ExtDevice.of(1, null))
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isZero();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtOneForIos15Minor0AndAtts1() {
         // given
         givenBidRequest(BidRequest.builder()
                 .app(App.builder().build())
                 .device(Device.builder()
                         .os("iOS")
-                        .osv("14.3")
+                        .osv("15.0")
+                        .ext(ExtDevice.of(1, null))
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
+    }
+
+    @Test
+    public void shouldSetDeviceLmtOneForIos15Minor0AndAtts2() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .os("iOS")
+                        .osv("15.0")
                         .ext(ExtDevice.of(2, null))
                         .build())
                 .build());
@@ -728,14 +1031,15 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetDeviceLmtZeroForIos14Minor3AndAtts0() {
+    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts2() {
         // given
         givenBidRequest(BidRequest.builder()
                 .app(App.builder().build())
                 .device(Device.builder()
+                        .lmt(0)
                         .os("iOS")
-                        .osv("14.3")
-                        .ext(ExtDevice.of(0, null))
+                        .osv("14.2")
+                        .ext(ExtDevice.of(2, null))
                         .build())
                 .build());
 
@@ -747,13 +1051,13 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetDeviceLmtZeroForIos14Minor3AndAtts3() {
+    public void shouldSetDeviceLmtZeroForIos14Minor2AndAtts3() {
         // given
         givenBidRequest(BidRequest.builder()
                 .app(App.builder().build())
                 .device(Device.builder()
                         .os("iOS")
-                        .osv("14.3")
+                        .osv("14.2")
                         .ext(ExtDevice.of(3, null))
                         .build())
                 .build());
@@ -763,6 +1067,26 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getDevice().getLmt()).isZero();
+    }
+
+    @Test
+    public void shouldNotOverrideDeviceLmtForIos14Minor2AndAtts3() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .device(Device.builder()
+                        .lmt(1)
+                        .os("iOS")
+                        .osv("14.2")
+                        .ext(ExtDevice.of(3, null))
+                        .build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getLmt()).isOne();
     }
 
     @Test
