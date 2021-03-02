@@ -297,7 +297,7 @@ public class FileApplicationSettingsTest {
         verify(fileSystem).readFileBlocking(eq("/home/user/responses/1.json"));
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().isEmpty();
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().isEmpty();
     }
 
     @Test
@@ -326,7 +326,7 @@ public class FileApplicationSettingsTest {
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No stored seatbid found for id: 2"));
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().hasSize(1)
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 
@@ -355,7 +355,7 @@ public class FileApplicationSettingsTest {
         verify(fileSystem).readFileBlocking(eq("/home/user/responses/1.json"));
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().hasSize(1)
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 
