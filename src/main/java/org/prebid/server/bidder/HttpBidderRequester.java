@@ -102,7 +102,7 @@ public class HttpBidderRequester {
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
                                          String storedResponse,
                                          String bidder) {
-        if (StringUtils.isEmpty(storedResponse)) {
+        if (StringUtils.isBlank(storedResponse)) {
             return false;
         }
 
@@ -112,6 +112,7 @@ public class HttpBidderRequester {
                     + "will be performed .", bidder);
             return false;
         }
+
         return true;
     }
 

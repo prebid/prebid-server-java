@@ -26,8 +26,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,8 +42,6 @@ import java.util.stream.Collectors;
  * Resolves stored response data retrieving and BidderResponse merging processes.
  */
 public class StoredResponseProcessor {
-
-    private static final Logger logger = LoggerFactory.getLogger(StoredResponseProcessor.class);
 
     private static final String PREBID_EXT = "prebid";
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -68,13 +64,13 @@ public class StoredResponseProcessor {
         final Map<String, String> auctionStoredResponseToImpId = getAuctionStoredResponses(impExtPrebids);
         final List<Imp> requiredRequestImps = excludeStoredAuctionResponseImps(imps, auctionStoredResponseToImpId);
 
-        final Map<String, Map<String, String>> impToBidderToStoredId = getStoredBidResponses(impExtPrebids,
+        final Map<String, Map<String, String>> impToBidderToStoredBidResponseId = getStoredBidResponses(impExtPrebids,
                 requiredRequestImps);
 
         final Set<String> storedIds = new HashSet<>(auctionStoredResponseToImpId.keySet());
 
         storedIds.addAll(
-                impToBidderToStoredId.values().stream()
+                impToBidderToStoredBidResponseId.values().stream()
                         .flatMap(bidderToId -> bidderToId.values().stream())
                         .collect(Collectors.toSet()));
 
@@ -90,7 +86,7 @@ public class StoredResponseProcessor {
                         requiredRequestImps,
                         convertToSeatBid(storedResponseDataResult, auctionStoredResponseToImpId),
                         mapStoredBidResponseIdsToValues(storedResponseDataResult.getIdToStoredResponses(),
-                                impToBidderToStoredId)));
+                                impToBidderToStoredBidResponseId)));
     }
 
     private List<Imp> excludeStoredAuctionResponseImps(List<Imp> imps,
@@ -144,7 +140,6 @@ public class StoredResponseProcessor {
                                                                    List<Imp> imps) {
         // PBS supports stored bid response only for requests with single impression, but it can be changed in future
         if (imps.size() != 1) {
-            logger.warn("Stored bid response supports only request with single impression");
             return Collections.emptyMap();
         }
 
@@ -240,9 +235,9 @@ public class StoredResponseProcessor {
 
     private Map<String, Map<String, String>> mapStoredBidResponseIdsToValues(
             Map<String, String> idToStoredResponses,
-            Map<String, Map<String, String>> storedResponseIds) {
+            Map<String, Map<String, String>> impToBidderToStoredBidResponseId) {
 
-        return storedResponseIds.entrySet().stream()
+        return impToBidderToStoredBidResponseId.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         entry -> entry.getValue().entrySet().stream()
                                 .filter(bidderToId -> idToStoredResponses.containsKey(bidderToId.getValue()))
