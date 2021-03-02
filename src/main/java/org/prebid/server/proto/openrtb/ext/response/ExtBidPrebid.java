@@ -20,6 +20,9 @@ public class ExtBidPrebid {
 
     Map<String, String> targeting;
 
+    @JsonProperty("targetbiddercode")
+    String targetBidderCode;
+
     ExtResponseCache cache;
 
     @JsonProperty("storedrequestattributes")
