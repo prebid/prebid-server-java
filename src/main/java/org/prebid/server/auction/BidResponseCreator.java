@@ -218,7 +218,7 @@ public class BidResponseCreator {
 
         final ExtRequestTargeting targeting = targeting(bidRequest);
 
-        Set<BidInfo> winningBidInfos = targeting == null
+        final Set<BidInfo> winningBidInfos = targeting == null
                 ? null
                 : bidderResponseToTargetingBidInfos.values().stream()
                         .flatMap(Collection::stream)
