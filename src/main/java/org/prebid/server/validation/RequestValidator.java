@@ -823,7 +823,8 @@ public class RequestValidator {
                                                      int impIndex) throws ValidationException {
         final ExtStoredAuctionResponse extStoredAuctionResponse = extPrebid.getStoredAuctionResponse();
         if (extStoredAuctionResponse != null && extStoredAuctionResponse.getId() == null) {
-            throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined");
+            throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined",
+                    impIndex);
         }
 
         final List<ExtStoredBidResponse> storedBidResponses = extPrebid.getStoredBidResponse();
