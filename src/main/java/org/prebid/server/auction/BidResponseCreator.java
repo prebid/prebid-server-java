@@ -218,15 +218,13 @@ public class BidResponseCreator {
 
         final ExtRequestTargeting targeting = targeting(bidRequest);
 
-        // determine winning bids only if targeting is present
-        Set<BidInfo> winningBidInfos = null;
-        if (targeting != null) {
-            winningBidInfos = bidderResponseToTargetingBidInfos.values().stream()
-                    .flatMap(Collection::stream)
-                    .filter(TargetingBidInfo::isWinningBid)
-                    .map(TargetingBidInfo::getBidInfo)
-                    .collect(Collectors.toSet());
-        }
+        Set<BidInfo> winningBidInfos = targeting == null
+                ? null
+                : bidderResponseToTargetingBidInfos.values().stream()
+                        .flatMap(Collection::stream)
+                        .filter(TargetingBidInfo::isWinningBid)
+                        .map(TargetingBidInfo::getBidInfo)
+                        .collect(Collectors.toSet());
 
         final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBidInfos : bidInfos;
 
