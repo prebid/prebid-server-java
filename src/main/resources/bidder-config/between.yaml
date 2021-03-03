@@ -1,7 +1,7 @@
 adapters:
   between:
     enabled: false
-    endpoint: http://{{Host}}.betweendigital.com
+    endpoint: http://{{Host}}.betweendigital.com/openrtb_bid?sspId={{PublisherId}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
@@ -16,8 +16,8 @@ adapters:
       supported-vendors:
       vendor-id: 724
     usersync:
-      url:
-      redirect-url:
+      url: https://ads.betweendigital.com/match?bidder_id=pbs&gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&callback_url=
+      redirect-url: /setuid?bidder=between&gdpr=0&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}&uid=${USER_ID}
       cookie-family-name: between
       type: redirect
       support-cors: false

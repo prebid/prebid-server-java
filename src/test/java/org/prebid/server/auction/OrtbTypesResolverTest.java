@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
@@ -8,6 +9,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.json.JsonMerger;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +35,7 @@ public class OrtbTypesResolverTest extends VertxTest {
     public void normalizeTargetingShouldConvertArrayToFirstElementFieldForUserAndWriteMessage() {
         // given
         final JsonNode inputParam = mapper.createObjectNode().set("user",
-                mapper.createObjectNode().set("gender", mapper.createArrayNode().add("male").add("female")));
+                mapper.createObjectNode().set("gender", array("male", "female")));
         final List<String> errors = new ArrayList<>();
 
         // when
@@ -51,7 +53,7 @@ public class OrtbTypesResolverTest extends VertxTest {
     public void normalizeTargetingShouldConvertArrayToCommaSeparatedStringFieldForUserAndWriteMessage() {
         // given
         final JsonNode inputParam = mapper.createObjectNode().set("user",
-                mapper.createObjectNode().set("keywords", mapper.createArrayNode().add("keyword1").add("keyword2")));
+                mapper.createObjectNode().set("keywords", array("keyword1", "keyword2")));
         final List<String> errors = new ArrayList<>();
 
         // when
@@ -112,9 +114,9 @@ public class OrtbTypesResolverTest extends VertxTest {
     @Test
     public void normalizeTargetingShouldNormalizeFieldsForUser() {
         // given
-        final ObjectNode user = mapper.createObjectNode().set("gender", mapper.createArrayNode().add("gender1")
-                .add("gender2"));
-        user.set("keywords", mapper.createArrayNode().add("keyword1").add("keyword2"));
+        final ObjectNode user = mapper.createObjectNode()
+                .set("gender", array("gender1", "gender2"));
+        user.set("keywords", array("keyword1", "keyword2"));
         final ObjectNode containerNode = mapper.createObjectNode().set("user", user);
 
         // when
@@ -130,12 +132,12 @@ public class OrtbTypesResolverTest extends VertxTest {
     public void normalizeTargetingShouldNormalizeFieldsForAppExceptId() {
         // given
         final ObjectNode app = mapper.createObjectNode();
-        app.set("id", mapper.createArrayNode().add("id1").add("id2"));
-        app.set("name", mapper.createArrayNode().add("name1").add("name2"));
-        app.set("bundle", mapper.createArrayNode().add("bundle1").add("bundle2"));
-        app.set("storeurl", mapper.createArrayNode().add("storeurl1").add("storeurl2"));
-        app.set("domain", mapper.createArrayNode().add("domain1").add("domain2"));
-        app.set("keywords", mapper.createArrayNode().add("keyword1").add("keyword2"));
+        app.set("id", array("id1", "id2"));
+        app.set("name", array("name1", "name2"));
+        app.set("bundle", array("bundle1", "bundle2"));
+        app.set("storeurl", array("storeurl1", "storeurl2"));
+        app.set("domain", array("domain1", "domain2"));
+        app.set("keywords", array("keyword1", "keyword2"));
         final ObjectNode containerNode = mapper.createObjectNode().set("app", app);
 
         // when
@@ -148,20 +150,20 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .put("storeurl", "storeurl1")
                 .put("domain", "domain1")
                 .put("keywords", "keyword1,keyword2")
-                .set("id", mapper.createArrayNode().add("id1").add("id2"))));
+                .set("id", array("id1", "id2"))));
     }
 
     @Test
     public void normalizeTargetingShouldNormalizeFieldsForSiteExceptId() {
         // given
         final ObjectNode site = mapper.createObjectNode();
-        site.set("id", mapper.createArrayNode().add("id1").add("id2"));
-        site.set("name", mapper.createArrayNode().add("name1").add("name2"));
-        site.set("domain", mapper.createArrayNode().add("domain1").add("domain2"));
-        site.set("page", mapper.createArrayNode().add("page1").add("page2"));
-        site.set("ref", mapper.createArrayNode().add("ref1").add("ref2"));
-        site.set("search", mapper.createArrayNode().add("search1").add("search2"));
-        site.set("keywords", mapper.createArrayNode().add("keyword1").add("keyword2"));
+        site.set("id", array("id1", "id2"));
+        site.set("name", array("name1", "name2"));
+        site.set("domain", array("domain1", "domain2"));
+        site.set("page", array("page1", "page2"));
+        site.set("ref", array("ref1", "ref2"));
+        site.set("search", array("search1", "search2"));
+        site.set("keywords", array("keyword1", "keyword2"));
         final ObjectNode containerNode = mapper.createObjectNode().set("site", site);
 
         // when
@@ -175,7 +177,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .put("domain", "domain1")
                 .put("search", "search1")
                 .put("keywords", "keyword1,keyword2")
-                .set("id", mapper.createArrayNode().add("id1").add("id2")))
+                .set("id", array("id1", "id2")))
         );
     }
 
@@ -284,7 +286,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         // then
         assertThat(containerNode).isEqualTo(
                 obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue"))))
-                        .set("data", mapper.createArrayNode().add(obj("id", "123"))));
+                        .set("data", array(obj("id", "123"))));
     }
 
     @Test
@@ -330,81 +332,240 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     @Test
-    public void normalizeBidRequestShouldResolveORTBFieldsWithIdForRequestAndExcludedIdForBidderConfig() {
+    public void normalizeBidRequestShouldResolveEmptyOrtbWithFpdFieldsWithIdForRequestAndExcludedIdForBidderConfig() {
         // given
+        final ObjectNode ortbSite = mapper.createObjectNode();
+        ortbSite.set("id", array("id1", "id2"));
+        ortbSite.set("name", array("name1", "name2"));
+        ortbSite.set("domain", array("domain1", "domain2"));
+        ortbSite.set("page", array("page1", "page2"));
+        ortbSite.set("ref", array("ref1", "ref2"));
+        ortbSite.set("search", array("search1", "search2"));
+        ortbSite.set("keywords", array("keyword1", "keyword2"));
+
+        final ObjectNode ortbApp = mapper.createObjectNode();
+        ortbApp.set("id", array("id1", "id2"));
+        ortbApp.set("name", array("name1", "name2"));
+        ortbApp.set("bundle", array("bundle1", "bundle2"));
+        ortbApp.set("storeurl", array("storeurl1", "storeurl2"));
+        ortbApp.set("domain", array("domain1", "domain2"));
+        ortbApp.set("keywords", array("keyword1", "keyword2"));
+
+        final ObjectNode ortbUser = mapper.createObjectNode();
+        ortbUser.set("gender", array("gender1", "gender2"));
+        ortbUser.set("keywords", array("keyword1", "keyword2"));
+
+        final ObjectNode bidderConfigContext = ortbSite.deepCopy();
+        final ObjectNode bidderConfigApp = ortbApp.deepCopy();
+        final ObjectNode bidderConfigUser = ortbUser.deepCopy();
+
+        final ObjectNode ortbConfig = mapper.createObjectNode();
+        ortbConfig.set("site", bidderConfigContext);
+        ortbConfig.set("app", bidderConfigApp);
+        ortbConfig.set("user", bidderConfigUser);
+
         final ObjectNode requestNode = mapper.createObjectNode();
+        requestNode.set("site", ortbSite);
+        requestNode.set("app", ortbApp);
+        requestNode.set("user", ortbUser);
 
-        final ObjectNode requestSite = mapper.createObjectNode();
-        requestSite.set("id", mapper.createArrayNode().add("id1").add("id2"));
-        requestSite.set("name", mapper.createArrayNode().add("name1").add("name2"));
-        requestSite.set("domain", mapper.createArrayNode().add("domain1").add("domain2"));
-        requestSite.set("page", mapper.createArrayNode().add("page1").add("page2"));
-        requestSite.set("ref", mapper.createArrayNode().add("ref1").add("ref2"));
-        requestSite.set("search", mapper.createArrayNode().add("search1").add("search2"));
-        requestSite.set("keywords", mapper.createArrayNode().add("keyword1").add("keyword2"));
+        requestNode.set("ext", obj("prebid", obj("bidderconfig", array(obj("config", obj("ortb2", ortbConfig))))));
 
-        final ObjectNode requestApp = mapper.createObjectNode();
-        requestApp.set("id", mapper.createArrayNode().add("id1").add("id2"));
-        requestApp.set("name", mapper.createArrayNode().add("name1").add("name2"));
-        requestApp.set("bundle", mapper.createArrayNode().add("bundle1").add("bundle2"));
-        requestApp.set("storeurl", mapper.createArrayNode().add("storeurl1").add("storeurl2"));
-        requestApp.set("domain", mapper.createArrayNode().add("domain1").add("domain2"));
-        requestApp.set("keywords", mapper.createArrayNode().add("keyword1").add("keyword2"));
-
-        final ObjectNode requestUser = mapper.createObjectNode();
-        requestUser.set("gender", mapper.createArrayNode().add("gender1").add("gender2"));
-        requestUser.set("keywords", mapper.createArrayNode().add("keyword1").add("keyword2"));
-
-        final ObjectNode bidderConfigSite1 = requestSite.deepCopy();
-        final ObjectNode bidderConfigApp1 = requestApp.deepCopy();
-        final ObjectNode bidderConfigUser1 = requestUser.deepCopy();
-
-        final ObjectNode bidderConfig1 = mapper.createObjectNode();
-        bidderConfig1.set("site", bidderConfigSite1);
-        bidderConfig1.set("app", bidderConfigApp1);
-        bidderConfig1.set("user", bidderConfigUser1);
-
-        requestNode.set("site", requestSite);
-        requestNode.set("user", requestUser);
-        requestNode.set("app", requestApp);
-
-        requestNode.set("ext", mapper.createObjectNode().set("prebid", mapper.createObjectNode().set("bidderconfig",
-                mapper.createArrayNode()
-                        .add(mapper.createObjectNode().set("config", mapper.createObjectNode().set("fpd",
-                                bidderConfig1))))));
         // when
         ortbTypesResolver.normalizeBidRequest(requestNode, new ArrayList<>(), "referer");
 
         // then
         assertThat(requestNode.get("site"))
-                .isEqualTo(mapper.createObjectNode().put("id", "id1").put("name", "name1").put("domain", "domain1")
-                        .put("page", "page1").put("ref", "ref1").put("search", "search1")
+                .isEqualTo(mapper.createObjectNode()
+                        .put("id", "id1")
+                        .put("name", "name1")
+                        .put("domain", "domain1")
+                        .put("page", "page1")
+                        .put("ref", "ref1")
+                        .put("search", "search1")
                         .put("keywords", "keyword1,keyword2"));
 
         assertThat(requestNode.get("app"))
-                .isEqualTo(mapper.createObjectNode().put("id", "id1").put("name", "name1").put("bundle", "bundle1")
-                        .put("storeurl", "storeurl1").put("domain", "domain1")
+                .isEqualTo(mapper.createObjectNode()
+                        .put("id", "id1")
+                        .put("name", "name1")
+                        .put("bundle", "bundle1")
+                        .put("storeurl", "storeurl1")
+                        .put("domain", "domain1")
                         .put("keywords", "keyword1,keyword2"));
 
         assertThat(requestNode.get("user"))
-                .isEqualTo(mapper.createObjectNode().put("gender", "gender1").put("keywords", "keyword1,keyword2"));
+                .isEqualTo(mapper.createObjectNode()
+                        .put("gender", "gender1")
+                        .put("keywords", "keyword1,keyword2"));
 
-        assertThat(requestNode.path("ext").path("prebid").path("bidderconfig").path(0).path("config").path("fpd")
-                .path("site"))
-                .isEqualTo(mapper.createObjectNode().put("name", "name1").put("domain", "domain1").put("page", "page1")
-                        .put("ref", "ref1").put("search", "search1").put("keywords", "keyword1,keyword2")
-                        .set("id", mapper.createArrayNode().add("id1").add("id2")));
+        final JsonNode ortb2 = requestNode.path("ext").path("prebid").path("bidderconfig").path(0).path("config")
+                .path("ortb2");
 
-        assertThat(requestNode.path("ext").path("prebid").path("bidderconfig").path(0).path("config").path("fpd")
-                .path("app"))
-                .isEqualTo(mapper.createObjectNode().put("name", "name1").put("bundle", "bundle1")
-                        .put("storeurl", "storeurl1").put("domain", "domain1")
+        assertThat(ortb2.path("site"))
+                .isEqualTo(mapper.createObjectNode()
+                        .put("name", "name1")
+                        .put("domain", "domain1")
+                        .put("page", "page1")
+                        .put("ref", "ref1")
+                        .put("search", "search1")
                         .put("keywords", "keyword1,keyword2")
-                        .set("id", mapper.createArrayNode().add("id1").add("id2")));
+                        .set("id", array("id1", "id2")));
 
-        assertThat(requestNode.path("ext").path("prebid").path("bidderconfig").path(0).path("config").path("fpd")
-                .path("user"))
-                .isEqualTo(mapper.createObjectNode().put("gender", "gender1").put("keywords", "keyword1,keyword2"));
+        assertThat(ortb2.path("app"))
+                .isEqualTo(mapper.createObjectNode()
+                        .put("name", "name1")
+                        .put("bundle", "bundle1")
+                        .put("storeurl", "storeurl1")
+                        .put("domain", "domain1")
+                        .put("keywords", "keyword1,keyword2")
+                        .set("id", array("id1", "id2")));
+
+        assertThat(ortb2.path("user"))
+                .isEqualTo(mapper.createObjectNode()
+                        .put("gender", "gender1")
+                        .put("keywords", "keyword1,keyword2"));
+    }
+
+    @Test
+    public void normalizeBidRequestShouldBeMergedWithFpdContextToOrtbSite() {
+        // given
+        final ObjectNode fpdContext = mapper.createObjectNode();
+        fpdContext.set("id", array("id1", "id2"));
+        fpdContext.set("name", array("name1", "name2"));
+        fpdContext.set("domain", array("domain1"));
+        fpdContext.set("page", array("page1", "page2"));
+        fpdContext.set("data", obj("fpdData", "data_value"));
+
+        final ObjectNode ortbSite = mapper.createObjectNode();
+        ortbSite.put("id", "ortb_id");
+        // name is absent here
+        ortbSite.set("domain", array("ortb_domain1"));
+        ortbSite.set("page", array("ortb_page1", "ortb_page2"));
+        ortbSite.set("ref", array("ortb_ref1", "ortb_ref2"));
+        ortbSite.set("keywords", array("ortb_keyword1", "ortb_keyword2"));
+        ortbSite.set("data", obj("ortbData", "ortb_data_value"));
+
+        final ObjectNode configNode = mapper.createObjectNode();
+        configNode.set("fpd", obj("context", fpdContext));
+        configNode.set("ortb2", obj("site", ortbSite));
+
+        final ObjectNode requestNode = obj("ext", obj("prebid", obj("bidderconfig", array(obj("config", configNode)))));
+
+        final ObjectNode requestedFpdContext = fpdContext.deepCopy();
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(requestNode, new ArrayList<>(), "referer");
+
+        // then
+        final JsonNode config = requestNode.path("ext").path("prebid").path("bidderconfig").path(0);
+        final JsonNode fpd = config.path("config").path("fpd");
+        final JsonNode ortb2 = config.path("config").path("ortb2");
+
+        final ObjectNode expectedOrtbExtData = mapper.createObjectNode()
+                .put("ortbData", "ortb_data_value")
+                .put("fpdData", "data_value");
+
+        final ObjectNode expectedOrtb = mapper.createObjectNode()
+                .put("name", "name1")
+                .put("domain", "domain1")
+                .put("page", "page1")
+                .put("ref", "ortb_ref1")
+                .put("keywords", "ortb_keyword1,ortb_keyword2");
+        expectedOrtb.set("id", array("id1", "id2"));
+        expectedOrtb.set("ext", obj("data", expectedOrtbExtData));
+
+        assertThat(ortb2.path("site")).isEqualTo(expectedOrtb);
+        assertThat(fpd.path("context")).isEqualTo(requestedFpdContext);
+    }
+
+    @Test
+    public void normalizeBidRequestShouldBeMergedWithFpdUserToOrtbUser() {
+        // given
+        final ObjectNode fpdUser = mapper.createObjectNode();
+        fpdUser.set("gender", array("gender1", "gender2"));
+        fpdUser.set("data", obj("fpdData", "data_value"));
+
+        final ObjectNode ortbUser = mapper.createObjectNode();
+        ortbUser.set("gender", array("ortb_gender1", "ortb_gender2"));
+        ortbUser.set("keywords", array("ortb_keyword1", "ortb_keyword2"));
+        ortbUser.set("data", obj("ortbData", "ortb_data_value"));
+
+        final ObjectNode configNode = mapper.createObjectNode();
+        configNode.set("fpd", obj("user", fpdUser));
+        configNode.set("ortb2", obj("user", ortbUser));
+
+        final ObjectNode requestNode = obj("ext", obj("prebid", obj("bidderconfig", array(obj("config", configNode)))));
+
+        final ObjectNode requestFpdUser = fpdUser.deepCopy();
+
+        // when
+        ortbTypesResolver.normalizeBidRequest(requestNode, new ArrayList<>(), "referer");
+
+        // then
+        final JsonNode config = requestNode.path("ext").path("prebid").path("bidderconfig").path(0);
+        final JsonNode fpd = config.path("config").path("fpd");
+        final JsonNode ortb2 = config.path("config").path("ortb2");
+
+        final ObjectNode expectedOrtbExtData = mapper.createObjectNode()
+                .put("ortbData", "ortb_data_value")
+                .put("fpdData", "data_value");
+
+        assertThat(ortb2.path("user"))
+                .isEqualTo(mapper.createObjectNode()
+                        .put("gender", "gender1")
+                        .put("keywords", "ortb_keyword1,ortb_keyword2")
+                        .set("ext", obj("data", expectedOrtbExtData)));
+
+        assertThat(fpd.path("user")).isEqualTo(requestFpdUser);
+    }
+
+    @Test
+    public void normalizeBidRequestShouldNotBeMergedWithFpdAppToOrtbApp() {
+        // given
+        final ObjectNode fpdApp = mapper.createObjectNode();
+        fpdApp.set("id", array("id1", "id2"));
+        fpdApp.set("name", array("name1", "name2"));
+        fpdApp.set("bundle", array("bundle1", "bundle2"));
+        fpdApp.set("storeurl", array("storeurl1", "storeurl2"));
+        fpdApp.set("domain", array("domain1", "domain2"));
+        fpdApp.set("keywords", array("keyword1", "keyword2"));
+
+        final ObjectNode ortbApp = mapper.createObjectNode();
+        fpdApp.put("id", "ortb_id");
+        // name is absent here
+        fpdApp.put("bundle", "ortb_bundle1");
+        fpdApp.put("storeurl", "ortb_storeurl1");
+        fpdApp.put("keywords", "ortb_keyword1");
+
+        final ObjectNode configNode = mapper.createObjectNode();
+        configNode.set("fpd", obj("app", fpdApp));
+        configNode.set("ortb2", obj("app", ortbApp));
+
+        final ObjectNode requestNode = obj("ext", obj("prebid", obj("bidderconfig", array(obj("config", configNode)))));
+
+        final ObjectNode requestFpdApp = fpdApp.deepCopy();
+        final ObjectNode requestOrtbApp = ortbApp.deepCopy();
+
+        // then
+        final JsonNode config = requestNode.path("ext").path("prebid").path("bidderconfig").path(0);
+        final JsonNode fpd = config.path("config").path("fpd");
+        final JsonNode ortb2 = config.path("config").path("ortb2");
+
+        assertThat(ortb2.path("app")).isEqualTo(requestOrtbApp);
+        assertThat(fpd.path("app")).isEqualTo(requestFpdApp);
+    }
+
+    private static ArrayNode array(String... fields) {
+        final ArrayNode arrayNode = mapper.createArrayNode();
+        Arrays.stream(fields).forEach(arrayNode::add);
+        return arrayNode;
+    }
+
+    private static ArrayNode array(ObjectNode... nodes) {
+        final ArrayNode arrayNode = mapper.createArrayNode();
+        Arrays.stream(nodes).forEach(arrayNode::add);
+        return arrayNode;
     }
 
     private static ObjectNode obj(String fieldName, JsonNode value) {

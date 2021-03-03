@@ -5,6 +5,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -117,13 +119,13 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getBody)
+        assertThat(result.getValue())
                 .hasSize(1)
+                .extracting(HttpRequest::getBody)
                 .containsNull();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getMethod)
-                .containsOnly(HttpMethod.GET);
+                .containsExactly(HttpMethod.GET);
     }
 
     @Test
@@ -136,11 +138,11 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
@@ -184,9 +186,9 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly(
+                .containsExactly(
                         "https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A1x1");
     }
 
@@ -203,9 +205,9 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly(
+                .containsExactly(
                         "https://eplanning.com/clientId/1/DOMAIN/ROS?r=pbs&ncb=1&ur=https%3A%2F%2Fwww.example.com&e="
                                 + "testadun_itco_de%3A1x1");
     }
@@ -223,14 +225,14 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://eplanning.com/clientId/1/www.example.com/ROS?r=pbs&ncb=1"
+                .containsExactly("https://eplanning.com/clientId/1/www.example.com/ROS?r=pbs&ncb=1"
                         + "&ur=https%3A%2F%2Fwww.example.com&e=testadun_itco_de%3A1x1");
     }
 
     @Test
-    public void makeHttpRequestsShouldSetCorrectUriWithSizeString() {
+    public void makeHttpRequestsShouldSetCorrectUriWithSizeStringFromBannerWAndH() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
@@ -244,10 +246,98 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
                         + "300x200");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetCorrectUriWithSizeStringFromFormatForMobile() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().devicetype(1).build()),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(300).h(50).build(),
+                                        Format.builder().w(320).h(50).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                        + "320x50");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetCorrectUriWithSizeStringFromFormatForDesktop() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().devicetype(2).build()),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(300).h(600).build(),
+                                        Format.builder().w(728).h(90).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                        + "728x90");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldTolerateAndDropInvalidFormats() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().devicetype(2).build()),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(null).h(600).build(),
+                                        Format.builder().w(728).h(90).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                        + "728x90");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetUriWithSize1x1WhenSizeWasNotFoundInPriority() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().devicetype(2).build()),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(301).h(600).build(),
+                                        Format.builder().w(729).h(90).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                        + "1x1");
     }
 
     @Test
@@ -263,9 +353,9 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
+                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
                         + "1x1&uid=Buyer-ID");
     }
 
@@ -282,9 +372,9 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A1x1"
+                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A1x1"
                         + "&ip=123.321.321.123");
     }
 
@@ -302,9 +392,9 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&e=testadun_itco_de%3A1x1&"
+                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&e=testadun_itco_de%3A1x1&"
                         + "appn=appName&appid=id&ifa=ifa&app=1");
     }
 
