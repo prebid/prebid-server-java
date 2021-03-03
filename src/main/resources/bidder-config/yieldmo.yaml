@@ -23,3 +23,5 @@ adapters:
       cookie-family-name: yieldmo
       type: redirect
       support-cors: false
+    debug:
+      allow: true

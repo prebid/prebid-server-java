@@ -25,3 +25,5 @@ adapters:
       cookie-family-name: applogy
       type: redirect
       support-cors: false
+    debug:
+      allow: true

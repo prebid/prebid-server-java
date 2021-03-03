@@ -20,3 +20,5 @@ adapters:
       cookie-family-name: vrtcal
       type: redirect
       support-cors: false
+    debug:
+      allow: true

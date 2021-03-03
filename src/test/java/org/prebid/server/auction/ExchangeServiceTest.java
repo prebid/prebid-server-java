@@ -803,6 +803,33 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldCallBidResponseCreatorWithEnabledDebugFalseIfAccountDisabledLogAndTestAllowed() {
+        // given
+        givenBidder("bidder1", mock(Bidder.class), BidderSeatBid.of(
+                singletonList(givenBid(Bid.builder().price(BigDecimal.ONE).build())),
+                singletonList(ExtHttpCall.builder()
+                        .uri("bidder1_uri1")
+                        .requestbody("bidder1_requestBody1")
+                        .status(200)
+                        .responsebody("bidder1_responseBody1")
+                        .build()),
+                emptyList()));
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("bidder1", 1)),
+                builder -> builder.test(1));
+
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, Account.builder().id("accountId")
+                .allowDebug(false).build());
+
+        // when
+        exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(bidResponseCreator).create(anyList(), any(), any(), eq(false));
+    }
+
+    @Test
     public void shouldCallBidResponseCreatorWithEnabledDebugTrueIfTestFlagIsTrue() {
         // given
         givenBidder("bidder1", mock(Bidder.class), BidderSeatBid.of(
@@ -1371,6 +1398,36 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(
                         tuple("keyword", "male", 133, Geo.EMPTY, extUser),
                         tuple("keyword", "male", 133, Geo.EMPTY, maskedExtUser));
+    }
+
+    @Test
+    public void shouldDisableDebugForBidderIfDebugAllowedByRequestAndAccountButDisabledByBidder() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        given(bidderCatalog.isDebugEnabled(eq("someBidder"))).willReturn(false);
+
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
+        final List<ExtUserEid> eids = singletonList(ExtUserEid.of("eId", "id", emptyList(), null));
+        final ExtUser extUser = ExtUser.builder().data(dataNode).eids(eids).build();
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .auctiontimestamp(1000L)
+                                .data(ExtRequestPrebidData.of(singletonList("someBidder")))
+                                .build()))
+                        .test(1));
+
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, Account.builder().id("accountId")
+                .allowDebug(true).build());
+
+        // when
+        exchangeService.holdAuction(auctionContext);
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), eq(false));
     }
 
     @Test

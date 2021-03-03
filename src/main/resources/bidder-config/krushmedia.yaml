@@ -25,3 +25,5 @@ adapters:
       cookie-family-name: krushmedia
       type: redirect
       support-cors: false
+    debug:
+      allow: true

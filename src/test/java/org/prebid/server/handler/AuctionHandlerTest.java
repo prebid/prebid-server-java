@@ -925,7 +925,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     private static BidderInfo givenBidderInfo(int gdprVendorId) {
         return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, true), true, false);
+                new BidderInfo.GdprInfo(gdprVendorId, true), true, false, true);
     }
 
     private static PrivacyEnforcementAction actionWithUserSync(boolean blockPixelSync) {

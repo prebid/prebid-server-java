@@ -63,8 +63,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
     private static final String SELECT_ACCOUNT_QUERY =
             "SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, "
-                    + "events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, "
-                    + "default_integration, analytics_config, bid_validations, status "
+                    + "events_enabled, enforce_ccpa, allow_debug, tcf_config, analytics_sampling_factor,"
+                    + " truncate_target_attr, default_integration, analytics_config, bid_validations, status "
                     + "FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";
 
     private static final String SELECT_QUERY =
@@ -112,8 +112,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public static void beforeClass() throws SQLException {
         connection = DriverManager.getConnection(JDBC_URL);
         connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, "
-                + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
-                + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_ccpa BIT, "
+                + "uuid varchar(40) NOT NULL, price_granularity varchar(6), banner_cache_ttl INT, video_cache_ttl INT,"
+                + " events_enabled BIT, enforce_ccpa BIT, allow_debug BIT, "
                 + "tcf_config varchar(512), analytics_sampling_factor INT, truncate_target_attr INT, "
                 + "default_integration varchar(64), analytics_config varchar(512), bid_validations varchar(512), "
                 + "status varchar(25));");
@@ -133,10 +133,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid "
                 + "varchar(40) NOT NULL);");
         connection.createStatement().execute("insert into accounts_account "
-                + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
-                + "tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, "
-                + "bid_validations, status) "
-                + "values ('1001','med', 100, 100, TRUE, TRUE, '{\"enabled\": true, "
+                + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa,"
+                + " allow_debug, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration,"
+                + " analytics_config, bid_validations, status) "
+                + "values ('1001','med', 100, 100, TRUE, TRUE, TRUE, '{\"enabled\": true, "
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}}', 1, 0, "
                 + "'web', '{\"auction-events\": {\"amp\": true}}', '{\"banner-creative-max-size\": \"enforce\"}', "
                 + "'active');");
@@ -204,6 +204,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     .analyticsSamplingFactor(1)
                     .eventsEnabled(true)
                     .enforceCcpa(true)
+                    .allowDebug(true)
                     .gdpr(AccountGdprConfig.builder()
                             .enabled(true)
                             .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))

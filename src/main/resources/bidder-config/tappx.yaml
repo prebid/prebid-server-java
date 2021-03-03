@@ -21,3 +21,5 @@ adapters:
       cookie-family-name: tappx
       type: redirect
       support-cors: false
+    debug:
+      allow: true

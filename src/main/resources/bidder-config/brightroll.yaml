@@ -368,3 +368,5 @@ adapters:
       cookie-family-name: brightroll
       type: redirect
       support-cors: false
+    debug:
+      allow: true

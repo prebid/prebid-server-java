@@ -34,3 +34,5 @@ adapters:
       cookie-family-name: rubicon
       type: redirect
       support-cors: false
+    debug:
+      allow: true

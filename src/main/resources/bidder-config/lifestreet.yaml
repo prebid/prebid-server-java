@@ -22,3 +22,5 @@ adapters:
       cookie-family-name: lifestreet
       type: redirect
       support-cors: false
+    debug:
+      allow: true

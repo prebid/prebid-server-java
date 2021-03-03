@@ -1531,6 +1531,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceCcpa) {
         return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, true), enforceCcpa, false);
+                new BidderInfo.GdprInfo(gdprVendorId, true), enforceCcpa, false, true);
     }
 }
