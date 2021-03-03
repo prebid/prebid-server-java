@@ -21,3 +21,5 @@ adapters:
       cookie-family-name: unruly
       type: iframe
       support-cors: false
+    debug:
+      allow: true

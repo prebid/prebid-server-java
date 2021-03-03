@@ -27,3 +27,5 @@ adapters:
       cookie-family-name: pulsepoint
       type: redirect
       support-cors: false
+    debug:
+      allow: true

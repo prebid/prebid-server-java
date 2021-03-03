@@ -72,6 +72,13 @@ public class BidderCatalog {
     }
 
     /**
+     * Tells if given bidder allows to include its debug info in response.
+     */
+    public boolean isDebugEnabled(String name) {
+        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isDebugAllowed();
+    }
+
+    /**
      * Tells if given name corresponds to any of the registered deprecated bidder's name.
      */
     public boolean isDeprecatedName(String name) {

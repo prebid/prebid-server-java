@@ -20,6 +20,8 @@ public class Account {
 
     Boolean enforceCcpa;
 
+    Boolean allowDebug;
+
     AccountGdprConfig gdpr;
 
     Integer analyticsSamplingFactor;

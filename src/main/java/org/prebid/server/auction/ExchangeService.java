@@ -18,6 +18,7 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -153,7 +154,7 @@ public class ExchangeService {
         final BidderAliases aliases = aliases(bidRequest);
         final String publisherId = account.getId();
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
-        final boolean debugEnabled = isDebugEnabled(bidRequest);
+        final boolean debugEnabled = isDebugEnabled(bidRequest, account.getAllowDebug());
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), aliases, timeout)
@@ -244,7 +245,11 @@ public class ExchangeService {
     /**
      * Determines debug flag from {@link BidRequest} or {@link ExtRequest}.
      */
-    private static boolean isDebugEnabled(BidRequest bidRequest) {
+    private static boolean isDebugEnabled(BidRequest bidRequest, Boolean debugEnabledForAccount) {
+        if (BooleanUtils.isFalse(debugEnabledForAccount)) {
+            return false;
+        }
+
         if (Objects.equals(bidRequest.getTest(), 1)) {
             return true;
         }
@@ -886,10 +891,13 @@ public class ExchangeService {
                                                BidderAliases aliases) {
 
         final String bidderName = bidderRequest.getBidder();
-        final Bidder<?> bidder = bidderCatalog.bidderByName(aliases.resolveBidder(bidderName));
+        final String resolvedBidderName = aliases.resolveBidder(bidderName);
+        final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
+        final boolean debugEnabledForBidder = bidderCatalog.isDebugEnabled(resolvedBidderName) && debugEnabled;
+
         final long startTime = clock.millis();
 
-        return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabled)
+        return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabledForBidder)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 

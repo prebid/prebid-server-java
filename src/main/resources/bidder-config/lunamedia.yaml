@@ -23,3 +23,5 @@ adapters:
       cookie-family-name: lunamedia
       type: iframe
       support-cors: false
+    debug:
+      allow: true

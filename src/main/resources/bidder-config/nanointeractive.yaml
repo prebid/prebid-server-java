@@ -21,3 +21,5 @@ adapters:
       cookie-family-name: nanointeractive
       type: redirect
       support-cors: false
+    debug:
+      allow: true

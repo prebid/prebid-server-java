@@ -24,3 +24,5 @@ adapters:
       cookie-family-name: adnxs
       type: redirect
       support-cors: false
+    debug:
+      allow: true

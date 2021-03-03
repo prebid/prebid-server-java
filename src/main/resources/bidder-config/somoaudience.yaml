@@ -24,3 +24,5 @@ adapters:
       cookie-family-name: somoaudience
       type: redirect
       support-cors: false
+    debug:
+      allow: true

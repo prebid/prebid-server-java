@@ -23,3 +23,5 @@ adapters:
       cookie-family-name: avocet
       type: redirect
       support-cors: false
+    debug:
+      allow: true

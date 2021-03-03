@@ -41,5 +41,8 @@ public class BidderConfigurationProperties {
     @NotNull
     private UsersyncConfigurationProperties usersync;
 
+    @NotNull
+    private Debug debug;
+
     private Map<String, String> extraInfo;
 }

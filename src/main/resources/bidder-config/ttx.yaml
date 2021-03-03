@@ -22,3 +22,5 @@ adapters:
       cookie-family-name: 33across
       type: iframe
       support-cors: false
+    debug:
+      allow: true

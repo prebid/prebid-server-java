@@ -25,3 +25,5 @@ adapters:
       cookie-family-name: zeroclickfraud
       type: iframe
       support-cors: false
+    debug:
+      allow: true

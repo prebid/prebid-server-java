@@ -23,3 +23,5 @@ adapters:
       cookie-family-name: improvedigital
       type: redirect
       support-cors: false
+    debug:
+      allow: true

@@ -19,3 +19,5 @@ adapters:
       cookie-family-name: invibes
       type: redirect
       support-cors: false
+    debug:
+      allow: true
