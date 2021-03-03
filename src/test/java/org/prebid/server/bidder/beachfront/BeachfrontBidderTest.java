@@ -326,6 +326,27 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateAdmRequestForEveryUnknownResponseType() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                mapper.valueToTree(ExtImpBeachfront.of("appId2", null, null, "unknownType"))))))
+                ))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
+                .extracting(BeachfrontVideoRequest::getVideoResponseType)
+                .containsExactly("adm");
+    }
+
+    @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "[]");

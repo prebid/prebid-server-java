@@ -235,7 +235,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     }
 
     private static BigDecimal checkBidFloor(BigDecimal bidFloor) {
-        return bidFloor.compareTo(MIN_BID_FLOOR) > 0 ? bidFloor : BigDecimal.ZERO;
+        return bidFloor != null && bidFloor.compareTo(MIN_BID_FLOOR) > 0 ? bidFloor : BigDecimal.ZERO;
     }
 
     /**
