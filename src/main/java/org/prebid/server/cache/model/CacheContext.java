@@ -2,7 +2,6 @@ package org.prebid.server.cache.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.auction.model.GeneratedBidIds;
 
 import java.util.Map;
 
@@ -20,10 +19,6 @@ public class CacheContext {
     boolean shouldCacheVideoBids;
 
     Integer cacheVideoBidsTtl;
-
-    GeneratedBidIds bidderToVideoGeneratedBidIdsToModify;
-
-    GeneratedBidIds bidderToBidsToGeneratedIds;
 
     Map<String, Map<String, String>> biddersToBidsCategories;
 }

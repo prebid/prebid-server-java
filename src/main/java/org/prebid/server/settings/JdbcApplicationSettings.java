@@ -132,19 +132,6 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 .compose(result -> failedIfNull(result, accountId, "Account"));
     }
 
-    /**
-     * Runs a process to get AdUnit config by id from database
-     * and returns {@link Future&lt;{@link String}&gt;}.
-     */
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return jdbcClient.executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1",
-                Collections.singletonList(adUnitConfigId),
-                result -> mapToModelOrError(result, row -> row.getString(0)),
-                timeout)
-                .compose(result -> failedIfNull(result, adUnitConfigId, "AdUnitConfig"));
-    }
-
     @Override
     public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         return Future.failedFuture(new PreBidException("Not supported"));

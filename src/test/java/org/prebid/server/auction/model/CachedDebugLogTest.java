@@ -92,7 +92,7 @@ public class CachedDebugLogTest extends VertxTest {
     @Test
     public void setExtBidResponseShouldReturnCacheBodyWithResponse() {
         // given
-        final ExtBidResponse extBidResponse = ExtBidResponse.of(null, null, null, 5L, null, null);
+        final ExtBidResponse extBidResponse = ExtBidResponse.of(null, null, null, null, 5L, null, null);
 
         // when
         cachedDebugLog.setExtBidResponse(extBidResponse);
@@ -115,7 +115,7 @@ public class CachedDebugLogTest extends VertxTest {
 
         // when and then
         assertThatThrownBy(() -> cachedDebugLog.setExtBidResponse(
-                ExtBidResponse.of(null, null, null, null, null, null)))
+                ExtBidResponse.of(null, null, null, null, null, null, null)))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Unable to marshal response ext for debugging with a reason: encode exception");
     }
@@ -138,7 +138,7 @@ public class CachedDebugLogTest extends VertxTest {
     @Test
     public void setErrorsShouldAddErrorToExistingResponse() {
         // given
-        final ExtBidResponse extBidResponse = ExtBidResponse.of(null, null, null, 5L, null, null);
+        final ExtBidResponse extBidResponse = ExtBidResponse.of(null, null, null, null, 5L, null, null);
 
         // when
         cachedDebugLog.setExtBidResponse(extBidResponse);
@@ -226,7 +226,7 @@ public class CachedDebugLogTest extends VertxTest {
         cachedDebugLog.setHeadersLog(MultiMap.caseInsensitiveMultiMap()
                 .add("headerkey", "headervalue"));
         cachedDebugLog.setRequest("requestBody");
-        cachedDebugLog.setExtBidResponse(ExtBidResponse.of(null, null, null, 5L, null, null));
+        cachedDebugLog.setExtBidResponse(ExtBidResponse.of(null, null, null, null, 5L, null, null));
         cachedDebugLog.setErrors(Arrays.asList("error1", "error2"));
 
         // when
@@ -251,7 +251,7 @@ public class CachedDebugLogTest extends VertxTest {
         cachedDebugLog.setHeadersLog(MultiMap.caseInsensitiveMultiMap()
                 .add("<headerkey>", "<headervalue>"));
         cachedDebugLog.setRequest("<requestBody>");
-        cachedDebugLog.setExtBidResponse(ExtBidResponse.of(null, null, singletonMap("<key>", 5), 5L, null, null));
+        cachedDebugLog.setExtBidResponse(ExtBidResponse.of(null, null, null, singletonMap("<key>", 5), 5L, null, null));
         cachedDebugLog.setErrors(Arrays.asList("<error1>", "<error2>"));
 
         // when
@@ -277,7 +277,7 @@ public class CachedDebugLogTest extends VertxTest {
         cachedDebugLog.setHeadersLog(MultiMap.caseInsensitiveMultiMap()
                 .add("<headerkey>", "<headervalue>"));
         cachedDebugLog.setRequest("<requestBody>");
-        cachedDebugLog.setExtBidResponse(ExtBidResponse.of(null, null, singletonMap("<key>", 5), 5L, null, null));
+        cachedDebugLog.setExtBidResponse(ExtBidResponse.of(null, null, null, singletonMap("<key>", 5), 5L, null, null));
         cachedDebugLog.setErrors(Arrays.asList("<error1>", "<error2>"));
 
         // when

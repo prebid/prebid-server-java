@@ -117,8 +117,6 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "tcf_config varchar(512), analytics_sampling_factor INT, truncate_target_attr INT, "
                 + "default_integration varchar(64), analytics_config varchar(512), bid_validations varchar(512), "
                 + "status varchar(25));");
-        connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
-                + "NOT NULL, config varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, "
                 + "accountId varchar(40) NOT NULL, reqid varchar(40) NOT NULL, requestData varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, "
@@ -140,8 +138,6 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}}', 1, 0, "
                 + "'web', '{\"auction-events\": {\"amp\": true}}', '{\"banner-creative-max-size\": \"enforce\"}', "
                 + "'active');");
-        connection.createStatement().execute(
-                "insert into s2sconfig_config (uuid, config) values ('adUnitConfigId', 'config');");
         connection.createStatement().execute(
                 "insert into stored_requests (accountId, reqid, requestData) values ('1001', '1','value1');");
         connection.createStatement().execute(
@@ -248,33 +244,6 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     .id("1002")
                     .status(null)
                     .build());
-            async.complete();
-        }));
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnConfig(TestContext context) {
-        // when
-        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout);
-
-        // then
-        final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(config -> {
-            assertThat(config).isEqualTo("config");
-            async.complete();
-        }));
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldFailIfConfigNotFound(TestContext context) {
-        // when
-        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("non-existing", timeout);
-
-        // then
-        final Async async = context.async();
-        future.setHandler(context.asyncAssertFailure(exception -> {
-            assertThat(exception).isInstanceOf(PreBidException.class)
-                    .hasMessage("AdUnitConfig not found: non-existing");
             async.complete();
         }));
     }

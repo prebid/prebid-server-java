@@ -11,7 +11,6 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
-import org.prebid.server.auction.BidResponseReducer;
 import org.prebid.server.auction.CategoryMappingService;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
@@ -27,6 +26,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
+import org.prebid.server.auction.WinningBidComparator;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -59,6 +59,7 @@ import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
+import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
@@ -94,6 +95,7 @@ public class ServiceConfiguration {
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+            VastModifier vastModifier,
             EventsService eventsService,
             HttpClient httpClient,
             Metrics metrics,
@@ -106,11 +108,17 @@ public class ServiceConfiguration {
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
                 expectedCacheTimeMs,
+                vastModifier,
                 eventsService,
                 metrics,
                 clock,
                 new UUIDIdGenerator(),
                 mapper);
+    }
+
+    @Bean
+    VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService) {
+        return new VastModifier(bidderCatalog, eventsService);
     }
 
     @Bean
@@ -456,9 +464,10 @@ public class ServiceConfiguration {
             CacheService cacheService,
             CategoryMappingService categoryMappingService,
             BidderCatalog bidderCatalog,
+            VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            BidResponseReducer bidResponseReducer,
+            WinningBidComparator winningBidComparator,
             IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
@@ -468,9 +477,10 @@ public class ServiceConfiguration {
                 cacheService,
                 categoryMappingService,
                 bidderCatalog,
+                vastModifier,
                 eventsService,
                 storedRequestProcessor,
-                bidResponseReducer,
+                winningBidComparator,
                 bidIdGenerator,
                 truncateAttrChars,
                 clock,
@@ -534,8 +544,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    BidResponseReducer bidResponseReducer() {
-        return new BidResponseReducer();
+    WinningBidComparator winningBidComparator() {
+        return new WinningBidComparator();
     }
 
     @Bean

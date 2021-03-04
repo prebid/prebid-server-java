@@ -27,7 +27,7 @@ public class AmxTest extends IntegrationTest {
         // given
         // Amx bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/amx-exchange"))
-                .withQueryParam("v", equalTo("pbs1.0"))
+                .withQueryParam("v", equalTo("pbs1.1"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/amx/test-amx-bid-request.json")))
                 .willReturn(aResponse().withBody(
