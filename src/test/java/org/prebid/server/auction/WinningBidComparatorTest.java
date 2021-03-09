@@ -54,28 +54,74 @@ public class WinningBidComparatorTest {
     }
 
     @Test
+    public void compareShouldReturnGreaterThanZeroWhenBidWithLowerPriceHasDeal() {
+        // given
+        final BidInfo bidInfo1 = givenBidInfo(4.0f, "dealId");
+        final BidInfo bidInfo2 = givenBidInfo(5.0f);
+
+        // when
+        final int result = target.compare(bidInfo1, bidInfo2);
+
+        // then
+        assertThat(result).isEqualTo(1);
+    }
+
+    @Test
+    public void compareShouldReturnLowerThanZeroWhenBothBidsHasDealsAndFirstHasLessPrice() {
+        // given
+        final BidInfo bidInfo1 = givenBidInfo(4.0f, "dealId");
+        final BidInfo bidInfo2 = givenBidInfo(5.0f, "dealId2");
+
+        // when
+        final int result = target.compare(bidInfo1, bidInfo2);
+
+        // then
+        assertThat(result).isEqualTo(-1);
+    }
+
+    @Test
+    public void compareShouldReturnZeroForDealsBidsWithSamePrice() {
+        // given
+        final BidInfo bidInfo1 = givenBidInfo(4.0f, "dealId");
+        final BidInfo bidInfo2 = givenBidInfo(4.0f, "dealId2");
+
+        // when
+        final int result = target.compare(bidInfo1, bidInfo2);
+
+        // then
+        assertThat(result).isEqualTo(0);
+    }
+
+    @Test
     public void sortShouldReturnExpectedSortedResult() {
         // given
-        final BidInfo bidInfo1 = givenBidInfo(1.0f);
-        final BidInfo bidInfo2 = givenBidInfo(2.0f);
-        final BidInfo bidInfo3 = givenBidInfo(4.1f);
-        final BidInfo bidInfo4 = givenBidInfo(4.4f);
-        final BidInfo bidInfo5 = givenBidInfo(5.0f);
-        final BidInfo bidInfo6 = givenBidInfo(100.1f);
+        final BidInfo bidInfo1 = givenBidInfo(1.0f, "dealId1");
+        final BidInfo bidInfo2 = givenBidInfo(2.0f, "dealId2");
+        final BidInfo bidInfo3 = givenBidInfo(1.0f);
+        final BidInfo bidInfo4 = givenBidInfo(2.0f);
+        final BidInfo bidInfo5 = givenBidInfo(4.1f);
+        final BidInfo bidInfo6 = givenBidInfo(4.4f);
+        final BidInfo bidInfo7 = givenBidInfo(5.0f);
+        final BidInfo bidInfo8 = givenBidInfo(100.1f);
 
-        final List<BidInfo> bidInfos = Arrays.asList(bidInfo5, bidInfo3, bidInfo1, bidInfo2, bidInfo1, bidInfo4,
-                bidInfo6);
+        final List<BidInfo> bidInfos = Arrays.asList(bidInfo5, bidInfo3, bidInfo1, bidInfo2, bidInfo1, bidInfo7,
+                bidInfo8, bidInfo4, bidInfo6);
 
         // when
         bidInfos.sort(target);
 
         // then
-        assertThat(bidInfos).containsOnly(bidInfo1, bidInfo1, bidInfo2, bidInfo3, bidInfo4, bidInfo5, bidInfo6);
+        assertThat(bidInfos).containsOnly(bidInfo2, bidInfo1, bidInfo8, bidInfo7, bidInfo6, bidInfo5, bidInfo4,
+                bidInfo3);
     }
 
     private static BidInfo givenBidInfo(float price) {
+        return givenBidInfo(price, null);
+    }
+
+    private static BidInfo givenBidInfo(float price, String dealId) {
         return BidInfo.builder()
-                .bid(Bid.builder().price(BigDecimal.valueOf(price)).build())
+                .bid(Bid.builder().price(BigDecimal.valueOf(price)).dealid(dealId).build())
                 .build();
     }
 }
