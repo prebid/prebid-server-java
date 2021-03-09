@@ -20,6 +20,10 @@ public class BidInfo {
 
     BidType bidType;
 
+    String category;
+
+    Boolean satisfiedPriority;
+
     public String getBidId() {
         return generatedBidId != null ? generatedBidId : bid.getId();
     }

@@ -67,8 +67,7 @@ public class StoredResponseProcessor {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    Future<StoredResponseResult> getStoredResponseResult(
-            List<Imp> imps, BidderAliases aliases, Timeout timeout) {
+    Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, BidderAliases aliases, Timeout timeout) {
 
         final List<Imp> requiredRequestImps = new ArrayList<>();
         final Map<String, String> storedResponseIdToImpId = new HashMap<>();

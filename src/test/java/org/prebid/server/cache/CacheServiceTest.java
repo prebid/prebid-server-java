@@ -53,11 +53,9 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -780,7 +778,8 @@ public class CacheServiceTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
 
-        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").adm("adm"), null, BidType.video, "bidder");
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").adm("adm"), null, BidType.video, "bidder")
+                .toBuilder().category("bid1Category").build();
 
         given(idGenerator.generateId()).willReturn("randomId");
 
@@ -793,7 +792,6 @@ public class CacheServiceTest extends VertxTest {
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)
-                        .biddersToBidsCategories(singletonMap("bidder", singletonMap("bid1", "bid1Category")))
                         .build(),
                 eventsContext);
 
@@ -823,7 +821,6 @@ public class CacheServiceTest extends VertxTest {
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)
-                        .biddersToBidsCategories(singletonMap("bidder", emptyMap()))
                         .build(),
                 eventsContext);
 
@@ -842,7 +839,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
                 BidCacheResponse.of(asList(CacheObject.of("uuid"), CacheObject.of("catDir_randomId")))));
         final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").impid("impId1").adm("adm"), null,
-                BidType.video, "bidder");
+                BidType.video, "bidder").toBuilder().category("catDir").build();
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         given(idGenerator.generateId()).willReturn("randomId");
 
@@ -853,7 +850,6 @@ public class CacheServiceTest extends VertxTest {
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)
-                        .biddersToBidsCategories(singletonMap("bidder", singletonMap("bid1", "catDir")))
                         .build(),
                 eventsContext);
 

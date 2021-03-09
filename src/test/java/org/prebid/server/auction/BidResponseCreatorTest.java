@@ -366,7 +366,7 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(argument -> CollectionUtils.isEqualCollection(argument, asList(bidInfo1, bidInfo2))),
                 same(auctionContext),
-                eq(CacheContext.builder().shouldCacheVideoBids(true).biddersToBidsCategories(emptyMap()).build()),
+                eq(CacheContext.builder().shouldCacheVideoBids(true).build()),
                 eq(EventsContext.builder()
                         .enabledForAccount(true)
                         .enabledForRequest(true)
@@ -396,7 +396,7 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(
                 eq(singletonList(bidInfo1)),
                 same(auctionContext),
-                eq(CacheContext.builder().biddersToBidsCategories(emptyMap()).build()),
+                eq(CacheContext.builder().build()),
                 eq(EventsContext.builder().auctionTimestamp(1000L).build()));
     }
 
@@ -1715,7 +1715,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
         given(categoryMappingService.createCategoryMapping(anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(),
-                        Collections.singletonMap("bidder1", Collections.singletonMap("bidId1", true)),
+                        Collections.singletonMap(bid, true),
                         bidderResponses, emptyList())));
 
         // when

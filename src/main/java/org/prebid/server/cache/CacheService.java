@@ -9,7 +9,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -235,8 +234,7 @@ public class CacheService {
                 ? getVideoCacheBids(bidsToCache, cacheContext.getCacheVideoBidsTtl(), accountCacheTtl)
                 : Collections.emptyList();
 
-        // todo remove cacheContext
-        return doCacheOpenrtb(cacheBids, videoCacheBids, auctionContext, cacheContext, eventsContext);
+        return doCacheOpenrtb(cacheBids, videoCacheBids, auctionContext, eventsContext);
     }
 
     /**
@@ -301,18 +299,19 @@ public class CacheService {
     private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids,
                                                       List<CacheBid> videoBids,
                                                       AuctionContext auctionContext,
-                                                      CacheContext cacheContext,
                                                       EventsContext eventsContext) {
 
         final Account account = auctionContext.getAccount();
 
         final String accountId = account.getId();
-        final Map<String, Map<String, String>> biddersToBidsCategories = cacheContext.getBiddersToBidsCategories();
-        final String hbCacheId = MapUtils.isEmpty(biddersToBidsCategories) ? null : idGenerator.generateId();
+        final String hbCacheId = videoBids.stream().anyMatch(cacheBid -> cacheBid.getBidInfo().getCategory() != null)
+                ? idGenerator.generateId()
+                : null;
+
         final List<CachedCreative> cachedCreatives = Stream.concat(
                 bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
                 videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, accountId, hbCacheId,
-                        biddersToBidsCategories, eventsContext)))
+                        eventsContext)))
                 .collect(Collectors.toList());
 
         if (cachedCreatives.isEmpty()) {
@@ -455,7 +454,6 @@ public class CacheService {
     private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid,
                                                      String accountId,
                                                      String hbCacheId,
-                                                     Map<String, Map<String, String>> biddersToBidsCategories,
                                                      EventsContext eventsContext) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
@@ -467,9 +465,8 @@ public class CacheService {
                 accountId,
                 eventsContext);
 
-        final String bidId = bidInfo.getBidId();
         final String bidder = bidInfo.getBidder();
-        final String customCacheKey = resolveCustomCacheKey(hbCacheId, bidder, bidId, biddersToBidsCategories);
+        final String customCacheKey = resolveCustomCacheKey(hbCacheId, bidInfo.getCategory(), bidder);
 
         final PutObject payload = PutObject.builder()
                 .type("xml")
@@ -481,15 +478,10 @@ public class CacheService {
         return CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue()));
     }
 
-    private static String resolveCustomCacheKey(String hbCacheId, String bidder, String bidId,
-                                                Map<String, Map<String, String>> biddersToBidsCategories) {
+    private static String resolveCustomCacheKey(String hbCacheId, String categoryDuration, String bidder) {
         if (hbCacheId == null || bidder == null) {
             return null;
         }
-
-        final Map<String, String> bidToCategories = biddersToBidsCategories.get(bidder);
-        final String categoryDuration = bidToCategories != null ? bidToCategories.get(bidId) : null;
-
         return StringUtils.isNotEmpty(categoryDuration) ? String.format("%s_%s", categoryDuration, hbCacheId) : null;
     }
 
