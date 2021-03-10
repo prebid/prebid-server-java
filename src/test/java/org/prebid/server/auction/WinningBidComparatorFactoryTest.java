@@ -63,7 +63,7 @@ public class WinningBidComparatorFactoryTest {
         final int result = winningBidComparatorFactory.create(true).compare(bidInfo1, bidInfo2);
 
         // then
-        assertThat(result).isEqualTo(1);
+        assertThat(result).isGreaterThan(0);
     }
 
     @Test
@@ -76,7 +76,7 @@ public class WinningBidComparatorFactoryTest {
         final int result = winningBidComparatorFactory.create(true).compare(bidInfo1, bidInfo2);
 
         // then
-        assertThat(result).isEqualTo(-1);
+        assertThat(result).isLessThan(0);
     }
 
     @Test
@@ -164,7 +164,7 @@ public class WinningBidComparatorFactoryTest {
         final int result = winningBidComparatorFactory.create(false).compare(bidInfo1, bidInfo2);
 
         // then
-        assertThat(result).isEqualTo(-1);
+        assertThat(result).isLessThan(0);
     }
 
     @Test
@@ -177,7 +177,7 @@ public class WinningBidComparatorFactoryTest {
         final int result = winningBidComparatorFactory.create(false).compare(bidInfo1, bidInfo2);
 
         // then
-        assertThat(result).isEqualTo(-1);
+        assertThat(result).isLessThan(0);
     }
 
     @Test

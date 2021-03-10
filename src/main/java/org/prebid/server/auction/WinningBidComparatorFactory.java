@@ -7,49 +7,27 @@ import java.util.Comparator;
 import java.util.Objects;
 
 /**
- * Compares two {@link BidInfo} arguments for order.
- * <p>
- * Returns a negative integer when first is less valuable than second
- * Zero when arguments are equal by their winning value
- * Positive integer when first have more value then second
- *
- * <p>
- * The priority for choosing the 'winner' (hb_pb, hb_bidder, etc) is:
- * <p>
- * - Deals bid always wins over bids without deals
- * - Amongst deals bids, choose the highest CPM
+ * Creates {@link Comparator} that compares two {@link BidInfo} arguments for order.
  */
 public class WinningBidComparatorFactory {
 
-    private static Comparator<BidInfo> winningBidPriceComparator = new WinningBidPriceComparator();
-    private static Comparator<BidInfo> winningDealBidComparator = new WinningBidDealComparator();
-    private static Comparator<BidInfo> dealsThenPriceComparator = winningDealBidComparator
-            .thenComparing(winningBidPriceComparator);
+    private static final Comparator<BidInfo> WINNING_BID_PRICE_COMPARATOR = new WinningBidPriceComparator();
+    private static final Comparator<BidInfo> WINNING_BID_DEAL_COMPARATOR = new WinningBidDealComparator();
+    private static final Comparator<BidInfo> BID_INFO_COMPARATOR = WINNING_BID_DEAL_COMPARATOR
+            .thenComparing(WINNING_BID_PRICE_COMPARATOR);
 
     public Comparator<BidInfo> create(boolean preferDeals) {
         return preferDeals
-                ? dealsThenPriceComparator
-                : winningBidPriceComparator;
+                ? BID_INFO_COMPARATOR
+                : WINNING_BID_PRICE_COMPARATOR;
     }
 
-    private static class WinningBidPriceComparator implements Comparator<BidInfo> {
-
-        private static Comparator<BidInfo> priceComparator = Comparator.comparing(o -> o.getBid().getPrice());
-
-        @Override
-        public int compare(BidInfo bidInfo1, BidInfo bidInfo2) {
-            final Imp imp = bidInfo1.getCorrespondingImp();
-            // this should never happen
-            if (!Objects.equals(imp, bidInfo2.getCorrespondingImp())) {
-                throw new IllegalStateException(
-                        String.format("Error while determining winning bid: "
-                                + "Multiple bids was found for impId: %s", imp.getId()));
-            }
-
-            return priceComparator.compare(bidInfo1, bidInfo2);
-        }
-    }
-
+    /**
+     * Compares two {@link BidInfo} arguments for order based on dealId presence.
+     * Returns negative integer when first does not have a deal and second has.
+     * Return positive integer when first has deal and second does not
+     * Returns zero when both have deals, or both don't have a deal
+     */
     private static class WinningBidDealComparator implements Comparator<BidInfo> {
 
         @Override
@@ -62,6 +40,30 @@ public class WinningBidComparatorFactory {
             }
 
             return isPresentBidDealId1 ? 1 : -1;
+        }
+    }
+
+    /**
+     * Compares two {@link BidInfo} arguments for order based on price.
+     * Returns negative integer when first has lower price.
+     * Returns positive integer when first has higher price.
+     * Returns zero when both have equal price.
+     */
+    private static class WinningBidPriceComparator implements Comparator<BidInfo> {
+
+        private static final Comparator<BidInfo> PRICE_COMPARATOR = Comparator.comparing(o -> o.getBid().getPrice());
+
+        @Override
+        public int compare(BidInfo bidInfo1, BidInfo bidInfo2) {
+            final Imp imp = bidInfo1.getCorrespondingImp();
+            // this should never happen
+            if (!Objects.equals(imp, bidInfo2.getCorrespondingImp())) {
+                throw new IllegalStateException(
+                        String.format("Error while determining winning bid: "
+                                + "Multiple bids was found for impId: %s", imp.getId()));
+            }
+
+            return PRICE_COMPARATOR.compare(bidInfo1, bidInfo2);
         }
     }
 }
