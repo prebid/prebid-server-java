@@ -28,6 +28,9 @@ public class MobfoxpbTest extends IntegrationTest {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/mobfoxpb-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withQueryParam("c", equalTo("rtb"))
+                .withQueryParam("m", equalTo("req"))
+                .withQueryParam("key", equalTo("someKey"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/mobfoxpb/test-mobfoxpb-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/mobfoxpb/test-mobfoxpb-bid-response-1.json"))));
 
