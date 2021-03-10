@@ -1,12 +1,12 @@
 package org.prebid.server.bidder.gumgum;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.Audio;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -23,8 +23,10 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
+import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.function.Function;
 
@@ -80,17 +82,16 @@ public class GumgumBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfNoValidImpressions() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        givenImp(impBuilder -> impBuilder.banner(null).audio(Audio.builder().build())),
-                        givenImp(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()))))
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder.video(Video.builder().build()))))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("No valid impressions"));
+        assertThat(result.getErrors()).hasSize(2)
+                .contains(BidderError.badInput("No valid impressions"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -100,7 +101,7 @@ public class GumgumBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().w(0).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone", BigInteger.TEN, "irisId"))))
                         .build()))
                 .build();
 
@@ -115,50 +116,34 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpressionsWithoutBannerOrVideo() {
+    public void makeHttpRequestsShouldModifyVideoExtOfIrisIdIsPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        givenImp(impBuilder -> impBuilder.banner(null).video(null).audio(Audio.builder().build())),
-                        givenImp(identity())))
+                .imp(singletonList(Imp.builder()
+                        .video(Video.builder()
+                                .w(20)
+                                .h(30)
+                                .maxduration(12)
+                                .minduration(34)
+                                .placement(33)
+                                .linearity(233)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone", BigInteger.TEN, "irisId"))))
+                        .build()))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
 
         // then
+        final ObjectNode expectedVideoExt = mapper.valueToTree(ExtImpGumgumVideo.of("irisId"));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .extracting(Banner::getId)
-                .containsExactly("banner_id");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetEmtyStringIfZoneIsNull() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                        bidRequestBuilder.site(Site.builder().build()),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of(null)))));
-        BidRequest.builder()
-                .site(Site.builder().build())
-                .imp(asList(
-                        givenImp(impBuilder -> impBuilder.banner(null).video(null).audio(Audio.builder().build())),
-                        givenImp(identity())))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getId)
-                .containsExactly("");
+                .extracting(Imp::getVideo)
+                .extracting(Video::getExt)
+                .containsExactly(expectedVideoExt);
     }
 
     @Test
@@ -185,12 +170,33 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldUpdatePublisherIfPubIdIsPresent() {
+        // given
+        final Publisher sitePublisher = Publisher.builder().name("testPublisher").build();
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.site(Site.builder().publisher(sitePublisher).build()),
+                impBuilder -> impBuilder.banner(Banner.builder().w(600).h(900).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Publisher expectedPublisher = sitePublisher.toBuilder().id("10").build();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher)
+                .containsExactly(expectedPublisher);
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetBannerWidthAndHeightFromfirstFormatIfAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(450).build()))
-                                .build()));
+                        .format(singletonList(Format.builder().w(300).h(450).build()))
+                        .build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
@@ -229,12 +235,9 @@ public class GumgumBidderTest extends VertxTest {
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("ignored zone"))))),
-                        givenImp(identity()),
-                        givenImp(impBuilder -> impBuilder
-                                .banner(null)
-                                .audio(Audio.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("invalid imp")))))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId"))))),
+                        givenImp(identity())))
                 .build();
 
         // when
@@ -379,7 +382,7 @@ public class GumgumBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone", BigInteger.TEN, "irisId")))))
                 .build();
     }
 

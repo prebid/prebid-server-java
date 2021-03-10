@@ -4,16 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
-import java.math.BigInteger;
-
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtImpGumgum {
-
-    String zone;
-
-    @JsonProperty("pubId")
-    BigInteger pubId;
+public class ExtImpGumgumVideo {
 
     @JsonProperty("irisid")
     String irisId;
