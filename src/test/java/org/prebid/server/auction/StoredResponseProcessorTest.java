@@ -99,7 +99,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final Imp imp = Imp.builder()
                 .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder().bidder(mapper.createObjectNode().put("rubicon", 1)).build(),
-                        null)))
+                        null, null)))
                 .build();
         // when
         final Future<StoredResponseResult> result =
@@ -128,7 +128,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                         .id("impId1")
                         .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpPrebid.builder().storedAuctionResponse(null).build(),
-                                null)))
+                                null, null)))
                         .build()),
                 emptyList(),
                 emptyMap()));
@@ -607,7 +607,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                 .storedAuctionResponse(storedAuctionResponse)
                                 .storedBidResponse(extStoredBidResponse)
                                 .build(),
-                        null)))
+                        null, null)))
                 .build();
     }
 }

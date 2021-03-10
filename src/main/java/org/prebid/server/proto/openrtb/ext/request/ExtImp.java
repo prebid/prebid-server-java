@@ -13,4 +13,6 @@ public class ExtImp {
     ExtImpPrebid prebid;
 
     ExtImpContext context;
+
+    ExtImpTargeting targeting;
 }

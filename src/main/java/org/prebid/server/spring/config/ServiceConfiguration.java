@@ -25,7 +25,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
-import org.prebid.server.auction.WinningBidComparator;
+import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -457,7 +457,7 @@ public class ServiceConfiguration {
             VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            WinningBidComparator winningBidComparator,
+            WinningBidComparatorFactory winningBidComparatorFactory,
             IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
@@ -469,7 +469,7 @@ public class ServiceConfiguration {
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
-                winningBidComparator,
+                winningBidComparatorFactory,
                 bidIdGenerator,
                 truncateAttrChars,
                 clock,
@@ -533,8 +533,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    WinningBidComparator winningBidComparator() {
-        return new WinningBidComparator();
+    WinningBidComparatorFactory winningBidComparatorFactory() {
+        return new WinningBidComparatorFactory();
     }
 
     @Bean

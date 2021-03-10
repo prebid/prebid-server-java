@@ -1,3 +1,4 @@
+
 # Application Settings
 There are two ways to configure application settings: database and file. This document will describe both approaches.
 
@@ -19,6 +20,7 @@ There are two ways to configure application settings: database and file. This do
 - `gdpr.special-features.[f1-f2].enforce`- if equals to `true`, special feature will be enforced for purpose. Default `true`
 - `gdpr.special-features.[f1-f2].vendor-exceptions` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow. Values: ignore, no-access-allowed, access-allowed.
+- `prefer-deals` - if `true` bid with deals has higher priority during searching for winning bids than bids without deals
 - `analytics-sampling-factor` - Analytics sampling factor value. 
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `default-integration` - Default integration to assume.
@@ -70,6 +72,7 @@ accounts:
     eventsEnabled: true
     priceGranularity: low
     enforceCcpa: true
+    preferDeals: true
     analyticsSamplingFactor: 1
     truncateTargetAttr: 40
     defaultIntegration: web
@@ -383,7 +386,8 @@ you could use to create your table:
     `analytics_sampling_factor` tinyint(4) DEFAULT NULL,
     `truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
     `default_integration` varchar(64) DEFAULT NULL,
-    `analytics_config` varchar(512) DEFAULT NULL,
+    `analytics_config` varchar(512) DEFAULT NULL,'
+    `prefer_deals` bit(1) DEFAULT NULL,
     `bid_validations` json DEFAULT NULL,
     `status` enum('active','inactive') DEFAULT 'active',
     `updated_by` int(11) DEFAULT NULL,

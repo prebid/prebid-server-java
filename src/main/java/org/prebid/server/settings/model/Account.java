@@ -34,6 +34,8 @@ public class Account {
 
     AccountStatus status;
 
+    Boolean preferDeals;
+
     public Account merge(Account another) {
         return Account.builder()
                 .id(ObjectUtils.defaultIfNull(id, another.id))
@@ -50,6 +52,7 @@ public class Account {
                 .analyticsConfig(ObjectUtils.defaultIfNull(analyticsConfig, another.analyticsConfig))
                 .bidValidations(ObjectUtils.defaultIfNull(bidValidations, another.bidValidations))
                 .status(ObjectUtils.defaultIfNull(status, another.status))
+                .preferDeals(ObjectUtils.defaultIfNull(preferDeals, another.preferDeals))
                 .build();
     }
 
