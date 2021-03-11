@@ -33,6 +33,7 @@ public final class HttpUtil {
     public static final CharSequence X_REQUEST_AGENT_HEADER = HttpHeaders.createOptimized("X-Request-Agent");
     public static final CharSequence ORIGIN_HEADER = HttpHeaders.createOptimized("Origin");
     public static final CharSequence ACCEPT_HEADER = HttpHeaders.createOptimized("Accept");
+    public static final CharSequence SEC_GPC = HttpHeaders.createOptimized("Sec-GPC");
     public static final CharSequence CONTENT_TYPE_HEADER = HttpHeaders.createOptimized("Content-Type");
     public static final CharSequence X_REQUESTED_WITH_HEADER = HttpHeaders.createOptimized("X-Requested-With");
     public static final CharSequence REFERER_HEADER = HttpHeaders.createOptimized("Referer");

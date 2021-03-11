@@ -5,8 +5,11 @@ import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
@@ -20,15 +23,19 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,6 +53,9 @@ public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
+    private static final Set<CharSequence> HEADERS_TO_COPY = Collections.unmodifiableSet(new HashSet<>(
+            Arrays.asList(HttpUtil.SEC_GPC.toString())));
+
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
@@ -62,13 +72,17 @@ public class HttpBidderRequester {
     /**
      * Executes given request to a given bidder.
      */
-    public <T> Future<BidderSeatBid> requestBids(
-            Bidder<T> bidder, BidderRequest bidderRequest, Timeout timeout, boolean debugEnabled) {
+    public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
+                                                 BidderRequest bidderRequest,
+                                                 Timeout timeout,
+                                                 RoutingContext routingContext,
+                                                 boolean debugEnabled) {
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
-        final List<HttpRequest<T>> httpRequests = httpRequestsWithErrors.getValue();
+        final List<HttpRequest<T>> httpRequests
+                = enrichWithRequiredData(httpRequestsWithErrors.getValue(), routingContext);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
@@ -97,6 +111,27 @@ public class HttpBidderRequester {
 
         return completionFuture
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
+    }
+
+    private static <T> List<HttpRequest<T>> enrichWithRequiredData(List<HttpRequest<T>> httpRequests,
+                                                                   RoutingContext routingContext) {
+        final MultiMap headersToAdd = new CaseInsensitiveHeaders();
+        routingContext.request().headers().entries().stream()
+                .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey()))
+                .forEach(entry -> headersToAdd.add(entry.getKey(), entry.getValue()));
+
+        return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
+                .headers(enrichHeaders(httpRequest.getHeaders(), headersToAdd))
+                .build())
+                .collect(Collectors.toList());
+
+    }
+
+    private static MultiMap enrichHeaders(MultiMap requestHeaders, MultiMap headersToAdd) {
+        if (requestHeaders == null) {
+            return headersToAdd;
+        }
+        return requestHeaders.addAll(headersToAdd);
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
