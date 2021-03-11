@@ -886,7 +886,7 @@ public class BidResponseCreator {
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
                 .bidid(bidInfo.getGeneratedBidId())
                 .type(bidType)
-                .targeting(targetingKeywords)
+                .targeting(MapUtils.isEmpty(targetingKeywords) ? null : targetingKeywords)
                 .targetBidderCode(targetingBidInfo.isAddTargetBidderCode() ? bidderCode : null)
                 .cache(cache)
                 .storedRequestAttributes(storedVideo)
