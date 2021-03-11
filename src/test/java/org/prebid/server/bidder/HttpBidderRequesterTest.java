@@ -406,6 +406,32 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotOverrideHeadersFromBidRequest() {
+        // given
+        givenHttpClientReturnsResponse(200, null);
+        given(httpServerRequest.headers()).willReturn(new CaseInsensitiveHeaders().add("Sec-GPC", "1"));
+
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri")
+                        .body("requestBody")
+                        .headers(new CaseInsensitiveHeaders().add("Sec-GPC", "0"))
+                        .build()),
+                emptyList()));
+
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
+        // when
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
+
+        // then
+        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), headerCaptor.capture(), eq("requestBody"), eq(500L));
+        assertThat(headerCaptor.getValue().contains("Sec-GPC")).isTrue();
+        assertThat(headerCaptor.getValue().getAll("Sec-GPC")).hasSize(1);
+        assertThat(headerCaptor.getValue().get("Sec-GPC")).isEqualTo("0");
+    }
+
+    @Test
     public void shouldReturnFullDebugInfoIfDebugEnabledAndErrorStatus() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(

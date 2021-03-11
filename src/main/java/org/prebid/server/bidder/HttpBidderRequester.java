@@ -131,7 +131,13 @@ public class HttpBidderRequester {
         if (requestHeaders == null) {
             return headersToAdd;
         }
-        return requestHeaders.addAll(headersToAdd);
+        final Map<String, String> neededToAddHeaders = headersToAdd.entries().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        requestHeaders.entries().forEach(entry ->
+                neededToAddHeaders.computeIfPresent(entry.getKey(), (key, val) -> entry.getValue()));
+        neededToAddHeaders.forEach(requestHeaders::set);
+
+        return requestHeaders;
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
