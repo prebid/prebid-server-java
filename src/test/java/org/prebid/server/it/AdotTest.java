@@ -52,6 +52,7 @@ public class AdotTest extends IntegrationTest {
                 response, singletonList("adot"));
 
         String actualStr = response.asString();
+
         JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 }

@@ -37,7 +37,7 @@ public class AdformTest extends IntegrationTest {
                 .withQueryParam("ip", equalTo("193.168.244.1"))
                 .withQueryParam("adid", equalTo("ifaId"))
                 .withQueryParam("gdpr", equalTo("0"))
-                .withQueryParam("gdpr_consent", equalTo("consentValue"))
+                .withQueryParam("gdpr_consent", equalTo("BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"))
                 .withQueryParam("url", equalTo("https://adform.com?a=b"))
                 // bWlkPTE1JnJjdXI9Q1pLJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
                 // "mid=15&rcur=CZK&mkv=color:red&mkw=red&cdims=300x600&minp=2.50"

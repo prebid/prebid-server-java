@@ -3,7 +3,7 @@
   "Location" :"http://www.example.com",
   "Lid" : "IV-UID",
   "IsTestBid" : false,
-  "GdprConsent" :"consentValue",
+  "GdprConsent" :"BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
   "Gdpr" : false,
   "InvibBVLog" : false,
   "VideoAdDebug" : false

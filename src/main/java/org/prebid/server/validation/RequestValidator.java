@@ -35,7 +35,10 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -110,6 +113,7 @@ public class RequestValidator {
      * at a time.
      */
     public ValidationResult validate(BidRequest bidRequest) {
+        final List<String> warnings = new ArrayList<>();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
                 throw new ValidationException("request missing required field: \"id\"");
@@ -173,12 +177,12 @@ public class RequestValidator {
             }
             validateSite(bidRequest.getSite());
             validateDevice(bidRequest.getDevice());
-            validateUser(bidRequest.getUser(), aliases);
-            validateRegs(bidRequest.getRegs());
+            validateUser(bidRequest.getUser(), aliases, warnings);
+            validateRegs(bidRequest.getRegs(), warnings);
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
         }
-        return ValidationResult.success();
+        return ValidationResult.success(warnings);
     }
 
     /**
@@ -408,7 +412,8 @@ public class RequestValidator {
         }
     }
 
-    private void validateUser(User user, Map<String, String> aliases) throws ValidationException {
+    private void validateUser(User user, Map<String, String> aliases, List<String> warnings)
+            throws ValidationException {
         if (user != null && user.getExt() != null) {
             final ExtUser extUser = user.getExt();
 
@@ -427,6 +432,11 @@ public class RequestValidator {
                                 + "name nor an alias in request.ext.prebid.aliases", bidder);
                     }
                 }
+            }
+
+            final String tcfConsent = extUser.getConsent();
+            if (StringUtils.isNotBlank(tcfConsent) && !TcfDefinerService.isConsentStringValid(tcfConsent)) {
+                warnings.add(String.format("Tcf consent string has invalid format: %s", tcfConsent));
             }
 
             final List<ExtUserEid> eids = extUser.getEids();
@@ -477,11 +487,21 @@ public class RequestValidator {
      * Validates {@link Regs}. Throws {@link ValidationException} in case if {@link ExtRegs} is present in
      * bidrequest.regs.ext and its gdpr value has different value to 0 or 1.
      */
-    private void validateRegs(Regs regs) throws ValidationException {
+    private void validateRegs(Regs regs, List<String> warnings) throws ValidationException {
         final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
         if (gdpr != null && gdpr != 0 && gdpr != 1) {
             throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
+        }
+
+        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
+        if (StringUtils.isNotBlank(usPrivacy)) {
+            try {
+                Ccpa.validateUsPrivacy(usPrivacy);
+            } catch (PreBidException ex) {
+                warnings.add(String.format("CCPA usPrivacy value `%s` failed validation with a reason: %s", usPrivacy,
+                        ex.getMessage()));
+            }
         }
     }
 

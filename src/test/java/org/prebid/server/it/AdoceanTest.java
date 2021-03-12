@@ -29,7 +29,7 @@ public class AdoceanTest extends IntegrationTest {
                 .withQueryParam("nosecure", equalTo("1"))
                 .withQueryParam("aid", equalTo("adoceanmyaozpniqismex:impId12"))
                 .withQueryParam("gdpr", equalTo("1"))
-                .withQueryParam("gdpr_consent", equalTo("consentValue"))
+                .withQueryParam("gdpr_consent", equalTo("BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"))
                 .withQueryParam("hcuserid", equalTo("AO-UID"))
                 .withQueryParam("aosspsizes", equalTo("myaozpniqismex~300x250"))
                 .withHeader("Accept", WireMock.equalTo("application/json"))
