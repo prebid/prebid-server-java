@@ -66,7 +66,9 @@ public class JsonMerger {
     }
 
     /**
-     * Returns 'toNode' with merged properties from 'fromNode'.
+     * Returns 'toNode' with merged properties from 'fromNode'
+     * <p>
+     * fromNode object fields has priority over the toNode
      */
     public JsonNode merge(JsonNode fromNode, JsonNode toNode) {
         try {

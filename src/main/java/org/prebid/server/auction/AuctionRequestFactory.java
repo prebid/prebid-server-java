@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -19,6 +20,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -35,6 +37,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -82,8 +85,12 @@ public class AuctionRequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
-    private static final String WEB_CHANNEL = "web";
-    private static final String APP_CHANNEL = "app";
+    private static final TypeReference<Map<String, JsonNode>> EXT_PREBID_BIDDER_PARAMS =
+            new TypeReference<Map<String, JsonNode>>() {
+            };
+
+    public static final String WEB_CHANNEL = "web";
+    public static final String APP_CHANNEL = "app";
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
@@ -102,6 +109,7 @@ public class AuctionRequestFactory {
     private final IpAddressHelper ipAddressHelper;
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
+    private final JsonMerger jsonMerger;
     private final RequestValidator requestValidator;
     private final InterstitialProcessor interstitialProcessor;
     private final TimeoutResolver timeoutResolver;
@@ -123,6 +131,7 @@ public class AuctionRequestFactory {
                                  IpAddressHelper ipAddressHelper,
                                  UidsCookieService uidsCookieService,
                                  BidderCatalog bidderCatalog,
+                                 JsonMerger jsonMerger,
                                  RequestValidator requestValidator,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
@@ -144,6 +153,7 @@ public class AuctionRequestFactory {
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
@@ -286,8 +296,7 @@ public class AuctionRequestFactory {
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source);
 
-        final List<Imp> imps = bidRequest.getImp();
-        final List<Imp> populatedImps = populateImps(imps, request);
+        final List<Imp> populatedImps = populateImps(bidRequest, request);
 
         final Integer at = bidRequest.getAt();
         final Integer resolvedAt = resolveAt(at);
@@ -299,6 +308,7 @@ public class AuctionRequestFactory {
         final Long resolvedTmax = resolveTmax(tmax, timeoutResolver);
 
         final ExtRequest ext = bidRequest.getExt();
+        final List<Imp> imps = bidRequest.getImp();
         final ExtRequest populatedExt = populateRequestExt(
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps));
 
@@ -552,28 +562,55 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * - Updates imps with security 1, when secured request was received and imp security was not defined.
+     * - Updates imps with security and bidderparams.
      * - Moves bidder parameters from imp.ext._bidder_ to imp.ext.prebid.bidder._bidder_
      */
-    private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
+    private List<Imp> populateImps(BidRequest bidRequest, HttpServerRequest request) {
+        final List<Imp> imps = bidRequest.getImp();
         if (CollectionUtils.isEmpty(imps)) {
             return null;
         }
 
         final Integer secureFromRequest = paramsExtractor.secureFrom(request);
+        final Map<String, JsonNode> globalBidderParams = extractGlobalBidderParams(bidRequest);
 
-        if (!shouldModifyImps(imps, secureFromRequest)) {
+        if (!shouldModifyImps(imps, secureFromRequest, globalBidderParams)) {
             return imps;
         }
 
         return imps.stream()
-                .map(imp -> populateImp(imp, secureFromRequest))
+                .map(imp -> populateImp(imp, secureFromRequest, globalBidderParams))
                 .collect(Collectors.toList());
     }
 
-    private boolean shouldModifyImps(List<Imp> imps, Integer secureFromRequest) {
+    /**
+     * Returns {@link Map}&lt;{@link String}, {@link JsonNode}&gt; where keys are bidders and values are
+     * bidder parameters from request level bidderparams.
+     */
+    private Map<String, JsonNode> extractGlobalBidderParams(BidRequest bidRequest) {
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid extBidPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final ObjectNode bidderParams = extBidPrebid != null ? extBidPrebid.getBidderparams() : null;
+        return parseBidderParams(bidderParams).entrySet().stream()
+                .filter(bidderParamEntry -> !IMP_EXT_NON_BIDDER_FIELDS.contains(bidderParamEntry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /**
+     * Converts {@link ObjectNode} bidderparams to {@link Map}&lt;{@link String}, {@link JsonNode}&gt;
+     * where key is bidder and value is bidder's parameters.
+     */
+    private Map<String, JsonNode> parseBidderParams(ObjectNode bidderParams) {
+        return bidderParams != null && bidderParams.isObject()
+                ? mapper.mapper().convertValue(bidderParams, EXT_PREBID_BIDDER_PARAMS)
+                : Collections.emptyMap();
+    }
+
+    private boolean shouldModifyImps(List<Imp> imps, Integer secureFromRequest,
+                                     Map<String, JsonNode> globalBidderParams) {
         return imps.stream()
-                .anyMatch(imp -> shouldSetImpSecure(imp, secureFromRequest) || shouldMoveBidderParams(imp));
+                .anyMatch(imp -> shouldSetImpSecure(imp, secureFromRequest) || shouldMoveBidderParams(imp)
+                        || MapUtils.isNotEmpty(globalBidderParams));
     }
 
     private boolean shouldSetImpSecure(Imp imp, Integer secureFromRequest) {
@@ -589,31 +626,48 @@ public class AuctionRequestFactory {
         return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
     }
 
-    private Imp populateImp(Imp imp, Integer secureFromRequest) {
+    private Imp populateImp(Imp imp, Integer secureFromRequest, Map<String, JsonNode> globalBidderParams) {
         final boolean shouldSetSecure = shouldSetImpSecure(imp, secureFromRequest);
         final boolean shouldMoveBidderParams = shouldMoveBidderParams(imp);
+        final boolean shouldUpdateImpExt = shouldMoveBidderParams || MapUtils.isNotEmpty(globalBidderParams);
 
-        if (shouldSetSecure || shouldMoveBidderParams) {
+        if (shouldSetSecure || shouldUpdateImpExt) {
             final ObjectNode impExt = imp.getExt();
 
             return imp.toBuilder()
                     .secure(shouldSetSecure ? Integer.valueOf(1) : imp.getSecure())
-                    .ext(shouldMoveBidderParams ? populateImpExt(impExt) : impExt)
+                    .ext(shouldUpdateImpExt
+                            ? populateImpExt(impExt, globalBidderParams, shouldMoveBidderParams)
+                            : impExt)
                     .build();
         }
 
         return imp;
     }
 
-    private ObjectNode populateImpExt(ObjectNode impExt) {
-        final ObjectNode modifiedExt = impExt.deepCopy();
+    private ObjectNode populateImpExt(ObjectNode impExt,
+                                      Map<String, JsonNode> globalBidderParams,
+                                      boolean shouldMoveBidderParams) {
+        final ObjectNode impExtCopy = prepareValidImpExtCopy(impExt);
+        final ObjectNode normalizedExt = shouldMoveBidderParams ? moveBidderParamsToPrebid(impExtCopy) : impExtCopy;
+        return MapUtils.isEmpty(globalBidderParams)
+                ? normalizedExt
+                : mergeGlobalBidderParamsToImp(normalizedExt, globalBidderParams);
+    }
 
-        final ObjectNode modifiedExtPrebid = getOrCreateChildObjectNode(modifiedExt, PREBID_EXT);
-        modifiedExt.replace(PREBID_EXT, modifiedExtPrebid);
+    private ObjectNode prepareValidImpExtCopy(ObjectNode impExt) {
+        final ObjectNode copiedImpExt = impExt != null ? impExt.deepCopy() : mapper.mapper().createObjectNode();
+        final ObjectNode modifiedExtPrebid = getOrCreateChildObjectNode(copiedImpExt, PREBID_EXT);
+        copiedImpExt.replace(PREBID_EXT, modifiedExtPrebid);
         final ObjectNode modifiedExtPrebidBidder = getOrCreateChildObjectNode(modifiedExtPrebid, BIDDER_EXT);
         modifiedExtPrebid.replace(BIDDER_EXT, modifiedExtPrebidBidder);
+        return copiedImpExt;
+    }
 
-        final Set<String> bidderFields = StreamUtil.asStream(modifiedExt.fieldNames())
+    private ObjectNode moveBidderParamsToPrebid(ObjectNode impExt) {
+        final ObjectNode modifiedExtPrebidBidder = (ObjectNode) impExt.get(PREBID_EXT).get(BIDDER_EXT);
+
+        final Set<String> bidderFields = StreamUtil.asStream(impExt.fieldNames())
                 .filter(this::isImpExtBidderField)
                 .collect(Collectors.toSet());
 
@@ -622,13 +676,12 @@ public class AuctionRequestFactory {
                     getOrCreateChildObjectNode(modifiedExtPrebidBidder, currentBidderField);
             modifiedExtPrebidBidder.replace(currentBidderField, modifiedExtPrebidBidderCurrentBidder);
 
-            final JsonNode extCurrentBidder = modifiedExt.remove(currentBidderField);
+            final JsonNode extCurrentBidder = impExt.remove(currentBidderField);
             if (isObjectNode(extCurrentBidder)) {
                 modifiedExtPrebidBidderCurrentBidder.setAll((ObjectNode) extCurrentBidder);
             }
         }
-
-        return modifiedExt;
+        return impExt;
     }
 
     private static ObjectNode getOrCreateChildObjectNode(ObjectNode parentNode, String fieldName) {
@@ -639,6 +692,33 @@ public class AuctionRequestFactory {
 
     private static boolean isObjectNode(JsonNode node) {
         return node != null && node.isObject();
+    }
+
+    /**
+     * Merges bidder parameters for shred bidders between request and imp levels.
+     * Impression parameters has priority over the request level.
+     */
+    private ObjectNode mergeGlobalBidderParamsToImp(ObjectNode impExt, Map<String, JsonNode> requestBidderParams) {
+        final ObjectNode modifiedExtPrebid = (ObjectNode) impExt.get(PREBID_EXT);
+        final ObjectNode modifiedExtBidder = (ObjectNode) modifiedExtPrebid.get(BIDDER_EXT);
+        final Map<String, JsonNode> impBidderParams = parseBidderParams(modifiedExtBidder);
+        final Map<String, JsonNode> result = new HashMap<>(impBidderParams);
+        final Map<String, JsonNode> mergedBidderParams = requestBidderParams.entrySet().stream()
+                .filter(bidderToParam -> isImpExtBidderField(bidderToParam.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        bidderToParams -> mergeBidderParams(bidderToParams.getValue(),
+                                impBidderParams.get(bidderToParams.getKey()))));
+        result.putAll(mergedBidderParams);
+        modifiedExtPrebid.replace(BIDDER_EXT, mapper.mapper().valueToTree(result));
+        return impExt;
+    }
+
+    /**
+     * Returns requestParams {@link JsonNode} if impParams is null, otherwise merges
+     * requestParams and impParams with impParams priority.
+     */
+    private JsonNode mergeBidderParams(JsonNode requestParams, JsonNode impParams) {
+        return impParams == null ? requestParams : jsonMerger.merge(impParams, requestParams);
     }
 
     /**

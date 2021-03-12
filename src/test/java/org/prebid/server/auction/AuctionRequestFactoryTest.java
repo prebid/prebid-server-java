@@ -43,6 +43,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
@@ -114,6 +115,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
+    private JsonMerger jsonMerger;
+    @Mock
     private RequestValidator requestValidator;
     @Mock
     private InterstitialProcessor interstitialProcessor;
@@ -164,6 +167,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -205,6 +209,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -244,6 +249,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -318,6 +324,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1290,6 +1297,152 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddNewBidderToImpBidderParamsWhenRequestLevelHasNotSharedBidderWithParams() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(mapper.createObjectNode().set("bidder2",
+                        mapper.createObjectNode().put("key2", "value2"))).build()))
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                                .set("bidder", mapper.createObjectNode()
+                                        .set("bidder1", mapper.createObjectNode().put("key1", "value1")))))
+                        .build())).build());
+
+        given(paramsExtractor.secureFrom(any())).willReturn(0);
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        final ObjectNode expectedResult = mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .<ObjectNode>set("bidder2", mapper.createObjectNode().put("key2", "value2"))
+                                .set("bidder1", mapper.createObjectNode().put("key1", "value1"))));
+
+        assertThat(request.getImp()).extracting(Imp::getExt)
+                .element(0).isNotNull().isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void shouldMergeImpAndRequestBidderParamsForSharedBidderWithImpPriority() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(mapper.createObjectNode().set("bidder1",
+                        mapper.createObjectNode().put("key1", "value1-request").put("key2", "value2"))).build()))
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("bidder", mapper.createObjectNode()
+                                                .set("bidder1", mapper.createObjectNode().put("key1", "value1-imp")))))
+                        .build())).build());
+
+        given(jsonMerger.merge(any(), any())).willReturn(mapper.createObjectNode().put("key1", "value1-imp")
+                .put("key2", "value2"));
+
+        given(paramsExtractor.secureFrom(any())).willReturn(0);
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        final ObjectNode expectedResult = mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .set("bidder1", mapper.createObjectNode().put("key1", "value1-imp")
+                                        .put("key2", "value2"))));
+
+        assertThat(request.getImp()).extracting(Imp::getExt).element(0).isNotNull().isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void shouldNotRemoveImpBidderParamsThatWasNotParticipateInMerge() {
+        // given
+        final ObjectNode impBidderParams = mapper.createObjectNode().set("bidder1",
+                mapper.createObjectNode().put("key1", "value1"));
+        impBidderParams.set("bidder2", mapper.createObjectNode().put("key1", "value1"));
+
+        givenBidRequest(BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(mapper.createObjectNode().set("bidder1",
+                        mapper.createObjectNode().put("key2", "value2"))).build()))
+                .imp(singletonList(Imp.builder()
+                        .ext(impBidderParams).build())).build());
+
+        given(jsonMerger.merge(any(), any())).willReturn(mapper.createObjectNode().put("key1", "value1")
+                .put("key2", "value2"));
+
+        given(paramsExtractor.secureFrom(any())).willReturn(0);
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        final ObjectNode expectedResult = mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .<ObjectNode>set("bidder1", mapper.createObjectNode().put("key1", "value1")
+                                        .put("key2", "value2"))
+                                .set("bidder2", mapper.createObjectNode().put("key1", "value1"))));
+
+        assertThat(request.getImp()).extracting(Imp::getExt)
+                .element(0).isNotNull().isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void shouldNotAddContextAndPrebidAsBidderParamsIfDefinedInRequest() {
+        // given
+        final ObjectNode requestBidderParams = mapper.createObjectNode().set("prebid",
+                mapper.createObjectNode().put("key1", "value1"));
+        requestBidderParams.set("context", mapper.createObjectNode().put("key1", "value1"));
+
+        givenBidRequest(BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(requestBidderParams).build()))
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.createObjectNode()
+                                .set("prebid", mapper.createObjectNode()
+                                        .set("bidder", mapper.createObjectNode()
+                                                .set("bidder1", mapper.createObjectNode().put("key1", "value1")))))
+                        .build())).build());
+
+        given(paramsExtractor.secureFrom(any())).willReturn(0);
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getImp()).extracting(Imp::getExt)
+                .element(0).isNotNull().isEqualTo(mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .set("bidder1", mapper.createObjectNode().put("key1", "value1")))));
+    }
+
+    @Test
+    public void shouldNotMergeContextAndPrebidAsBidderParamsIfDefinedInRequest() {
+        // given
+        final ObjectNode requestBidderParams = mapper.createObjectNode().set("prebid",
+                mapper.createObjectNode().put("key1", "value1-request"));
+        requestBidderParams.set("context", mapper.createObjectNode().put("key1", "value1"));
+
+        final ObjectNode impBidderParams = mapper.createObjectNode().set("prebid",
+                mapper.createObjectNode().put("key2", "value2"));
+        impBidderParams.set("context", mapper.createObjectNode().put("key2", "value2"));
+
+        givenBidRequest(BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(requestBidderParams).build()))
+                .imp(singletonList(Imp.builder()
+                        .ext(impBidderParams).build())).build());
+
+        given(paramsExtractor.secureFrom(any())).willReturn(0);
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getImp()).extracting(Imp::getExt).element(0).isNotNull().isEqualTo(impBidderParams);
+    }
+
+    @Test
     public void shouldNotSetFieldsFromHeadersIfRequestFieldsNotEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -1677,6 +1830,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1720,6 +1874,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1762,6 +1917,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1804,6 +1960,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1897,6 +2054,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1941,6 +2099,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
+                jsonMerger,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
