@@ -203,7 +203,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         httpBidderRequester.requestBids(bidder, bidderRequest, timeout, false).result();
 
         // then
-        verify(httpClient, times(2)).request(any(), anyString(), any(), any(), anyLong());
+        verify(httpClient, times(2)).request(any(), anyString(), any(), anyString(), anyLong());
     }
 
     @Test
