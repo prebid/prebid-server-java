@@ -32,7 +32,7 @@
               },
               "cache":{
                 "bids":{
-                  "url":"http://localhost:8090/cache?uuid=f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                  "url":"{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb",
                   "cacheId":"f0ab9105-cb21-4e59-b433-70f5ad6671cb"
                 }
               }

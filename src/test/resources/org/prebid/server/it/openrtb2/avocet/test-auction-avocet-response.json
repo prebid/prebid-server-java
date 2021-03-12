@@ -17,6 +17,7 @@
           "crid": "29681110",
           "w": 1024,
           "h": 576,
+          "exp": 120,
           "ext": {
             "bidder": {
               "avocet": {
@@ -26,6 +27,8 @@
             "prebid": {
               "type": "video",
               "targeting": {
+                "hb_uuid_avocet": "ce120de7-25d0-4384-8983-8a9462149c8c",
+                "hb_uuid": "ce120de7-25d0-4384-8983-8a9462149c8c",
                 "hb_pb": "0.50",
                 "hb_bidder_avocet": "avocet",
                 "hb_cache_path_avocet": "{{ cache.path }}",
@@ -43,6 +46,10 @@
                 "bids": {
                   "url": "{{ cache.resource_url }}78f9a6dd-d08c-4b80-ba0f-0159b9add9bf",
                   "cacheId": "78f9a6dd-d08c-4b80-ba0f-0159b9add9bf"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}ce120de7-25d0-4384-8983-8a9462149c8c",
+                  "cacheId": "ce120de7-25d0-4384-8983-8a9462149c8c"
                 }
               }
             }
@@ -60,8 +67,8 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"api\":1,\"w\":1024,\"h\":576,\"ext\":{\"avocet\":{\"duration\":30}}}}]}",
-            "responsebody": "{\"responses\":[{\"uuid\":\"78f9a6dd-d08c-4b80-ba0f-0159b9add9bf\"}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"api\":1,\"w\":1024,\"h\":576,\"ext\":{\"avocet\":{\"duration\":30}}}},{\"type\":\"xml\",\"value\":\"some-test-ad\",\"expiry\":120}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"78f9a6dd-d08c-4b80-ba0f-0159b9add9bf\"},{\"uuid\":\"ce120de7-25d0-4384-8983-8a9462149c8c\"}]}",
             "status": 200
           }
         ],
