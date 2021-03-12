@@ -7,6 +7,9 @@ import org.assertj.core.internal.ComparisonStrategy;
 import org.assertj.core.internal.StandardComparisonStrategy;
 import org.assertj.core.util.Preconditions;
 
+import java.util.Objects;
+import java.util.function.Consumer;
+
 public class FutureAssertion<VALUE> extends AbstractAssert<FutureAssertion<VALUE>, Future<VALUE>> {
 
     private ComparisonStrategy futureValueComparisonStrategy;
@@ -45,6 +48,13 @@ public class FutureAssertion<VALUE> extends AbstractAssert<FutureAssertion<VALUE
             failWithMessage("Expected future to contain <%s> but was <%s>", expectedValue, actualValue);
         }
 
+        return myself;
+    }
+
+    public FutureAssertion<VALUE> succeededSatisfies(Consumer<VALUE> requirements) {
+        isSucceeded();
+        Objects.requireNonNull(requirements, "The Consumer<T> expressing the assertions requirements must not be null");
+        requirements.accept(actual.result());
         return myself;
     }
 

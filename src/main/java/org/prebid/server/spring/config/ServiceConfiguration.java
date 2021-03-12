@@ -17,6 +17,7 @@ import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
+import org.prebid.server.auction.PrivacyAnonymizationService;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.SchainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
@@ -548,6 +549,7 @@ public class ServiceConfiguration {
     PrivacyEnforcementService privacyEnforcementService(
             BidderCatalog bidderCatalog,
             PrivacyExtractor privacyExtractor,
+            PrivacyAnonymizationService privacyAnonymizationService,
             TcfDefinerService tcfDefinerService,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
@@ -555,12 +557,26 @@ public class ServiceConfiguration {
             @Value("${lmt.enforce}") boolean lmtEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce, lmtEnforce);
+                bidderCatalog,
+                privacyExtractor,
+                privacyAnonymizationService,
+                tcfDefinerService,
+                ipAddressHelper,
+                metrics,
+                ccpaEnforce,
+                lmtEnforce);
     }
 
     @Bean
     PrivacyExtractor privacyExtractor() {
         return new PrivacyExtractor();
+    }
+
+    @Bean
+    PrivacyAnonymizationService privacyAnonymizer(@Value("${lmt.enforce}") boolean lmtEnforce,
+                                                  IpAddressHelper ipAddressHelper,
+                                                  Metrics metrics) {
+        return new PrivacyAnonymizationService(lmtEnforce, ipAddressHelper, metrics);
     }
 
     @Bean

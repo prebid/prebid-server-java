@@ -22,7 +22,7 @@ public class AdoceanTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdocean() throws IOException, JSONException {
 
-        WIRE_MOCK_RULE.stubFor(get(WireMock.urlPathEqualTo("/adocean-exchange/_10000000/ad.json"))
+        WIRE_MOCK_RULE.stubFor(get(WireMock.urlMatching("/adocean-exchange/.*"))
                 .withQueryParam("pbsrv_v", equalTo("1.1.0"))
                 .withQueryParam("id", equalTo("tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7"))
                 .withQueryParam("nc", equalTo("1"))

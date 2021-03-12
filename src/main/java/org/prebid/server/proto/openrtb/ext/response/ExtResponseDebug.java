@@ -3,6 +3,7 @@ package org.prebid.server.proto.openrtb.ext.response;
 import com.iab.openrtb.request.BidRequest;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.privacy.model.PrivacyDebugLog;
 
 import java.util.List;
 import java.util.Map;
@@ -23,4 +24,9 @@ public class ExtResponseDebug {
      * Request after resolution of stored requests and debug overrides
      */
     BidRequest resolvedrequest;
+
+    /**
+     * Privacy enforcement debug data.
+     */
+    PrivacyDebugLog privacy;
 }

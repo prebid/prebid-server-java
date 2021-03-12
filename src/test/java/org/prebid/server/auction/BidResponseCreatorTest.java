@@ -47,6 +47,11 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.privacy.model.PrivacyDebugLog;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
@@ -2104,9 +2109,14 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp());
         final List<String> warnings = asList("warning1", "warning2");
+        final PrivacyDebugLog privacyDebugLog = PrivacyDebugLog.from(
+                Privacy.of(null, "tcfString", Ccpa.of("usPrivacy"), null),
+                Privacy.of("1", "tcfString", Ccpa.of("usPrivacy"), 0),
+                TcfContext.builder().build(), emptyList());
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
-                builder -> builder.debugWarnings(warnings));
+                builder -> builder.debugWarnings(warnings))
+                .toBuilder().privacyContext(PrivacyContext.of(null, null, null, privacyDebugLog)).build();
         givenCacheServiceResult(CacheServiceResult.of(
                 DebugHttpCall.builder()
                         .endpoint("http://cache-service/cache")
@@ -2137,6 +2147,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         entry("cache", singletonList(ExtHttpCall.builder().uri("test.uri").status(500).build())));
 
         assertThat(responseExt.getDebug().getResolvedrequest()).isEqualTo(bidRequest);
+        assertThat(responseExt.getDebug().getPrivacy()).isEqualTo(privacyDebugLog);
 
         assertThat(responseExt.getWarnings())
                 .containsOnly(
