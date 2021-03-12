@@ -165,7 +165,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                             nextRetriever == null || retrieverResult.getErrors().isEmpty()
                                     ? Future.succeededFuture(retrieverResult)
                                     : getRemainingStoredResponses(responseIds, timeout,
-                                    retrieverResult.getStoredSeatBid(), nextRetriever));
+                                    retrieverResult.getIdToStoredResponses(), nextRetriever));
         }
 
         private static Future<StoredDataResult> getStoredRequests(
@@ -201,7 +201,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
 
             return retriever.apply(subtractSets(responseIds, storedSeatBids.keySet()), timeout)
                     .map(result -> StoredResponseDataResult.of(
-                            combineMaps(storedSeatBids, result.getStoredSeatBid()),
+                            combineMaps(storedSeatBids, result.getIdToStoredResponses()),
                             result.getErrors()));
         }
 

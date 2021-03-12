@@ -550,10 +550,9 @@ public class ServiceConfiguration {
 
     @Bean
     StoredResponseProcessor storedResponseProcessor(ApplicationSettings applicationSettings,
-                                                    BidderCatalog bidderCatalog,
                                                     JacksonMapper mapper) {
 
-        return new StoredResponseProcessor(applicationSettings, bidderCatalog, mapper);
+        return new StoredResponseProcessor(applicationSettings, mapper);
     }
 
     @Bean
