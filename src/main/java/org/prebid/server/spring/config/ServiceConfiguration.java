@@ -11,6 +11,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.CategoryMappingService;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -93,6 +94,7 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             VastModifier vastModifier,
             EventsService eventsService,
             HttpClient httpClient,
@@ -105,16 +107,24 @@ public class ServiceConfiguration {
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
+                expectedCacheTimeMs,
                 vastModifier,
                 eventsService,
                 metrics,
                 clock,
+                new UUIDIdGenerator(),
                 mapper);
     }
 
     @Bean
     VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService) {
         return new VastModifier(bidderCatalog, eventsService);
+    }
+
+    @Bean
+    CategoryMappingService categoryMapper(ApplicationSettings applicationSettings,
+                                          JacksonMapper jacksonMapper) {
+        return new CategoryMappingService(applicationSettings, jacksonMapper);
     }
 
     @Bean
@@ -262,7 +272,8 @@ public class ServiceConfiguration {
     VideoRequestFactory videoRequestFactory(
             @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
-            VideoStoredRequestProcessor storedRequestProcessor,
+            @Value("${auction.video.escape-log-cache-regex:#{null}}") String escapeLogCacheRegex,
+                    VideoStoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
             TimeoutResolver timeoutResolver,
             JacksonMapper mapper) {
@@ -270,15 +281,13 @@ public class ServiceConfiguration {
         return new VideoRequestFactory(
                 maxRequestSize,
                 enforceStoredRequest,
-                storedRequestProcessor,
-                auctionRequestFactory,
-                timeoutResolver,
-                mapper);
+                escapeLogCacheRegex,
+                storedRequestProcessor, auctionRequestFactory, timeoutResolver, mapper);
     }
 
     @Bean
     VideoResponseFactory videoResponseFactory(JacksonMapper mapper) {
-        return new VideoResponseFactory(mapper);
+        return new VideoResponseFactory(new UUIDIdGenerator(), mapper);
     }
 
     @Bean
@@ -453,6 +462,7 @@ public class ServiceConfiguration {
     @Bean
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
+            CategoryMappingService categoryMappingService,
             BidderCatalog bidderCatalog,
             VastModifier vastModifier,
             EventsService eventsService,
@@ -465,6 +475,7 @@ public class ServiceConfiguration {
 
         return new BidResponseCreator(
                 cacheService,
+                categoryMappingService,
                 bidderCatalog,
                 vastModifier,
                 eventsService,

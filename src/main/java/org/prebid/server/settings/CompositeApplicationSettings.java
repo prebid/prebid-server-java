@@ -77,6 +77,11 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         return proxy.getVideoStoredData(accountId, requestIds, impIds, timeout);
     }
 
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        return proxy.getCategories(primaryAdServer, publisher, timeout);
+    }
+
     /**
      * Runs a process to get stored responses by a collection of ids from a chain of retrievers
      * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;}.
@@ -111,6 +116,14 @@ public class CompositeApplicationSettings implements ApplicationSettings {
             return retriever.apply(key, timeout)
                     .recover(throwable -> nextRetriever != null
                             ? nextRetriever.apply(key, timeout)
+                            : Future.failedFuture(throwable));
+        }
+
+        @Override
+        public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+            return applicationSettings.getCategories(primaryAdServer, publisher, timeout)
+                    .recover(throwable -> next != null
+                            ? next.getCategories(primaryAdServer, publisher, timeout)
                             : Future.failedFuture(throwable));
         }
 

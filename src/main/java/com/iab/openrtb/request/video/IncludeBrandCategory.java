@@ -12,5 +12,8 @@ public class IncludeBrandCategory {
     Integer primaryAdserver;
 
     String publisher;
+
+    @JsonProperty("translatecategories")
+    Boolean translateCategories;
 }
 

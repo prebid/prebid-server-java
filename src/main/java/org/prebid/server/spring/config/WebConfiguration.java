@@ -256,13 +256,21 @@ public class WebConfiguration {
             VideoRequestFactory videoRequestFactory,
             VideoResponseFactory videoResponseFactory,
             ExchangeService exchangeService,
+            CacheService cacheService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
 
-        return new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter, metrics,
-                clock, mapper);
+        return new VideoHandler(
+                videoRequestFactory,
+                videoResponseFactory,
+                exchangeService,
+                cacheService,
+                analyticsReporter,
+                metrics,
+                clock,
+                mapper);
     }
 
     @Bean

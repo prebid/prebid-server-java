@@ -17,6 +17,7 @@ settings:
     stored-requests-dir: /var/tmp
     stored-imps-dir: /var/tmp
     stored-responses-dir: /var/tmp
+    categories-dir: /var/tmp
 gdpr:
   vendorlist:
     v1:

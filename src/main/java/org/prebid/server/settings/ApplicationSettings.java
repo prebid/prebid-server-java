@@ -6,6 +6,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -47,4 +48,10 @@ public interface ApplicationSettings {
      * Fetches stored response by IDs.
      */
     Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout);
+
+
+    /**
+     * Fetches video category
+     */
+    Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout);
 }

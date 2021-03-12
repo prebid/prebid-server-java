@@ -40,4 +40,6 @@ public class AuctionContext {
     PrivacyContext privacyContext;
 
     GeoInfo geoInfo;
+
+    CachedDebugLog cachedDebugLog;
 }

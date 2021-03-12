@@ -8,6 +8,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
@@ -25,6 +27,7 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.HashSet;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
@@ -33,13 +36,14 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-public class FileApplicationSettingsTest {
+public class FileApplicationSettingsTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -54,7 +58,8 @@ public class FileApplicationSettingsTest {
 
         // when and then
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore"));
+                .isThrownBy(() -> new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore",
+                        "ignore", jacksonMapper));
     }
 
     @Test
@@ -63,7 +68,8 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("domains:"));
 
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("123", null);
@@ -116,7 +122,8 @@ public class FileApplicationSettingsTest {
                         + "]"));
 
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("123", null);
@@ -159,7 +166,8 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("accounts: [ {id: '123'}, {id: '456'} ]"));
 
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore",
+                        "ignore", jacksonMapper);
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("789", null);
@@ -169,17 +177,118 @@ public class FileApplicationSettingsTest {
     }
 
     @Test
+    public void initializeCategoriesShouldThrowExceptionWhenFileCantBeParsed() {
+        // given
+        given(fileSystem.readDirBlocking(anyString()))
+                .willReturn(singletonList("/home/user/requests/1.json"))
+                .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/categories/iab_1.json"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts:")) // settings file
+                .willReturn(Buffer.buffer("value1")) // stored request
+                .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("value2")) // stored response
+                .willReturn(Buffer.buffer("{\"iab-1\": 1}")); // categories
+
+        // when and then
+        assertThatThrownBy(() -> new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore",
+                "ignore", jacksonMapper))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Failed to decode categories for file /home/user/categories/iab_1.json");
+    }
+
+    @Test
+    public void getCategoriesShouldReturnResultFoundByAdServerAndPublisherSuccessfully() {
+        // given
+        given(fileSystem.readDirBlocking(anyString()))
+                .willReturn(singletonList("/home/user/requests/1.json"))
+                .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/categories/iab_1.json"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts:")) // settings file
+                .willReturn(Buffer.buffer("value1")) // stored request
+                .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("value2")) // stored response
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
+
+        final ApplicationSettings applicationSettings = new FileApplicationSettings(fileSystem, "ignore", "ignore",
+                "ignore", "ignore", "ignore", jacksonMapper);
+
+        // when
+        final Future<Map<String, String>> result = applicationSettings.getCategories("iab", "1", null);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+        assertThat(result.result()).isEqualTo(singletonMap("iab-1", "id"));
+    }
+
+    @Test
+    public void getCategoriesShouldReturnResultFoundByAdServerAndWithoutPublisherSuccessfully() {
+        // given
+        given(fileSystem.readDirBlocking(anyString()))
+                .willReturn(singletonList("/home/user/requests/1.json"))
+                .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/categories/iab.json"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts:")) // settings file
+                .willReturn(Buffer.buffer("value1")) // stored request
+                .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("value2")) // stored response
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
+
+        final ApplicationSettings applicationSettings = new FileApplicationSettings(fileSystem, "ignore", "ignore",
+                "ignore", "ignore", "ignore", jacksonMapper);
+
+        // when
+        final Future<Map<String, String>> result = applicationSettings.getCategories("iab", null, null);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+        assertThat(result.result()).isEqualTo(singletonMap("iab-1", "id"));
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWhenFileWasNotFound() {
+        // given
+        given(fileSystem.readDirBlocking(anyString()))
+                .willReturn(singletonList("/home/user/requests/1.json"))
+                .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/categories/iab_1.json"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts:")) // settings file
+                .willReturn(Buffer.buffer("value1")) // stored request
+                .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("value2")) // stored response
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
+
+        final ApplicationSettings applicationSettings = new FileApplicationSettings(fileSystem, "ignore", "ignore",
+                "ignore", "ignore", "ignore", jacksonMapper);
+
+        // when
+        final Future<Map<String, String>> result = applicationSettings.getCategories("iab", "2", null);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Categories for filename iab_2 were not found");
+    }
+
+    @Test
     public void getStoredDataShouldReturnResultWithNotFoundErrorForNonExistingRequestId() {
         // given
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/1.json"))
-                .willReturn(singletonList("/home/user/imps/2.json"));
+                .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/categories/iab_1.json"));
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
-                .willReturn(Buffer.buffer("value2")); // stored imp
+                .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
+
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<StoredDataResult> storedRequestResult =
@@ -204,10 +313,12 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
-                .willReturn(Buffer.buffer("value3")); // stored response
+                .willReturn(Buffer.buffer("value3")) // stored response
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<StoredDataResult> storedRequestResult =
@@ -232,9 +343,12 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
-                .willReturn(Buffer.buffer("value3")); // stored response
+                .willReturn(Buffer.buffer("value3")) // stored response
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
+
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<StoredDataResult> storedRequestResult =
@@ -259,9 +373,11 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
-                .willReturn(Buffer.buffer("value2")); // stored imp
+                .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<StoredDataResult> storedRequestResult =
@@ -278,16 +394,18 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/3.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
-                .willReturn(singletonList("/home/user/responses/1.json"));
+                .willReturn(singletonList("/home/user/responses/1.json"))
+                .willReturn(singletonList("/home/user/categories"));
 
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value3")) // requests
                 .willReturn(Buffer.buffer("value2")) // imps
-                .willReturn(Buffer.buffer("value1")); // responses
-
+                .willReturn(Buffer.buffer("value1")) // responses
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -306,16 +424,19 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/3.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
-                .willReturn(singletonList("/home/user/responses/1.json"));
+                .willReturn(singletonList("/home/user/responses/1.json"))
+                .willReturn(singletonList("/home/user/categories/iab_1.json"));
 
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value3")) // requests
                 .willReturn(Buffer.buffer("value2")) // imps
-                .willReturn(Buffer.buffer("value1")); // responses
+                .willReturn(Buffer.buffer("value1")) // responses
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -336,16 +457,19 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/3.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
-                .willReturn(singletonList("/home/user/responses/1.json"));
+                .willReturn(singletonList("/home/user/responses/1.json"))
+                .willReturn(singletonList("/home/user/categories/iab_1.json"));
 
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value3")) // requests
                 .willReturn(Buffer.buffer("value2")) // imps
-                .willReturn(Buffer.buffer("value1")); // responses
+                .willReturn(Buffer.buffer("value1")) // responses
+                .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
         final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                        jacksonMapper);
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -366,7 +490,8 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:")); // settings file
 
         // when
-        new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
+        new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+                jacksonMapper);
 
         // then
         verify(fileSystem, never()).readFileBlocking(eq("1.txt"));

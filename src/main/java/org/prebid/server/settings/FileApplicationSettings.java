@@ -1,5 +1,6 @@
 package org.prebid.server.settings;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -8,7 +9,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.SettingsFile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
@@ -36,15 +40,20 @@ import java.util.stream.Stream;
  */
 public class FileApplicationSettings implements ApplicationSettings {
 
+    private static final TypeReference<Map<String, Category>> CATEGORY_FORMAT_REFERENCE =
+            new TypeReference<Map<String, Category>>() {
+            };
     private static final String JSON_SUFFIX = ".json";
 
     private final Map<String, Account> accounts;
     private final Map<String, String> storedIdToRequest;
     private final Map<String, String> storedIdToImp;
     private final Map<String, String> storedIdToSeatBid;
+    private final Map<String, Map<String, Category>> fileToCategories;
 
     public FileApplicationSettings(FileSystem fileSystem, String settingsFileName, String storedRequestsDir,
-                                   String storedImpsDir, String storedResponsesDir) {
+                                   String storedImpsDir, String storedResponsesDir, String categoriesDir,
+                                   JacksonMapper jacksonMapper) {
 
         final SettingsFile settingsFile = readSettingsFile(Objects.requireNonNull(fileSystem),
                 Objects.requireNonNull(settingsFileName));
@@ -56,6 +65,7 @@ public class FileApplicationSettings implements ApplicationSettings {
         this.storedIdToRequest = readStoredData(fileSystem, Objects.requireNonNull(storedRequestsDir));
         this.storedIdToImp = readStoredData(fileSystem, Objects.requireNonNull(storedImpsDir));
         this.storedIdToSeatBid = readStoredData(fileSystem, Objects.requireNonNull(storedResponsesDir));
+        this.fileToCategories = readCategories(fileSystem, Objects.requireNonNull(categoriesDir), jacksonMapper);
     }
 
     @Override
@@ -93,6 +103,25 @@ public class FileApplicationSettings implements ApplicationSettings {
     public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
                                                        Timeout timeout) {
         return getStoredData(accountId, requestIds, impIds, timeout);
+    }
+
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        final String filename = StringUtils.isNotBlank(publisher)
+                ? String.format("%s_%s", primaryAdServer, publisher)
+                : primaryAdServer;
+        final Map<String, Category> categoryToId = fileToCategories.get(filename);
+        return categoryToId != null
+                ? Future.succeededFuture(extractCategoriesIds(categoryToId))
+                : Future.failedFuture(new PreBidException(
+                String.format("Categories for filename %s were not found", filename)));
+    }
+
+    private static Map<String, String> extractCategoriesIds(Map<String, Category> categoryToId) {
+        return categoryToId.entrySet().stream()
+                .filter(catToCategory -> catToCategory.getValue() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        catToCategory -> catToCategory.getValue().getId()));
     }
 
     /**
@@ -134,6 +163,31 @@ public class FileApplicationSettings implements ApplicationSettings {
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
                 .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
                         filename -> fileSystem.readFileBlocking(filename).toString()));
+    }
+
+    /**
+     * Reads files with .json extension in configured directory and creates {@link Map} where key is a file name
+     * without .json and value is file content parsed to a {@link Map} where key is category and value is
+     * {@link Category}.
+     */
+    private static Map<String, Map<String, Category>> readCategories(FileSystem fileSystem, String dir,
+                                                                     JacksonMapper jacksonMapper) {
+        return fileSystem.readDirBlocking(dir).stream()
+                .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
+                .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
+                        filename -> parseCategories(filename, fileSystem.readFileBlocking(filename), jacksonMapper)));
+    }
+
+    /**
+     * Parses {@link Buffer} to a {@link Map} where key is category and value {@link Category}.
+     */
+    private static Map<String, Category> parseCategories(String fileName, Buffer categoriesBuffer,
+                                                         JacksonMapper jacksonMapper) {
+        try {
+            return jacksonMapper.decodeValue(categoriesBuffer, CATEGORY_FORMAT_REFERENCE);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Failed to decode categories for file %s", fileName));
+        }
     }
 
     private static <T> Future<T> mapValueToFuture(Map<String, T> map, String id, String errorPrefix) {

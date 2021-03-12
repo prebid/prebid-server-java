@@ -14,8 +14,10 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
@@ -30,20 +32,24 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class VideoRequestFactory {
 
+    private static final String DEBUG = "debug";
+    private static final int DEFAULT_CACHE_LOG_TTL = 3600;
+
     private final int maxRequestSize;
     private final boolean enforceStoredRequest;
-
+    private final Pattern escapeLogCacheRegexPattern;
     private final VideoStoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
 
     public VideoRequestFactory(int maxRequestSize,
-                               boolean enforceStoredRequest,
+                               boolean enforceStoredRequest, String escapeLogCacheRegex,
                                VideoStoredRequestProcessor storedRequestProcessor,
                                AuctionRequestFactory auctionRequestFactory,
                                TimeoutResolver timeoutResolver,
@@ -55,16 +61,22 @@ public class VideoRequestFactory {
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.escapeLogCacheRegexPattern = StringUtils.isNotBlank(escapeLogCacheRegex)
+                ? Pattern.compile(escapeLogCacheRegex)
+                : null;
     }
 
     /**
      * Creates {@link AuctionContext} and {@link List} of {@link PodError} based on {@link RoutingContext}.
      */
     public Future<WithPodErrors<AuctionContext>> fromRequest(RoutingContext routingContext, long startTime) {
-
+        final boolean debugEnabled = BooleanUtils.toBoolean(routingContext.queryParams().get(DEBUG));
+        final CachedDebugLog cachedDebugLog = new CachedDebugLog(debugEnabled, DEFAULT_CACHE_LOG_TTL,
+                escapeLogCacheRegexPattern, mapper);
         final BidRequestVideo incomingBidRequest;
         try {
-            incomingBidRequest = parseRequest(routingContext);
+            incomingBidRequest = parseRequest(routingContext, cachedDebugLog);
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
@@ -75,7 +87,7 @@ public class VideoRequestFactory {
         }
 
         final Set<String> podConfigIds = podConfigIds(incomingBidRequest);
-        return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds)
+        return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds, debugEnabled)
                 .compose(bidRequestToPodError -> auctionRequestFactory.toAuctionContext(
                         routingContext,
                         bidRequestToPodError.getData(),
@@ -83,6 +95,7 @@ public class VideoRequestFactory {
                         new ArrayList<>(),
                         startTime,
                         timeoutResolver)
+                        .map(auctionContext -> updateContextWithDebugLog(auctionContext, cachedDebugLog))
                         .map(auctionContext -> WithPodErrors.of(auctionContext, bidRequestToPodError.getPodErrors())));
     }
 
@@ -118,12 +131,17 @@ public class VideoRequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
+    private AuctionContext updateContextWithDebugLog(AuctionContext auctionContext,
+                                                     CachedDebugLog cachedDebugLog) {
+        return auctionContext.toBuilder().cachedDebugLog(cachedDebugLog).build();
+    }
+
     /**
      * Parses request body to {@link BidRequestVideo}.
      * <p>
      * Throws {@link InvalidRequestException} if body is empty, exceeds max request size or couldn't be deserialized.
      */
-    private BidRequestVideo parseRequest(RoutingContext context) {
+    private BidRequestVideo parseRequest(RoutingContext context, CachedDebugLog cachedDebugLog) {
         final Buffer body = context.getBody();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
@@ -132,6 +150,11 @@ public class VideoRequestFactory {
         if (body.length() > maxRequestSize) {
             throw new InvalidRequestException(
                     String.format("Request size exceeded max size of %d bytes.", maxRequestSize));
+        }
+
+        if (cachedDebugLog.isEnabled()) {
+            cachedDebugLog.setRequest(body.toString());
+            cachedDebugLog.setHeadersLog(context.request().headers());
         }
 
         try {
@@ -177,11 +200,11 @@ public class VideoRequestFactory {
     private Future<WithPodErrors<BidRequest>> createBidRequest(RoutingContext routingContext,
                                                                BidRequestVideo bidRequestVideo,
                                                                String storedVideoId,
-                                                               Set<String> podConfigIds) {
-
-        return storedRequestProcessor.processVideoRequest(
-                accountIdFrom(bidRequestVideo), storedVideoId, podConfigIds, bidRequestVideo)
-                .map(bidRequestToErrors -> fillImplicitParameters(routingContext, bidRequestToErrors))
+                                                               Set<String> podConfigIds,
+                                                               boolean debugEnabled) {
+        return storedRequestProcessor.processVideoRequest(accountIdFrom(bidRequestVideo), storedVideoId, podConfigIds,
+                bidRequestVideo)
+                .map(bidRequestToErrors -> fillImplicitParameters(routingContext, bidRequestToErrors, debugEnabled))
                 .map(this::validateRequest);
     }
 
@@ -191,9 +214,13 @@ public class VideoRequestFactory {
     }
 
     private WithPodErrors<BidRequest> fillImplicitParameters(RoutingContext routingContext,
-                                                             WithPodErrors<BidRequest> bidRequestToErrors) {
-        final BidRequest bidRequest = auctionRequestFactory
+                                                             WithPodErrors<BidRequest> bidRequestToErrors,
+                                                             boolean debugEnabled) {
+        BidRequest bidRequest = auctionRequestFactory
                 .fillImplicitParameters(bidRequestToErrors.getData(), routingContext, timeoutResolver);
+        if (debugEnabled) {
+            bidRequest = bidRequest.toBuilder().test(1).build();
+        }
         return WithPodErrors.of(bidRequest, bidRequestToErrors.getPodErrors());
     }
 }

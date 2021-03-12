@@ -23,6 +23,7 @@ import org.prebid.server.vertx.jdbc.JdbcClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -129,6 +130,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
+    }
+
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        return Future.failedFuture(new PreBidException("Not supported"));
     }
 
     /**

@@ -10,6 +10,7 @@
           "price": 2,
           "adid": "2938",
           "adm": "some-test-ad-3",
+          "cat" : ["3-cat"],
           "adomain": [
             "appnexus.com"
           ],
@@ -19,6 +20,7 @@
           "ext": {
             "appnexus": {
               "brand_id": 1,
+              "brand_category_id" : 3,
               "auction_id": 8189378542222915032,
               "bidder_id": 2,
               "bid_ad_type": 1,

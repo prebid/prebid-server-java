@@ -10,8 +10,10 @@ import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
@@ -28,6 +30,7 @@ import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -67,30 +70,36 @@ public class CacheService {
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
+    private final long expectedCacheTimeMs;
     private final VastModifier vastModifier;
     private final EventsService eventsService;
     private final Metrics metrics;
     private final Clock clock;
+    private final UUIDIdGenerator idGenerator;
     private final JacksonMapper mapper;
 
     public CacheService(CacheTtl mediaTypeCacheTtl,
                         HttpClient httpClient,
                         URL endpointUrl,
                         String cachedAssetUrlTemplate,
+                        long expectedCacheTimeMs,
                         VastModifier vastModifier,
                         EventsService eventsService,
                         Metrics metrics,
                         Clock clock,
+                        UUIDIdGenerator idGenerator,
                         JacksonMapper mapper) {
 
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
+        this.expectedCacheTimeMs = expectedCacheTimeMs;
         this.vastModifier = Objects.requireNonNull(vastModifier);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
+        this.idGenerator = Objects.requireNonNull(idGenerator);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -106,6 +115,21 @@ public class CacheService {
 
     public String getCachedAssetURLTemplate() {
         return cachedAssetUrlTemplate;
+    }
+
+    /**
+     * Makes cache for debugLog only and returns generated cache object key without wait for result.
+     */
+    public String cacheVideoDebugLog(CachedDebugLog cachedDebugLog, Integer videoCacheTtl) {
+        final String cacheKey = cachedDebugLog.getCacheKey() == null
+                ? idGenerator.generateId()
+                : cachedDebugLog.getCacheKey();
+        final List<CachedCreative> cachedCreatives = Collections.singletonList(
+                makeDebugCacheCreative(cachedDebugLog, cacheKey, videoCacheTtl));
+        final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
+        httpClient.post(endpointUrl.toString(), HttpUtil.headers(), mapper.encode(bidCacheRequest),
+                expectedCacheTimeMs);
+        return cacheKey;
     }
 
     /**
@@ -280,13 +304,24 @@ public class CacheService {
         final Account account = auctionContext.getAccount();
 
         final String accountId = account.getId();
+        final String hbCacheId = videoBids.stream().anyMatch(cacheBid -> cacheBid.getBidInfo().getCategory() != null)
+                ? idGenerator.generateId()
+                : null;
+
         final List<CachedCreative> cachedCreatives = Stream.concat(
                 bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
-                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, accountId, eventsContext)))
+                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, accountId, hbCacheId,
+                        eventsContext)))
                 .collect(Collectors.toList());
 
         if (cachedCreatives.isEmpty()) {
             return Future.succeededFuture(CacheServiceResult.empty());
+        }
+
+        final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
+        final Integer videoCacheTtl = account.getVideoCacheTtl();
+        if (CollectionUtils.isNotEmpty(cachedCreatives) && cachedDebugLog != null && cachedDebugLog.isEnabled()) {
+            cachedCreatives.add(makeDebugCacheCreative(cachedDebugLog, hbCacheId, videoCacheTtl));
         }
 
         final long remainingTimeout = auctionContext.getTimeout().remaining();
@@ -305,9 +340,21 @@ public class CacheService {
 
         final long startTime = clock.millis();
         return httpClient.post(url, HttpUtil.headers(), body, remainingTimeout)
-                .map(response -> processResponseOpenrtb(
-                        response, httpRequest, cachedCreatives.size(), bids, videoBids, accountId, startTime))
+                .map(response -> processResponseOpenrtb(response, httpRequest, cachedCreatives.size(), bids, videoBids,
+                        hbCacheId, accountId, startTime))
                 .otherwise(exception -> failResponseOpenrtb(exception, accountId, httpRequest, startTime));
+    }
+
+    private CachedCreative makeDebugCacheCreative(CachedDebugLog videoCacheDebugLog, String hbCacheId,
+                                                  Integer videoCacheTtl) {
+        final JsonNode value = mapper.mapper().valueToTree(videoCacheDebugLog.buildCacheBody());
+        videoCacheDebugLog.setCacheKey(hbCacheId);
+        return CachedCreative.of(PutObject.builder()
+                .type(CachedDebugLog.CACHE_TYPE)
+                .value(new TextNode(videoCacheDebugLog.buildCacheBody()))
+                .expiry(videoCacheTtl != null ? videoCacheTtl : videoCacheDebugLog.getTtl())
+                .key(String.format("log_%s", hbCacheId))
+                .build(), creativeSizeFromTextNode(value));
     }
 
     /**
@@ -318,6 +365,7 @@ public class CacheService {
                                                       int bidCount,
                                                       List<CacheBid> bids,
                                                       List<CacheBid> videoBids,
+                                                      String hbCacheId,
                                                       String accountId,
                                                       long startTime) {
 
@@ -333,7 +381,7 @@ public class CacheService {
         }
 
         final List<String> uuids = toResponse(bidCacheResponse, CacheObject::getUuid);
-        return CacheServiceResult.of(httpCall, null, toResultMap(bids, videoBids, uuids));
+        return CacheServiceResult.of(httpCall, null, toResultMap(bids, videoBids, uuids, hbCacheId));
     }
 
     /**
@@ -405,6 +453,7 @@ public class CacheService {
      */
     private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid,
                                                      String accountId,
+                                                     String hbCacheId,
                                                      EventsContext eventsContext) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
@@ -416,13 +465,24 @@ public class CacheService {
                 accountId,
                 eventsContext);
 
+        final String bidder = bidInfo.getBidder();
+        final String customCacheKey = resolveCustomCacheKey(hbCacheId, bidInfo.getCategory(), bidder);
+
         final PutObject payload = PutObject.builder()
                 .type("xml")
                 .value(vastXml != null ? new TextNode(vastXml) : null)
                 .expiry(cacheBid.getTtl())
+                .key(customCacheKey)
                 .build();
 
         return CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue()));
+    }
+
+    private static String resolveCustomCacheKey(String hbCacheId, String categoryDuration, String bidder) {
+        if (hbCacheId == null || bidder == null) {
+            return null;
+        }
+        return StringUtils.isNotEmpty(categoryDuration) ? String.format("%s_%s", categoryDuration, hbCacheId) : null;
     }
 
     private String generateWinUrl(String bidId,
@@ -495,7 +555,7 @@ public class CacheService {
      */
     private static Map<com.iab.openrtb.response.Bid, CacheInfo> toResultMap(List<CacheBid> cacheBids,
                                                                             List<CacheBid> cacheVideoBids,
-                                                                            List<String> uuids) {
+                                                                            List<String> uuids, String hbCacheId) {
         final Map<com.iab.openrtb.response.Bid, CacheInfo> result = new HashMap<>(uuids.size());
 
         // here we assume "videoBids" is a sublist of "bids"
@@ -518,17 +578,23 @@ public class CacheService {
                 final String videoBidUuid = indexOfVideoBid != -1 ? uuids.get(bidsSize + indexOfVideoBid) : null;
                 final Integer videoTtl = indexOfVideoBid != -1 ? cacheVideoBids.get(indexOfVideoBid).getTtl() : null;
 
-                result.put(bid, CacheInfo.of(uuids.get(i), videoBidUuid, ttl, videoTtl));
+                result.put(bid, CacheInfo.of(uuids.get(i), resolveVideoBidUuid(videoBidUuid, hbCacheId), ttl,
+                        videoTtl));
             }
         } else {
             for (int i = 0; i < cacheVideoBids.size(); i++) {
                 final CacheBid cacheBid = cacheVideoBids.get(i);
                 final BidInfo bidInfo = cacheBid.getBidInfo();
-                result.put(bidInfo.getBid(), CacheInfo.of(null, uuids.get(i), null, cacheBid.getTtl()));
+                result.put(bidInfo.getBid(), CacheInfo.of(null, resolveVideoBidUuid(uuids.get(i), hbCacheId), null,
+                        cacheBid.getTtl()));
             }
         }
 
         return result;
+    }
+
+    private static String resolveVideoBidUuid(String uuid, String hbCacheId) {
+        return hbCacheId != null && uuid.endsWith(hbCacheId) ? hbCacheId : uuid;
     }
 
     /**
