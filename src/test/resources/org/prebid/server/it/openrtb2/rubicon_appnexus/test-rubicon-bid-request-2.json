@@ -65,8 +65,31 @@
     }
   },
   "user": {
+    "data": [
+      {
+        "ext": {
+          "taxonomyname": "Iab"
+        },
+        "segment": [
+          {
+            "id": "segmentId1"
+          },
+          {
+            "id": "segmentId2"
+          }
+        ]
+      }
+    ],
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
+      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
+      "rp": {
+        "target": {
+          "iab": [
+            "segmentId1",
+            "segmentId2"
+          ]
+        }
+      }
     }
   },
   "at": 1,
