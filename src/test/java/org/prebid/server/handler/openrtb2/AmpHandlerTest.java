@@ -406,7 +406,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null),
-                                null, null, null, null, ExtBidResponsePrebid.of(1000L)))));
+                                null, null, null, null, null, ExtBidResponsePrebid.of(1000L)))));
 
         // when
         ampHandler.handle(routingContext);
@@ -429,7 +429,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null), null, null,
-                                null, null, ExtBidResponsePrebid.of(1000L)))));
+                                null, null, null, ExtBidResponsePrebid.of(1000L)))));
 
         // when
         ampHandler.handle(routingContext);

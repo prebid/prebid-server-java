@@ -77,7 +77,7 @@ public class AmxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.com/prebid/bid?v=pbs1.0");
+                .containsExactly("https://test.com/prebid/bid?v=pbs1.1");
     }
 
     @Test
@@ -213,6 +213,31 @@ public class AmxBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsExactly(
                         BidderError.badServerResponse("Adm should contain vast search point in bidder: bidId"));
+    }
+
+    @Test
+    public void makeBidsShouldSkipBidAndAddErrorIfFailedToParseBidExt() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode();
+        bidExt.put("startdelay", "2");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .id("bidId")
+                                .adm("</Impression>")
+                                .ext(mapper.createObjectNode().set("startdelay", mapper.createObjectNode())))));
+
+        // when
+        final Result<List<BidderBid>> result = amxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .satisfies(error -> {
+                    assertThat(error).extracting(BidderError::getType).containsExactly(BidderError.Type.bad_input);
+                    assertThat(error).extracting(BidderError::getMessage)
+                            .element(0).asString().startsWith("Cannot deserialize instance");
+                });
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
