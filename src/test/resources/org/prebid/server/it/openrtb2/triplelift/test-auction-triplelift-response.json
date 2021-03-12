@@ -36,7 +36,7 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=5b9f507f-2ae9-4111-a697-796f3174df10",
+                  "url": "{{ cache.resource_url }}5b9f507f-2ae9-4111-a697-796f3174df10",
                   "cacheId": "5b9f507f-2ae9-4111-a697-796f3174df10"
                 }
               }
