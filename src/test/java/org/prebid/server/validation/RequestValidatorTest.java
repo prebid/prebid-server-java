@@ -1,6 +1,7 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.App.AppBuilder;
@@ -40,6 +41,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -50,6 +52,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
@@ -1052,7 +1056,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))
                         .build())
                 .build();
 
@@ -1069,7 +1073,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))
                         .build())
                 .build();
 
@@ -1086,7 +1090,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))
                         .build())
                 .build();
 
@@ -1103,7 +1107,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))
                         .build())
                 .build();
 
@@ -1121,7 +1125,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))
                         .build())
                 .build();
 
@@ -1139,7 +1143,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))
                         .build())
                 .build();
 
@@ -1176,7 +1180,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext.prebid must be non-empty object");
+                .containsOnly("request.imp[0].ext.prebid must be defined");
     }
 
     @Test
@@ -1191,15 +1195,142 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext.prebid must be non-empty object");
+                .containsOnly("request.imp[0].ext.prebid must an object type");
     }
 
     @Test
-    public void validateShouldReturnEmptyValidationMessagesWhenOnlyImpExtPrebidExist() {
+    public void validateShouldReturnValidationMessagesWhenExtImpPrebidBidderWasNotDefined() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("attr", "value")))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].ext.prebid.bidder must be defined");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenImpExtPrebidBiddersNotDefinedForStoredBidResponse() {
+        // given
+        final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
+                .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
+                .storedAuctionResponse(ExtStoredAuctionResponse.of("id"))
+                .build());
+
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", prebid))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].ext.prebid.bidder should be defined for storedbidresponse");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenStoredBidResponseBidderMissed() {
+        // given
+        final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
+                .storedBidResponse(singletonList(ExtStoredBidResponse.of(null, "id")))
+                .bidder(mapper.createObjectNode().put("rubicon", 1))
+                .build());
+
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", prebid))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].ext.prebid.storedbidresponse.bidder was not defined");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenStoredBidResponseIdMissed() {
+        // given
+        final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
+                .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", null)))
+                .bidder(mapper.createObjectNode().put("rubicon", 1))
+                .build());
+
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", prebid))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Id was not defined for request.imp[0].ext.prebid.storedbidresponse.id");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenStoredBidResponseBidderIsNotValidBidder() {
+        // given
+        final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
+                .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
+                .bidder(mapper.createObjectNode().put("rubicon", 1))
+                .build());
+
+        given(bidderCatalog.isValidName(eq("bidder"))).willReturn(false);
+
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", prebid))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].ext.prebid.storedbidresponse.bidder is not valid bidder");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenStoredBidResponseBidderIsNotInImpExtPrebidBidder() {
+        // given
+        final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
+                .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
+                .bidder(mapper.createObjectNode().put("rubicon", 1))
+                .build());
+
+        given(bidderCatalog.isValidName(eq("bidder"))).willReturn(true);
+
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", prebid))).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].ext.prebid.storedbidresponse.bidder does not have correspondent"
+                        + " bidder parameters");
+    }
+
+    @Test
+    public void validateShouldReturnEmptyMessagesWhenExtImpPrebidBidderWasMissedAndHasStoredAuctionResponseWas() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("storedauctionresponse",
+                                mapper.createObjectNode().put("id", "1"))))).build()))
                 .build();
 
         // when
@@ -1223,7 +1354,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext.prebid.bidder must be object");
+                .containsOnly("request.imp[0].ext.prebid.bidder must be an object type");
     }
 
     @Test
