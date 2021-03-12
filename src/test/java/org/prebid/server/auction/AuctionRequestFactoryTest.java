@@ -2133,7 +2133,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(requestValidator.validate(any()))
-                .willReturn(new ValidationResult(emptyList(), asList("error1", "error2")));
+                .willReturn(ValidationResult.error(emptyList(), "error1"));
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -2141,7 +2141,27 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
-        assertThat(((InvalidRequestException) future.cause()).getMessages()).containsOnly("error1", "error2");
+        assertThat(((InvalidRequestException) future.cause()).getMessages()).containsOnly("error1");
+    }
+
+    @Test
+    public void shouldReturnSucceededFutureIfValidationReturnsWarnings() {
+        // given
+        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
+
+        given(storedRequestProcessor.processStoredRequests(anyString(), any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
+
+        given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("warning1", "warning2"),
+                emptyList()));
+
+        // when
+        final Future<AuctionContext> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getPrebidErrors())
+                .containsOnly("warning1", "warning2");
     }
 
     @Test

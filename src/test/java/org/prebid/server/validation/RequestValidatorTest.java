@@ -1356,7 +1356,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessagesWhenImpExtPrebidBidderIsUnknown() {
+    public void validateShouldReturnWarningAndDropBidderWhenImpExtPrebidBidderIsUnknown() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(false);
@@ -1365,12 +1365,20 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).hasSize(2)
+                .containsOnly("WARNING: request.imp[0].ext.prebid.rubicon was dropped with a reason: "
+                        + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
+                        "WARNING: request.imp[0].ext must contain at least one valid bidder");
+        assertThat(bidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(impExt -> impExt.get("prebid"))
+                .extracting(prebid -> prebid.get("bidder"))
+                .containsOnly(mapper.createObjectNode());
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBidderExtIsInvalid() {
+    public void validateShouldReturnWarningMessageAndDropBidderWhenBidderExtIsInvalid() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
         given(bidderParamValidator.validate(any(), any()))
@@ -1380,9 +1388,16 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).hasSize(2)
+                .containsOnly("WARNING: request.imp[0].ext.prebid.rubicon was dropped with a reason: request.imp[0]"
+                        + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
+                        "WARNING: request.imp[0].ext must contain at least one valid bidder");
+        assertThat(bidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(impExt -> impExt.get("prebid"))
+                .extracting(prebid -> prebid.get("bidder"))
+                .containsOnly(mapper.createObjectNode());
     }
 
     @Test

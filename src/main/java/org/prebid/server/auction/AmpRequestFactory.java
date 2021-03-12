@@ -126,7 +126,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context, timeoutResolver))
-                .map(auctionRequestFactory::validateRequest)
+                .map(bidRequest -> auctionRequestFactory.validateRequest(bidRequest, errors))
                 .map(bidRequest -> Tuple2.of(bidRequest, errors));
     }
 
