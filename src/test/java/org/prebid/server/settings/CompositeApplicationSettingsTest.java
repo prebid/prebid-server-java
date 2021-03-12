@@ -108,55 +108,6 @@ public class CompositeApplicationSettingsTest {
     }
 
     @Test
-    public void getAdUnitConfigByIdShouldReturnConfigFromFirstDelegateIfPresent() {
-        // given
-        given(delegate1.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.succeededFuture("adUnitConfig1"));
-
-        // when
-        final Future<String> future = compositeApplicationSettings.getAdUnitConfigById("ignore", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo("adUnitConfig1");
-        verifyZeroInteractions(delegate2);
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnConfigFromSecondDelegateIfFirstDelegateFails() {
-        // given
-        given(delegate1.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error1")));
-
-        given(delegate2.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.succeededFuture("adUnitConfig1"));
-
-        // when
-        final Future<String> future = compositeApplicationSettings.getAdUnitConfigById("ignore", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo("adUnitConfig1");
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyResultIfAllDelegatesFail() {
-        // given
-        given(delegate1.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error1")));
-
-        given(delegate2.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error2")));
-
-        // when
-        final Future<String> future = compositeApplicationSettings.getAdUnitConfigById("ignore", null);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("error2");
-    }
-
-    @Test
     public void getStoredDataShouldReturnResultFromFirstDelegateIfPresent() {
         // given
         given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
@@ -407,7 +358,7 @@ public class CompositeApplicationSettingsTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
         assertThat(future.result().getErrors()).isEmpty();
-        assertThat(future.result().getStoredSeatBid()).hasSize(1)
+        assertThat(future.result().getIdToStoredResponses()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
         verifyZeroInteractions(delegate2);
     }
@@ -430,7 +381,7 @@ public class CompositeApplicationSettingsTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
         assertThat(future.result().getErrors()).isEmpty();
-        assertThat(future.result().getStoredSeatBid()).hasSize(1)
+        assertThat(future.result().getIdToStoredResponses()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
     }
 
@@ -451,7 +402,7 @@ public class CompositeApplicationSettingsTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result().getStoredSeatBid()).isEmpty();
+        assertThat(future.result().getIdToStoredResponses()).isEmpty();
         assertThat(future.result().getErrors()).hasSize(1)
                 .containsOnly("error2");
     }
@@ -492,7 +443,7 @@ public class CompositeApplicationSettingsTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getErrors()).isEmpty();
-        assertThat(future.result().getStoredSeatBid()).hasSize(2)
+        assertThat(future.result().getIdToStoredResponses()).hasSize(2)
                 .containsOnly(
                         entry("key1", "value1"),
                         entry("key2", "value2"));

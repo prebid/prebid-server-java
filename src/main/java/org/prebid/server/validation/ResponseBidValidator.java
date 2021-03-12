@@ -66,6 +66,7 @@ public class ResponseBidValidator {
 
         try {
             validateCommonFields(bidderBid.getBid());
+            validateTypeSpecific(bidderBid);
             validateCurrency(bidderBid.getBidCurrency());
 
             if (bidderBid.getType() == BidType.banner) {
@@ -108,6 +109,14 @@ public class ResponseBidValidator {
 
         if (StringUtils.isEmpty(bid.getCrid())) {
             throw new ValidationException("Bid \"%s\" missing creative ID", bidId);
+        }
+    }
+
+    private static void validateTypeSpecific(BidderBid bidderBid) throws ValidationException {
+        final Bid bid = bidderBid.getBid();
+        final boolean isVastSpecificAbsent = bid.getAdm() == null && bid.getNurl() == null;
+        if (Objects.equals(bidderBid.getType(), BidType.video) && isVastSpecificAbsent) {
+            throw new ValidationException("Bid \"%s\" with video type missing adm and nurl", bid.getId());
         }
     }
 
