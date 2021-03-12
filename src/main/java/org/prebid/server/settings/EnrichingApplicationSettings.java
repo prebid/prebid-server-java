@@ -33,11 +33,6 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return delegate.getAdUnitConfigById(adUnitConfigId, timeout);
-    }
-
-    @Override
     public Future<StoredDataResult> getStoredData(String accountId,
                                                   Set<String> requestIds,
                                                   Set<String> impIds,

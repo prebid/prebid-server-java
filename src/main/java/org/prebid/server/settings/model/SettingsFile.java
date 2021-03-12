@@ -9,7 +9,5 @@ public class SettingsFile {
 
     List<Account> accounts;
 
-    List<AdUnitConfig> configs;
-
     List<String> domains;
 }

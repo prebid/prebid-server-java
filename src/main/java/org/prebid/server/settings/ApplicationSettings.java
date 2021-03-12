@@ -26,11 +26,6 @@ public interface ApplicationSettings {
     Future<Account> getAccountById(String accountId, Timeout timeout);
 
     /**
-     * Returns configuration for the given adUnit config ID.
-     */
-    Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout);
-
-    /**
      * Fetches stored requests and imps by IDs.
      */
     Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
