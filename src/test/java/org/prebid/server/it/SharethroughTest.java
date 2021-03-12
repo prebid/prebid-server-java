@@ -6,7 +6,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.util.HttpUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -83,6 +82,6 @@ public class SharethroughTest extends IntegrationTest {
                 .replace("{{ TEST_FORMATTED_TIME }}", HttpUtil.encodeUrl(TEST_FORMATTED_TIME))
                 .replace("{{ DEADLINE_FORMATTED_TIME }}", DEADLINE_FORMATTED_TIME);
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }
