@@ -1,0 +1,109 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "minduration": 20,
+        "maxduration": 60,
+        "protocols": [
+          1
+        ],
+        "w": 300,
+        "h": 250,
+        "startdelay": 5,
+        "skipmin": 0,
+        "skipafter": 0,
+        "playbackmethod": [
+          1
+        ],
+        "ext": {
+          "skip": 5,
+          "skipdelay": 1,
+          "videotype": "rewarded",
+          "rp": {
+            "size_id": 15
+          }
+        }
+      },
+      "ext": {
+        "rp": {
+          "zone_id": 4001,
+          "target": {
+            "rating": [
+              "5-star"
+            ],
+            "prodtype": [
+              "tech"
+            ],
+            "page": [
+              "http://www.example.com"
+            ]
+          },
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 2001
+        }
+      }
+    },
+    "ext": {
+      "rp": {
+        "site_id": 3001
+      },
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "dnt": 2,
+    "ip": "80.215.195.0",
+    "pxratio": 4.2,
+    "language": "en",
+    "ext": {
+      "rp": {
+        "pixelratio": 4.2
+      }
+    }
+  },
+  "user": {
+    "ext": {
+      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
+      "rp": {
+        "target": {
+          "ucat": [
+            "new"
+          ],
+          "search": [
+            "iphone"
+          ]
+        }
+      }
+    }
+  },
+  "at": 1,
+  "tmax": 5000,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "us_privacy": "1YNN"
+    }
+  }
+}

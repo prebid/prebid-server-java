@@ -11,5 +11,7 @@ public class BidderRequest {
 
     String bidder;
 
+    String storedResponse;
+
     BidRequest bidRequest;
 }
