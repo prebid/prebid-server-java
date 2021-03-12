@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.rubicon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -9,6 +10,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
@@ -18,6 +20,7 @@ import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -754,6 +757,106 @@ public class RubiconBidderTest extends VertxTest {
                                                 Visitor.of(singletonList("new"), singletonList("iphone")))))
                                         .build()))
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeIfTaxonomynameContainsIab() {
+        // given
+        final ObjectNode userNode = mapper.createObjectNode();
+        userNode.put("taxonomyname", "contains IaB");
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(singletonList(Data.builder()
+                        .segment(singletonList(Segment.builder().id("segmentId")
+                                .build()))
+                        .ext(userNode).build())).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedTarget = mapper.createObjectNode();
+        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
+        expectedIabAttribute.add("segmentId");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtUser.builder().build(),
+                        RubiconUserExt.builder()
+                                .rp(RubiconUserExtRp.of(expectedTarget))
+                                .build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillWithIabAttributeOnlyIfContainsIabInTaxonomynameAttribute() {
+        // given
+        final ObjectNode firstUserDataNode = mapper.createObjectNode();
+        firstUserDataNode.put("taxonomyname", "contains IaB");
+        final ObjectNode secondUserDataNode = mapper.createObjectNode();
+        secondUserDataNode.put("taxonomyname", "not contain");
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(asList(Data.builder()
+                        .segment(singletonList(Segment.builder().id("segmentId")
+                                .build()))
+                        .ext(firstUserDataNode).build(),
+                        Data.builder()
+                        .segment(singletonList(Segment.builder().id("secondSegmentId")
+                                .build()))
+                        .ext(secondUserDataNode).build())).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedTarget = mapper.createObjectNode();
+        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
+        expectedIabAttribute.add("segmentId");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtUser.builder().build(),
+                        RubiconUserExt.builder()
+                                .rp(RubiconUserExtRp.of(expectedTarget))
+                                .build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIgnoreNotTextualTaxonomynameProperty() {
+        // given
+        final ObjectNode userNode = mapper.createObjectNode();
+        final ArrayNode wrongTaxonomyAttributeType = userNode.putArray("taxonomyname");
+        wrongTaxonomyAttributeType.add("contains IaB value");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(singletonList(Data.builder()
+                        .segment(singletonList(Segment.builder().id("segmentId")
+                                .build()))
+                        .ext(userNode).build())).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .hasSize(1)
+                .containsNull();
     }
 
     @Test
@@ -2394,6 +2497,45 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldNotReduceBidderAmountForBidsWithSameImpId() throws JsonProcessingException {
+        // given
+        final Bid firstBid = Bid.builder()
+                .id("firstBidId")
+                .impid("impId")
+                .price(ONE)
+                .build();
+
+        final Bid secondBid = Bid.builder()
+                .id("secondBidId")
+                .impid("impId")
+                .price(ONE)
+                .build();
+
+        final String bidResponse = mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(Arrays.asList(firstBid, secondBid))
+                        .build()))
+                .build());
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(builder -> builder.video(Video.builder().build())),
+                bidResponse);
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("impId").video(Video.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getId)
+                .containsExactlyInAnyOrder("firstBidId", "secondBidId");
     }
 
     @Test
