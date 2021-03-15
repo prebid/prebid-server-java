@@ -40,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -48,11 +49,14 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
@@ -764,31 +768,46 @@ public class RequestValidator {
     }
 
     private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
-        validateImpExtPrebid(childAsObjectNode(ext, PREBID_EXT), aliases, impIndex);
+        validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex);
     }
 
-    private void validateImpExtPrebid(ObjectNode extPrebid, Map<String, String> aliases, int impIndex)
+    private void validateImpExtPrebid(JsonNode extPrebidNode, Map<String, String> aliases, int impIndex)
             throws ValidationException {
 
-        if (extPrebid == null || extPrebid.size() < 1) {
+        if (extPrebidNode == null) {
             throw new ValidationException(
-                    "request.imp[%d].ext.prebid must be non-empty object", impIndex);
+                    "request.imp[%d].ext.prebid must be defined", impIndex);
         }
+
+        if (!extPrebidNode.isObject()) {
+            throw new ValidationException(
+                    "request.imp[%d].ext.prebid must an object type", impIndex);
+        }
+
+        final JsonNode extPrebidBidderNode = extPrebidNode.get(BIDDER_EXT);
+
+        if (extPrebidBidderNode != null && !extPrebidBidderNode.isObject()) {
+            throw new ValidationException(
+                    "request.imp[%d].ext.prebid.bidder must be an object type", impIndex);
+        }
+
+        final ExtImpPrebid extPrebid = parseExtImpPrebid((ObjectNode) extPrebidNode, impIndex);
 
         validateImpExtPrebidBidder(extPrebid, aliases, impIndex);
+        validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex);
     }
 
-    private void validateImpExtPrebidBidder(ObjectNode extPrebid, Map<String, String> aliases, int impIndex)
+    private void validateImpExtPrebidBidder(ExtImpPrebid extPrebid, Map<String, String> aliases, int impIndex)
             throws ValidationException {
 
-        final JsonNode extPrebidBidder = extPrebid.get(BIDDER_EXT);
+        final ObjectNode extPrebidBidder = extPrebid.getBidder();
 
         if (extPrebidBidder == null) {
-            return;
-        }
-
-        if (!extPrebidBidder.isObject()) {
-            throw new ValidationException("request.imp[%d].ext.prebid.bidder must be object", impIndex);
+            if (extPrebid.getStoredAuctionResponse() != null) {
+                return;
+            } else {
+                throw new ValidationException("request.imp[%d].ext.prebid.bidder must be defined", impIndex);
+            }
         }
 
         final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = extPrebidBidder.fields();
@@ -796,6 +815,68 @@ public class RequestValidator {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidder = bidderExtension.getKey();
             validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
+        }
+    }
+
+    private void validateImpExtPrebidStoredResponses(ExtImpPrebid extPrebid,
+                                                     Map<String, String> aliases,
+                                                     int impIndex) throws ValidationException {
+        final ExtStoredAuctionResponse extStoredAuctionResponse = extPrebid.getStoredAuctionResponse();
+        if (extStoredAuctionResponse != null && extStoredAuctionResponse.getId() == null) {
+            throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined",
+                    impIndex);
+        }
+
+        final List<ExtStoredBidResponse> storedBidResponses = extPrebid.getStoredBidResponse();
+        if (CollectionUtils.isNotEmpty(storedBidResponses)) {
+            final ObjectNode bidderNode = extPrebid.getBidder();
+            if (bidderNode == null || bidderNode.isEmpty()) {
+                throw new ValidationException(String.format(
+                        "request.imp[%d].ext.prebid.bidder should be defined for storedbidresponse", impIndex));
+            }
+
+            for (ExtStoredBidResponse storedBidResponse : storedBidResponses) {
+                validateStoredBidResponse(storedBidResponse, bidderNode, aliases, impIndex);
+            }
+        }
+    }
+
+    private void validateStoredBidResponse(ExtStoredBidResponse extStoredBidResponse, ObjectNode bidderNode,
+                                           Map<String, String> aliases, int impIndex) throws ValidationException {
+        final String bidder = extStoredBidResponse.getBidder();
+        final String id = extStoredBidResponse.getId();
+        if (StringUtils.isEmpty(bidder)) {
+            throw new ValidationException(String.format(
+                    "request.imp[%d].ext.prebid.storedbidresponse.bidder was not defined", impIndex));
+        }
+
+        if (StringUtils.isEmpty(id)) {
+            throw new ValidationException(String.format(
+                    "Id was not defined for request.imp[%d].ext.prebid.storedbidresponse.id", impIndex));
+        }
+
+        final String resolvedBidder = aliases.getOrDefault(bidder, bidder);
+
+        if (!bidderCatalog.isValidName(resolvedBidder)) {
+            throw new ValidationException(String.format(
+                    "request.imp[%d].ext.prebid.storedbidresponse.bidder is not valid bidder", impIndex));
+        }
+
+        final boolean noCorrespondentBidderParameters = StreamUtil.asStream(bidderNode.fieldNames())
+                .noneMatch(impBidder -> impBidder.equals(resolvedBidder) || impBidder.equals(bidder));
+        if (noCorrespondentBidderParameters) {
+            throw new ValidationException(String.format(
+                    "request.imp[%d].ext.prebid.storedbidresponse.bidder does not have correspondent bidder parameters",
+                    impIndex));
+        }
+    }
+
+    private ExtImpPrebid parseExtImpPrebid(ObjectNode extImpPrebid, int impIndex) throws ValidationException {
+        try {
+            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new ValidationException(String.format(
+                    " bidRequest.imp[%d].ext.prebid: %s has invalid format", impIndex, e.getMessage()));
         }
     }
 
@@ -914,12 +995,6 @@ public class RequestValidator {
                         impIndex, i);
             }
         }
-    }
-
-    private ObjectNode childAsObjectNode(ObjectNode parent, String fieldName) {
-        final JsonNode child = parent != null ? parent.get(fieldName) : null;
-
-        return isObjectNode(child) ? (ObjectNode) child : null;
     }
 
     private static boolean isObjectNode(JsonNode node) {

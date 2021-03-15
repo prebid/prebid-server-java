@@ -38,6 +38,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -88,7 +89,7 @@ public class AuctionRequestFactory {
     private static final String BIDDER_EXT = "bidder";
 
     private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS = Collections.unmodifiableSet(new HashSet<>(
-            Arrays.asList(PREBID_EXT, "context")));
+            Arrays.asList(PREBID_EXT, "context", "all", "general", "skadn", "data")));
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -214,6 +215,7 @@ public class AuctionRequestFactory {
                                 .timeout(timeout)
                                 .account(account)
                                 .prebidErrors(errors)
+                                .debugWarnings(new ArrayList<>())
                                 .privacyContext(privacyContext)
                                 .geoInfo(privacyContext.getTcfContext().getGeoInfo())
                                 .build()));
@@ -276,7 +278,7 @@ public class AuctionRequestFactory {
         final HttpServerRequest request = context.request();
 
         final Device device = bidRequest.getDevice();
-        final Device populatedDevice = populateDevice(device, request);
+        final Device populatedDevice = populateDevice(device, bidRequest.getApp(), request);
 
         final Site site = bidRequest.getSite();
         final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
@@ -334,7 +336,7 @@ public class AuctionRequestFactory {
      * Populates the request body's 'device' section from the incoming http request if the original is partially filled
      * and the request contains necessary info (User-Agent, IP-address).
      */
-    private Device populateDevice(Device device, HttpServerRequest request) {
+    private Device populateDevice(Device device, App app, HttpServerRequest request) {
         final String deviceIp = device != null ? device.getIp() : null;
         final String deviceIpv6 = device != null ? device.getIpv6() : null;
 
@@ -352,10 +354,13 @@ public class AuctionRequestFactory {
 
         final String ua = device != null ? device.getUa() : null;
         final Integer dnt = resolveDntHeader(request);
+        final Integer lmt = resolveLmt(device, app);
 
         if (!Objects.equals(deviceIp, resolvedIp)
                 || !Objects.equals(deviceIpv6, resolvedIpv6)
-                || StringUtils.isBlank(ua) || dnt != null) {
+                || StringUtils.isBlank(ua)
+                || dnt != null
+                || lmt != null) {
 
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
 
@@ -364,6 +369,10 @@ public class AuctionRequestFactory {
             }
             if (dnt != null) {
                 builder.dnt(dnt);
+            }
+
+            if (lmt != null) {
+                builder.lmt(lmt);
             }
 
             builder
@@ -399,10 +408,92 @@ public class AuctionRequestFactory {
         return requestIp != null && requestIp.getVersion() == version ? requestIp.getIp() : null;
     }
 
-    private void logWarnIfNoIp(String resolvedIp, String resolvedIpv6) {
+    private static void logWarnIfNoIp(String resolvedIp, String resolvedIpv6) {
         if (resolvedIp == null && resolvedIpv6 == null) {
             logger.warn("No IP address found in OpenRTB request and HTTP request headers.");
         }
+    }
+
+    private static Integer resolveLmt(Device device, App app) {
+        if (app == null || device == null || !StringUtils.equalsIgnoreCase(device.getOs(), "ios")) {
+            return null;
+        }
+
+        final String osv = device.getOsv();
+        if (osv == null) {
+            return null;
+        }
+
+        // osv format expected: "[major].[minor]". Example: 14.0
+        final String[] versionParts = StringUtils.split(osv, '.');
+        if (versionParts.length < 2) {
+            return null;
+        }
+
+        final Integer versionMajor = tryParseAsNumber(versionParts[0]);
+        final Integer versionMinor = tryParseAsNumber(versionParts[1]);
+        if (versionMajor == null || versionMinor == null) {
+            return null;
+        }
+
+        return resolveLmtForIos(device, versionMajor, versionMinor);
+    }
+
+    private static Integer tryParseAsNumber(String number) {
+        try {
+            return Integer.parseUnsignedInt(number);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Integer resolveLmtForIos(Device device, Integer versionMajor, Integer versionMinor) {
+        if (versionMajor < 14) {
+            return null;
+        }
+
+        if (versionMajor == 14 && (versionMinor == 0 || versionMinor == 1)) {
+            return resolveLmtForIos14Minor0And1(device);
+        }
+
+        if (versionMajor > 14 || versionMinor >= 2) {
+            return resolveLmtForIos14Minor2AndHigher(device);
+        }
+
+        return null;
+    }
+
+    private static Integer resolveLmtForIos14Minor0And1(Device device) {
+        final String ifa = device.getIfa();
+        final Integer lmt = device.getLmt();
+
+        if (StringUtils.isEmpty(ifa) || ifa.equals("00000000-0000-0000-0000-000000000000")) {
+            return !Objects.equals(lmt, 1) ? 1 : null;
+        }
+
+        return lmt == null ? 0 : null;
+    }
+
+    private static Integer resolveLmtForIos14Minor2AndHigher(Device device) {
+        final Integer lmt = device.getLmt();
+        if (lmt != null) {
+            return null;
+        }
+
+        final Integer atts = getIfNotNull(device.getExt(), ExtDevice::getAtts);
+        if (atts == null) {
+            return null;
+        }
+
+        if (atts == 1 || atts == 2) {
+            return 1;
+        }
+
+        if (atts == 0 || atts == 3) {
+            return 0;
+        }
+
+        return null;
     }
 
     /**

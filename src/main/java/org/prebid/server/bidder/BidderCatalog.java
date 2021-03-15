@@ -12,7 +12,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Provides simple access to all {@link Adapter}s, {@link Bidder}s and {@link Usersyncer}s registered so far.
+ * Provides simple access to all {@link Bidder}s and {@link Usersyncer}s registered so far.
  */
 public class BidderCatalog {
 
@@ -114,13 +114,6 @@ public class BidderCatalog {
     }
 
     /**
-     * Tells if adapter with given name exists.
-     */
-    public boolean isValidAdapterName(String name) {
-        return bidderDepsMap.containsKey(name) && adapterByName(name) != null;
-    }
-
-    /**
      * Returns an {@link BidderInfo} registered by the given name or null if there is none.
      * <p>
      * Therefore this method should be called only for names that previously passed validity check
@@ -184,16 +177,5 @@ public class BidderCatalog {
     public Bidder<?> bidderByName(String name) {
         final BidderDeps bidderDeps = bidderDepsMap.get(name);
         return bidderDeps != null ? bidderDeps.getBidder() : null;
-    }
-
-    /**
-     * Returns an {@link Adapter} registered by the given name or null if there is none.
-     * <p>
-     * Therefore this method should be called only for names that previously passed validity check
-     * through calling {@link #isValidName(String)}.
-     */
-    public Adapter<?, ?> adapterByName(String name) {
-        final BidderDeps bidderDeps = bidderDepsMap.get(name);
-        return bidderDeps != null ? bidderDeps.getAdapter() : null;
     }
 }

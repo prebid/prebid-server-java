@@ -30,7 +30,7 @@ public class VisxTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/visx/test-cache-visx-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(jsonFrom("openrtb2/visx/test-cache-visx-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/visx/test-cache-visx-response.json"))));
 
         // when
