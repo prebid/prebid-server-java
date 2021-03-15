@@ -1267,7 +1267,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(fpdResolver.resolveBidRequestExt(any(), any()))
                 .willReturn(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"))).build()));
+                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
 
         givenBidRequest(
                 builder -> builder
@@ -1282,7 +1282,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(request)
                 .extracting(BidRequest::getExt)
                 .containsOnly(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"))).build()));
+                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
     }
 
     @Test

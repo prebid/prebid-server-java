@@ -728,7 +728,7 @@ public class FpdResolverTest extends VertxTest {
     public void resolveBidRequestExtShouldTolerateMissingBidders() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"))).build());
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
 
         // when
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
@@ -742,7 +742,7 @@ public class FpdResolverTest extends VertxTest {
     public void resolveBidRequestExtShouldMergeBidders() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"))).build());
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
 
         // when
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
@@ -786,14 +786,14 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform"))).build()));
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform"), null)).build()));
     }
 
     @Test
     public void resolveBidRequestExtShouldAddBiddersIfExtPrebidDataBiddersIsNull() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(null)).build());
+                .data(ExtRequestPrebidData.of(null, null)).build());
 
         // when
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
@@ -801,7 +801,7 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform"))).build()));
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform"), null)).build()));
     }
 
     @Test
@@ -851,7 +851,7 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform")))
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform"), null))
                 .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
                         Collections.singletonList("*"), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
                                 mapper.valueToTree(Site.builder().id("id").build()), null,

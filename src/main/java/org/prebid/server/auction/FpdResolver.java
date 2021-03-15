@@ -282,8 +282,8 @@ public class FpdResolver {
         }
         final List<String> originBidders = data != null ? data.getBidders() : Collections.emptyList();
         return CollectionUtils.isEmpty(originBidders)
-                ? ExtRequestPrebidData.of(fpdBidders)
-                : ExtRequestPrebidData.of(mergeBidders(fpdBidders, originBidders));
+                ? ExtRequestPrebidData.of(fpdBidders, null)
+                : ExtRequestPrebidData.of(mergeBidders(fpdBidders, originBidders), null);
     }
 
     private List<ExtRequestPrebidBidderConfig> createAllowedAllBidderConfig(Targeting targeting) {
