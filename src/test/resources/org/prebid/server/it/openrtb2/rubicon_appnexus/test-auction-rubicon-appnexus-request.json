@@ -169,25 +169,6 @@
           }
         }
       }
-    },
-    {
-      "id": "impStoredBidResponse",
-      "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
-      },
-      "ext": {
-        "prebid": {
-          "storedbidresponse": {
-            "bidder": "rubicon",
-            "id": "test-stored-bid-response"
-          }
-        }
-      }
     }
   ],
   "device": {

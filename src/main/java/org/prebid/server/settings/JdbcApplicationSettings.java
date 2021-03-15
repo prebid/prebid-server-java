@@ -112,21 +112,21 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return jdbcClient.executeQuery(
                 selectAccountQuery,
                 Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> Account.builder()
+                result -> mapToModelOrError(result, row -> partialAccountBuilderFrom(row.getString(13))
                         .id(row.getString(0))
                         .priceGranularity(row.getString(1))
                         .bannerCacheTtl(row.getInteger(2))
                         .videoCacheTtl(row.getInteger(3))
                         .eventsEnabled(row.getBoolean(4))
                         .enforceCcpa(row.getBoolean(5))
-                        .allowDebug(row.getBoolean(6))
-                        .gdpr(toModel(row.getString(7), AccountGdprConfig.class))
-                        .analyticsSamplingFactor(row.getInteger(8))
-                        .truncateTargetAttr(row.getInteger(9))
-                        .defaultIntegration(row.getString(10))
-                        .analyticsConfig(toModel(row.getString(11), AccountAnalyticsConfig.class))
-                        .bidValidations(toModel(row.getString(12), AccountBidValidationConfig.class))
-                        .status(toAccountStatus(row.getString(13)))
+                        .gdpr(toModel(row.getString(6), AccountGdprConfig.class))
+                        .analyticsSamplingFactor(row.getInteger(7))
+                        .truncateTargetAttr(row.getInteger(8))
+                        .defaultIntegration(row.getString(9))
+                        .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
+                        .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
+                        .status(toAccountStatus(row.getString(12)))
+                        .allowDebug(row.getBoolean(14))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
@@ -152,6 +152,12 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return value != null
                 ? Future.succeededFuture(value)
                 : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
+    }
+
+    private Account.AccountBuilder partialAccountBuilderFrom(String config) {
+        final Account partialAccount = toModel(config, Account.class);
+
+        return partialAccount != null ? partialAccount.toBuilder() : Account.builder();
     }
 
     private <T> T toModel(String source, Class<T> targetClass) {

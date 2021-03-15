@@ -150,16 +150,16 @@ public class ExchangeService {
         final Account account = context.getAccount();
         final List<String> debugWarnings = context.getDebugWarnings();
 
-        final List<SeatBid> storedResponse = new ArrayList<>();
+        final List<SeatBid> storedAuctionResponses = new ArrayList<>();
         final BidderAliases aliases = aliases(bidRequest);
         final String publisherId = account.getId();
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final boolean debugEnabled = isDebugEnabled(bidRequest, account.getAllowDebug());
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
-        return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), aliases, timeout)
-                .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
-                .compose(impsRequiredRequest -> extractBidderRequests(context, impsRequiredRequest, aliases))
+        return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
+                .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
+                .compose(storedResponseResult -> extractBidderRequests(context, storedResponseResult, aliases))
                 .map(bidderRequests -> updateRequestMetric(
                         bidderRequests, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
                 .compose(bidderRequests -> CompositeFuture.join(
@@ -173,7 +173,7 @@ public class ExchangeService {
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(
-                        bidderResponses, storedResponse, bidRequest.getImp()))
+                        bidderResponses, storedAuctionResponses, bidRequest.getImp()))
                 .map(bidderResponses -> validateAndAdjustBids(bidderResponses, context, aliases))
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId, aliases))
                 // produce response from bidder results
@@ -332,10 +332,10 @@ public class ExchangeService {
      * Populates storedResponse parameter with stored {@link List<SeatBid>} and returns {@link List<Imp>} for which
      * request to bidders should be performed.
      */
-    private static List<Imp> populateStoredResponse(StoredResponseResult storedResponseResult,
-                                                    List<SeatBid> storedResponse) {
-        storedResponse.addAll(storedResponseResult.getStoredResponse());
-        return storedResponseResult.getRequiredRequestImps();
+    private static StoredResponseResult populateStoredResponse(StoredResponseResult storedResponseResult,
+                                                               List<SeatBid> storedResponse) {
+        storedResponse.addAll(storedResponseResult.getAuctionStoredResponse());
+        return storedResponseResult;
     }
 
     /**
@@ -367,13 +367,11 @@ public class ExchangeService {
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from bidRequest.ext.prebid.aliases.
      */
     private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context,
-                                                              List<Imp> requestedImps,
+                                                              StoredResponseResult storedResponseResult,
                                                               BidderAliases aliases) {
-
-        final List<Imp> imps = requestedImps.stream()
+        final List<Imp> imps = storedResponseResult.getRequiredRequestImps().stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()) != null)
                 .collect(Collectors.toList());
-
         // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
                 .flatMap(imp -> StreamUtil.asStream(bidderParamsFromImpExt(imp.getExt()).fieldNames())
@@ -381,7 +379,8 @@ public class ExchangeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        return makeBidderRequests(bidders, context, aliases, imps);
+        return makeBidderRequests(bidders, context, aliases, storedResponseResult.getImpBidderToStoredBidResponse(),
+                imps);
     }
 
     private static JsonNode bidderParamsFromImpExt(ObjectNode ext) {
@@ -413,6 +412,7 @@ public class ExchangeService {
     private Future<List<BidderRequest>> makeBidderRequests(List<String> bidders,
                                                            AuctionContext context,
                                                            BidderAliases aliases,
+                                                           Map<String, Map<String, String>> impBidderToStoredResponse,
                                                            List<Imp> imps) {
 
         final BidRequest bidRequest = context.getBidRequest();
@@ -429,7 +429,8 @@ public class ExchangeService {
         return privacyEnforcementService
                 .mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
-                        getBidderRequests(bidderToPrivacyResult, bidRequest, imps, biddersToConfigs));
+                        getBidderRequests(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
+                                biddersToConfigs));
     }
 
     private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequest requestExt) {
@@ -581,6 +582,7 @@ public class ExchangeService {
      */
     private List<BidderRequest> getBidderRequests(List<BidderPrivacyResult> bidderPrivacyResults,
                                                   BidRequest bidRequest,
+                                                  Map<String, Map<String, String>> impBidderToStoredBidResponse,
                                                   List<Imp> imps,
                                                   Map<String, ExtBidderConfigOrtb> biddersToConfigs) {
 
@@ -593,6 +595,7 @@ public class ExchangeService {
                 .map(bidderPrivacyResult -> createBidderRequest(
                         bidderPrivacyResult,
                         bidRequest,
+                        impBidderToStoredBidResponse,
                         imps,
                         biddersToConfigs,
                         bidderToPrebidBidders))
@@ -629,6 +632,7 @@ public class ExchangeService {
      */
     private BidderRequest createBidderRequest(BidderPrivacyResult bidderPrivacyResult,
                                               BidRequest bidRequest,
+                                              Map<String, Map<String, String>> impBidderToStoredBidResponse,
                                               List<Imp> imps,
                                               Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                               Map<String, JsonNode> bidderToPrebidBidders) {
@@ -655,7 +659,12 @@ public class ExchangeService {
             return null;
         }
 
-        return BidderRequest.of(bidder, bidRequest.toBuilder()
+        // stored bid response supported only for single imp requests
+        final String storedBidResponse = impBidderToStoredBidResponse.size() == 1
+                ? impBidderToStoredBidResponse.get(imps.get(0).getId()).get(bidder)
+                : null;
+
+        return BidderRequest.of(bidder, storedBidResponse, bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
@@ -897,7 +906,7 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabledForBidder)
+        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, debugEnabledForBidder)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 

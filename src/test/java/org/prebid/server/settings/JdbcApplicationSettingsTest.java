@@ -25,6 +25,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -62,9 +63,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     private static final String JDBC_URL = "jdbc:h2:mem:test";
 
     private static final String SELECT_ACCOUNT_QUERY =
-            "SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, "
-                    + "events_enabled, enforce_ccpa, allow_debug, tcf_config, analytics_sampling_factor,"
-                    + " truncate_target_attr, default_integration, analytics_config, bid_validations, status "
+            "SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa,"
+                    + " tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration,"
+                    + " analytics_config, bid_validations, status, config, allow_debug "
                     + "FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";
 
     private static final String SELECT_QUERY =
@@ -113,10 +114,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection = DriverManager.getConnection(JDBC_URL);
         connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, "
                 + "uuid varchar(40) NOT NULL, price_granularity varchar(6), banner_cache_ttl INT, video_cache_ttl INT,"
-                + " events_enabled BIT, enforce_ccpa BIT, allow_debug BIT, "
-                + "tcf_config varchar(512), analytics_sampling_factor INT, truncate_target_attr INT, "
-                + "default_integration varchar(64), analytics_config varchar(512), bid_validations varchar(512), "
-                + "status varchar(25));");
+                + " events_enabled BIT, enforce_ccpa BIT, tcf_config varchar(512), analytics_sampling_factor INT,"
+                + " truncate_target_attr INT, default_integration varchar(64), analytics_config varchar(512),"
+                + " bid_validations varchar(512), status varchar(25), config varchar(4096), allow_debug BIT);");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, "
                 + "accountId varchar(40) NOT NULL, reqid varchar(40) NOT NULL, requestData varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, "
@@ -132,12 +132,13 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "varchar(40) NOT NULL);");
         connection.createStatement().execute("insert into accounts_account "
                 + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa,"
-                + " allow_debug, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration,"
-                + " analytics_config, bid_validations, status) "
-                + "values ('1001','med', 100, 100, TRUE, TRUE, TRUE, '{\"enabled\": true, "
+                + " tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration,"
+                + " analytics_config, bid_validations, status, config, allow_debug) "
+                + "values ('1001','med', 100, 100, TRUE, TRUE, '{\"enabled\": true, "
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}}', 1, 0, "
                 + "'web', '{\"auction-events\": {\"amp\": true}}', '{\"banner-creative-max-size\": \"enforce\"}', "
-                + "'active');");
+                + "'active', "
+                + "'{\"cookie-sync\": {\"default-limit\": 5, \"max-limit\": 8, \"default-coop-sync\": true}}', TRUE);");
         connection.createStatement().execute(
                 "insert into stored_requests (accountId, reqid, requestData) values ('1001', '1','value1');");
         connection.createStatement().execute(
@@ -210,6 +211,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                     .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                     .status(AccountStatus.active)
+                    .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                     .build());
             async.complete();
         }));
