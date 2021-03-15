@@ -133,7 +133,7 @@ public class JixieBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().adm("contains <vast").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().adm("contains <vast").build(), video, "EUR"));
     }
 
     @Test
@@ -150,7 +150,7 @@ public class JixieBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().adm("contains <?xml").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().adm("contains <?xml").build(), video, "EUR"));
     }
 
     @Test
@@ -192,6 +192,27 @@ public class JixieBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().build(), banner, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnUSDCurrencyIfCurrencyNotPresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = jixieBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().build(), banner, "USD"));
     }
 
@@ -219,7 +240,7 @@ public class JixieBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-                .cur("USD")
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

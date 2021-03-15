@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
  */
 public class JixieBidder implements Bidder<BidRequest> {
 
+    private static final String DEFAULT_CURRENCY = "USD";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -70,26 +71,29 @@ public class JixieBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+        final String responseCur = bidResponse.getCur();
+        final String bidCur = StringUtils.isNotBlank(responseCur) ? responseCur : DEFAULT_CURRENCY;
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getAdm()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getAdm()), bidCur))
                 .collect(Collectors.toList());
     }
 
