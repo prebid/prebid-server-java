@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -111,7 +112,8 @@ public class FileApplicationSettingsTest {
                         + "bidValidations: {"
                         + "banner-creative-max-size: 'enforce'"
                         + "},"
-                        + "status: 'active'"
+                        + "status: 'active',"
+                        + "cookie-sync: {default-limit: 5,max-limit: 8,default-coop-sync: true}"
                         + "}"
                         + "]"));
 
@@ -149,6 +151,7 @@ public class FileApplicationSettingsTest {
                 .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                 .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                 .status(AccountStatus.active)
+                .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                 .build());
     }
 
