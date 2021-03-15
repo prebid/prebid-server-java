@@ -138,14 +138,6 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Not supported and returns failed result.
-     */
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return Future.failedFuture(new PreBidException("Not supported"));
-    }
-
-    /**
      * Runs a process to get stored requests by a collection of ids from http service
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
