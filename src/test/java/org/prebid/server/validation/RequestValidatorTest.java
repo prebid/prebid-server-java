@@ -72,6 +72,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 public class RequestValidatorTest extends VertxTest {
 
@@ -2604,11 +2605,12 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldEmptyValidationMessagesWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
         // given
+        final String rubiconAlias = "rubicon_alias";
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(
                         ExtRequestPrebid.builder()
-                                .aliases(singletonMap("rubicon_alias", "rubicon"))
-                                .bidadjustmentfactors(singletonMap("rubicon_alias", BigDecimal.valueOf(1.1)))
+                                .aliases(singletonMap(rubiconAlias, "rubicon"))
+                                .bidadjustmentfactors(singletonMap(rubiconAlias, BigDecimal.valueOf(1.1)))
                                 .build()))
                 .build();
 
@@ -2616,6 +2618,28 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldEmptyValidationMessagesWhenBidderIsKnownBidderConfigAliasAndAdjustmentIsValid() {
+        // given
+        final String rubiconAlias = "rubicon_alias";
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(
+                        ExtRequestPrebid.builder()
+                                .bidadjustmentfactors(singletonMap(rubiconAlias, BigDecimal.valueOf(1.1)))
+                                .build()))
+                .build();
+
+        given(bidderCatalog.isAlias(any())).willReturn(true);
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        verify(bidderCatalog).isAlias(rubiconAlias);
+
         assertThat(result.getErrors()).isEmpty();
     }
 

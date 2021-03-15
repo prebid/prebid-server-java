@@ -241,7 +241,7 @@ public class RequestValidator {
     }
 
     private boolean isUnknownBidderOrAlias(String bidder, Map<String, String> aliases) {
-        return !bidderCatalog.isValidName(bidder) && !aliases.containsKey(bidder);
+        return !bidderCatalog.isValidName(bidder) && !bidderCatalog.isAlias(bidder) && !aliases.containsKey(bidder);
     }
 
     private static String format(BigDecimal value) {
