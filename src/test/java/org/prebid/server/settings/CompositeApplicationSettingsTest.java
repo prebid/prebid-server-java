@@ -358,7 +358,7 @@ public class CompositeApplicationSettingsTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
         assertThat(future.result().getErrors()).isEmpty();
-        assertThat(future.result().getStoredSeatBid()).hasSize(1)
+        assertThat(future.result().getIdToStoredResponses()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
         verifyZeroInteractions(delegate2);
     }
@@ -381,7 +381,7 @@ public class CompositeApplicationSettingsTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
         assertThat(future.result().getErrors()).isEmpty();
-        assertThat(future.result().getStoredSeatBid()).hasSize(1)
+        assertThat(future.result().getIdToStoredResponses()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
     }
 
@@ -402,7 +402,7 @@ public class CompositeApplicationSettingsTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result().getStoredSeatBid()).isEmpty();
+        assertThat(future.result().getIdToStoredResponses()).isEmpty();
         assertThat(future.result().getErrors()).hasSize(1)
                 .containsOnly("error2");
     }
@@ -443,7 +443,7 @@ public class CompositeApplicationSettingsTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getErrors()).isEmpty();
-        assertThat(future.result().getStoredSeatBid()).hasSize(2)
+        assertThat(future.result().getIdToStoredResponses()).hasSize(2)
                 .containsOnly(
                         entry("key1", "value1"),
                         entry("key2", "value2"));
