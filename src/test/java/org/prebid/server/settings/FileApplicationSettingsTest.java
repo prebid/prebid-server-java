@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -111,7 +112,8 @@ public class FileApplicationSettingsTest {
                         + "bidValidations: {"
                         + "banner-creative-max-size: 'enforce'"
                         + "},"
-                        + "status: 'active'"
+                        + "status: 'active',"
+                        + "cookie-sync: {default-limit: 5,max-limit: 8,default-coop-sync: true}"
                         + "}"
                         + "]"));
 
@@ -149,6 +151,7 @@ public class FileApplicationSettingsTest {
                 .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                 .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                 .status(AccountStatus.active)
+                .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                 .build());
     }
 
@@ -297,7 +300,7 @@ public class FileApplicationSettingsTest {
         verify(fileSystem).readFileBlocking(eq("/home/user/responses/1.json"));
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().isEmpty();
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().isEmpty();
     }
 
     @Test
@@ -326,7 +329,7 @@ public class FileApplicationSettingsTest {
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No stored seatbid found for id: 2"));
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().hasSize(1)
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 
@@ -355,7 +358,7 @@ public class FileApplicationSettingsTest {
         verify(fileSystem).readFileBlocking(eq("/home/user/responses/1.json"));
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().hasSize(1)
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 

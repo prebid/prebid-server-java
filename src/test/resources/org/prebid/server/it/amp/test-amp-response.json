@@ -13,12 +13,12 @@
     "hb_bidder_rubicon": "rubicon",
     "hb_size_appnexus": "300x250",
     "rpfl_1001": "2_tier0100",
-    "hb_cache_host": "localhost:8090",
-    "hb_cache_path": "/cache",
-    "hb_cache_host_rubicon": "localhost:8090",
-    "hb_cache_path_rubicon": "/cache",
-    "hb_cache_host_appnexus": "localhost:8090",
-    "hb_cache_path_appnexus": "/cache",
+    "hb_cache_host": "{{ cache.host }}",
+    "hb_cache_path": "{{ cache.path }}",
+    "hb_cache_host_rubicon": "{{ cache.host }}",
+    "hb_cache_path_rubicon": "{{ cache.path }}",
+    "hb_cache_host_appnexus": "{{ cache.host }}",
+    "hb_cache_path_appnexus": "{{ cache.path }}",
     "static_keyword1": "static_value1"
   }
 }

@@ -35,9 +35,11 @@ public class AdprimeTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adprime/test-cache-adprime-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adprime/test-cache-adprime-response.json"))));
-
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/adprime/test-cache-adprime-request.json")))
+                .willReturn(aResponse().withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/adprime/test-cache-matcher-adprime.json")));
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

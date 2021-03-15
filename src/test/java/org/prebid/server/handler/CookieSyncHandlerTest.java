@@ -39,6 +39,7 @@ import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 
@@ -414,6 +415,47 @@ public class CookieSyncHandlerTest extends VertxTest {
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie", asList(
                 BidderUsersyncStatus.builder().bidder(disabledBidder).error("Unsupported bidder").build(),
+                BidderUsersyncStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(
+                        UsersyncInfo.of("http://adnxsexample.com", "redirect", false)).build(),
+                BidderUsersyncStatus.builder().bidder(RUBICON).noCookie(true).usersync(
+                        UsersyncInfo.of("http://rubiconexample.com", "redirect", false)).build())));
+    }
+
+    @Test
+    public void shouldRespondWithCoopBiddersWhenAccountCoopSyncTrue() throws IOException {
+        // given
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        final List<Collection<String>> coopBidders = singletonList(singletonList(RUBICON));
+
+        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, coopBidders,
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.builder()
+                        .bidders(singletonList(APPNEXUS))
+                        .account("account")
+                        .build()));
+
+        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
+                Account.builder()
+                        .cookieSync(AccountCookieSyncConfig.of(null, null, true))
+                        .build()));
+
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
+        rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
+        givenUsersyncersReturningFamilyName();
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie", asList(
                 BidderUsersyncStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(
                         UsersyncInfo.of("http://adnxsexample.com", "redirect", false)).build(),
                 BidderUsersyncStatus.builder().bidder(RUBICON).noCookie(true).usersync(
@@ -1043,6 +1085,79 @@ public class CookieSyncHandlerTest extends VertxTest {
                 CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).gdpr(0).limit(1).build()));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
+                Account.builder()
+                        .cookieSync(AccountCookieSyncConfig.of(5, 5, null))
+                        .build()));
+
+        rubiconUsersyncer = new Usersyncer(RUBICON,
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+                null, null, "redirect", false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect",
+                false);
+        givenUsersyncersReturningFamilyName();
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1);
+    }
+
+    @Test
+    public void shouldLimitBidderStatusesWithAccountDefaultLimit() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.builder()
+                .bidders(asList(RUBICON, APPNEXUS))
+                .gdpr(0)
+                .account("account")
+                .build()));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
+                Account.builder()
+                        .cookieSync(AccountCookieSyncConfig.of(1, null, null))
+                        .build()));
+
+        rubiconUsersyncer = new Usersyncer(RUBICON,
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+                null, null, "redirect", false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect",
+                false);
+        givenUsersyncersReturningFamilyName();
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1);
+    }
+
+    @Test
+    public void shouldLimitBidderStatusesWithAccountMaxLimit() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.builder()
+                .bidders(asList(RUBICON, APPNEXUS))
+                .gdpr(0)
+                .account("account")
+                .build()));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
+                Account.builder()
+                        .cookieSync(AccountCookieSyncConfig.of(5, 1, null))
+                        .build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON,
                 "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",

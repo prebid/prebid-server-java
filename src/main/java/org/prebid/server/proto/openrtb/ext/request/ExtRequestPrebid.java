@@ -112,4 +112,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.channel
      */
     ExtRequestPrebidChannel channel;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.multibid
+     */
+    List<ExtRequestPrebidMultiBid> multibid;
 }
