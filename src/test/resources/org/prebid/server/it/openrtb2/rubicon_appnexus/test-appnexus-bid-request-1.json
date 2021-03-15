@@ -68,6 +68,21 @@
   },
   "user": {
     "buyeruid": "12345",
+    "data": [
+      {
+        "ext": {
+          "taxonomyname": "Iab"
+        },
+        "segment": [
+          {
+            "id": "segmentId1"
+          },
+          {
+            "id": "segmentId2"
+          }
+        ]
+      }
+    ],
     "ext": {
       "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "eids": [
