@@ -1,5 +1,6 @@
 package org.prebid.server.handler.info;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -9,10 +10,15 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.bidder.BidderInfo;
+import org.prebid.server.settings.bidder.CapabilitiesInfo;
+import org.prebid.server.settings.bidder.MaintainerInfo;
+import org.prebid.server.settings.bidder.MediaTypeMappings;
+import org.prebid.server.settings.bidder.PlatformInfo;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -110,12 +116,45 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     @Value
     private static class BidderInfoResponseModel {
 
-        BidderInfo.MaintainerInfo maintainer;
+        MaintainerInfo maintainer;
 
-        BidderInfo.CapabilitiesInfo capabilities;
+        Capabilities capabilities;
 
         static BidderInfoResponseModel from(BidderInfo bidderInfo) {
-            return new BidderInfoResponseModel(bidderInfo.getMaintainer(), bidderInfo.getCapabilities());
+            final CapabilitiesInfo capabilities = bidderInfo.getCapabilities();
+            return new BidderInfoResponseModel(bidderInfo.getMaintainer(), Capabilities.from(capabilities));
         }
     }
+
+    @Value(staticConstructor = "of")
+    private static class Capabilities {
+
+        SupportedMediaTypes app;
+
+        SupportedMediaTypes site;
+
+        static Capabilities from(CapabilitiesInfo capabilitiesInfo) {
+            final PlatformInfo platformAppInfo = capabilitiesInfo.getApp();
+            final PlatformInfo platformSiteInfo = capabilitiesInfo.getSite();
+            return Capabilities.of(
+                    SupportedMediaTypes.from(platformAppInfo),
+                    SupportedMediaTypes.from(platformSiteInfo));
+        }
+    }
+
+    @Value(staticConstructor = "of")
+    public static class SupportedMediaTypes {
+
+        @JsonProperty("mediaTypes")
+        List<String> mediaTypes;
+
+        static SupportedMediaTypes from(PlatformInfo platformInfo) {
+            final List<String> supportedMedia = platformInfo.getSupportedMediaTypes().getMediaTypeMappings().stream()
+                    .map(MediaTypeMappings.MediaTypeMapping::getMediaType)
+                    .collect(Collectors.toList());
+
+            return SupportedMediaTypes.of(supportedMedia);
+        }
+    }
+
 }

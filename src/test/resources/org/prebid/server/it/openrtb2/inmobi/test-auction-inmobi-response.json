@@ -17,6 +17,8 @@
             "prebid": {
               "type": "banner",
               "targeting": {
+                "hb_env_inmobi": "mobile-app",
+                "hb_env": "mobile-app",
                 "hb_pb": "3.30",
                 "hb_size_inmobi": "300x250",
                 "hb_bidder_inmobi": "inmobi",

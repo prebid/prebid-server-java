@@ -17,6 +17,8 @@
             "prebid": {
               "type": "banner",
               "targeting": {
+                "hb_env_mobilefuse": "mobile-app",
+                "hb_env": "mobile-app",
                 "hb_bidder": "mobilefuse",
                 "hb_bidder_mobilefuse": "mobilefuse",
                 "hb_cache_host": "{{ cache.host }}",

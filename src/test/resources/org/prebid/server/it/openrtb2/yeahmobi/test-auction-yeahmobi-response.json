@@ -17,6 +17,8 @@
             "prebid": {
               "type": "banner",
               "targeting": {
+                "hb_env": "mobile-app",
+                "hb_env_yeahmobi": "mobile-app",
                 "hb_bidder": "yeahmobi",
                 "hb_bidder_yeahmobi": "yeahmobi",
                 "hb_cache_host": "{{ cache.host }}",

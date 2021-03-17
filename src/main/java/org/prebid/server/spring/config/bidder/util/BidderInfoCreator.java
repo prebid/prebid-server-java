@@ -1,6 +1,6 @@
 package org.prebid.server.spring.config.bidder.util;
 
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.bidder.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 
@@ -15,6 +15,7 @@ public class BidderInfoCreator {
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
                 metaInfo.getMaintainerEmail(),
+                metaInfo.getValidateMediaTypes(),
                 metaInfo.getAppMediaTypes(),
                 metaInfo.getSiteMediaTypes(),
                 metaInfo.getSupportedVendors(),

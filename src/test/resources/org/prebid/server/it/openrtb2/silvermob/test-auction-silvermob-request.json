@@ -20,7 +20,7 @@
     "ua": "test-user-agent",
     "ip": "123.123.123.123"
   },
-  "site": {
+  "app": {
     "publisher": {
       "id": "publisherId"
     }

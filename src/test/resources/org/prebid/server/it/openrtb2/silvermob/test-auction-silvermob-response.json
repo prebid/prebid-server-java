@@ -14,6 +14,8 @@
             "prebid": {
               "type": "banner",
               "targeting": {
+                "hb_env_silvermob": "mobile-app",
+                "hb_env": "mobile-app",
                 "hb_pb": "0.00",
                 "hb_cache_id_silvermob": "3c0769d8-0dd9-465c-8bf3-f570605ba698",
                 "hb_bidder_silvermob": "silvermob",

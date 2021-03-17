@@ -16,6 +16,8 @@ public class MetaInfo {
     @NotBlank
     private String maintainerEmail;
 
+    private Boolean validateMediaTypes;
+
     private List<String> appMediaTypes;
 
     private List<String> siteMediaTypes;

@@ -32,14 +32,9 @@
     "ifa": "ifaId",
     "ua": "userAgent"
   },
-  "site": {
-    "domain": "example.com",
-    "ext": {
-      "amp": 0
-    },
-    "page": "http://www.example.com",
+  "app": {
     "publisher": {
-      "id": "publisherId"
+      "id": "pub1"
     }
   },
   "at": 1,

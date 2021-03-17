@@ -20,6 +20,10 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.settings.bidder.BidderInfo;
+import org.prebid.server.settings.bidder.CapabilitiesInfo;
+import org.prebid.server.validation.BidderInfoRequestValidator;
+import org.prebid.server.validation.model.ValueValidationResult;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -47,14 +51,17 @@ public class HttpBidderRequester {
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
     private final HttpClient httpClient;
+    private final BidderInfoRequestValidator bidderInfoRequestValidator;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
 
     public HttpBidderRequester(HttpClient httpClient,
+                               BidderInfoRequestValidator bidderInfoRequestValidator,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
                                BidderErrorNotifier bidderErrorNotifier) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.bidderInfoRequestValidator = Objects.requireNonNull(bidderInfoRequestValidator);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
     }
@@ -62,12 +69,29 @@ public class HttpBidderRequester {
     /**
      * Executes given request to a given bidder.
      */
-    public <T> Future<BidderSeatBid> requestBids(
-            Bidder<T> bidder, BidderRequest bidderRequest, Timeout timeout, boolean debugEnabled) {
+    public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
+                                                 BidderInfo bidderInfo,
+                                                 BidderRequest bidderRequest,
+                                                 Timeout timeout,
+                                                 boolean debugEnabled) {
         final BidRequest bidRequest = bidderRequest.getBidRequest();
+        final CapabilitiesInfo capabilities = bidderInfo.getCapabilities();
+        final ValueValidationResult<BidRequest> bidRequestValidation =
+                bidderInfoRequestValidator.validate(bidRequest, capabilities);
 
-        final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
-        final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
+        if (bidRequestValidation.hasErrors()) {
+            return emptyBidderSeatBidWithErrors(toBadInputError(bidRequestValidation.warningsAndErrors()));
+        }
+
+        final List<BidderError> bidderErrors = new ArrayList<>();
+        if (bidRequestValidation.hasWarnings()) {
+            bidderErrors.addAll(toBadInputError(bidRequestValidation.warningsAndErrors()));
+        }
+
+        final BidRequest validBidRequest = bidRequestValidation.getValue();
+        final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(validBidRequest);
+
+        bidderErrors.addAll(CollectionUtils.emptyIfNull(httpRequestsWithErrors.getErrors()));
         final List<HttpRequest<T>> httpRequests = httpRequestsWithErrors.getValue();
 
         if (CollectionUtils.isEmpty(httpRequests)) {
@@ -82,13 +106,13 @@ public class HttpBidderRequester {
                 ? Stream.of(makeStoredHttpCall(httpRequests.get(0), storedResponse))
                 : httpRequests.stream().map(httpRequest -> doRequest(httpRequest, timeout));
 
-        final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(bidRequest);
+        final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(validBidRequest);
         final ResultBuilder<T> resultBuilder = new ResultBuilder<>(httpRequests, bidderErrors, completionTracker);
 
         final List<Future<Void>> httpRequestFutures = httpCalls
                 .map(httpCallFuture -> httpCallFuture
                         .map(httpCall -> bidderErrorNotifier.processTimeout(httpCall, bidder))
-                        .map(httpCall -> processHttpCall(bidder, bidRequest, resultBuilder, httpCall)))
+                        .map(httpCall -> processHttpCall(bidder, validBidRequest, resultBuilder, httpCall)))
                 .collect(Collectors.toList());
 
         final CompositeFuture completionFuture = CompositeFuture.any(
@@ -97,6 +121,12 @@ public class HttpBidderRequester {
 
         return completionFuture
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
+    }
+
+    private static List<BidderError> toBadInputError(List<String> errorMessages) {
+        return errorMessages.stream()
+                .map(BidderError::badInput)
+                .collect(Collectors.toList());
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
@@ -129,10 +159,11 @@ public class HttpBidderRequester {
      */
     private Future<BidderSeatBid> emptyBidderSeatBidWithErrors(List<BidderError> bidderErrors) {
         return Future.succeededFuture(
-                BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(), bidderErrors.isEmpty()
-                        ? Collections.singletonList(BidderError.failedToRequestBids(
-                        "The bidder failed to generate any bid requests, but also failed to generate an error"))
-                        : bidderErrors));
+                BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
+                        bidderErrors.isEmpty()
+                                ? Collections.singletonList(BidderError.failedToRequestBids(
+                                "The bidder failed to generate any bid requests, but also failed to generate an error"))
+                                : bidderErrors));
     }
 
     /**
