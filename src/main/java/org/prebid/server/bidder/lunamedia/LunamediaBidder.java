@@ -37,6 +37,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Lunamedia {@link Bidder} implementation.
+ */
 public class LunamediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLunamedia>> IMP_EXT_TYPE_REFERENCE = new
@@ -54,12 +57,12 @@ public class LunamediaBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         try {
             final Map<ExtImpLunamedia, List<Imp>> impToExtImp = impExtToImps(request.getImp(), errors);
             httpRequests.addAll(buildBidderRequests(request, impToExtImp));
         } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         return Result.of(httpRequests, errors);
@@ -72,8 +75,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
                 final ExtImpLunamedia extImpLunamedia = parseAndValidateImpExt(imp);
                 final Imp updatedImp = updateImp(imp);
 
-                extToListOfUpdatedImp.putIfAbsent(extImpLunamedia, new ArrayList<>());
-                extToListOfUpdatedImp.get(extImpLunamedia).add(updatedImp);
+                extToListOfUpdatedImp.computeIfAbsent(extImpLunamedia, ext -> new ArrayList<>()).add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -89,10 +91,9 @@ public class LunamediaBidder implements Bidder<BidRequest> {
     private ExtImpLunamedia parseAndValidateImpExt(Imp imp) {
         final ExtImpLunamedia extImpLunamedia;
         try {
-            extImpLunamedia = mapper.mapper().convertValue(imp.getExt(), IMP_EXT_TYPE_REFERENCE)
-                    .getBidder();
+            extImpLunamedia = mapper.mapper().convertValue(imp.getExt(), IMP_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
         }
 
         if (StringUtils.isBlank(extImpLunamedia.getPubid())) {
@@ -133,7 +134,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final List<Format> formatSkipFirst = originalFormat.subList(1, originalFormat.size());
             bannerBuilder.format(formatSkipFirst);
 
-            Format firstFormat = originalFormat.get(0);
+            final Format firstFormat = originalFormat.get(0);
             bannerBuilder.w(firstFormat.getW());
             bannerBuilder.h(firstFormat.getH());
 
@@ -152,17 +153,14 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final List<Imp> imps = impExtAndListOfImps.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpLunamedia, imps);
 
-            final String body = mapper.encode(updatedBidRequest);
-            final MultiMap headers = HttpUtil.headers()
-                    .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
-            final String createdEndpoint = endpointUrl + extImpLunamedia.getPubid();
+            final String url = String.format("%s%s", endpointUrl, extImpLunamedia.getPubid());
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
-                    .uri(createdEndpoint)
-                    .body(body)
-                    .headers(headers)
-                    .payload(bidRequest)
+                    .uri(url)
+                    .body(mapper.encode(updatedBidRequest))
+                    .headers(headers())
+                    .payload(updatedBidRequest)
                     .build();
 
             httpRequests.add(createdBidRequest);
@@ -193,6 +191,11 @@ public class LunamediaBidder implements Bidder<BidRequest> {
         return bidRequestBuilder.build();
     }
 
+    private static MultiMap headers() {
+        return HttpUtil.headers()
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+    }
+
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
@@ -215,19 +218,18 @@ public class LunamediaBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Resolves the media type for the bid.
-     */
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId) && imp.getVideo() != null) {
-                return BidType.video;
+            if (imp.getId().equals(impId)) {
+                return imp.getVideo() != null ? BidType.video : BidType.banner;
             }
         }
         return BidType.banner;

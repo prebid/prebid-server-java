@@ -29,7 +29,6 @@ For more information about application configuration see [here](../config.md)
 
 Bidder implementations are scattered throughout several files:
 - `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Bidder.java`: contains an implementation of [the Bidder interface](../../src/main/java/org/prebid/server/bidder/Bidder.java).
-- `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Adapter.java`: contains an implementation of [the Adapter interface](../../src/main/java/org/prebid/server/bidder/Adapter.java).
 - `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Usersyncer.java`: contains an implementation of [the Usersyncer interface](../../src/main/java/org/prebid/server/bidder/Usersyncer.java).
 - `src/main/java/org/prebid/server/proto/openrtb/ext/{bidder}`: contract classes for your Bidder's params.
 - `src/main/resources/static/bidder-params/{bidder}.json`: A [draft-4 json-schema](https://spacetelescope.github.io/understanding-json-schema/) which [validates your Bidder's params](https://www.jsonschemavalidator.net/).
@@ -101,7 +100,7 @@ It should be public class with Spring `@Configuration` annotation so that framew
 This file consists of three main parts:
 - the constant `BIDDER_NAME` with the name of your Bidder.
 - injected configuration properties (like `endpoint`, `usersyncUrl`, etc) needed for the Bidder's implementation.
-- declaration of `BidderDeps` bean combining _bidder name_, _Usersyncer_, _Adapter_ and _BidderRequester_ in one place as a single point-of-truth for using it in application.
+- declaration of `BidderDeps` bean combining _bidder name_, _Usersyncer_ and _BidderRequester_ in one place as a single point-of-truth for using it in application.
 
 Also, you can add `@ConditionalOnProperty` annotation on configuration if bidder has no default properties.
 See `src/main/java/org/prebid/server/spring/config/bidder/FacebookConfiguration.java` as an example.
@@ -114,11 +113,10 @@ Assume common rules to write unit tests from [here](unit-tests.md).
 
 Bidder tests live in the next files:
 - `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}BidderTest.java`: unit tests for your Bidder implementation.
-- `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}AdapterTest.java`: unit tests for your Adapter implementation.
 - `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}UsersyncerTest.java`: unit tests for your Usersyncer implementation.
 
 Commonly you should write tests for covering:
-- creation of your Adapter/Bidder/Usersyncer implementations.
+- creation of your Bidder/Usersyncer implementations.
 - correct Bidder's params filling.
 - JSON parser errors handling.
 - specific cases for composing requests to exchange.

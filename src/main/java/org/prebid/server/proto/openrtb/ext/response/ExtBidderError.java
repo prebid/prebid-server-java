@@ -10,7 +10,7 @@ import lombok.Value;
 @Value
 public class ExtBidderError {
 
-    private int code;
+    int code;
 
-    private String message;
+    String message;
 }

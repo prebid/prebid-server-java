@@ -27,6 +27,13 @@ public class BetweenTest extends IntegrationTest {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/between-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("User-Agent", equalTo("testUa"))
+                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withHeader("DNT", equalTo("2"))
+                .withHeader("Referer", equalTo("awesomePage"))
+                .withQueryParam("host", equalTo("lbs-ru1.ads"))
+                .withQueryParam("pubId", equalTo("publisherTestID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/between/test-between-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/between/test-between-bid-response.json"))));
 

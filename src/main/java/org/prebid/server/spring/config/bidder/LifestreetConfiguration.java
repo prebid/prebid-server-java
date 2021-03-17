@@ -1,7 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.lifestreet.LifestreetAdapter;
 import org.prebid.server.bidder.lifestreet.LifestreetBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
@@ -52,8 +51,6 @@ public class LifestreetConfiguration {
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
                 .bidderCreator(() -> new LifestreetBidder(configProperties.getEndpoint(), mapper))
-                .adapterCreator(() -> new LifestreetAdapter(usersync.getCookieFamilyName(),
-                        configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

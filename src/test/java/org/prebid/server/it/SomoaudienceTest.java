@@ -68,8 +68,8 @@ public class SomoaudienceTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json"),
-                        true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",

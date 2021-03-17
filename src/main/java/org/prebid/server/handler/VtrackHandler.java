@@ -25,7 +25,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -143,10 +142,10 @@ public class VtrackHandler implements Handler<RoutingContext> {
             respondWithServerError(context, "Error occurred while fetching account", asyncAccount.cause());
         } else {
             // insert impression tracking if account allows events and bidder allows VAST modification
-            final Set<String> biddersAllowingVastUpdate = Objects.equals(asyncAccount.result().getEventsEnabled(), true)
-                    ? biddersAllowingVastUpdate(vtrackPuts)
-                    : Collections.emptySet();
-            cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, integration, timeout)
+            final Account account = asyncAccount.result();
+            final Boolean isEventEnabled = account.getEventsEnabled();
+            final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
+            cacheService.cachePutObjects(vtrackPuts, isEventEnabled, allowedBidders, accountId, integration, timeout)
                     .setHandler(asyncCache -> handleCacheResult(asyncCache, context));
         }
     }

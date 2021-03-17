@@ -8,10 +8,12 @@
         "price": 0.500000,
         "adid": "29681110",
         "adm": "some-test-ad",
-        "adomain": ["advertsite.com"],
+        "adomain": [
+          "advertsite.com"
+        ],
         "cid": "772",
         "crid": "29681110",
-        "api" : 1,
+        "api": 1,
         "h": 576,
         "w": 1024,
         "ext": {
@@ -20,6 +22,11 @@
           }
         }
       }
+    },
+    {
+      "type": "xml",
+      "value": "some-test-ad",
+      "expiry": 120
     }
   ]
 }

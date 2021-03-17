@@ -8,7 +8,9 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -69,9 +71,10 @@ public class HttpBidderRequester {
      */
     public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
                                                  BidderInfo bidderInfo,
-                                                 BidRequest bidRequest,
+                                                 BidderRequest bidderRequest,
                                                  Timeout timeout,
                                                  boolean debugEnabled) {
+        final BidRequest bidRequest = bidderRequest.getBidRequest();
         final CapabilitiesInfo capabilities = bidderInfo.getCapabilities();
         final ValueValidationResult<BidRequest> bidRequestValidation =
                 bidderInfoRequestValidator.validate(bidRequest, capabilities);
@@ -95,12 +98,18 @@ public class HttpBidderRequester {
             return emptyBidderSeatBidWithErrors(bidderErrors);
         }
 
-        final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(validBidRequest);
+        final String storedResponse = bidderRequest.getStoredResponse();
+        final String bidderName = bidderRequest.getBidder();
 
+        // stored response available only for single request interaction for the moment.
+        final Stream<Future<HttpCall<T>>> httpCalls = isStoredResponse(httpRequests, storedResponse, bidderName)
+                ? Stream.of(makeStoredHttpCall(httpRequests.get(0), storedResponse))
+                : httpRequests.stream().map(httpRequest -> doRequest(httpRequest, timeout));
+
+        final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(validBidRequest);
         final ResultBuilder<T> resultBuilder = new ResultBuilder<>(httpRequests, bidderErrors, completionTracker);
 
-        final List<Future<Void>> httpRequestFutures = httpRequests.stream()
-                .map(httpRequest -> doRequest(httpRequest, timeout))
+        final List<Future<Void>> httpRequestFutures = httpCalls
                 .map(httpCallFuture -> httpCallFuture
                         .map(httpCall -> bidderErrorNotifier.processTimeout(httpCall, bidder))
                         .map(httpCall -> processHttpCall(bidder, validBidRequest, resultBuilder, httpCall)))
@@ -118,6 +127,29 @@ public class HttpBidderRequester {
         return errorMessages.stream()
                 .map(BidderError::badInput)
                 .collect(Collectors.toList());
+    }
+
+    private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
+                                         String storedResponse,
+                                         String bidder) {
+        if (StringUtils.isBlank(storedResponse)) {
+            return false;
+        }
+
+        if (httpRequests.size() > 1) {
+            logger.warn("More than one request was created for stored response, when only single stored response "
+                    + "per bidder is supported for the moment. Request to real {0} bidder "
+                    + "will be performed .", bidder);
+            return false;
+        }
+
+        return true;
+    }
+
+    final <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest,
+                                                     String storedResponse) {
+        return Future.succeededFuture(HttpCall.success(httpRequest, HttpResponse.of(HttpResponseStatus.OK.code(), null,
+                storedResponse), null));
     }
 
     /**

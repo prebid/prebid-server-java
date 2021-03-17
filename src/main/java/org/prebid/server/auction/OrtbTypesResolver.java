@@ -37,6 +37,7 @@ public class OrtbTypesResolver {
     private static final String USER = "user";
     private static final String APP = "app";
     private static final String SITE = "site";
+    private static final String CONTEXT = "context";
     private static final String BIDREQUEST = "bidrequest";
     private static final String TARGETING = "targeting";
     private static final String UNKNOWN_REFERER = "unknown referer";
@@ -88,9 +89,12 @@ public class OrtbTypesResolver {
         final JsonNode bidderConfigs = bidRequest.path("ext").path("prebid").path("bidderconfig");
         if (!bidderConfigs.isMissingNode() && bidderConfigs.isArray()) {
             for (JsonNode bidderConfig : bidderConfigs) {
-                final JsonNode config = bidderConfig.path("config").path("fpd");
-                if (!config.isMissingNode()) {
-                    normalizeStandardFpdFields(config, resolverWarnings, "bidrequest.ext.prebid.bidderconfig");
+
+                mergeFpdFieldsToOrtb2(bidderConfig);
+
+                final JsonNode ortb2Config = bidderConfig.path("config").path("ortb2");
+                if (!ortb2Config.isMissingNode()) {
+                    normalizeStandardFpdFields(ortb2Config, resolverWarnings, "bidrequest.ext.prebid.bidderconfig");
                 }
             }
         }
@@ -104,6 +108,52 @@ public class OrtbTypesResolver {
             // should never happen
             throw new InvalidRequestException("Failed to decode container node to string");
         }
+    }
+
+    /**
+     * Merges fpd fields into ortb2:
+     * config.fpd.context -> config.ortb2.site
+     * config.fpd.user -> config.ortb2.user
+     */
+    private void mergeFpdFieldsToOrtb2(JsonNode bidderConfig) {
+        final JsonNode config = bidderConfig.path("config");
+        final JsonNode configFpd = config.path("fpd");
+
+        if (configFpd.isMissingNode()) {
+            return;
+        }
+
+        final JsonNode configOrtb = config.path("ortb2");
+
+        final JsonNode fpdContext = configFpd.get(CONTEXT);
+        final JsonNode ortbSite = configOrtb.get(SITE);
+        final JsonNode updatedOrtbSite = ortbSite == null
+                ? fpdContext
+                : fpdContext != null ? jsonMerger.merge(fpdContext, ortbSite) : null;
+
+        final JsonNode fpdUser = configFpd.get(USER);
+        final JsonNode ortbUser = configOrtb.get(USER);
+        final JsonNode updatedOrtbUser = ortbUser == null
+                ? fpdUser
+                : fpdUser != null ? jsonMerger.merge(fpdUser, ortbUser) : null;
+
+        if (updatedOrtbUser == null && updatedOrtbSite == null) {
+            return;
+        }
+
+        final ObjectNode ortbObjectNode = configOrtb.isMissingNode()
+                ? jacksonMapper.mapper().createObjectNode()
+                : (ObjectNode) configOrtb;
+
+        if (updatedOrtbSite != null) {
+            ortbObjectNode.set(SITE, updatedOrtbSite);
+        }
+
+        if (updatedOrtbUser != null) {
+            ortbObjectNode.set(USER, updatedOrtbUser);
+        }
+
+        ((ObjectNode) config).set("ortb2", ortbObjectNode);
     }
 
     /**

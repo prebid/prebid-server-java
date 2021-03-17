@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.yeahmobi;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -9,7 +10,6 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -32,13 +32,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Yeahmobi {@link Bidder} implementation.
+ */
 public class YeahmobiBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYeahmobi>> YEAHMOBI_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpYeahmobi>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -52,7 +53,6 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
-
         ExtImpYeahmobi extImpYeahmobi = null;
         for (Imp imp : request.getImp()) {
             try {
@@ -68,7 +68,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
         }
 
-        final String host = String.format("gw-%s-bid.yeahtargeter.com", HttpUtil.encodeUrl(extImpYeahmobi.getZoneId()));
+        final String host = String.format("gw-%s-bid.yeahtargeter.com", extImpYeahmobi.getZoneId());
         final String url = endpointUrl.replace("{{Host}}", host);
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
@@ -90,30 +90,37 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), YEAHMOBI_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
         }
     }
 
-    @SneakyThrows
     private Imp processImp(Imp imp) {
         final Native xNative = imp.getXNative();
 
         if (xNative != null) {
-            final JsonNode nativeRequest = xNative.getRequest() != null
-                    ? mapper.mapper().readValue(xNative.getRequest(), JsonNode.class)
-                    : null;
-
-            final String newNativeRequest;
-            final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativeRequest);
-            newNativeRequest = nativeRequest == null || nativeRequest.get("native") == null
-                    ? mapper.mapper().writeValueAsString(objectNode)
-                    : null;
-
-            return newNativeRequest != null
-                    ? imp.toBuilder().xNative(Native.builder().request(newNativeRequest).build()).build()
+            final String resolvedNativeRequest = resolveNativeRequest(xNative.getRequest());
+            return resolvedNativeRequest != null
+                    ? imp.toBuilder().xNative(Native.builder().request(resolvedNativeRequest).build()).build()
                     : imp;
         }
         return imp;
+    }
+
+    private String resolveNativeRequest(String xNativeRequest) {
+        try {
+            final JsonNode nativeRequest = xNativeRequest != null
+                    ? mapper.mapper().readValue(xNativeRequest, JsonNode.class)
+                    : mapper.mapper().createObjectNode();
+
+            if (nativeRequest.isEmpty() || nativeRequest.get("native") == null) {
+                final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativeRequest);
+                return mapper.mapper().writeValueAsString(objectNode);
+            }
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        return null;
     }
 
     @Override
@@ -139,7 +146,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

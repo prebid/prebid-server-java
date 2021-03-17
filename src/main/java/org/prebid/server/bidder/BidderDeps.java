@@ -51,9 +51,4 @@ public class BidderDeps {
      * Bidder implementation is used in auction handling.
      */
     Bidder<?> bidder;
-
-    /**
-     * Bidder's adapter is used in legacy auction handling.
-     */
-    Adapter<?, ?> adapter;
 }
