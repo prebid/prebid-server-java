@@ -97,6 +97,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1420,6 +1421,72 @@ public class ExchangeServiceTest extends VertxTest {
                 .aliases(singletonMap("someBidder", "alias_should_stay"))
                 .auctiontimestamp(1000L)
                 .build()));
+    }
+
+    @Test
+    public void shouldAddMultiBidInfoAboutRequestedBidderIfDataShouldNotBeSuppressed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .multibid(Collections.singletonList(
+                                ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix")))
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ExtRequest extRequest = captureBidRequest().getExt();
+        assertThat(extRequest)
+                .extracting(ExtRequest::getPrebid)
+                .flatExtracting("multibid")
+                .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix"));
+    }
+
+    @Test
+    public void shouldAddMultiBidInfoAboutRequestedBidderIfDataShouldBeSuppressed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .multibid(Collections.singletonList(
+                                ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix")))
+                        .data(ExtRequestPrebidData.of(asList("someBidder", "should_be_removed"), null))
+                        .aliases(singletonMap("someBidder", "alias_should_stay"))
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ExtRequest extRequest = captureBidRequest().getExt();
+        assertThat(extRequest)
+                .extracting(ExtRequest::getPrebid)
+                .flatExtracting("multibid")
+                .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix"));
+    }
+
+    @Test
+    public void shouldAddMultibidInfoOnlyAboutRequestedBidder() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .multibid(Collections.singletonList(
+                                ExtRequestPrebidMultiBid.of(null, asList("someBidder", "anotherBidder"), 3, null)))
+                        .data(ExtRequestPrebidData.of(asList("someBidder", "should_be_removed"), null))
+                        .aliases(singletonMap("someBidder", "alias_should_stay"))
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ExtRequest extRequest = captureBidRequest().getExt();
+        assertThat(extRequest)
+                .extracting(ExtRequest::getPrebid)
+                .flatExtracting("multibid")
+                .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, null));
     }
 
     @Test
