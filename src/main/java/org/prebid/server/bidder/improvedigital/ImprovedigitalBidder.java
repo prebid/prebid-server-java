@@ -90,6 +90,9 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 if (imp.getVideo() != null) {
                     return BidType.video;
                 }
+                if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
                 throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
             }
         }
