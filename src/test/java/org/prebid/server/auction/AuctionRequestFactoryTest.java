@@ -2164,12 +2164,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         given(routingContext.getBody()).willReturn(Buffer.buffer(requestNode.toString()));
 
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
-                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
-
-        given(requestValidator.validate(any()))
-                .willReturn(new ValidationResult(emptyList(), emptyList()));
-
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
 
@@ -2203,16 +2197,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .with("prebid")
                 .with("data")
                 .putArray("eidpermissions");
-
         arrayNode.add(eidPermissionNode);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer(requestNode.toString()));
-
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
-                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
-
-        given(requestValidator.validate(any()))
-                .willReturn(new ValidationResult(emptyList(), emptyList()));
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
