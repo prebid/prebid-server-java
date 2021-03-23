@@ -8,7 +8,7 @@ import org.prebid.server.model.Endpoint;
 
 public class HookStageExecutor {
 
-    public Future<HookStageExecutionResult<EntrypointPayload>> executeEndpointHooks(
+    public Future<HookStageExecutionResult<EntrypointPayload>> executeEntrypointStage(
             MultiMap queryParams,
             MultiMap headers,
             String body,

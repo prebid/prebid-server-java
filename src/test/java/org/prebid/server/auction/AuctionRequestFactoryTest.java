@@ -172,7 +172,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
     }
 
     @Test
@@ -213,7 +213,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
 
         givenValidBidRequest();
 
@@ -252,7 +252,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
@@ -326,7 +326,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -1685,7 +1685,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -1728,7 +1728,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1770,7 +1770,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1812,7 +1812,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1905,7 +1905,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1949,7 +1949,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                jacksonMapper);
+                hookStageExecutor, jacksonMapper);
 
         final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
                 .cache(ExtRequestPrebidCache.of(null, null, null))

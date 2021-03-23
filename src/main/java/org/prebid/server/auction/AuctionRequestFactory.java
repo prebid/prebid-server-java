@@ -11,9 +11,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
-import io.netty.buffer.ByteBufInputStream;
 import io.vertx.core.Future;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -23,6 +21,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -33,10 +33,15 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -63,6 +68,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Currency;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -104,13 +110,14 @@ public class AuctionRequestFactory {
     private final BidderCatalog bidderCatalog;
     private final RequestValidator requestValidator;
     private final InterstitialProcessor interstitialProcessor;
+    private final OrtbTypesResolver ortbTypesResolver;
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
     private final IdGenerator sourceIdGenerator;
     private final PrivacyEnforcementService privacyEnforcementService;
+    private final HookStageExecutor hookStageExecutor;
     private final JacksonMapper mapper;
-    private final OrtbTypesResolver ortbTypesResolver;
 
     public AuctionRequestFactory(long maxRequestSize,
                                  boolean enforceValidAccount,
@@ -131,6 +138,7 @@ public class AuctionRequestFactory {
                                  ApplicationSettings applicationSettings,
                                  IdGenerator sourceIdGenerator,
                                  PrivacyEnforcementService privacyEnforcementService,
+                                 HookStageExecutor hookStageExecutor,
                                  JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
@@ -152,6 +160,7 @@ public class AuctionRequestFactory {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.sourceIdGenerator = Objects.requireNonNull(sourceIdGenerator);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -172,21 +181,22 @@ public class AuctionRequestFactory {
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
         final List<String> errors = new ArrayList<>();
-        final BidRequest incomingBidRequest;
+        final String body;
         try {
-            incomingBidRequest = parseRequest(routingContext, errors);
+            body = extractAndValidateBody(routingContext);
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
 
-        return updateBidRequest(routingContext, incomingBidRequest)
-                .compose(bidRequest -> toAuctionContext(
-                        routingContext,
-                        bidRequest,
-                        requestTypeMetric(bidRequest),
-                        errors,
-                        startTime,
-                        timeoutResolver));
+        return parseRequest(body, routingContext, errors)
+                .compose(tuple -> updateBidRequest(routingContext, tuple.getMiddle()) // FIXME: use httpRequest
+                        .compose(bidRequest -> toAuctionContext(
+                                routingContext, // FIXME: use httpRequest
+                                bidRequest,
+                                requestTypeMetric(bidRequest),
+                                errors,
+                                startTime,
+                                timeoutResolver)));
     }
 
     /**
@@ -226,8 +236,44 @@ public class AuctionRequestFactory {
      * <p>
      * Throws {@link InvalidRequestException} if body is empty, exceeds max request size or couldn't be deserialized.
      */
-    private BidRequest parseRequest(RoutingContext context, List<String> errors) {
-        final Buffer body = context.getBody();
+    private Future<Tuple3<HttpRequestWrapper, BidRequest, HookExecutionContext>> parseRequest(
+            String body,
+            RoutingContext context,
+            List<String> errors) {
+
+        return hookStageExecutor.executeEntrypointStage(
+                context.queryParams(),
+                context.request().headers(),
+                body,
+                Endpoint.openrtb2_auction)
+                .map(stageResult -> {
+                    if (stageResult.isShouldReject()) {
+                        // FIXME: rejection
+                        throw new InvalidRequestException("Hooks rejected request");
+                    }
+
+                    final HttpRequestWrapper httpRequest = HttpRequestWrapper.builder()
+                            .queryParams(stageResult.getPayload().queryParams())
+                            .headers(stageResult.getPayload().headers())
+                            .body(stageResult.getPayload().body())
+                            .build();
+
+                    final HookExecutionContext hookExecutionContext = HookExecutionContext.builder()
+                            .stageOutcomes(new EnumMap<>(Stage.class))
+                            .build();
+                    hookExecutionContext.getStageOutcomes().put(Stage.entrypoint, stageResult.getExecutionOutcome());
+
+                    return Tuple2.of(httpRequest, hookExecutionContext);
+                })
+                .map(tuple -> Tuple3.of(
+                        tuple.getLeft(),
+                        normalizeAndDeserializeRequest(tuple.getLeft().getBody(), context, errors), // FIXME: use
+                        // httpRequest
+                        tuple.getRight()));
+    }
+
+    private String extractAndValidateBody(RoutingContext context) {
+        final String body = context.getBodyAsString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
         }
@@ -237,16 +283,27 @@ public class AuctionRequestFactory {
                     String.format("Request size exceeded max size of %d bytes.", maxRequestSize));
         }
 
-        final JsonNode bidRequestNode;
-        try (ByteBufInputStream inputStream = new ByteBufInputStream(body.getByteBuf())) {
-            bidRequestNode = mapper.mapper().readTree(inputStream);
-        } catch (IOException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
-        }
+        return body;
+    }
+
+    private BidRequest normalizeAndDeserializeRequest(String body, RoutingContext context, List<String> errors) {
+        final JsonNode bidRequestNode = bodyAsJsonNode(body);
 
         final String referer = paramsExtractor.refererFrom(context.request());
         ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
 
+        return jsonNodeAsBidRequest(bidRequestNode);
+    }
+
+    private JsonNode bodyAsJsonNode(String body) {
+        try {
+            return mapper.mapper().readTree(body);
+        } catch (IOException e) {
+            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
+        }
+    }
+
+    private BidRequest jsonNodeAsBidRequest(JsonNode bidRequestNode) {
         try {
             return mapper.mapper().treeToValue(bidRequestNode, BidRequest.class);
         } catch (JsonProcessingException e) {
