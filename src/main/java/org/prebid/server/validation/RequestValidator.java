@@ -297,14 +297,10 @@ public class RequestValidator {
         }
 
         for (String bidder : bidders) {
-            if (StringUtils.isBlank(bidder)) {
-                throw new ValidationException(
-                        "request.ext.prebid.data.eidPermissions[].bidders[] contains blank biddercode");
-            }
             if (!bidderCatalog.isValidName(bidder) && !bidderCatalog.isValidName(aliases.get(bidder))
                     && ObjectUtils.notEqual(bidder, ASTERISK)) {
                 throw new ValidationException(
-                        "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode : %s", bidder);
+                        "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: '%s'", bidder);
             }
         }
     }
