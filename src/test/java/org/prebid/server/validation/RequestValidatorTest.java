@@ -1514,6 +1514,25 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenEidsPermissionsBidderHasBlankValue() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(null,
+                                singletonList(
+                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList(" ")))))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.ext.prebid.data.eidPermissions[].bidders[] contains blank biddercode");
+    }
+
+    @Test
     public void validateShouldNotReturenValidationErrorWhenBidderIsAlias() {
         // given
         given(bidderCatalog.isValidName(eq("bidder1Alias"))).willReturn(false);
