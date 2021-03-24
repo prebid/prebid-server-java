@@ -193,12 +193,7 @@ public class AuctionRequestFactory {
                 .stageOutcomes(new EnumMap<>(Stage.class))
                 .build();
 
-        return hookStageExecutor.executeEntrypointStage(
-                routingContext.queryParams(),
-                routingContext.request().headers(),
-                body,
-                hookExecutionContext)
-                .map(stageResult -> toHttpRequest(stageResult, routingContext, hookExecutionContext))
+        return executeEntrypointHooks(routingContext, body, hookExecutionContext)
                 .compose(httpRequest -> updateBidRequest(
                         httpRequest,
                         parseRequest(httpRequest, errors))
@@ -210,6 +205,18 @@ public class AuctionRequestFactory {
                                 startTime,
                                 timeoutResolver,
                                 hookExecutionContext)));
+    }
+
+    protected Future<HttpRequestWrapper> executeEntrypointHooks(RoutingContext routingContext,
+                                                              String body,
+                                                              HookExecutionContext hookExecutionContext) {
+
+        return hookStageExecutor.executeEntrypointStage(
+                routingContext.queryParams(),
+                routingContext.request().headers(),
+                body,
+                hookExecutionContext)
+                .map(stageResult -> toHttpRequest(stageResult, routingContext, hookExecutionContext));
     }
 
     private HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
