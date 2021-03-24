@@ -73,10 +73,7 @@ public class VideoRequestFactory {
             return Future.failedFuture(e);
         }
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.builder()
-                .endpoint(Endpoint.openrtb2_video)
-                .stageOutcomes(new EnumMap<>(Stage.class))
-                .build();
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_video);
 
         return auctionRequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest)

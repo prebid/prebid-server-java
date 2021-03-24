@@ -23,7 +23,6 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
-import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -48,7 +47,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,10 +104,7 @@ public class AmpRequestFactory {
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.builder()
-                .endpoint(Endpoint.openrtb2_amp)
-                .stageOutcomes(new EnumMap<>(Stage.class))
-                .build();
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_amp);
 
         return auctionRequestFactory.executeEntrypointHooks(
                 routingContext,

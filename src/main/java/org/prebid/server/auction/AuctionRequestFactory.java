@@ -34,7 +34,6 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
@@ -68,7 +67,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Currency;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -188,10 +186,7 @@ public class AuctionRequestFactory {
             return Future.failedFuture(e);
         }
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.builder()
-                .endpoint(Endpoint.openrtb2_auction)
-                .stageOutcomes(new EnumMap<>(Stage.class))
-                .build();
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
         return executeEntrypointHooks(routingContext, body, hookExecutionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest, errors)
