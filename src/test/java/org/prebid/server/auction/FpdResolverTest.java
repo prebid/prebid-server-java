@@ -430,19 +430,21 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldMergeExtImpContextDataWithFpdPriority() {
         // given
-        final ObjectNode extImp = mapper.createObjectNode().set("context", mapper.createObjectNode()
-                .set("data", mapper.createObjectNode().put("replacedAttr", "originValue")
-                        .put("originAttr", "originValue")));
+        final ObjectNode extImp = mapper.createObjectNode().set("data", mapper.createObjectNode()
+                .put("replacedAttr", "originValue")
+                .put("originAttr", "originValue"));
         final ObjectNode targeting = mapper.createObjectNode()
-                .put("site", "site").put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2");
+                .put("site", "site")
+                .put("replacedAttr", "fpdValue")
+                .put("fpdAttr", "fpdValue2");
 
         // when
         final ObjectNode result = fpdResolver.resolveImpExt(extImp, targeting);
 
         // then
-        assertThat(result).isEqualTo(mapper.createObjectNode().set("context", mapper.createObjectNode()
+        assertThat(result).isEqualTo(mapper.createObjectNode()
                 .set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue")
-                        .put("originAttr", "originValue").put("fpdAttr", "fpdValue2"))));
+                        .put("originAttr", "originValue").put("fpdAttr", "fpdValue2")));
     }
 
     @Test
@@ -455,8 +457,8 @@ public class FpdResolverTest extends VertxTest {
         final ObjectNode result = fpdResolver.resolveImpExt(null, targeting);
 
         // then
-        assertThat(result).isEqualTo(mapper.createObjectNode().set("context", mapper.createObjectNode()
-                .set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2"))));
+        assertThat(result).isEqualTo(mapper.createObjectNode()
+                .set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2")));
     }
 
     @Test
@@ -471,16 +473,15 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode().put("prebid", 1).put("rubicon", 2);
-        assertThat(result).isEqualTo(expectedResult.set("context", mapper.createObjectNode()
+        assertThat(result).isEqualTo(expectedResult
                 .set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue")
-                        .put("fpdAttr", "fpdValue2"))));
+                .put("fpdAttr", "fpdValue2")));
     }
 
     @Test
-    public void resolveImpExtShouldCreateExtImpContextDataIfExtImpContextDataIsNullAndKeepOtherFields() {
+    public void resolveImpExtShouldCreateExtImpDataIfExtImpDataIsNullAndKeepOtherFields() {
         // given
         final ObjectNode extImp = mapper.createObjectNode().set("prebid", mapper.createObjectNode());
-        extImp.set("context", mapper.createObjectNode().put("keywords", "keywords"));
         final ObjectNode targeting = mapper.createObjectNode()
                 .put("site", "site").put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2");
 
@@ -489,10 +490,8 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode().set("prebid", mapper.createObjectNode());
-        final ObjectNode context = mapper.createObjectNode().put("keywords", "keywords");
-        context.set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue")
+        expectedResult.set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue")
                 .put("fpdAttr", "fpdValue2"));
-        expectedResult.set("context", context);
         assertThat(result).isEqualTo(expectedResult);
     }
 
@@ -713,15 +712,24 @@ public class FpdResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveBidRequestExtShouldReturnSameExtIfTargetingIsNull() {
+    public void resolveBidRequestExtShouldReturnBiddersOnlyIfTheyAreInDataAndBidderConfig() {
         // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
+        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus", "someBidder"), null))
+                .bidderconfig(Collections.singletonList(
+                        ExtRequestPrebidBidderConfig.of(Arrays.asList("rubicon", "someBidder2", "someBidder"), null)))
+                .build()
+        );
 
         // when
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, null);
 
         // then
-        assertThat(result).isSameAs(givenExtRequest);
+        assertThat(result)
+                .extracting(ExtRequest::getPrebid)
+                .extracting("data")
+                .flatExtracting("bidders")
+                .containsExactly("rubicon", "someBidder");
     }
 
     @Test
@@ -742,6 +750,8 @@ public class FpdResolverTest extends VertxTest {
     public void resolveBidRequestExtShouldMergeBidders() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidderconfig(Collections.singletonList(
+                        ExtRequestPrebidBidderConfig.of(Collections.singletonList("appnexus"), null)))
                 .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
 
         // when
