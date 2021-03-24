@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -8,13 +7,11 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
@@ -23,7 +20,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -252,11 +248,11 @@ public class FpdResolver {
 
         final List<String> configBidders = bidderConfigs != null
                 ? CollectionUtils.emptyIfNull(bidderConfigs).stream()
-                        .filter(Objects::nonNull)
-                        .map(ExtRequestPrebidBidderConfig::getBidders)
-                        .filter(Objects::nonNull)
-                        .flatMap(Collection::stream)
-                        .collect(Collectors.toList())
+                .filter(Objects::nonNull)
+                .map(ExtRequestPrebidBidderConfig::getBidders)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList())
                 : Collections.emptyList();
 
         final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null
@@ -323,12 +319,6 @@ public class FpdResolver {
                 ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode))));
     }
 
-    private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
-        final HashSet<String> resolvedBidders = new HashSet<>(originBidders);
-        resolvedBidders.addAll(fpdBidders);
-        return new ArrayList<>(resolvedBidders);
-    }
-
     private ObjectNode mergeExtData(JsonNode fpdData, JsonNode originData) {
         if (fpdData.isMissingNode() || !fpdData.isObject()) {
             return originData != null && originData.isObject() ? ((ObjectNode) originData).deepCopy() : null;
@@ -338,14 +328,6 @@ public class FpdResolver {
             return (ObjectNode) jsonMerger.merge(fpdData, originData);
         }
         return fpdData.isObject() ? (ObjectNode) fpdData : null;
-    }
-
-    private ExtImp getExtImp(ObjectNode extImp) {
-        try {
-            return jacksonMapper.mapper().treeToValue(extImp, ExtImp.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Failed to decode imp.ext: %s", e.getMessage()));
-        }
     }
 
     private static void setAttr(ObjectNode source, ObjectNode dest, String fieldName) {
