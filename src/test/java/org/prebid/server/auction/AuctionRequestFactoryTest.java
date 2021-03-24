@@ -16,10 +16,12 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,8 +44,14 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -118,23 +126,26 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private InterstitialProcessor interstitialProcessor;
     @Mock
-    private ApplicationSettings applicationSettings;
-    @Mock
-    private IdGenerator idGenerator;
-    @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
-
-    private AuctionRequestFactory factory;
-    @Mock
-    private RoutingContext routingContext;
-    @Mock
-    private HttpServerRequest httpRequest;
-    @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
     private TimeoutResolver timeoutResolver;
     @Mock
     private TimeoutFactory timeoutFactory;
+    @Mock
+    private ApplicationSettings applicationSettings;
+    @Mock
+    private IdGenerator idGenerator;
+    @Mock
+    private PrivacyEnforcementService privacyEnforcementService;
+    @Mock
+    private HookStageExecutor hookStageExecutor;
+
+    private AuctionRequestFactory factory;
+
+    @Mock
+    private RoutingContext routingContext;
+    @Mock
+    private HttpServerRequest httpRequest;
 
     @Before
     public void setUp() {
@@ -142,7 +153,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(idGenerator.generateId()).willReturn(null);
 
         given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
@@ -151,6 +163,14 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(PrivacyContext.of(
                         Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
                         TcfContext.empty())));
+
+        given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        EntrypointPayloadImpl.of(
+                                invocation.getArgument(0),
+                                invocation.getArgument(1),
+                                invocation.getArgument(2)))));
 
         factory = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -172,14 +192,14 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
     }
 
     @Test
     public void shouldReturnFailedFutureIfRequestBodyIsMissing() {
         // given
-        given(routingContext.getBody()).willReturn(null);
+        given(routingContext.getBodyAsString()).willReturn(null);
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -214,7 +234,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
 
         givenValidBidRequest();
@@ -254,7 +274,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -329,10 +349,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
 
-        given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
+        given(routingContext.getBodyAsString()).willReturn("body");
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -347,7 +367,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyCouldNotBeParsed() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
+        given(routingContext.getBodyAsString()).willReturn("body");
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -521,7 +541,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldSetDeviceDntIfHeaderExists() {
         // given
-        given(httpRequest.getHeader("DNT")).willReturn("1");
+        httpRequest.headers().add("DNT", "1");
         givenValidBidRequest();
 
         // when
@@ -534,7 +554,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldOverrideDeviceDntIfHeaderExists() {
         // given
-        given(httpRequest.getHeader("DNT")).willReturn("0");
+        httpRequest.headers().add("DNT", "0");
+
         givenBidRequest(BidRequest.builder()
                 .device(Device.builder().dnt(1).build())
                 .build());
@@ -1689,7 +1710,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -1733,7 +1754,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
@@ -1776,7 +1797,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
@@ -1819,7 +1840,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
@@ -1913,7 +1934,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
@@ -1958,7 +1979,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 privacyEnforcementService,
-                null,
+                hookStageExecutor,
                 jacksonMapper);
 
         final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
@@ -2137,7 +2158,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestValidationFailed() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
+        given(routingContext.getBodyAsString()).willReturn("{}");
 
         given(storedRequestProcessor.processStoredRequests(any(), any()))
                 .willReturn(Future.succeededFuture(BidRequest.builder().build()));
@@ -2155,17 +2176,29 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnAuctionContextWithRoutingContext() {
+    public void shouldReturnAuctionContextWithHttpRequest() {
         // given
+        given(httpRequest.absoluteURI()).willReturn("absoluteUri");
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        routingContext.queryParams().add("urloverride", "overriddendomain.com");
+        httpRequest.headers().add("DHT", "1");
+        given(httpRequest.scheme()).willReturn("https");
+
         givenValidBidRequest();
 
         // when
-
-        // FIXME
-//        final RoutingContext context = factory.fromRequest(routingContext, 0L).result().getRoutingContext();
+        final HttpRequestWrapper httpRequest =
+                factory.fromRequest(routingContext, 0L).result().getHttpRequest();
 
         // then
-//        assertThat(context).isSameAs(routingContext);
+        assertThat(httpRequest.getAbsoluteUri()).isEqualTo("absoluteUri");
+        assertThat(httpRequest.getQueryParams()).hasSize(1);
+        assertThat(httpRequest.getQueryParams().get("urloverride")).isEqualTo("overriddendomain.com");
+        assertThat(httpRequest.getHeaders()).hasSize(1);
+        assertThat(httpRequest.getHeaders().get("DHT")).isEqualTo("1");
+        assertThat(httpRequest.getBody()).isEqualTo("{}");
+        assertThat(httpRequest.getScheme()).isEqualTo("https");
+        assertThat(httpRequest.getRemoteHost()).isEqualTo("host");
     }
 
     @Test
@@ -2442,6 +2475,19 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnAuctionContextWithHookExecutionContext() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        final HookExecutionContext hookExecutionContext =
+                factory.fromRequest(routingContext, 0L).result().getHookExecutionContext();
+
+        // then
+        assertThat(hookExecutionContext).isEqualTo(HookExecutionContext.of(Endpoint.openrtb2_auction));
+    }
+
+    @Test
     public void shouldEnrichRequestWithIpAddressAndCountryAndSaveAuctionContext() {
         // given
         givenBidRequest(BidRequest.builder().build());
@@ -2480,7 +2526,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     private void givenBidRequest(BidRequest bidRequest) {
         try {
-            given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsString(bidRequest)));
+            given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(bidRequest));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -2493,5 +2539,16 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     private void givenValidBidRequest() {
         givenBidRequest(BidRequest.builder().build());
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class EntrypointPayloadImpl implements EntrypointPayload {
+
+        MultiMap queryParams;
+
+        MultiMap headers;
+
+        String body;
     }
 }

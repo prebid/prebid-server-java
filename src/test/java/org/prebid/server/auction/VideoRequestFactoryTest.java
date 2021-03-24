@@ -11,8 +11,9 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.PodError;
 import io.vertx.core.Future;
-import io.vertx.core.buffer.Buffer;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -25,6 +26,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -33,17 +36,19 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -69,8 +74,11 @@ public class VideoRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(auctionRequestFactory.executeEntrypointHooks(any(), any(), any()))
+                .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
+
         given(routingContext.request()).willReturn(httpServerRequest);
-        given(httpServerRequest.getParam(anyString())).willReturn("test");
+        given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         factory = new VideoRequestFactory(
                 Integer.MAX_VALUE,
@@ -84,7 +92,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyIsMissing() {
         // given
-        given(routingContext.getBody()).willReturn(null);
+        given(routingContext.getBodyAsString()).willReturn(null);
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -99,9 +107,10 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredRequestIsEnforcedAndIdIsNotProvided() throws JsonProcessingException {
         // given
-        given(routingContext.getBody())
-                .willReturn(Buffer.buffer(mapper.writeValueAsBytes(BidRequestVideo.builder().build())));
-        given(routingContext.request().getHeader(HttpUtil.USER_AGENT_HEADER)).willReturn("123");
+        given(routingContext.getBodyAsString())
+                .willReturn(mapper.writeValueAsString(BidRequestVideo.builder().build()));
+        given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add(HttpUtil.USER_AGENT_HEADER, "123"));
         factory = new VideoRequestFactory(
                 Integer.MAX_VALUE,
                 true,
@@ -131,7 +140,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 timeoutResolver,
                 jacksonMapper);
 
-        given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
+        given(routingContext.getBodyAsString()).willReturn("body");
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -146,7 +155,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyCouldNotBeParsed() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
+        given(routingContext.getBodyAsString()).willReturn("body");
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -206,7 +215,7 @@ public class VideoRequestFactoryTest extends VertxTest {
 
         final BidRequestVideo requestVideo = BidRequestVideo.builder().device(
                 Device.builder().ua("123").build()).build();
-        given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(requestVideo)));
+        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
         given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(mergedBidRequest));
         given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
@@ -219,13 +228,18 @@ public class VideoRequestFactoryTest extends VertxTest {
         final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
 
         // then
-        verify(routingContext).getBody();
-        verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
-        verify(auctionRequestFactory).validateRequest(bidRequest);
-        verify(auctionRequestFactory).fillImplicitParameters(bidRequest, /*FIXME*/ null, timeoutResolver);
+        verify(routingContext).getBodyAsString();
+        verify(videoStoredRequestProcessor).processVideoRequest(eq(""), isNull(), eq(emptySet()), eq(requestVideo));
+        verify(auctionRequestFactory).validateRequest(eq(bidRequest));
+        verify(auctionRequestFactory).fillImplicitParameters(eq(bidRequest), any(), same(timeoutResolver));
         verify(auctionRequestFactory).toAuctionContext(
-                // FIXME
-                null, bidRequest, MetricName.video, new ArrayList<>(), 0, timeoutResolver, null);
+                any(),
+                eq(bidRequest),
+                eq(MetricName.video),
+                eq(emptyList()),
+                eq(0L),
+                same(timeoutResolver),
+                argThat(context -> context.getEndpoint() == Endpoint.openrtb2_video));
 
         assertThat(result.result().getPodErrors()).isEqualTo(mergedBidRequest.getPodErrors());
     }
@@ -234,8 +248,9 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldReplaceDeviceUaWithUserAgentHeaderIfPresented() throws JsonProcessingException {
         // given
         final BidRequestVideo requestVideo = BidRequestVideo.builder().build();
-        given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(requestVideo)));
-        given(routingContext.request().getHeader(HttpUtil.USER_AGENT_HEADER)).willReturn("user-agent-123");
+        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add((HttpUtil.USER_AGENT_HEADER), "user-agent-123"));
 
         final WithPodErrors<BidRequest> emptyMergeObject = WithPodErrors.of(null, null);
         given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
@@ -256,7 +271,8 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldReturnErrorIfDeviceUaAndUserAgentHeaderIsEmpty() throws JsonProcessingException {
         // given
         final BidRequestVideo requestVideo = BidRequestVideo.builder().build();
-        given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(requestVideo)));
+        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         // when
         Future<WithPodErrors<AuctionContext>> future = factory.fromRequest(routingContext, 0L);
@@ -266,5 +282,16 @@ public class VideoRequestFactoryTest extends VertxTest {
         assertThat(future.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Device.UA and User-Agent Header is not presented");
+    }
+
+    private static Future<HttpRequestWrapper> toHttpRequest(RoutingContext routingContext, String body) {
+        return Future.succeededFuture(HttpRequestWrapper.builder()
+                .absoluteUri(routingContext.request().absoluteURI())
+                .queryParams(routingContext.queryParams())
+                .headers(routingContext.request().headers())
+                .body(body)
+                .scheme(routingContext.request().scheme())
+                .remoteHost(routingContext.request().remoteAddress().host())
+                .build());
     }
 }
