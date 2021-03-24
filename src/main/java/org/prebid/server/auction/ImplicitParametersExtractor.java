@@ -2,9 +2,9 @@ package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
@@ -30,10 +30,10 @@ public class ImplicitParametersExtractor {
      * Determines Referer by checking 'url_override' request parameter, or if it's empty 'Referer' header. Then if
      * result is not blank and missing 'http://' prefix appends it.
      */
-    public String refererFrom(HttpServerRequest request) {
-        final String urlOverride = request.getParam("url_override");
+    public String refererFrom(HttpRequestWrapper request) {
+        final String urlOverride = request.getQueryParams().get("url_override");
         final String url = StringUtils.isNotBlank(urlOverride) ? urlOverride
-                : StringUtils.trimToNull(request.headers().get(HttpUtil.REFERER_HEADER));
+                : StringUtils.trimToNull(request.getHeaders().get(HttpUtil.REFERER_HEADER));
 
         return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
                 ? String.format("http://%s", url)
@@ -73,8 +73,8 @@ public class ImplicitParametersExtractor {
     /**
      * Determines IP-Address candidates by checking http headers and remote host address.
      */
-    public List<String> ipFrom(HttpServerRequest request) {
-        final MultiMap headers = request.headers();
+    public List<String> ipFrom(HttpRequestWrapper request) {
+        final MultiMap headers = request.getHeaders();
 
         final List<String> candidates = new ArrayList<>();
         candidates.add(headers.get("True-Client-IP"));
@@ -83,7 +83,7 @@ public class ImplicitParametersExtractor {
             candidates.addAll(Arrays.asList(xff.split(",")));
         }
         candidates.add(headers.get("X-Real-IP"));
-        candidates.add(request.remoteAddress().host());
+        candidates.add(request.getRemoteHost());
 
         return candidates.stream()
                 .map(StringUtils::trimToNull)
@@ -94,17 +94,17 @@ public class ImplicitParametersExtractor {
     /**
      * Determines User-Agent by checking 'User-Agent' http header.
      */
-    public String uaFrom(HttpServerRequest request) {
-        return StringUtils.trimToNull(request.headers().get(HttpUtil.USER_AGENT_HEADER));
+    public String uaFrom(HttpRequestWrapper request) {
+        return StringUtils.trimToNull(request.getHeaders().get(HttpUtil.USER_AGENT_HEADER));
     }
 
     /**
      * Determines the value of 'secure' flag by checking if 'X-Forwarded-Proto' contains 'value' or if HTTP request
      * scheme is 'https'. Returns 1 if one of these conditions evaluates to true or null otherwise.
      */
-    public Integer secureFrom(HttpServerRequest httpRequest) {
-        return StringUtils.equalsIgnoreCase(httpRequest.headers().get("X-Forwarded-Proto"), "https")
-                || StringUtils.equalsIgnoreCase(httpRequest.scheme(), "https")
+    public Integer secureFrom(HttpRequestWrapper httpRequest) {
+        return StringUtils.equalsIgnoreCase(httpRequest.getHeaders().get("X-Forwarded-Proto"), "https")
+                || StringUtils.equalsIgnoreCase(httpRequest.getScheme(), "https")
                 ? 1 : null;
     }
 }

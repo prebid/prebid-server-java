@@ -1254,7 +1254,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<List<String>> errorsCaptor = ArgumentCaptor.forClass(
                 List.class);
-        verify(auctionRequestFactory).toAuctionContext(any(), any(), any(), errorsCaptor.capture(), anyLong(), any());
+        verify(auctionRequestFactory).toAuctionContext(
+                any(), any(), any(), errorsCaptor.capture(), anyLong(), any(), any());
         assertThat(errorsCaptor.getValue()).contains("Amp request parameter consent_string or gdpr_consent have"
                 + " invalid format: consent-value");
     }
@@ -1476,7 +1477,8 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.toAuctionContext(any(), any(), eq(MetricName.amp), anyList(), anyLong(), any()))
+        given(auctionRequestFactory.toAuctionContext(
+                any(), any(), eq(MetricName.amp), anyList(), anyLong(), any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         AuctionContext.builder()
                                 .bidRequest((BidRequest) invocationOnMock.getArguments()[1])

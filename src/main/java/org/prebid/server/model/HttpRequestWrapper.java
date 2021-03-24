@@ -8,9 +8,15 @@ import lombok.Value;
 @Value
 public class HttpRequestWrapper {
 
+    String absoluteUri;
+
     MultiMap queryParams;
 
     MultiMap headers;
 
     String body;
+
+    String scheme;
+
+    String remoteHost;
 }

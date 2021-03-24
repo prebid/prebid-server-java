@@ -222,7 +222,8 @@ public class ServiceConfiguration {
                 applicationSettings,
                 sourceIdGenerator,
                 privacyEnforcementService,
-                hookStageExecutor, mapper);
+                null,
+                mapper);
     }
 
     @Bean

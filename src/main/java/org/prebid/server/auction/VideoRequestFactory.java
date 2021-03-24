@@ -77,12 +77,15 @@ public class VideoRequestFactory {
         final Set<String> podConfigIds = podConfigIds(incomingBidRequest);
         return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds)
                 .compose(bidRequestToPodError -> auctionRequestFactory.toAuctionContext(
-                        routingContext,
+                        // FIXME
+                        null,
                         bidRequestToPodError.getData(),
                         MetricName.video,
                         new ArrayList<>(),
                         startTime,
-                        timeoutResolver)
+                        timeoutResolver,
+                        // FIXME
+                        null)
                         .map(auctionContext -> WithPodErrors.of(auctionContext, bidRequestToPodError.getPodErrors())));
     }
 
@@ -193,7 +196,7 @@ public class VideoRequestFactory {
     private WithPodErrors<BidRequest> fillImplicitParameters(RoutingContext routingContext,
                                                              WithPodErrors<BidRequest> bidRequestToErrors) {
         final BidRequest bidRequest = auctionRequestFactory
-                .fillImplicitParameters(bidRequestToErrors.getData(), routingContext, timeoutResolver);
+                .fillImplicitParameters(bidRequestToErrors.getData(), null, timeoutResolver); // FIXME
         return WithPodErrors.of(bidRequest, bidRequestToErrors.getPodErrors());
     }
 }

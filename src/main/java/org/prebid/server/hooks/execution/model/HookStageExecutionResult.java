@@ -8,6 +8,4 @@ public class HookStageExecutionResult<PAYLOAD> {
     boolean shouldReject;
 
     PAYLOAD payload;
-
-    StageExecutionOutcome executionOutcome;
 }

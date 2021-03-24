@@ -107,12 +107,15 @@ public class AmpRequestFactory {
         }
         return createBidRequest(routingContext, tagId)
                 .compose(bidRequestWithErrors -> auctionRequestFactory.toAuctionContext(
-                        routingContext,
+                        // FIXME
+                        null,
                         bidRequestWithErrors.getLeft(),
                         MetricName.amp,
                         bidRequestWithErrors.getRight(),
                         startTime,
-                        timeoutResolver));
+                        timeoutResolver,
+                        // FIXME
+                        null));
     }
 
     /**
@@ -125,7 +128,8 @@ public class AmpRequestFactory {
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))
-                .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context, timeoutResolver))
+                // FIXME
+                .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, null, timeoutResolver))
                 .map(auctionRequestFactory::validateRequest)
                 .map(bidRequest -> Tuple2.of(bidRequest, errors));
     }
@@ -270,7 +274,8 @@ public class AmpRequestFactory {
 
         final String requestTargeting = request.getParam(TARGETING_REQUEST_PARAM);
         final ObjectNode targetingNode = readTargeting(requestTargeting);
-        ortbTypesResolver.normalizeTargeting(targetingNode, errors, implicitParametersExtractor.refererFrom(request));
+        // FIXME
+        ortbTypesResolver.normalizeTargeting(targetingNode, errors, implicitParametersExtractor.refererFrom(null));
         final Targeting targeting = parseTargeting(targetingNode);
 
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);

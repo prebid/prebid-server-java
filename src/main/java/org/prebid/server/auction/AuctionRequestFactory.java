@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -21,21 +20,22 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
@@ -188,15 +188,46 @@ public class AuctionRequestFactory {
             return Future.failedFuture(e);
         }
 
-        return parseRequest(body, routingContext, errors)
-                .compose(tuple -> updateBidRequest(routingContext, tuple.getMiddle()) // FIXME: use httpRequest
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.builder()
+                .endpoint(Endpoint.openrtb2_auction)
+                .stageOutcomes(new EnumMap<>(Stage.class))
+                .build();
+
+        return hookStageExecutor.executeEntrypointStage(
+                routingContext.queryParams(),
+                routingContext.request().headers(),
+                body,
+                hookExecutionContext)
+                .map(stageResult -> toHttpRequest(stageResult, routingContext, hookExecutionContext))
+                .compose(httpRequest -> updateBidRequest(
+                        httpRequest,
+                        parseRequest(httpRequest, errors))
                         .compose(bidRequest -> toAuctionContext(
-                                routingContext, // FIXME: use httpRequest
+                                httpRequest,
                                 bidRequest,
                                 requestTypeMetric(bidRequest),
                                 errors,
                                 startTime,
-                                timeoutResolver)));
+                                timeoutResolver,
+                                hookExecutionContext)));
+    }
+
+    private HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
+                                             RoutingContext routingContext,
+                                             HookExecutionContext hookExecutionContext) {
+
+        if (stageResult.isShouldReject()) {
+            throw new RejectedRequestException(hookExecutionContext);
+        }
+
+        return HttpRequestWrapper.builder()
+                .absoluteUri(routingContext.request().absoluteURI())
+                .queryParams(stageResult.getPayload().queryParams())
+                .headers(stageResult.getPayload().headers())
+                .body(stageResult.getPayload().body())
+                .scheme(routingContext.request().scheme())
+                .remoteHost(routingContext.request().remoteAddress().host())
+                .build();
     }
 
     /**
@@ -204,21 +235,22 @@ public class AuctionRequestFactory {
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
-    Future<AuctionContext> toAuctionContext(RoutingContext routingContext,
+    Future<AuctionContext> toAuctionContext(HttpRequestWrapper httpRequest,
                                             BidRequest bidRequest,
                                             MetricName requestTypeMetric,
                                             List<String> errors,
                                             long startTime,
-                                            TimeoutResolver timeoutResolver) {
+                                            TimeoutResolver timeoutResolver,
+                                            HookExecutionContext hookExecutionContext) {
 
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
-        return accountFrom(bidRequest, timeout, routingContext)
+        return accountFrom(bidRequest, timeout, httpRequest)
                 .compose(account -> privacyEnforcementService.contextFromBidRequest(
                         bidRequest, account, requestTypeMetric, timeout, errors)
                         .map(privacyContext -> AuctionContext.builder()
-                                .routingContext(routingContext)
-                                .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
+                                .httpRequest(httpRequest)
+                                .uidsCookie(uidsCookieService.parseFromRequest(null))
                                 .bidRequest(enrichBidRequestWithAccountAndPrivacyData(
                                         bidRequest, account, privacyContext))
                                 .requestTypeMetric(requestTypeMetric)
@@ -228,48 +260,8 @@ public class AuctionRequestFactory {
                                 .debugWarnings(new ArrayList<>())
                                 .privacyContext(privacyContext)
                                 .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                                .hookExecutionContext(hookExecutionContext)
                                 .build()));
-    }
-
-    /**
-     * Parses request body to {@link BidRequest}.
-     * <p>
-     * Throws {@link InvalidRequestException} if body is empty, exceeds max request size or couldn't be deserialized.
-     */
-    private Future<Tuple3<HttpRequestWrapper, BidRequest, HookExecutionContext>> parseRequest(
-            String body,
-            RoutingContext context,
-            List<String> errors) {
-
-        return hookStageExecutor.executeEntrypointStage(
-                context.queryParams(),
-                context.request().headers(),
-                body,
-                Endpoint.openrtb2_auction)
-                .map(stageResult -> {
-                    if (stageResult.isShouldReject()) {
-                        // FIXME: rejection
-                        throw new InvalidRequestException("Hooks rejected request");
-                    }
-
-                    final HttpRequestWrapper httpRequest = HttpRequestWrapper.builder()
-                            .queryParams(stageResult.getPayload().queryParams())
-                            .headers(stageResult.getPayload().headers())
-                            .body(stageResult.getPayload().body())
-                            .build();
-
-                    final HookExecutionContext hookExecutionContext = HookExecutionContext.builder()
-                            .stageOutcomes(new EnumMap<>(Stage.class))
-                            .build();
-                    hookExecutionContext.getStageOutcomes().put(Stage.entrypoint, stageResult.getExecutionOutcome());
-
-                    return Tuple2.of(httpRequest, hookExecutionContext);
-                })
-                .map(tuple -> Tuple3.of(
-                        tuple.getLeft(),
-                        normalizeAndDeserializeRequest(tuple.getLeft().getBody(), context, errors), // FIXME: use
-                        // httpRequest
-                        tuple.getRight()));
     }
 
     private String extractAndValidateBody(RoutingContext context) {
@@ -286,10 +278,10 @@ public class AuctionRequestFactory {
         return body;
     }
 
-    private BidRequest normalizeAndDeserializeRequest(String body, RoutingContext context, List<String> errors) {
-        final JsonNode bidRequestNode = bodyAsJsonNode(body);
+    private BidRequest parseRequest(HttpRequestWrapper httpRequest, List<String> errors) {
+        final JsonNode bidRequestNode = bodyAsJsonNode(httpRequest.getBody());
 
-        final String referer = paramsExtractor.refererFrom(context.request());
+        final String referer = paramsExtractor.refererFrom(httpRequest);
         ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
 
         return jsonNodeAsBidRequest(bidRequestNode);
@@ -315,9 +307,9 @@ public class AuctionRequestFactory {
      * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest) {
+    private Future<BidRequest> updateBidRequest(HttpRequestWrapper httpRequest, BidRequest bidRequest) {
         return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
-                .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
+                .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, httpRequest, timeoutResolver))
                 .map(this::validateRequest)
                 .map(interstitialProcessor::process);
     }
@@ -328,23 +320,25 @@ public class AuctionRequestFactory {
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
-    BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context, TimeoutResolver timeoutResolver) {
+    BidRequest fillImplicitParameters(BidRequest bidRequest,
+                                      HttpRequestWrapper httpRequest,
+                                      TimeoutResolver timeoutResolver) {
+
         checkBlacklistedApp(bidRequest);
 
         final BidRequest result;
-        final HttpServerRequest request = context.request();
 
         final Device device = bidRequest.getDevice();
-        final Device populatedDevice = populateDevice(device, bidRequest.getApp(), request);
+        final Device populatedDevice = populateDevice(device, bidRequest.getApp(), httpRequest);
 
         final Site site = bidRequest.getSite();
-        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
+        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, httpRequest);
 
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source);
 
         final List<Imp> imps = bidRequest.getImp();
-        final List<Imp> populatedImps = populateImps(imps, request);
+        final List<Imp> populatedImps = populateImps(imps, httpRequest);
 
         final Integer at = bidRequest.getAt();
         final Integer resolvedAt = resolveAt(at);
@@ -393,7 +387,7 @@ public class AuctionRequestFactory {
      * Populates the request body's 'device' section from the incoming http request if the original is partially filled
      * and the request contains necessary info (User-Agent, IP-address).
      */
-    private Device populateDevice(Device device, App app, HttpServerRequest request) {
+    private Device populateDevice(Device device, App app, HttpRequestWrapper httpRequest) {
         final String deviceIp = device != null ? device.getIp() : null;
         final String deviceIpv6 = device != null ? device.getIpv6() : null;
 
@@ -401,7 +395,7 @@ public class AuctionRequestFactory {
         String resolvedIpv6 = sanitizeIp(deviceIpv6, IpAddress.IP.v6);
 
         if (resolvedIp == null && resolvedIpv6 == null) {
-            final IpAddress requestIp = findIpFromRequest(request);
+            final IpAddress requestIp = findIpFromRequest(httpRequest);
 
             resolvedIp = getIpIfVersionIs(requestIp, IpAddress.IP.v4);
             resolvedIpv6 = getIpIfVersionIs(requestIp, IpAddress.IP.v6);
@@ -410,7 +404,7 @@ public class AuctionRequestFactory {
         logWarnIfNoIp(resolvedIp, resolvedIpv6);
 
         final String ua = device != null ? device.getUa() : null;
-        final Integer dnt = resolveDntHeader(request);
+        final Integer dnt = resolveDntHeader(httpRequest);
         final Integer lmt = resolveLmt(device, app);
 
         if (!Objects.equals(deviceIp, resolvedIp)
@@ -422,7 +416,7 @@ public class AuctionRequestFactory {
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
 
             if (StringUtils.isBlank(ua)) {
-                builder.ua(paramsExtractor.uaFrom(request));
+                builder.ua(paramsExtractor.uaFrom(httpRequest));
             }
             if (dnt != null) {
                 builder.dnt(dnt);
@@ -442,8 +436,8 @@ public class AuctionRequestFactory {
         return null;
     }
 
-    private Integer resolveDntHeader(HttpServerRequest request) {
-        final String dnt = request.getHeader(HttpUtil.DNT_HEADER.toString());
+    private Integer resolveDntHeader(HttpRequestWrapper request) {
+        final String dnt = request.getHeaders().get(HttpUtil.DNT_HEADER.toString());
         return StringUtils.equalsAny(dnt, "0", "1") ? Integer.valueOf(dnt) : null;
     }
 
@@ -452,7 +446,7 @@ public class AuctionRequestFactory {
         return ipAddress != null && ipAddress.getVersion() == version ? ipAddress.getIp() : null;
     }
 
-    private IpAddress findIpFromRequest(HttpServerRequest request) {
+    private IpAddress findIpFromRequest(HttpRequestWrapper request) {
         final List<String> requestIps = paramsExtractor.ipFrom(request);
         return requestIps.stream()
                 .map(ipAddressHelper::toIpAddress)
@@ -557,9 +551,9 @@ public class AuctionRequestFactory {
      * Populates the request body's 'site' section from the incoming http request if the original is partially filled
      * and the request contains necessary info (domain, page).
      */
-    private Site populateSite(Site site, HttpServerRequest request) {
+    private Site populateSite(Site site, HttpRequestWrapper httpRequest) {
         final String page = site != null ? StringUtils.trimToNull(site.getPage()) : null;
-        final String updatedPage = page == null ? paramsExtractor.refererFrom(request) : null;
+        final String updatedPage = page == null ? paramsExtractor.refererFrom(httpRequest) : null;
 
         final String domain = site != null ? StringUtils.trimToNull(site.getDomain()) : null;
         final String updatedDomain = domain == null
@@ -612,12 +606,12 @@ public class AuctionRequestFactory {
      * - Updates imps with security 1, when secured request was received and imp security was not defined.
      * - Moves bidder parameters from imp.ext._bidder_ to imp.ext.prebid.bidder._bidder_
      */
-    private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
+    private List<Imp> populateImps(List<Imp> imps, HttpRequestWrapper httpRequest) {
         if (CollectionUtils.isEmpty(imps)) {
             return null;
         }
 
-        final Integer secureFromRequest = paramsExtractor.secureFrom(request);
+        final Integer secureFromRequest = paramsExtractor.secureFrom(httpRequest);
 
         if (!shouldModifyImps(imps, secureFromRequest)) {
             return imps;
@@ -984,7 +978,7 @@ public class AuctionRequestFactory {
     /**
      * Returns {@link Account} fetched by {@link ApplicationSettings}.
      */
-    private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout, RoutingContext routingContext) {
+    private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout, HttpRequestWrapper httpRequest) {
         final String accountId = accountIdFrom(bidRequest);
         final boolean blankAccountId = StringUtils.isBlank(accountId);
 
@@ -995,10 +989,10 @@ public class AuctionRequestFactory {
         }
 
         return blankAccountId
-                ? responseForEmptyAccount(routingContext)
+                ? responseForEmptyAccount(httpRequest)
                 : applicationSettings.getAccountById(accountId, timeout)
                 .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, routingContext));
+                        exception -> accountFallback(exception, accountId, httpRequest));
     }
 
     /**
@@ -1033,21 +1027,25 @@ public class AuctionRequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    private Future<Account> responseForEmptyAccount(RoutingContext routingContext) {
-        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", routingContext), 100);
+    private Future<Account> responseForEmptyAccount(HttpRequestWrapper httpRequest) {
+        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), 100);
         return responseForUnknownAccount(StringUtils.EMPTY);
     }
 
-    private static String accountErrorMessage(String message, RoutingContext routingContext) {
-        final HttpServerRequest request = routingContext.request();
-        return String.format("%s, Url: %s and Referer: %s", message, request.absoluteURI(),
-                request.headers().get(HttpUtil.REFERER_HEADER));
+    private static String accountErrorMessage(String message, HttpRequestWrapper httpRequest) {
+        return String.format(
+                "%s, Url: %s and Referer: %s",
+                message,
+                httpRequest.getAbsoluteUri(),
+                httpRequest.getHeaders().get(HttpUtil.REFERER_HEADER));
     }
 
-    private Future<Account> accountFallback(Throwable exception, String accountId,
-                                            RoutingContext routingContext) {
+    private Future<Account> accountFallback(Throwable exception,
+                                            String accountId,
+                                            HttpRequestWrapper httpRequest) {
+
         if (exception instanceof PreBidException) {
-            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), routingContext), 100);
+            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
             logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);

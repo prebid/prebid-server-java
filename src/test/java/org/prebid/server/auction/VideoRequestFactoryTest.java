@@ -212,7 +212,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
-        given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any()))
+        given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any(), any()))
                 .willReturn(Future.succeededFuture());
 
         // when
@@ -222,9 +222,10 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(routingContext).getBody();
         verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
         verify(auctionRequestFactory).validateRequest(bidRequest);
-        verify(auctionRequestFactory).fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        verify(auctionRequestFactory).fillImplicitParameters(bidRequest, /*FIXME*/ null, timeoutResolver);
         verify(auctionRequestFactory).toAuctionContext(
-                routingContext, bidRequest, MetricName.video, new ArrayList<>(), 0, timeoutResolver);
+                // FIXME
+                null, bidRequest, MetricName.video, new ArrayList<>(), 0, timeoutResolver, null);
 
         assertThat(result.result().getPodErrors()).isEqualTo(mergedBidRequest.getPodErrors());
     }
