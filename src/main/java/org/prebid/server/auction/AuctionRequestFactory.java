@@ -194,9 +194,7 @@ public class AuctionRequestFactory {
                 .build();
 
         return executeEntrypointHooks(routingContext, body, hookExecutionContext)
-                .compose(httpRequest -> updateBidRequest(
-                        httpRequest,
-                        parseRequest(httpRequest, errors))
+                .compose(httpRequest -> createBidRequest(httpRequest, errors)
                         .compose(bidRequest -> toAuctionContext(
                                 httpRequest,
                                 bidRequest,
@@ -208,8 +206,8 @@ public class AuctionRequestFactory {
     }
 
     protected Future<HttpRequestWrapper> executeEntrypointHooks(RoutingContext routingContext,
-                                                              String body,
-                                                              HookExecutionContext hookExecutionContext) {
+                                                                String body,
+                                                                HookExecutionContext hookExecutionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
                 routingContext.queryParams(),
@@ -311,10 +309,17 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
+     * Parses {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> updateBidRequest(HttpRequestWrapper httpRequest, BidRequest bidRequest) {
+    private Future<BidRequest> createBidRequest(HttpRequestWrapper httpRequest, List<String> errors) {
+        final BidRequest bidRequest;
+        try {
+            bidRequest = parseRequest(httpRequest, errors);
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+
         return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, httpRequest, timeoutResolver))
                 .map(this::validateRequest)
