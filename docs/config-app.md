@@ -261,7 +261,7 @@ For HTTP data source available next options:
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
-- `settings.generate-storedrequest-bidrequest-id` - overrides bidrequest.id in amp or app stored request with generated uuid if true. Default value is false.
+- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
 
 It is possible to specify default account configuration values that will be assumed if account config have them 
 unspecified or missing at all. Example:
