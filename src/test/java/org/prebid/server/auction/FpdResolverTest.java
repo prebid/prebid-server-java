@@ -712,24 +712,15 @@ public class FpdResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveBidRequestExtShouldReturnBiddersOnlyIfTheyAreInDataAndBidderConfig() {
+    public void resolveBidRequestExtShouldReturnSameExtIfTargetingIsNull() {
         // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus", "someBidder"), null))
-                .bidderconfig(Collections.singletonList(
-                        ExtRequestPrebidBidderConfig.of(Arrays.asList("rubicon", "someBidder2", "someBidder"), null)))
-                .build()
-        );
+        final ExtRequest givenExtRequest = ExtRequest.of(null);
 
         // when
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, null);
 
         // then
-        assertThat(result)
-                .extracting(ExtRequest::getPrebid)
-                .extracting("data")
-                .flatExtracting("bidders")
-                .containsExactly("rubicon", "someBidder");
+        assertThat(result).isSameAs(givenExtRequest);
     }
 
     @Test

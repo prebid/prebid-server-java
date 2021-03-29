@@ -20,8 +20,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -241,32 +241,18 @@ public class FpdResolver {
     }
 
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
+        if (targeting == null) {
+            return extRequest;
+        }
+
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        final List<ExtRequestPrebidBidderConfig> bidderConfigs = extRequestPrebid != null
-                ? extRequestPrebid.getBidderconfig()
-                : null;
-
-        final List<String> configBidders = bidderConfigs != null
-                ? CollectionUtils.emptyIfNull(bidderConfigs).stream()
-                .filter(Objects::nonNull)
-                .map(ExtRequestPrebidBidderConfig::getBidders)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList())
-                : Collections.emptyList();
-
         final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null
                 ? extRequestPrebid.getData()
                 : null;
 
-        final List<String> fpdBidders = targeting != null ? targeting.getBidders() : null;
-
-        final ExtRequestPrebidData resolvedExtRequestPrebidData =
-                resolveExtRequestPrebidData(extRequestPrebidData, fpdBidders, configBidders);
-
-        final List<ExtRequestPrebidBidderConfig> resolvedBidderConfig = targeting != null
-                ? createAllowedAllBidderConfig(targeting)
-                : null;
+        final ExtRequestPrebidData resolvedExtRequestPrebidData = resolveExtRequestPrebidData(extRequestPrebidData,
+                targeting.getBidders());
+        final List<ExtRequestPrebidBidderConfig> resolvedBidderConfig = createAllowedAllBidderConfig(targeting);
 
         if (resolvedExtRequestPrebidData != null || resolvedBidderConfig != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = extRequestPrebid != null
@@ -282,29 +268,20 @@ public class FpdResolver {
         return extRequest;
     }
 
-    private ExtRequestPrebidData resolveExtRequestPrebidData(ExtRequestPrebidData data,
-                                                             List<String> fpdBidders,
-                                                             List<String> configBidders) {
-
-        final List<String> originBidders = data != null ? data.getBidders() : null;
-        final List<String> resolvedFpdBidders = resolveFpdBidders(fpdBidders, configBidders, originBidders);
-
-        return resolvedFpdBidders != null ? ExtRequestPrebidData.of(resolvedFpdBidders, null) : null;
+    private ExtRequestPrebidData resolveExtRequestPrebidData(ExtRequestPrebidData data, List<String> fpdBidders) {
+        if (CollectionUtils.isEmpty(fpdBidders)) {
+            return null;
+        }
+        final List<String> originBidders = data != null ? data.getBidders() : Collections.emptyList();
+        return CollectionUtils.isEmpty(originBidders)
+                ? ExtRequestPrebidData.of(fpdBidders, null)
+                : ExtRequestPrebidData.of(mergeBidders(fpdBidders, originBidders), null);
     }
 
-    private List<String> resolveFpdBidders(List<String> fpdBidders,
-                                           List<String> configBidders,
-                                           List<String> originBidders) {
-        if (CollectionUtils.isEmpty(originBidders) || CollectionUtils.isEmpty(configBidders)) {
-            return CollectionUtils.isNotEmpty(fpdBidders) ? fpdBidders : null;
-        }
-        final Set<String> configBiddersSet = new HashSet<>(configBidders);
-        final List<String> resolvedBidders = originBidders.stream()
-                .filter(configBiddersSet::contains)
-                .collect(Collectors.toList());
-        resolvedBidders.addAll(CollectionUtils.emptyIfNull(fpdBidders));
-
-        return resolvedBidders;
+    private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
+        final HashSet<String> resolvedBidders = new HashSet<>(originBidders);
+        resolvedBidders.addAll(fpdBidders);
+        return new ArrayList<>(resolvedBidders);
     }
 
     private List<ExtRequestPrebidBidderConfig> createAllowedAllBidderConfig(Targeting targeting) {
