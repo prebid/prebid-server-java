@@ -741,8 +741,6 @@ public class FpdResolverTest extends VertxTest {
     public void resolveBidRequestExtShouldMergeBidders() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(Collections.singletonList(
-                        ExtRequestPrebidBidderConfig.of(Collections.singletonList("appnexus"), null)))
                 .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
 
         // when
