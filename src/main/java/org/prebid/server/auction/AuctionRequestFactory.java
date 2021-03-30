@@ -224,6 +224,7 @@ public class AuctionRequestFactory {
                 .absoluteUri(routingContext.request().absoluteURI())
                 .queryParams(stageResult.getPayload().queryParams())
                 .headers(stageResult.getPayload().headers())
+                .cookies(routingContext.cookieMap())
                 .body(stageResult.getPayload().body())
                 .scheme(routingContext.request().scheme())
                 .remoteHost(routingContext.request().remoteAddress().host())
@@ -250,7 +251,7 @@ public class AuctionRequestFactory {
                         bidRequest, account, requestTypeMetric, timeout, errors)
                         .map(privacyContext -> AuctionContext.builder()
                                 .httpRequest(httpRequest)
-                                .uidsCookie(uidsCookieService.parseFromRequest(null))
+                                .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                                 .bidRequest(enrichBidRequestWithAccountAndPrivacyData(
                                         bidRequest, account, privacyContext))
                                 .requestTypeMetric(requestTypeMetric)

@@ -86,6 +86,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Arrays.copyOf;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -2256,7 +2257,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final UidsCookie givenUidsCookie = new UidsCookie(Uids.builder()
                 .uids(singletonMap("bidder", UidWithExpiry.live("uid")))
                 .build(), jacksonMapper);
-        given(uidsCookieService.parseFromRequest(any())).willReturn(givenUidsCookie);
+        given(uidsCookieService.parseFromRequest(any(HttpRequestWrapper.class))).willReturn(givenUidsCookie);
 
         // when
         final UidsCookie uidsCookie = factory.fromRequest(routingContext, 0L).result().getUidsCookie();

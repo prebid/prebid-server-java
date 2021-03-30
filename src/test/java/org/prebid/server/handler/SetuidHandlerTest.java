@@ -131,7 +131,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorAndTriggerMetricsAndAnalyticsWhenOptedOut() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -152,7 +152,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfBidderParamIsMissing() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
@@ -172,7 +172,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfBidderParamIsInvalid() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam(eq("bidder"))).willReturn("invalid_or_disabled");
@@ -190,7 +190,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldPassUnsuccessfulEventToAnalyticsReporterIfUidMissingInRequest() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -215,7 +215,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(null, privacyEnforcementAction), null)));
 
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -240,7 +240,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -264,7 +264,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.failedFuture("unexpected error TCF"));
 
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -283,7 +283,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldPassAccountToPrivacyEnforcementServiceWhenAccountIsFound() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -309,7 +309,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldPassAccountToPrivacyEnforcementServiceWhenAccountIsNotFound() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -333,7 +333,7 @@ public class SetuidHandlerTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -359,7 +359,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldIgnoreFacebookSentinel() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(FACEBOOK, UidWithExpiry.live("facebookUid"))).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(FACEBOOK);
@@ -403,7 +403,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithCookieFromRequestParam() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
@@ -435,7 +435,7 @@ public class SetuidHandlerTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -466,7 +466,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), null)));
 
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
@@ -501,7 +501,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), null)));
 
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
@@ -530,7 +530,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldNotSendResponseIfClientClosedConnection() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -548,7 +548,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateSetsMetric() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -564,7 +564,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldPassUnsuccessfulEventToAnalyticsReporterIfFacebookSentinel() {
         // given
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(FACEBOOK);
@@ -603,7 +603,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
