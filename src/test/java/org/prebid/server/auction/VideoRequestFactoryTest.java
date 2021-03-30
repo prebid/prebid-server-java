@@ -176,7 +176,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.getBodyAsString()).willReturn(body);
 
         given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add((HttpUtil.USER_AGENT_HEADER), "user-agent-123"));
+                .add(HttpUtil.USER_AGENT_HEADER, "user-agent-123"));
 
         doAnswer(invocation -> Future.succeededFuture(HttpRequestWrapper.builder()
                 .headers(MultiMap.caseInsensitiveMultiMap()
@@ -284,7 +284,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         final BidRequestVideo requestVideo = BidRequestVideo.builder().build();
         given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
         given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add((HttpUtil.USER_AGENT_HEADER), "user-agent-123"));
+                .add(HttpUtil.USER_AGENT_HEADER, "user-agent-123"));
 
         final WithPodErrors<BidRequest> emptyMergeObject = WithPodErrors.of(null, null);
         given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
