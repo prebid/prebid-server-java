@@ -428,12 +428,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                      Site site,
                                      App app,
                                      ExtRequest extRequest) {
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        final List<ExtRequestPrebidMultiBid> multibid = extRequestPrebid != null
-                ? extRequestPrebid.getMultibid() : null;
-        final ExtRequestPrebidMultiBid extRequestPrebidMultiBid =
-                CollectionUtils.emptyIfNull(multibid).stream().findFirst().orElse(null);
-        final Integer maxBids = extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
 
         return RubiconImpExt.of(
                 RubiconImpExtRp.of(
@@ -441,7 +435,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         makeTarget(imp, rubiconImpExt, site, app),
                         RubiconImpExtRpTrack.of("", "")),
                 mapVendorsNamesToUrls(imp.getMetric()),
-                maxBids);
+                getMaxBids(extRequest));
     }
 
     private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
@@ -653,6 +647,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(metric -> ViewabilityVendors.valueOf(metric.getVendor()).getUrl())
                 .collect(Collectors.toList());
         return vendorsUrls.isEmpty() ? null : vendorsUrls;
+    }
+
+    private Integer getMaxBids(ExtRequest extRequest) {
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final List<ExtRequestPrebidMultiBid> multibids = extRequestPrebid != null
+                ? extRequestPrebid.getMultibid() : null;
+        final ExtRequestPrebidMultiBid extRequestPrebidMultiBid =
+                CollectionUtils.isNotEmpty(multibids) ? multibids.get(0) : null;
+
+        return extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
     }
 
     private static boolean isVideo(Imp imp) {

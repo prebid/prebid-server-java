@@ -82,7 +82,6 @@ import org.prebid.server.util.HttpUtil;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -213,7 +212,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .multibid(Collections.singletonList(ExtRequestPrebidMultiBid.of("rubicon", null, 5, "prefix")))
+                        .multibid(singletonList(ExtRequestPrebidMultiBid.of("rubicon", null, 5, "prefix")))
                         .build())),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());

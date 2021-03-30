@@ -733,7 +733,7 @@ public class ExchangeService {
                 .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
                 .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidRequest))
-                .ext(prepareExt(bidder, bidderToPrebidBidders, bidRequest.getExt(), bidderToMultiBid.get(bidder)))
+                .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build());
     }
 
@@ -887,8 +887,8 @@ public class ExchangeService {
      */
     private ExtRequest prepareExt(String bidder,
                                   Map<String, JsonNode> bidderToPrebidBidders,
-                                  ExtRequest requestExt,
-                                  MultiBidConfig multiBidConfig) {
+                                  Map<String, MultiBidConfig> bidderToMultiBid,
+                                  ExtRequest requestExt) {
 
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
         final List<ExtRequestPrebidSchain> extPrebidSchains = extPrebid != null ? extPrebid.getSchains() : null;
@@ -900,28 +900,11 @@ public class ExchangeService {
         final boolean suppressBidderConfig = extPrebidBidderconfig != null;
         final boolean suppressPrebidData = extPrebidData != null;
 
-        final List<ExtRequestPrebidMultiBid> extRequestPrebidMultiBid = multiBidConfig != null
-                ? Collections.singletonList(ExtRequestPrebidMultiBid.of(bidder, null,
-                        multiBidConfig.getMaxBids(), multiBidConfig.getTargetBidderCodePrefix())) : null;
-
-        if (bidderToPrebidBidders.isEmpty() && !suppressSchains && !suppressBidderConfig && !suppressPrebidData) {
-            if (extRequestPrebidMultiBid != null) {
-                final ExtRequestPrebid.ExtRequestPrebidBuilder extPrebidBuilder = extPrebid != null
-                        ? extPrebid.toBuilder()
-                        : ExtRequestPrebid.builder();
-
-                final ExtRequest updatedExtRequest = ExtRequest.of(extPrebidBuilder
-                        .multibid(extRequestPrebidMultiBid)
-                        .build());
-
-                final Map<String, JsonNode> extProperties = requestExt != null ? requestExt.getProperties() : null;
-
-                if (extProperties != null) {
-                    updatedExtRequest.addProperties(extProperties);
-                }
-
-                return updatedExtRequest;
-            }
+        if (bidderToPrebidBidders.isEmpty()
+                && bidderToMultiBid.isEmpty()
+                && !suppressSchains
+                && !suppressBidderConfig
+                && !suppressPrebidData) {
 
             return requestExt;
         }
@@ -937,12 +920,20 @@ public class ExchangeService {
 
         return ExtRequest.of(
                 extPrebidBuilder
-                        .multibid(extRequestPrebidMultiBid)
+                        .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
                         .bidders(bidders)
                         .schains(null)
                         .data(null)
                         .bidderconfig(null)
                         .build());
+    }
+
+    private List<ExtRequestPrebidMultiBid> resolveExtRequestMultiBids(MultiBidConfig multiBidConfig,
+                                                                      String bidder) {
+        return multiBidConfig != null
+                ? Collections.singletonList(ExtRequestPrebidMultiBid.of(
+                bidder, null, multiBidConfig.getMaxBids(), multiBidConfig.getTargetBidderCodePrefix()))
+                : null;
     }
 
     /**
