@@ -50,6 +50,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
 public class VideoRequestFactoryTest extends VertxTest {
@@ -165,6 +166,39 @@ public class VideoRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
                 .element(0).asString().startsWith("Failed to decode:");
+    }
+
+    @Test
+    public void shouldUseHeadersModifiedByEntrypointHooks() throws JsonProcessingException {
+        // given
+        final BidRequestVideo requestVideo = BidRequestVideo.builder().build();
+        final String body = mapper.writeValueAsString(requestVideo);
+        given(routingContext.getBodyAsString()).willReturn(body);
+
+        given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add((HttpUtil.USER_AGENT_HEADER), "user-agent-123"));
+
+        doAnswer(invocation -> Future.succeededFuture(HttpRequestWrapper.builder()
+                .headers(MultiMap.caseInsensitiveMultiMap()
+                        .add(HttpUtil.USER_AGENT_HEADER, "user-agent-456"))
+                .body(body)
+                .build()))
+                .when(auctionRequestFactory)
+                .executeEntrypointHooks(any(), any(), any());
+
+        final WithPodErrors<BidRequest> emptyMergeObject = WithPodErrors.of(null, null);
+        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(emptyMergeObject));
+
+        // when
+        factory.fromRequest(routingContext, 0L);
+
+        // then
+        verify(videoStoredRequestProcessor).processVideoRequest(any(), any(), any(), eq(BidRequestVideo.builder()
+                .device(Device.builder()
+                        .ua("user-agent-456")
+                        .build())
+                .build()));
     }
 
     @Test

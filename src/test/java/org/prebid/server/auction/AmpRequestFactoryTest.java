@@ -66,8 +66,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 public class AmpRequestFactoryTest extends VertxTest {
 
@@ -201,6 +204,33 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages())
                 .hasSize(1).containsOnly("AMP requests require Ext to be set");
+    }
+
+    @Test
+    public void shouldUseQueryParamsModifiedByEntrypointHooks() {
+        // given
+        doAnswer(invocation -> Future.succeededFuture(HttpRequestWrapper.builder()
+                .queryParams(MultiMap.caseInsensitiveMultiMap()
+                        .add("tag_id", "tagId")
+                        .add("debug", "1"))
+                .build()))
+                .when(auctionRequestFactory)
+                .executeEntrypointHooks(any(), any(), any());
+
+        givenBidRequest(
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(0).build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getDebug)
+                .containsExactly(1);
     }
 
     @Test

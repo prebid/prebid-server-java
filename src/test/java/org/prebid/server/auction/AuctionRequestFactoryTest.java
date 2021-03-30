@@ -40,6 +40,7 @@ import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -377,6 +378,52 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
                 .element(0).asString().startsWith("Error decoding bidRequest: Unrecognized token 'body'");
+    }
+
+    @Test
+    public void shouldUseBodyAndHeadersModifiedByEntrypointHooks() {
+        // given
+        given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        EntrypointPayloadImpl.of(
+                                MultiMap.caseInsensitiveMultiMap(),
+                                MultiMap.caseInsensitiveMultiMap()
+                                        .add("DNT", "0"),
+                                bidRequestToString(BidRequest.builder()
+                                        .app(App.builder().bundle("org.company.application").build())
+                                        .build())))));
+
+        givenBidRequest(BidRequest.builder()
+                .device(Device.builder().dnt(1).build())
+                .site(Site.builder().domain("example.com").build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getDevice().getDnt()).isZero();
+        assertThat(request.getSite()).isNull();
+        assertThat(request.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfEntrypointHooksRejectRequest() {
+        // given
+        given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
+
+        givenValidBidRequest();
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RejectedRequestException.class);
+        assertThat(((RejectedRequestException) future.cause()).getHookExecutionContext())
+                .isEqualTo(HookExecutionContext.of(Endpoint.openrtb2_auction));
     }
 
     @Test
@@ -1178,7 +1225,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getImp()).isSameAs(imps);
+        assertThat(request.getImp()).isEqualTo(imps);
     }
 
     @Test
@@ -1209,7 +1256,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getImp()).isSameAs(imps);
+        assertThat(request.getImp()).isEqualTo(imps);
     }
 
     @Test
@@ -1311,7 +1358,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getImp()).isSameAs(imps);
+        assertThat(request.getImp()).isEqualTo(imps);
     }
 
     @Test
@@ -1339,7 +1386,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request).isSameAs(bidRequest);
+        assertThat(request).isEqualTo(bidRequest);
     }
 
     @Test
@@ -1995,7 +2042,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(request.getExt()).isSameAs(extBidRequest);
+        assertThat(request.getExt()).isEqualTo(extBidRequest);
     }
 
     @Test
@@ -2525,16 +2572,20 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     private void givenBidRequest(BidRequest bidRequest) {
+        given(routingContext.getBodyAsString()).willReturn(bidRequestToString(bidRequest));
+
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
+
+        given(requestValidator.validate(any())).willReturn(ValidationResult.success());
+    }
+
+    private static String bidRequestToString(BidRequest bidRequest) {
         try {
-            given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(bidRequest));
+            return mapper.writeValueAsString(bidRequest);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
-                .willReturn(Future.succeededFuture(bidRequest));
-
-        given(requestValidator.validate(any())).willReturn(ValidationResult.success());
     }
 
     private void givenValidBidRequest() {

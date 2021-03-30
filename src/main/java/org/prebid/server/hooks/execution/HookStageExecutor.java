@@ -5,7 +5,6 @@ import io.vertx.core.MultiMap;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
-import org.prebid.server.model.Endpoint;
 
 public class HookStageExecutor {
 
@@ -15,6 +14,21 @@ public class HookStageExecutor {
             String body,
             HookExecutionContext context) {
 
-        return null;
+        return Future.succeededFuture(HookStageExecutionResult.of(false, new EntrypointPayload() {
+            @Override
+            public MultiMap queryParams() {
+                return queryParams;
+            }
+
+            @Override
+            public MultiMap headers() {
+                return headers;
+            }
+
+            @Override
+            public String body() {
+                return body;
+            }
+        }));
     }
 }

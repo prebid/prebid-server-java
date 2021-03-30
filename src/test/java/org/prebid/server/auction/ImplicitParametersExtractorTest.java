@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import org.junit.Before;
 import org.junit.Rule;
@@ -171,6 +172,7 @@ public class ImplicitParametersExtractorTest {
     public void secureFromShouldReturnOneIfConnectedViaSSL() {
         // given
         httpRequest = HttpRequestWrapper.builder()
+                .headers(MultiMap.caseInsensitiveMultiMap())
                 .scheme("https")
                 .build();
 
