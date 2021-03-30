@@ -1,4 +1,5 @@
 {
+  "usesHttps": false,
   "maintainer": {
     "email": "header-bidding@rubiconproject.com"
   },

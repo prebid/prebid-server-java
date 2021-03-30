@@ -116,13 +116,19 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     @Value
     private static class BidderInfoResponseModel {
 
+        @JsonProperty("usesHttps")
+        boolean usesHttps;
+
         MaintainerInfo maintainer;
 
         Capabilities capabilities;
 
         static BidderInfoResponseModel from(BidderInfo bidderInfo) {
             final CapabilitiesInfo capabilities = bidderInfo.getCapabilities();
-            return new BidderInfoResponseModel(bidderInfo.getMaintainer(), Capabilities.from(capabilities));
+            return new BidderInfoResponseModel(
+                    bidderInfo.isUsesHttps(),
+                    bidderInfo.getMaintainer(),
+                    Capabilities.from(capabilities));
         }
     }
 

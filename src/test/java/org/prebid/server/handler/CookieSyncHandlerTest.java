@@ -646,7 +646,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, false, null, null, null, 2, true, true, false));
+                .willReturn(BidderInfo.create(true, "https://endpoint.com", null, false, null, null, null, 2, true, true, false));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -711,7 +711,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, false, null,
+                .willReturn(BidderInfo.create(true, "https://endpoint.com", null, false, null,
                         null, null, 2, true, true, false));
 
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -742,7 +742,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, false, null,
+                .willReturn(BidderInfo.create(true, "https://endpoint.com", null, false, null,
                         null, null, 2, true, true, false));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
@@ -1298,9 +1298,9 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
-        given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(BidderInfo.create(true, null, false, null,
+        given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(BidderInfo.create(true, "https://endpoint.com", null, false, null,
                 null, null, 2, true, true, false));
-        given(bidderCatalog.bidderInfoByName(APPNEXUS)).willReturn(BidderInfo.create(true, null, false, null,
+        given(bidderCatalog.bidderInfoByName(APPNEXUS)).willReturn(BidderInfo.create(true, "https://endpoint.com", null, false, null,
                 null, null, 2, true, false, false));
 
         given(privacyEnforcementService.isCcpaEnforced(any(), any())).willReturn(true);

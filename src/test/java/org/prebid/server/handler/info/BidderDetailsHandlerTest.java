@@ -128,7 +128,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
+                eq("{\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
                         + "{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}}}"));
     }
 
@@ -142,7 +142,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
+                eq("{\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
                         + "{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}},"
                         + "\"aliasOf\":\"bidderName1\"}"));
     }
@@ -157,15 +157,16 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"bidderAlias1\":{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
-                        + "{\"app\":{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}},"
-                        + "\"aliasOf\":\"bidderName1\"},"
-                        + "\"bidderName1\":{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
-                        + "{\"app\":{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}}}}"));
+                eq("{\"bidderAlias1\":{\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},\"site\":"
+                        + "{\"mediaTypes\":[\"video\"]}},\"aliasOf\":\"bidderName1\"},"
+                        + "\"bidderName1\":{\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},\"site\":"
+                        + "{\"mediaTypes\":[\"video\"]}}}}"));
     }
 
     private static BidderInfo givenBidderInfo() {
-        return BidderInfo.create(true, "test@email.org", false, singletonList("banner"),
+        return BidderInfo.create(true, "https://endpoint.com", "test@email.org", false, singletonList("banner"),
                 singletonList("video"), null, 0, true, true, false);
     }
 }
