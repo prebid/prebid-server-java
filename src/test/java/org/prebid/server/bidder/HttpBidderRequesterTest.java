@@ -81,7 +81,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .willAnswer(invocation -> ValueValidationResult.success(invocation.getArgument(0)));
         given(bidderErrorNotifier.processTimeout(any(), any())).will(invocation -> invocation.getArgument(0));
 
-        bidderInfo = BidderInfo.create(true, null, false, emptyList(), emptyList(), emptyList(), 0, false, false,
+        bidderInfo = BidderInfo.create(true, "https://endpoint.com", null, false, emptyList(), emptyList(), emptyList(), 0, false, false,
                 false);
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);

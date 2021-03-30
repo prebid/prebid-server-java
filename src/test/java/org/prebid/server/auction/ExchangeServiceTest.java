@@ -217,7 +217,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any())).willAnswer(
                 inv -> inv.getArgument(0));
 
-        bidderInfo = BidderInfo.create(true, null, false, emptyList(), emptyList(), emptyList(), 0, false, false,
+        bidderInfo = BidderInfo.create(true, "https://endpoint.com", null, false, emptyList(), emptyList(), emptyList(), 0, false, false,
                 false);
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
