@@ -497,6 +497,7 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
+            HookStageExecutor hookStageExecutor,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -513,6 +514,7 @@ public class ServiceConfiguration {
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                hookStageExecutor,
                 metrics,
                 clock,
                 mapper);
