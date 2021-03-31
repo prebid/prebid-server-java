@@ -1519,18 +1519,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotFilterUserExtEidsWhenSourceAllowedForBidderAlias() {
-        testUserEidsPermissionFiltering(
-                // given
-                singletonList(ExtUserEid.of("source1", null, null, null)),
-                singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("someBidderAlias"))),
-                singletonMap("someBidder", "someBidderAlias"),
-                // expected
-                singletonList(ExtUserEid.of("source1", null, null, null))
-        );
-    }
-
-    @Test
     public void shouldFilterUserExtEidsWhenBidderIsNotAllowedForSourceAndSetNullIfNoEidsLeft() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
@@ -1545,6 +1533,80 @@ public class ExchangeServiceTest extends VertxTest {
                                 .data(ExtRequestPrebidData.of(null, singletonList(
                                         ExtRequestPrebidDataEidPermissions.of("source1",
                                                 singletonList("otherBidder")))))
+                                .build()))
+                        .user(User.builder()
+                                .ext(extUser)
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
+        assertThat(capturedBidRequests)
+                .extracting(BidderRequest::getBidRequest)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .extracting(ExtUser::getEids)
+                .element(0)
+                .isNull();
+    }
+
+    @Test
+    public void shouldFilterUserExtEidsWhenBidderPermissionsGivenToBidderAliasOnly() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
+        final ExtUser extUser = ExtUser.builder().data(mapper.createObjectNode())
+                .eids(singletonList(ExtUserEid.of("source1", null, null, null))).build();
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .aliases(singletonMap("someBidder", "someBidderAlias"))
+                                .data(ExtRequestPrebidData.of(null, singletonList(
+                                        ExtRequestPrebidDataEidPermissions.of("source1",
+                                                singletonList("someBidderAlias")))))
+                                .build()))
+                        .user(User.builder()
+                                .ext(extUser)
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
+        assertThat(capturedBidRequests)
+                .extracting(BidderRequest::getBidRequest)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .extracting(ExtUser::getEids)
+                .element(0)
+                .isNull();
+    }
+
+    @Test
+    public void shouldFilterUserExtEidsWhenPermissionsGivenToBidderButNotForAlias() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidderAlias", bidder, givenEmptySeatBid());
+        final Map<String, Integer> bidderToGdpr = singletonMap("someBidderAlias", 1);
+        final ExtUser extUser = ExtUser.builder().data(mapper.createObjectNode())
+                .eids(singletonList(ExtUserEid.of("source1", null, null, null))).build();
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .aliases(singletonMap("someBidder", "someBidderAlias"))
+                                .data(ExtRequestPrebidData.of(null, singletonList(
+                                        ExtRequestPrebidDataEidPermissions.of("source1",
+                                                singletonList("someBidder")))))
                                 .build()))
                         .user(User.builder()
                                 .ext(extUser)
