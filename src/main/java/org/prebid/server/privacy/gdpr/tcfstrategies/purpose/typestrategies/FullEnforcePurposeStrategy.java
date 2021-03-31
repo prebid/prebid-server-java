@@ -99,7 +99,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
      * <li>When it is contained in GVL LegIntPurposes we reject REQUIRE_CONSENT {@link RestrictionType}
      * and check purposesLITransparency and vendorLegitimateInterest.</li>
      * <p><br>
-     * If it is flexible we check only by {@link RestrictionType}:
+     * If it is flexible we check by {@link RestrictionType}:
      * <li>For REQUIRE_CONSENT we check by purposeConsent and vendorConsent</li>
      * <li>For REQUIRE_LEGITIMATE_INTEREST we check by purposesLITransparency and vendorLegitimateInterest</li>
      * <li>For UNDEFINED we check by purposeConsent and vendorConsent
