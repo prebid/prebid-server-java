@@ -37,6 +37,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
@@ -178,6 +179,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    HookStageExecutor hookStageExecutor() {
+        return new HookStageExecutor();
+    }
+
+    @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
@@ -197,7 +203,8 @@ public class ServiceConfiguration {
             ApplicationSettings applicationSettings,
             PrivacyEnforcementService privacyEnforcementService,
             IdGenerator sourceIdGenerator,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            HookStageExecutor hookStageExecutor) {
 
         final List<String> blacklistedApps = splitToList(blacklistedAppsString);
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -222,6 +229,7 @@ public class ServiceConfiguration {
                 applicationSettings,
                 sourceIdGenerator,
                 privacyEnforcementService,
+                hookStageExecutor,
                 mapper);
     }
 

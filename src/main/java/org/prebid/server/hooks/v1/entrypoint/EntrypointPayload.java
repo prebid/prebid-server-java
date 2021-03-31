@@ -1,8 +1,8 @@
-package org.prebid.server.hooks.v1.endpoint;
+package org.prebid.server.hooks.v1.entrypoint;
 
 import io.vertx.core.MultiMap;
 
-public interface EndpointPayload {
+public interface EntrypointPayload {
 
     MultiMap queryParams();
 

@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.model.HttpRequestWrapper;
 
 import java.util.Map;
 
@@ -118,6 +119,21 @@ public class HttpUtilTest {
 
         // when
         final Map<String, String> cookies = HttpUtil.cookiesAsMap(routingContext);
+
+        // then
+        assertThat(cookies).hasSize(1)
+                .containsOnly(entry("name", "value"));
+    }
+
+    @Test
+    public void cookiesAsMapFromRequestShouldReturnExpectedResult() {
+        // given
+        final HttpRequestWrapper httpRequest = HttpRequestWrapper.builder()
+                .cookies(singletonMap("name", Cookie.cookie("name", "value")))
+                .build();
+
+        // when
+        final Map<String, String> cookies = HttpUtil.cookiesAsMap(httpRequest);
 
         // then
         assertThat(cookies).hasSize(1)
