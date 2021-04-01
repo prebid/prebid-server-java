@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -61,6 +62,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.settings.ApplicationSettings;
@@ -2142,6 +2145,72 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).containsOnly("error1", "error2");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfEidsPermissionsContainsWrongDataType() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(emptyList(), null))
+                        .build()))
+                .build();
+
+        final ObjectNode requestNode = mapper.convertValue(bidRequest, ObjectNode.class);
+        final JsonNode eidPermissionNode = mapper.convertValue(
+                ExtRequestPrebidDataEidPermissions.of("source", emptyList()), JsonNode.class);
+
+        requestNode.with("ext").with("prebid").with("data").set("eidpermissions", eidPermissionNode);
+
+        given(routingContext.getBody()).willReturn(Buffer.buffer(requestNode.toString()));
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .hasSize(1)
+                .allSatisfy(message ->
+                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize instance"));
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfEidsPermissionsBiddersContainsWrongDataType() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(emptyList(), null))
+                        .build()))
+                .build();
+
+        final ObjectNode requestNode = mapper.convertValue(bidRequest, ObjectNode.class);
+
+        final ObjectNode eidPermissionNode = mapper.convertValue(
+                ExtRequestPrebidDataEidPermissions.of("source", emptyList()), ObjectNode.class);
+
+        eidPermissionNode.put("bidders", "notArrayValue");
+
+        final ArrayNode arrayNode = requestNode
+                .with("ext")
+                .with("prebid")
+                .with("data")
+                .putArray("eidpermissions");
+        arrayNode.add(eidPermissionNode);
+
+        given(routingContext.getBody()).willReturn(Buffer.buffer(requestNode.toString()));
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .hasSize(1)
+                .allSatisfy(message ->
+                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize instance"));
     }
 
     @Test

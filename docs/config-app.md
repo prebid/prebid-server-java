@@ -206,6 +206,9 @@ For `console` backend type available next options:
 - `metrics.console.enabled` - if equals to `true` then `console` will be used to submit metrics.
 - `metrics.console.interval` - interval in seconds between successive sending metrics.
 
+For `prometheus` backend type available next options:
+- `metrics.prometheus.port` - if a port is specified a prometheus reporter will start on that port 
+
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
 - `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`. Default is `none`.
@@ -261,6 +264,7 @@ For HTTP data source available next options:
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
 
 It is possible to specify default account configuration values that will be assumed if account config have them 
 unspecified or missing at all. Example:

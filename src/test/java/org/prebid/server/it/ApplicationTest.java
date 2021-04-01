@@ -247,6 +247,7 @@ public class ApplicationTest extends IntegrationTest {
                         + "&oh=120"
                         + "&timeout=10000000"
                         + "&slot=overwrite-tagId"
+                        + "&targeting=%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D"
                         + "&curl=https%3A%2F%2Fgoogle.com"
                         + "&account=accountId"
                         + "&consent_string=1YNN");

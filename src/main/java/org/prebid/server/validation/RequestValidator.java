@@ -42,13 +42,13 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
@@ -253,26 +253,46 @@ public class RequestValidator {
     private void validateEidPermissions(List<ExtRequestPrebidDataEidPermissions> eidPermissions,
                                         Map<String, String> aliases) throws ValidationException {
         if (eidPermissions != null) {
+            final Set<String> uniqueEidsSources = new HashSet<>();
             for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
-                validateEidPermission(eidPermission, aliases);
+                validateEidPermission(eidPermission, aliases, uniqueEidsSources);
             }
         }
     }
 
-    private void validateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission, Map<String, String> aliases)
+    private void validateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission,
+                                       Map<String, String> aliases,
+                                       Set<String> uniqueEidsSources)
             throws ValidationException {
         if (eidPermission == null) {
-            throw new ValidationException("request.ext.prebid.data.eidPermissions[] can't be null");
+            throw new ValidationException("request.ext.prebid.data.eidpermissions[] can't be null");
         }
-        validateEidPermissionSource(eidPermission.getSource());
+        final String eidPermissionSource = eidPermission.getSource();
+
+        validateEidPermissionSource(eidPermissionSource);
+        validateDuplicatedSources(uniqueEidsSources, eidPermissionSource);
         validateEidPermissionBidders(eidPermission.getBidders(), aliases);
+    }
+
+    private void validateEidPermissionSource(String source) throws ValidationException {
+        if (StringUtils.isEmpty(source)) {
+            throw new ValidationException("Missing required value request.ext.prebid.data.eidPermissions[].source");
+        }
+    }
+
+    private void validateDuplicatedSources(Set<String> uniqueEidsSources, String eidSource) throws ValidationException {
+        if (uniqueEidsSources.contains(eidSource)) {
+            throw new ValidationException(String.format(
+                    "Duplicate source %s in request.ext.prebid.data.eidpermissions[]", eidSource));
+        }
+        uniqueEidsSources.add(eidSource);
     }
 
     private void validateEidPermissionBidders(List<String> bidders,
                                               Map<String, String> aliases) throws ValidationException {
 
         if (CollectionUtils.isEmpty(bidders)) {
-            throw new ValidationException("request.ext.prebid.data.eidPermissions[].bidders[] required values"
+            throw new ValidationException("request.ext.prebid.data.eidpermissions[].bidders[] required values"
                     + " but was empty or null");
         }
 
@@ -282,12 +302,6 @@ public class RequestValidator {
                 throw new ValidationException(
                         "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode : %s", bidder);
             }
-        }
-    }
-
-    private void validateEidPermissionSource(String source) throws ValidationException {
-        if (StringUtils.isEmpty(source)) {
-            throw new ValidationException("Missing required value request.ext.prebid.data.eidPermissions[].source");
         }
     }
 
