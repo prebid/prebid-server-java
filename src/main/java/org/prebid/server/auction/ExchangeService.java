@@ -38,6 +38,9 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -103,6 +106,7 @@ public class ExchangeService {
     private final CurrencyConversionService currencyService;
     private final BidResponseCreator bidResponseCreator;
     private final BidResponsePostProcessor bidResponsePostProcessor;
+    private final HookStageExecutor hookStageExecutor;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -118,6 +122,7 @@ public class ExchangeService {
                            CurrencyConversionService currencyService,
                            BidResponseCreator bidResponseCreator,
                            BidResponsePostProcessor bidResponsePostProcessor,
+                           HookStageExecutor hookStageExecutor,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper) {
@@ -136,6 +141,7 @@ public class ExchangeService {
         this.currencyService = Objects.requireNonNull(currencyService);
         this.bidResponseCreator = Objects.requireNonNull(bidResponseCreator);
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
+        this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -166,7 +172,8 @@ public class ExchangeService {
                         bidderRequests, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
                 .compose(bidderRequests -> CompositeFuture.join(
                         bidderRequests.stream()
-                                .map(bidderRequest -> requestBids(
+                                .map(bidderRequest -> invokeHooksAndRequestBids(
+                                        context,
                                         bidderRequest,
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
                                         debugEnabled,
@@ -943,6 +950,33 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
         return bidAdjustmentFactors != null ? bidAdjustmentFactors.get(bidder) : null;
+    }
+
+    private Future<BidderResponse> invokeHooksAndRequestBids(AuctionContext auctionContext,
+                                                             BidderRequest bidderRequest,
+                                                             Timeout timeout,
+                                                             boolean debugEnabled,
+                                                             BidderAliases aliases) {
+
+        return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext.getHookExecutionContext())
+                .compose(stageResult -> requestBidsOrRejectBidder(
+                        stageResult, bidderRequest, timeout, debugEnabled, aliases));
+    }
+
+    private Future<BidderResponse> requestBidsOrRejectBidder(
+            HookStageExecutionResult<BidderRequestPayload> hookStageResult,
+            BidderRequest bidderRequest,
+            Timeout timeout,
+            boolean debugEnabled,
+            BidderAliases aliases) {
+
+        return hookStageResult.isShouldReject()
+                ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
+                : requestBids(
+                bidderRequest.with(hookStageResult.getPayload().bidRequest()),
+                timeout,
+                debugEnabled,
+                aliases);
     }
 
     /**
