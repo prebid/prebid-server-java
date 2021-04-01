@@ -8,11 +8,13 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -72,6 +74,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -328,7 +331,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final App app = bidRequest.getApp();
 
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app)))
+                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app, bidRequest.getExt())))
                 .user(makeUser(bidRequest.getUser(), extRubicon))
                 .device(makeDevice(bidRequest.getDevice()))
                 .site(makeSite(site, impLanguage, extRubicon))
@@ -376,10 +379,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon, Site site, App app) {
+    private Imp makeImp(Imp imp,
+                        ExtImpPrebid extPrebid,
+                        ExtImpRubicon extRubicon,
+                        Site site, App app,
+                        ExtRequest extRequest) {
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
-                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app)));
+                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app, extRequest)));
 
         if (isVideo(imp)) {
             builder
@@ -417,13 +424,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
     }
 
-    private RubiconImpExt makeImpExt(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
+    private RubiconImpExt makeImpExt(Imp imp,
+                                     ExtImpRubicon rubiconImpExt,
+                                     Site site,
+                                     App app,
+                                     ExtRequest extRequest) {
+
         return RubiconImpExt.of(
                 RubiconImpExtRp.of(
                         rubiconImpExt.getZoneId(),
                         makeTarget(imp, rubiconImpExt, site, app),
                         RubiconImpExtRpTrack.of("", "")),
-                mapVendorsNamesToUrls(imp.getMetric()));
+                mapVendorsNamesToUrls(imp.getMetric()),
+                getMaxBids(extRequest));
     }
 
     private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
@@ -668,6 +681,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return vendorsUrls.isEmpty() ? null : vendorsUrls;
     }
 
+    private Integer getMaxBids(ExtRequest extRequest) {
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final List<ExtRequestPrebidMultiBid> multibids = extRequestPrebid != null
+                ? extRequestPrebid.getMultibid() : null;
+        final ExtRequestPrebidMultiBid extRequestPrebidMultiBid =
+                CollectionUtils.isNotEmpty(multibids) ? multibids.get(0) : null;
+
+        return extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
+    }
+
     private static boolean isVideo(Imp imp) {
         final Video video = imp.getVideo();
         if (video != null) {
@@ -787,7 +810,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
 
         if (validRubiconSizeIds.isEmpty()) {
-            // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits HB-10418
+            // FIXME: Added 11.11.2020. short term solution for full screen interstitial adunits (PR #1003)
             if (isInterstitial) {
                 validRubiconSizeIds.add(resolveNotStandardSizeForInstl(sizes.get(0)));
             } else {
@@ -977,7 +1000,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         copyLiveintentSegment(sourceToUserEidExt, result);
 
-        mergeFirstPartyDataFromUser(user, result);
+        if (user != null) {
+            mergeFirstPartyDataFromUser(user.getExt(), result);
+
+            enrichWithIabAttribute(result, user.getData());
+        }
 
         return result.size() > 0 ? result : null;
     }
@@ -1004,12 +1031,34 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void mergeFirstPartyDataFromUser(User user, ObjectNode result) {
+    private void mergeFirstPartyDataFromUser(ExtUser userExt, ObjectNode result) {
         // merge OPENRTB.user.ext.data.* to XAPI.user.ext.rp.target.*
-        final ExtUser userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
             populateFirstPartyDataAttributes(userExt.getData(), result);
         }
+    }
+
+    private void enrichWithIabAttribute(ObjectNode target, List<Data> data) {
+        final List<String> iabValue = CollectionUtils.emptyIfNull(data).stream()
+                .filter(Objects::nonNull)
+                .filter(dataRecord -> containsIabTaxonomyName(dataRecord.getExt()))
+                .map(Data::getSegment)
+                .filter(Objects::nonNull)
+                .flatMap(segments -> segments.stream()
+                        .map(Segment::getId))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (CollectionUtils.isNotEmpty(iabValue)) {
+            final ArrayNode iab = target.putArray("iab");
+            iabValue.forEach(iab::add);
+        }
+    }
+
+    private boolean containsIabTaxonomyName(ObjectNode ext) {
+        final JsonNode taxonomyName = ext != null ? ext.get("taxonomyname") : null;
+        return taxonomyName != null && taxonomyName.isTextual()
+                && StringUtils.containsIgnoreCase(taxonomyName.textValue(), "iab");
     }
 
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {

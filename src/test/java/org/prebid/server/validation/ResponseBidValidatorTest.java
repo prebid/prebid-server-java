@@ -23,10 +23,10 @@ import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -293,6 +293,40 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldFailedIfVideoBidHasNoNurlAndAdm() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.video, builder -> builder.adm(null).nurl(null)),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Bid \"bidId1\" with video type missing adm and nurl");
+    }
+
+    @Test
+    public void validateShouldReturnSuccessfulResultForValidVideoBidWithNurl() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.video, builder -> builder.adm(null)),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
+    public void validateShouldReturnSuccessfulResultForValidVideoBidWithAdm() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.video, builder -> builder.nurl(null)),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
     public void validateShouldReturnSuccessfulResultForValidBid() {
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -431,13 +465,15 @@ public class ResponseBidValidatorTest extends VertxTest {
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
     }
 
-    private static BidderBid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidderBid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return givenBid(BidType.banner, bidCustomizer);
     }
 
-    private static BidderBid givenBid(BidType type, Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidderBid givenBid(BidType type, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         final Bid.BidBuilder bidBuilder = Bid.builder()
                 .id("bidId1")
+                .adm("adm1")
+                .nurl("nurl")
                 .impid("impId1")
                 .crid("crid1")
                 .w(1)
@@ -467,7 +503,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         return givenAuctionContext(givenBidRequest(identity()), givenAccount());
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id("impId1")
                 .banner(Banner.builder()
@@ -483,7 +519,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         return givenAccount(identity());
     }
 
-    private static Account givenAccount(Function<Account.AccountBuilder, Account.AccountBuilder> accountCustomizer) {
+    private static Account givenAccount(UnaryOperator<Account.AccountBuilder> accountCustomizer) {
         return accountCustomizer.apply(Account.builder().id(ACCOUNT_ID)).build();
     }
 }

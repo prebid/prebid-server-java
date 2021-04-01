@@ -1,0 +1,16 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "466223845",
+        "impid": "impStoredBidResponse",
+        "price": 0.8,
+        "adm": "adm1",
+        "crid": "crid1",
+        "w": 300,
+        "h": 250
+      }
+    }
+  ]
+}

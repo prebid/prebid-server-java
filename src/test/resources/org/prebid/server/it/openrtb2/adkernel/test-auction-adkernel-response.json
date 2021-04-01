@@ -14,7 +14,6 @@
           ],
           "cid": "1001",
           "crid": "2002",
-          "exp": 120,
           "ext": {
             "prebid": {
               "type": "banner",
@@ -24,22 +23,16 @@
                 "hb_cache_id_adkernel": "71615e3d-8a18-4099-a807-3952199b532a",
                 "hb_pb_adkernel": "2.20",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_uuid": "69c0e0c9-ce20-4d91-99d1-d821afd75727",
                 "hb_cache_host_adkernel": "{{ cache.host }}",
                 "hb_bidder": "adkernel",
                 "hb_cache_id": "71615e3d-8a18-4099-a807-3952199b532a",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_uuid_adkernel": "69c0e0c9-ce20-4d91-99d1-d821afd75727",
                 "hb_cache_path_adkernel": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {
                   "url": "{{ cache.resource_url }}71615e3d-8a18-4099-a807-3952199b532a",
                   "cacheId": "71615e3d-8a18-4099-a807-3952199b532a"
-                },
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}69c0e0c9-ce20-4d91-99d1-d821afd75727",
-                  "cacheId": "69c0e0c9-ce20-4d91-99d1-d821afd75727"
                 }
               }
             }

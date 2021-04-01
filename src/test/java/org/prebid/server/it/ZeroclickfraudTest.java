@@ -5,7 +5,6 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -42,10 +41,12 @@ public class ZeroclickfraudTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/zeroclickfraud/test-cache-zeroclickfraud-request.json")))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/zeroclickfraud/test-cache-zeroclickfraud-request.json")))
                 .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/zeroclickfraud/test-cache-zeroclickfraud-response.json"))));
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/zeroclickfraud/test-cache-matcher-zeroclickfraud.json")));
 
         // when
         final Response response = given(SPEC)
@@ -63,6 +64,6 @@ public class ZeroclickfraudTest extends IntegrationTest {
                 "openrtb2/zeroclickfraud/test-auction-zeroclickfraud-response.json",
                 response, singletonList("zeroclickfraud"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }

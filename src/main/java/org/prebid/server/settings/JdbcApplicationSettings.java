@@ -112,7 +112,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return jdbcClient.executeQuery(
                 selectAccountQuery,
                 Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> Account.builder()
+                result -> mapToModelOrError(result, row -> partialAccountBuilderFrom(row.getString(13))
                         .id(row.getString(0))
                         .priceGranularity(row.getString(1))
                         .bannerCacheTtl(row.getInteger(2))
@@ -129,19 +129,6 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
-    }
-
-    /**
-     * Runs a process to get AdUnit config by id from database
-     * and returns {@link Future&lt;{@link String}&gt;}.
-     */
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return jdbcClient.executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1",
-                Collections.singletonList(adUnitConfigId),
-                result -> mapToModelOrError(result, row -> row.getString(0)),
-                timeout)
-                .compose(result -> failedIfNull(result, adUnitConfigId, "AdUnitConfig"));
     }
 
     /**
@@ -164,6 +151,12 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return value != null
                 ? Future.succeededFuture(value)
                 : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
+    }
+
+    private Account.AccountBuilder partialAccountBuilderFrom(String config) {
+        final Account partialAccount = toModel(config, Account.class);
+
+        return partialAccount != null ? partialAccount.toBuilder() : Account.builder();
     }
 
     private <T> T toModel(String source, Class<T> targetClass) {

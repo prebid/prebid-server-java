@@ -235,8 +235,16 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> makeBidderBid(bidRequest, bidResponse, bid))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    private BidderBid makeBidderBid(BidRequest bidRequest, BidResponse bidResponse, Bid bid) {
+        final BidType bidType = getBidType(bid, bidRequest.getImp());
+        return bidType != null
+                ? BidderBid.of(bid, bidType, bidResponse.getCur())
+                : null;
     }
 
     /**

@@ -44,7 +44,7 @@ public class AmxBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAmx>>() {
             };
 
-    private static final String ADAPTER_VERSION = "pbs1.0";
+    private static final String ADAPTER_VERSION = "pbs1.1";
     private static final String VERSION_PARAM = "v";
     private static final String VAST_SEARCH_POINT = "</Impression>";
     private static final String VAST_IMPRESSION_FORMAT = "<Impression><![CDATA[%s]]></Impression>";
@@ -162,11 +162,12 @@ public class AmxBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid createBidderBid(Bid bid, String cur, List<BidderError> errors) {
-        AmxBidExt amxBidExt = null;
+        final AmxBidExt amxBidExt;
         try {
             amxBidExt = parseBidderExt(bid.getExt());
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
+            return null;
         }
 
         final BidType bidType = getMediaType(amxBidExt);
