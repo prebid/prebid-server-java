@@ -232,6 +232,31 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldAddMaxbidsAttributeAsOneIfExtPrebidMultibidMaxBidsIsNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .multibid(singletonList(
+                                ExtRequestPrebidMultiBid.of("rubicon", null, null, "prefix")))
+                        .build())),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getMaxbids)
+                .containsExactly(1);
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillImpExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -252,7 +277,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
                         mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
-                        RubiconImpExtRpTrack.of("", "")), null, null));
+                        RubiconImpExtRpTrack.of("", "")), null, 1));
     }
 
     @Test
@@ -1597,7 +1622,7 @@ public class RubiconBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, null)))
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, 1)))
                         .build()))
                 .build();
         final BidRequest expectedBidRequest2 = BidRequest.builder()
@@ -1605,7 +1630,7 @@ public class RubiconBidderTest extends VertxTest {
                         .id("2")
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, null)))
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null, 1)))
                         .build()))
                 .build();
 
@@ -2307,7 +2332,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null,
                         null,
-                        RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com"), null));
+                        RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com"), 1));
     }
 
     @Test

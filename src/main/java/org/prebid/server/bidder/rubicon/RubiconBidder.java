@@ -655,8 +655,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ? extRequestPrebid.getMultibid() : null;
         final ExtRequestPrebidMultiBid extRequestPrebidMultiBid =
                 CollectionUtils.isNotEmpty(multibids) ? multibids.get(0) : null;
+        final Integer multibidMaxBids = extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
 
-        return extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
+        return multibidMaxBids != null ? multibidMaxBids : 1;
     }
 
     private static boolean isVideo(Imp imp) {
