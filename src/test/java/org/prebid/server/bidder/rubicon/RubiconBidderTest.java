@@ -1695,7 +1695,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
         final ObjectNode impExtContextDataNode = mapper.createObjectNode()
                 .set("adslot", mapper.createArrayNode().add("123"));
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(impExtContextDataNode)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1780,7 +1780,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(impExtContextDataNode)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1813,7 +1813,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(impExtContextDataNode)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1841,7 +1841,9 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of("imp,ext,context,keywords", null, null)));
+        final ExtImpContext extImpContext = ExtImpContext.of(null);
+        extImpContext.addProperty("keywords", new TextNode("imp,ext,context,keywords"));
+        impExt.set("context", mapper.valueToTree(extImpContext));
         impExt.set("data", mapper.createObjectNode()
                 .put("keywords", "imp,ext,data,keywords"));
         impExt.set(
@@ -1882,7 +1884,9 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, "imp ext context search", null)));
+        final ExtImpContext extImpContext = ExtImpContext.of(null);
+        extImpContext.addProperty("search", new TextNode("imp ext context search"));
+        impExt.set("context", mapper.valueToTree(extImpContext));
         impExt.set("data", mapper.createObjectNode().put("search", "imp ext data search"));
 
         // when
@@ -1930,7 +1934,9 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, "imp ext search", null)));
+        final ExtImpContext extImpContext = ExtImpContext.of(null);
+        extImpContext.addProperty("search", new TextNode("imp ext search"));
+        impExt.set("context", mapper.valueToTree(extImpContext));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1969,7 +1975,7 @@ public class RubiconBidderTest extends VertxTest {
                 .put("search", "imp ext search");
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextData)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(impExtContextData)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -2017,7 +2023,7 @@ public class RubiconBidderTest extends VertxTest {
                 .set("pagecat", mapper.createArrayNode().add("imp ext pagecat"));
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextData)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(impExtContextData)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);

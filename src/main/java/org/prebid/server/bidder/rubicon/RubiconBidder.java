@@ -479,7 +479,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
         mergeCollectionAttributeIntoArray(result, rubiconImpExt, ExtImpRubicon::getKeywords, FPD_KEYWORDS_FIELD);
         // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
-        mergeStringAttributeIntoArray(result, context, ExtImpContext::getSearch, FPD_SEARCH_FIELD);
+        mergeStringAttributeIntoArray(
+                result,
+                context,
+                extContext -> getTextValueFromNode(extContext.getProperty(FPD_SEARCH_FIELD)),
+                FPD_SEARCH_FIELD);
         // merge OPENRTB.imp[].ext.data.search to XAPI.imp[].ext.rp.target.search
         mergeStringAttributeIntoArray(
                 result,
@@ -539,9 +543,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private void mergeFirstPartyDataKeywords(Imp imp, ExtImpContext context, ObjectNode result) {
         // merge OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
-        final String contextKeywords = context != null ? context.getKeywords() : null;
-        if (StringUtils.isNotBlank(contextKeywords)) {
-            mergeIntoArray(result, FPD_KEYWORDS_FIELD, contextKeywords.split(","));
+        final JsonNode keywordsNode = context != null ? context.getProperty("keywords") : null;
+        final String keywords = getTextValueFromNode(keywordsNode);
+        if (StringUtils.isNotBlank(keywords)) {
+            mergeIntoArray(result, FPD_KEYWORDS_FIELD, keywords.split(","));
         }
 
         // merge OPENRTB.imp[].ext.data.keywords to XAPI.imp[].ext.rp.target.keywords
@@ -587,6 +592,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static String getTextValueFromNodeByPath(JsonNode node, String path) {
         final JsonNode nodeByPath = node != null ? node.get(path) : null;
         return nodeByPath != null && nodeByPath.isTextual() ? nodeByPath.textValue() : null;
+    }
+
+    private static String getTextValueFromNode(JsonNode node) {
+        return node != null && node.isTextual() ? node.textValue() : null;
     }
 
     private String getAdSlotFromAdServer(JsonNode dataNode) {
