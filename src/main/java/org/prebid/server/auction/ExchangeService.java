@@ -193,7 +193,8 @@ public class ExchangeService {
                         bidderToMultiBid,
                         debugEnabled))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
-                        context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account));
+                        context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
+                .compose(bidResponse -> invokeResponseHooks(context, bidResponse));
     }
 
     private BidderAliases aliases(BidRequest bidRequest) {
@@ -1161,6 +1162,11 @@ public class ExchangeService {
         }
 
         return bidderResponses;
+    }
+
+    private Future<BidResponse> invokeResponseHooks(AuctionContext auctionContext, BidResponse bidResponse) {
+        return hookStageExecutor.executeAuctionResponseStage(bidResponse, auctionContext.getHookExecutionContext())
+                .map(stageResult -> stageResult.getPayload().bidResponse());
     }
 
     /**

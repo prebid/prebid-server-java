@@ -58,6 +58,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -214,6 +215,10 @@ public class ExchangeServiceTest extends VertxTest {
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         BidderRequestPayloadImpl.of(invocation.<BidderRequest>getArgument(0).getBidRequest()))));
+        given(hookStageExecutor.executeAuctionResponseStage(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
 
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
@@ -2586,6 +2591,26 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsExactly(BigDecimal.ONE);
     }
 
+    @Test
+    public void shouldReturnBidResponseModifiedByAuctionResponseHooks() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
+
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                false,
+                AuctionResponsePayloadImpl.of(BidResponse.builder().id("bidResponseId").build()))))
+                .when(hookStageExecutor).executeAuctionResponseStage(any(), any());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        assertThat(bidResponse).isEqualTo(BidResponse.builder().id("bidResponseId").build());
+    }
+
     private AuctionContext givenRequestContext(BidRequest bidRequest) {
         return givenRequestContext(bidRequest, Account.builder().id("accountId").eventsEnabled(true).build());
     }
@@ -2763,5 +2788,12 @@ public class ExchangeServiceTest extends VertxTest {
     private static class BidderRequestPayloadImpl implements BidderRequestPayload {
 
         BidRequest bidRequest;
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class AuctionResponsePayloadImpl implements AuctionResponsePayload {
+
+        BidResponse bidResponse;
     }
 }
