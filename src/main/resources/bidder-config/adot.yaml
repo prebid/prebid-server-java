@@ -18,7 +18,7 @@ adapters:
         - video
         - native
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 272
     usersync:
       url:
       redirect-url:

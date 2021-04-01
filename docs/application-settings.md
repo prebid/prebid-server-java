@@ -25,6 +25,9 @@ There are two ways to configure application settings: database and file. This do
 - `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners.
 - `status` - allows to mark account as `active` or `inactive`.
+- `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
+- `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this value
+- `cookie-sync.default-coop-sync` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 ```
@@ -77,6 +80,10 @@ accounts:
       auction-events:
         amp: true
     status: active
+    cookie-sync:
+      default-limit: 5
+      max-limit: 8
+      default-coop-sync: true
     gdpr:
       enabled: true
       integration-enabled:
@@ -187,7 +194,7 @@ Prebid Server returns expected data in the expected order. Here's an example con
 settings:
   database:
     type: mysql
-    account-query: SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations, status FROM accounts_account where uuid = ? LIMIT 1
+    account-query: SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations, status, config FROM accounts_account where uuid = ? LIMIT 1
 ```
 
 The SQL query for account must:
@@ -203,7 +210,9 @@ The SQL query for account must:
     * maximum targeting attribute size, integer
     * default integration value, string
     * analytics configuration, JSON string, see below
+    * bid validations configuration, JSON string, see below
     * status, string. Expected values: "active", "inactive", NULL. Only "inactive" has any effect and only when settings.enforce-valid-account is on.
+    * consolidated configuration, JSON string, see below   
 * specify a special single `%ACCOUNT_ID%` placeholder in the `WHERE` clause that will be replaced with account ID in 
 runtime
 
@@ -215,7 +224,7 @@ If a host company doesn't support a given field, or they have a different table 
 settings:
   database:
     type: mysql
-    account-query: SELECT uuid, 'med', banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 0, null, default_integration, '{}', '{}' FROM myaccountstable where uuid = ? LIMIT 1
+    account-query: SELECT uuid, 'med', banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 0, null, default_integration, '{}', '{}', status, '{}' FROM myaccountstable where uuid = ? LIMIT 1
 ```
 ### Configuration Details
 
@@ -351,7 +360,7 @@ Valid values are:
 
 #### Analytics Validations configuration JSON
 
-The `analytics_config`  configuration column format:
+The `analytics_config` configuration column format:
 
 ```json
 {
@@ -359,6 +368,21 @@ The `analytics_config`  configuration column format:
     "web": true,   // the analytics adapter should log auction events when the channel is web
     "amp": true,   // the analytics adapter should log auction events when the channel is AMP
     "app": false   // the analytics adapter should not log auction events when the channel is app
+  }
+}
+```
+
+#### Consolidated configuration JSON
+
+The `config` column is envisioned as a new home for all configuration values. All new configuration values are added here. 
+The schema of this JSON document has following format so far:
+
+```json
+{
+  "cookie-sync": {
+    "default-limit": 5,
+    "max-limit": 8,
+    "default-coop-sync": true
   }
 }
 ```
@@ -386,6 +410,7 @@ you could use to create your table:
     `analytics_config` varchar(512) DEFAULT NULL,
     `bid_validations` json DEFAULT NULL,
     `status` enum('active','inactive') DEFAULT 'active',
+    `config` json DEFAULT NULL,
     `updated_by` int(11) DEFAULT NULL,
     `updated_by_user` varchar(64) DEFAULT NULL,
     `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -11,7 +11,6 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
-import org.prebid.server.auction.BidResponseReducer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -26,6 +25,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
+import org.prebid.server.auction.WinningBidComparator;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -457,7 +457,7 @@ public class ServiceConfiguration {
             VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            BidResponseReducer bidResponseReducer,
+            WinningBidComparator winningBidComparator,
             IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
@@ -469,7 +469,7 @@ public class ServiceConfiguration {
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
-                bidResponseReducer,
+                winningBidComparator,
                 bidIdGenerator,
                 truncateAttrChars,
                 clock,
@@ -514,6 +514,7 @@ public class ServiceConfiguration {
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             FileSystem fileSystem,
             ApplicationSettings applicationSettings,
             Metrics metrics,
@@ -524,8 +525,10 @@ public class ServiceConfiguration {
         return StoredRequestProcessor.create(
                 defaultTimeoutMs,
                 defaultBidRequestPath,
+                generateBidRequestId,
                 fileSystem,
                 applicationSettings,
+                new UUIDIdGenerator(),
                 metrics,
                 timeoutFactory,
                 mapper,
@@ -533,16 +536,15 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    BidResponseReducer bidResponseReducer() {
-        return new BidResponseReducer();
+    WinningBidComparator winningBidComparator() {
+        return new WinningBidComparator();
     }
 
     @Bean
     StoredResponseProcessor storedResponseProcessor(ApplicationSettings applicationSettings,
-                                                    BidderCatalog bidderCatalog,
                                                     JacksonMapper mapper) {
 
-        return new StoredResponseProcessor(applicationSettings, bidderCatalog, mapper);
+        return new StoredResponseProcessor(applicationSettings, mapper);
     }
 
     @Bean

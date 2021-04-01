@@ -112,7 +112,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return jdbcClient.executeQuery(
                 selectAccountQuery,
                 Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> Account.builder()
+                result -> mapToModelOrError(result, row -> partialAccountBuilderFrom(row.getString(13))
                         .id(row.getString(0))
                         .priceGranularity(row.getString(1))
                         .bannerCacheTtl(row.getInteger(2))
@@ -151,6 +151,12 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return value != null
                 ? Future.succeededFuture(value)
                 : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
+    }
+
+    private Account.AccountBuilder partialAccountBuilderFrom(String config) {
+        final Account partialAccount = toModel(config, Account.class);
+
+        return partialAccount != null ? partialAccount.toBuilder() : Account.builder();
     }
 
     private <T> T toModel(String source, Class<T> targetClass) {

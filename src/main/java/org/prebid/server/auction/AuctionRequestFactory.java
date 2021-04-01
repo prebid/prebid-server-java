@@ -215,6 +215,7 @@ public class AuctionRequestFactory {
                                 .timeout(timeout)
                                 .account(account)
                                 .prebidErrors(errors)
+                                .debugWarnings(new ArrayList<>())
                                 .privacyContext(privacyContext)
                                 .geoInfo(privacyContext.getTcfContext().getGeoInfo())
                                 .build()));
