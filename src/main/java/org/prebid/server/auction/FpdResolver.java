@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -8,13 +7,11 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
@@ -173,21 +170,16 @@ public class FpdResolver {
 
         if (impExt == null) {
             return jacksonMapper.mapper().createObjectNode()
-                    .set(CONTEXT, jacksonMapper.mapper().createObjectNode().set(DATA, targeting));
+                    .set(DATA, targeting);
         }
 
-        final JsonNode extImpContext = impExt.get(CONTEXT);
-        final JsonNode extImpContextData = extImpContext != null && extImpContext.isObject()
-                ? extImpContext.get(DATA)
-                : null;
+        final JsonNode extImpData = impExt.get(DATA);
 
-        final ObjectNode resolvedData = extImpContextData != null
-                ? (ObjectNode) jsonMerger.merge(targeting, extImpContextData)
+        final ObjectNode resolvedData = extImpData != null
+                ? (ObjectNode) jsonMerger.merge(targeting, extImpData)
                 : targeting;
 
-        return extImpContext != null && extImpContext.isObject()
-                ? impExt.set(CONTEXT, ((ObjectNode) extImpContext).set(DATA, resolvedData))
-                : impExt.set(CONTEXT, jacksonMapper.mapper().createObjectNode().set(DATA, resolvedData));
+        return impExt.set(DATA, resolvedData);
     }
 
     /**
@@ -286,6 +278,12 @@ public class FpdResolver {
                 : ExtRequestPrebidData.of(mergeBidders(fpdBidders, originBidders), null);
     }
 
+    private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
+        final HashSet<String> resolvedBidders = new HashSet<>(originBidders);
+        resolvedBidders.addAll(fpdBidders);
+        return new ArrayList<>(resolvedBidders);
+    }
+
     private List<ExtRequestPrebidBidderConfig> createAllowedAllBidderConfig(Targeting targeting) {
         final ObjectNode userNode = targeting.getUser();
         final ObjectNode siteNode = targeting.getSite();
@@ -298,12 +296,6 @@ public class FpdResolver {
                 ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode))));
     }
 
-    private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
-        final HashSet<String> resolvedBidders = new HashSet<>(originBidders);
-        resolvedBidders.addAll(fpdBidders);
-        return new ArrayList<>(resolvedBidders);
-    }
-
     private ObjectNode mergeExtData(JsonNode fpdData, JsonNode originData) {
         if (fpdData.isMissingNode() || !fpdData.isObject()) {
             return originData != null && originData.isObject() ? ((ObjectNode) originData).deepCopy() : null;
@@ -313,14 +305,6 @@ public class FpdResolver {
             return (ObjectNode) jsonMerger.merge(fpdData, originData);
         }
         return fpdData.isObject() ? (ObjectNode) fpdData : null;
-    }
-
-    private ExtImp getExtImp(ObjectNode extImp) {
-        try {
-            return jacksonMapper.mapper().treeToValue(extImp, ExtImp.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Failed to decode imp.ext: %s", e.getMessage()));
-        }
     }
 
     private static void setAttr(ObjectNode source, ObjectNode dest, String fieldName) {

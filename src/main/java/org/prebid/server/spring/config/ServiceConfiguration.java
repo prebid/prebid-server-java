@@ -524,6 +524,7 @@ public class ServiceConfiguration {
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             FileSystem fileSystem,
             ApplicationSettings applicationSettings,
             Metrics metrics,
@@ -534,8 +535,10 @@ public class ServiceConfiguration {
         return StoredRequestProcessor.create(
                 defaultTimeoutMs,
                 defaultBidRequestPath,
+                generateBidRequestId,
                 fileSystem,
                 applicationSettings,
+                new UUIDIdGenerator(),
                 metrics,
                 timeoutFactory,
                 mapper,
