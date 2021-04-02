@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.v1;
 
-import java.util.Set;
+import java.util.Collection;
 
 /**
  * Cares of the module identification among other modules and supplies a collection of available {@link Hook}s.
@@ -18,5 +18,5 @@ public interface Module {
     /**
      * Collection of hooks available through the module.
      */
-    Set<Hook> hooks();
+    Collection<? extends Hook> hooks();
 }
