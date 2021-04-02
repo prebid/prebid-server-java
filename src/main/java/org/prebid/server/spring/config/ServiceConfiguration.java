@@ -497,6 +497,7 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
+            HookStageExecutor hookStageExecutor,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -513,6 +514,7 @@ public class ServiceConfiguration {
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                hookStageExecutor,
                 metrics,
                 clock,
                 mapper);
@@ -522,6 +524,7 @@ public class ServiceConfiguration {
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             FileSystem fileSystem,
             ApplicationSettings applicationSettings,
             Metrics metrics,
@@ -532,8 +535,10 @@ public class ServiceConfiguration {
         return StoredRequestProcessor.create(
                 defaultTimeoutMs,
                 defaultBidRequestPath,
+                generateBidRequestId,
                 fileSystem,
                 applicationSettings,
+                new UUIDIdGenerator(),
                 metrics,
                 timeoutFactory,
                 mapper,

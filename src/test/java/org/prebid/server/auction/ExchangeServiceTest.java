@@ -24,6 +24,8 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -54,6 +56,10 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
+import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -71,8 +77,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
@@ -126,6 +132,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -161,6 +168,8 @@ public class ExchangeServiceTest extends VertxTest {
     private BidResponseCreator bidResponseCreator;
     @Spy
     private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
+    @Mock
+    private HookStageExecutor hookStageExecutor;
     @Mock
     private Metrics metrics;
     @Mock
@@ -202,6 +211,15 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(schainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
+        given(hookStageExecutor.executeBidderRequestStage(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        BidderRequestPayloadImpl.of(invocation.<BidderRequest>getArgument(0).getBidRequest()))));
+        given(hookStageExecutor.executeAuctionResponseStage(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
+
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
@@ -229,6 +247,7 @@ public class ExchangeServiceTest extends VertxTest {
                 currencyService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                hookStageExecutor,
                 metrics,
                 clock,
                 jacksonMapper);
@@ -249,6 +268,7 @@ public class ExchangeServiceTest extends VertxTest {
                         currencyService,
                         bidResponseCreator,
                         bidResponsePostProcessor,
+                        hookStageExecutor,
                         metrics,
                         clock,
                         jacksonMapper));
@@ -405,6 +425,41 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderRequest capturedBidRequest2 = bidRequest2Captor.getValue();
         assertThat(capturedBidRequest2.getBidRequest().getImp()).hasSize(1)
                 .element(0).returns(2, imp -> imp.getExt().get("bidder").asInt());
+    }
+
+    @Test
+    public void shouldSkipBidderWhenRejectedByBidderRequestHooks() {
+        // given
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
+                .when(hookStageExecutor).executeBidderRequestStage(any(), any());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        verifyZeroInteractions(httpBidderRequester);
+    }
+
+    @Test
+    public void shouldPassRequestModifiedByBidderRequestHooks() {
+        // given
+        givenBidder(givenEmptySeatBid());
+
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                false,
+                BidderRequestPayloadImpl.of(BidRequest.builder().id("bidderRequestId").build()))))
+                .when(hookStageExecutor).executeBidderRequestStage(any(), any());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final BidRequest capturedBidRequest = captureBidRequest();
+        assertThat(capturedBidRequest).isEqualTo(BidRequest.builder().id("bidderRequestId").build());
     }
 
     @Test
@@ -2037,6 +2092,7 @@ public class ExchangeServiceTest extends VertxTest {
                 currencyService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                hookStageExecutor,
                 metrics,
                 clock,
                 jacksonMapper);
@@ -2535,6 +2591,26 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsExactly(BigDecimal.ONE);
     }
 
+    @Test
+    public void shouldReturnBidResponseModifiedByAuctionResponseHooks() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
+
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                false,
+                AuctionResponsePayloadImpl.of(BidResponse.builder().id("bidResponseId").build()))))
+                .when(hookStageExecutor).executeAuctionResponseStage(any(), any());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        assertThat(bidResponse).isEqualTo(BidResponse.builder().id("bidResponseId").build());
+    }
+
     private AuctionContext givenRequestContext(BidRequest bidRequest) {
         return givenRequestContext(bidRequest, Account.builder().id("accountId").eventsEnabled(true).build());
     }
@@ -2705,5 +2781,19 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(User::getExt)
                 .flatExtracting(ExtUser::getEids)
                 .isEqualTo(expectedExtUserEids);
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class BidderRequestPayloadImpl implements BidderRequestPayload {
+
+        BidRequest bidRequest;
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class AuctionResponsePayloadImpl implements AuctionResponsePayload {
+
+        BidResponse bidResponse;
     }
 }
