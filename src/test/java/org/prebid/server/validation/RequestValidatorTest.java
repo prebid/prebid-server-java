@@ -94,6 +94,7 @@ public class RequestValidatorTest extends VertxTest {
     public void setUp() {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
+        given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
 
         requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper);
     }
@@ -1514,10 +1515,11 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturenValidationErrorWhenBidderIsAlias() {
+    public void validateShouldNotReturnValidationErrorWhenBidderIsAlias() {
         // given
         given(bidderCatalog.isValidName(eq("bidder1Alias"))).willReturn(false);
         given(bidderCatalog.isValidName(eq("bidder1"))).willReturn(true);
+        given(bidderCatalog.isActive(eq("bidder1"))).willReturn(true);
 
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -2040,6 +2042,24 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.ext.prebid.aliases.alias refers to unknown bidder: fake");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAliasPointOnDisabledBidder() {
+        // given
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("alias", "appnexus"))
+                .build());
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+        given(bidderCatalog.isValidName("appnexus")).willReturn(true);
+        given(bidderCatalog.isActive("appnexus")).willReturn(false);
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.ext.prebid.aliases.alias refers to disabled bidder: appnexus");
     }
 
     @Test
