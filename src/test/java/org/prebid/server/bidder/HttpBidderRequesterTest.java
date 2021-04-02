@@ -32,6 +32,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
@@ -321,6 +322,37 @@ public class HttpBidderRequesterTest extends VertxTest {
                 ExtHttpCall.builder().uri("uri2").requestbody("requestBody2").responsebody("responseBody2")
                         .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(200).build());
+    }
+
+    @Test
+    public void shouldNotReturnSensitiveHeadersInFullDebugInfo() {
+        // given
+        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
+        headers.add("headerKey", "headerValue");
+        headers.add("Authorization", "authorizationValue");
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(headers)
+                        .build()),
+                emptyList()));
+
+        givenHttpClientReturnsResponses(
+                HttpClientResponse.of(200, null, "responseBody1"));
+
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
+
+        // when
+        final BidderSeatBid bidderSeatBid =
+                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, true).result();
+
+        // then
+        assertThat(bidderSeatBid.getHttpCalls())
+                .extracting(ExtHttpCall::getRequestheaders)
+                .flatExtracting(Map::keySet)
+                .containsExactly("headerKey");
     }
 
     @Test

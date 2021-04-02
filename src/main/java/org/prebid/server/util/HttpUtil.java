@@ -18,8 +18,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -52,6 +54,7 @@ public final class HttpUtil {
     public static final CharSequence CONNECTION_HEADER = HttpHeaders.createOptimized("Connection");
     public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
+    private static final Set<String> SENSITIVE_HEADERS = new HashSet<>(Arrays.asList(AUTHORIZATION_HEADER.toString()));
 
     private HttpUtil() {
     }
@@ -168,6 +171,7 @@ public final class HttpUtil {
     public static Map<String, List<String>> toDebugHeaders(MultiMap headers) {
         return headers != null
                 ? headers.entries().stream()
+                .filter(entry -> !isSensitiveHeader(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         entry -> StringUtils.isNotBlank(entry.getValue())
                                 ? Arrays.stream(entry.getValue().split(","))
@@ -177,4 +181,7 @@ public final class HttpUtil {
                 : null;
     }
 
+    private static boolean isSensitiveHeader(String header) {
+        return SENSITIVE_HEADERS.stream().anyMatch(header::equalsIgnoreCase);
+    }
 }
