@@ -4,14 +4,36 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
+import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountHooksConfiguration;
+
+import java.util.Objects;
 
 public class HookStageExecutor {
+
+    private final ExecutionPlan executionPlan;
+
+    private HookStageExecutor(ExecutionPlan executionPlan) {
+        this.executionPlan = executionPlan;
+    }
+
+    public static HookStageExecutor create(String executionPlan, JacksonMapper mapper) {
+        return new HookStageExecutor(parseExecutionPlan(executionPlan, Objects.requireNonNull(mapper)));
+    }
 
     public Future<HookStageExecutionResult<EntrypointPayload>> executeEntrypointStage(
             MultiMap queryParams,
@@ -59,5 +81,41 @@ public class HookStageExecutor {
                 return bidResponse;
             }
         }));
+    }
+
+    private static ExecutionPlan parseExecutionPlan(String executionPlan, JacksonMapper mapper) {
+        if (StringUtils.isBlank(executionPlan)) {
+            return ExecutionPlan.empty();
+        }
+
+        try {
+            return mapper.decodeValue(executionPlan, ExecutionPlan.class);
+        } catch (DecodeException e) {
+            throw new IllegalArgumentException("Hooks execution plan could not be parsed", e);
+        }
+    }
+
+    private StageExecutionPlan planForEntrypointStage(Endpoint endpoint) {
+        return planFor(executionPlan, endpoint, Stage.entrypoint);
+    }
+
+    private StageExecutionPlan planFor(Account account, Endpoint endpoint, Stage stage) {
+        return planFor(effectiveExecutionPlanFor(account), endpoint, stage);
+    }
+
+    private static StageExecutionPlan planFor(ExecutionPlan executionPlan, Endpoint endpoint, Stage stage) {
+        return executionPlan
+                .getEndpoints()
+                .getOrDefault(endpoint, EndpointExecutionPlan.empty())
+                .getStages()
+                .getOrDefault(stage, StageExecutionPlan.empty());
+    }
+
+    private ExecutionPlan effectiveExecutionPlanFor(Account account) {
+        final AccountHooksConfiguration hooksAccountConfig = account.getHooks();
+        final ExecutionPlan accountExecutionPlan =
+                hooksAccountConfig != null ? hooksAccountConfig.getExecutionPlan() : null;
+
+        return accountExecutionPlan != null ? accountExecutionPlan : executionPlan;
     }
 }

@@ -179,11 +179,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HookStageExecutor hookStageExecutor() {
-        return new HookStageExecutor();
-    }
-
-    @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
