@@ -34,6 +34,7 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
@@ -189,15 +190,13 @@ public class AuctionRequestFactory {
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
         return executeEntrypointHooks(routingContext, body, hookExecutionContext)
-                .compose(httpRequest -> createBidRequest(httpRequest, errors)
-                        .compose(bidRequest -> toAuctionContext(
-                                httpRequest,
+                .compose(httpRequestWrapper -> parseBidRequest(httpRequestWrapper, errors)
+                        .compose(bidRequest -> extractAccountAndExecuteRawAuctionHooks(
                                 bidRequest,
-                                requestTypeMetric(bidRequest),
-                                errors,
+                                httpRequestWrapper,
+                                hookExecutionContext,
                                 startTime,
-                                timeoutResolver,
-                                hookExecutionContext)));
+                                errors)));
     }
 
     protected Future<HttpRequestWrapper> executeEntrypointHooks(RoutingContext routingContext,
@@ -231,11 +230,99 @@ public class AuctionRequestFactory {
                 .build();
     }
 
+    private Future<BidRequest> parseBidRequest(HttpRequestWrapper httpRequest, List<String> errors) {
+        try {
+            final JsonNode bidRequestNode = bodyAsJsonNode(httpRequest.getBody());
+
+            final String referer = paramsExtractor.refererFrom(httpRequest);
+            ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
+
+            return Future.succeededFuture(jsonNodeAsBidRequest(bidRequestNode));
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+    }
+
+    private Future<AuctionContext> extractAccountAndExecuteRawAuctionHooks(BidRequest bidRequest,
+                                                                           HttpRequestWrapper httpRequestWrapper,
+                                                                           HookExecutionContext hookExecutionContext,
+                                                                           long startTime,
+                                                                           List<String> errors) {
+        final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
+        return accountFrom(bidRequest, timeout, httpRequestWrapper)
+                .compose(account -> executeRawAuctionRequestHooksAndUpdate(
+                        bidRequest,
+                        httpRequestWrapper,
+                        account,
+                        hookExecutionContext,
+                        errors,
+                        timeout));
+    }
+
+    private Future<AuctionContext> executeRawAuctionRequestHooksAndUpdate(BidRequest bidRequest,
+                                                                          HttpRequestWrapper httpRequestWrapper,
+                                                                          Account account,
+                                                                          HookExecutionContext hookExecutionContext,
+                                                                          List<String> errors,
+                                                                          Timeout timeout) {
+        return executeRawAuctionRequestHooks(bidRequest, account, hookExecutionContext)
+                .compose(changedBidRequest -> updateBidRequest(httpRequestWrapper, changedBidRequest, account))
+                .compose(updatedBidRequest -> toAuctionContext(
+                        httpRequestWrapper,
+                        updatedBidRequest,
+                        account,
+                        requestTypeMetric(bidRequest),
+                        errors,
+                        timeout,
+                        hookExecutionContext));
+    }
+
+    protected Future<BidRequest> executeRawAuctionRequestHooks(BidRequest bidRequest,
+                                                               Account account,
+                                                               HookExecutionContext hookExecutionContext) {
+
+        return hookStageExecutor.executeRawAuctionRequestStage(bidRequest, account, hookExecutionContext)
+                .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
+    }
+
+    private BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
+                                    HookExecutionContext hookExecutionContext) {
+        if (stageResult.isShouldReject()) {
+            throw new RejectedRequestException(hookExecutionContext);
+        }
+
+        return stageResult.getPayload().bidRequest();
+    }
+
     /**
      * Returns filled out {@link AuctionContext} based on given arguments.
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
+    Future<AuctionContext> toAuctionContext(HttpRequestWrapper httpRequest,
+                                            BidRequest bidRequest,
+                                            Account account,
+                                            MetricName requestTypeMetric,
+                                            List<String> errors,
+                                            Timeout timeout,
+                                            HookExecutionContext hookExecutionContext) {
+
+        return privacyEnforcementService.contextFromBidRequest(bidRequest, account, requestTypeMetric, timeout, errors)
+                .map(privacyContext -> AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
+                        .bidRequest(enrichBidRequestWithAccountAndPrivacyData(bidRequest, account, privacyContext))
+                        .requestTypeMetric(requestTypeMetric)
+                        .timeout(timeout)
+                        .account(account)
+                        .prebidErrors(errors)
+                        .debugWarnings(new ArrayList<>())
+                        .privacyContext(privacyContext)
+                        .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                        .hookExecutionContext(hookExecutionContext)
+                        .build());
+    }
+
     Future<AuctionContext> toAuctionContext(HttpRequestWrapper httpRequest,
                                             BidRequest bidRequest,
                                             MetricName requestTypeMetric,
@@ -247,22 +334,8 @@ public class AuctionRequestFactory {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
         return accountFrom(bidRequest, timeout, httpRequest)
-                .compose(account -> privacyEnforcementService.contextFromBidRequest(
-                        bidRequest, account, requestTypeMetric, timeout, errors)
-                        .map(privacyContext -> AuctionContext.builder()
-                                .httpRequest(httpRequest)
-                                .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
-                                .bidRequest(enrichBidRequestWithAccountAndPrivacyData(
-                                        bidRequest, account, privacyContext))
-                                .requestTypeMetric(requestTypeMetric)
-                                .timeout(timeout)
-                                .account(account)
-                                .prebidErrors(errors)
-                                .debugWarnings(new ArrayList<>())
-                                .privacyContext(privacyContext)
-                                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
-                                .hookExecutionContext(hookExecutionContext)
-                                .build()));
+                .compose(account -> toAuctionContext(httpRequest, bidRequest, account, requestTypeMetric, errors,
+                        timeout, hookExecutionContext));
     }
 
     private String extractAndValidateBody(RoutingContext context) {
@@ -277,15 +350,6 @@ public class AuctionRequestFactory {
         }
 
         return body;
-    }
-
-    private BidRequest parseRequest(HttpRequestWrapper httpRequest, List<String> errors) {
-        final JsonNode bidRequestNode = bodyAsJsonNode(httpRequest.getBody());
-
-        final String referer = paramsExtractor.refererFrom(httpRequest);
-        ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
-
-        return jsonNodeAsBidRequest(bidRequestNode);
     }
 
     private JsonNode bodyAsJsonNode(String body) {
@@ -305,18 +369,13 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Parses {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
+     * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> createBidRequest(HttpRequestWrapper httpRequest, List<String> errors) {
-        final BidRequest bidRequest;
-        try {
-            bidRequest = parseRequest(httpRequest, errors);
-        } catch (Exception e) {
-            return Future.failedFuture(e);
-        }
-
-        return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
+    private Future<BidRequest> updateBidRequest(HttpRequestWrapper httpRequest,
+                                                BidRequest bidRequest,
+                                                Account account) {
+        return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, httpRequest, timeoutResolver))
                 .map(this::validateRequest)
                 .map(interstitialProcessor::process);
@@ -979,7 +1038,8 @@ public class AuctionRequestFactory {
      * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
     private Timeout timeout(BidRequest bidRequest, long startTime, TimeoutResolver timeoutResolver) {
-        final long timeout = timeoutResolver.adjustTimeout(bidRequest.getTmax());
+        final long resolvedRequestTimeout = timeoutResolver.resolve(bidRequest.getTmax());
+        final long timeout = timeoutResolver.adjustTimeout(resolvedRequestTimeout);
         return timeoutFactory.create(startTime, timeout);
     }
 
@@ -999,8 +1059,8 @@ public class AuctionRequestFactory {
         return blankAccountId
                 ? responseForEmptyAccount(httpRequest)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
+                        .compose(this::ensureAccountActive,
+                                exception -> accountFallback(exception, accountId, httpRequest));
     }
 
     /**
