@@ -42,7 +42,7 @@ public class OrbidderTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                //this uids cookie value stands for {"uids":{"orbidder":"OB-UID"}}
+                // this uids cookie value stands for {"uids":{"orbidder":"OB-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7Im9yYmlkZGVyIjoiT0ItVUlEIn19")
                 .body(jsonFrom("openrtb2/orbidder/test-auction-orbidder-request.json"))
                 .post("/openrtb2/auction");

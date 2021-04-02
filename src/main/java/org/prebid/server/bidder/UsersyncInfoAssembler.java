@@ -49,7 +49,7 @@ public class UsersyncInfoAssembler {
      */
     public UsersyncInfoAssembler withPrivacy(Privacy privacy) {
         final String gdpr = ObjectUtils.defaultIfNull(privacy.getGdpr(), "");
-        final String consent = ObjectUtils.defaultIfNull(privacy.getConsent(), "");
+        final String consent = ObjectUtils.defaultIfNull(privacy.getConsentString(), "");
         final String ccpa = ObjectUtils.defaultIfNull(privacy.getCcpa().getUsPrivacy(), "");
         redirectUrl = updateUrlWithPrivacy(redirectUrl, gdpr, consent, ccpa);
 

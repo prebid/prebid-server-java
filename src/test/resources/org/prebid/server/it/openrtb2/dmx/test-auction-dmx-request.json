@@ -74,14 +74,20 @@
     "fd": 1,
     "tid": "tid"
   },
+
   "user": {
     "ext": {
       "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "eids": [
+        {
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "id"
+            }
+          ]
+        }
+      ]
     }
   },
   "regs": {

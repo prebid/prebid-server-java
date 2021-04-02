@@ -49,7 +49,7 @@ public class FacebookConfiguration {
                         config.getEndpoint(),
                         config.getPlatformId(),
                         config.getAppSecret(),
-                        mapper)
+                        configProperties.getTimeoutNotificationUrlTemplate(), mapper)
                         : null)
                 .assemble();
     }
@@ -65,5 +65,8 @@ public class FacebookConfiguration {
 
         @NotNull
         private String appSecret;
+
+        @NotNull
+        private String timeoutNotificationUrlTemplate;
     }
 }

@@ -8,11 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderInstanceDeps;
-import org.prebid.server.bidder.DisabledAdapter;
 import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.BidderInfo;
@@ -47,7 +45,6 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private CFG configProperties;
     private Function<UsersyncConfigurationProperties, Usersyncer> usersyncerCreator;
     private Function<CFG, Bidder<?>> bidderCreator;
-    private Function<CFG, Adapter<?, ?>> adapterCreator;
 
     private BidderDepsAssembler() {
     }
@@ -67,11 +64,6 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     public BidderDepsAssembler<CFG> bidderCreator(Function<CFG, Bidder<?>> bidderCreator) {
         this.bidderCreator = bidderCreator;
-        return this;
-    }
-
-    public BidderDepsAssembler<CFG> adapterCreator(Function<CFG, Adapter<?, ?>> adapterCreator) {
-        this.adapterCreator = adapterCreator;
         return this;
     }
 
@@ -105,9 +97,9 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private BidderInstanceDeps aliasDeps(Map.Entry<String, Object> entry) {
         final String alias = entry.getKey();
-        final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), this.configProperties);
+        final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), configProperties);
 
-        validateCapabilities(alias, aliasConfigProperties, bidderName, this.configProperties);
+        validateCapabilities(alias, aliasConfigProperties, bidderName, configProperties);
 
         return deps(alias, BidderInfoCreator.create(aliasConfigProperties, bidderName), aliasConfigProperties);
     }
@@ -119,7 +111,6 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
                 .bidderInfo(bidderInfo)
                 .usersyncer(usersyncer(configProperties))
                 .bidder(bidder(configProperties))
-                .adapter(adapter(configProperties))
                 .build();
     }
 
@@ -131,12 +122,6 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         return configProperties.getEnabled()
                 ? bidderCreator.apply(configProperties)
                 : new DisabledBidder(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
-    }
-
-    private Adapter<?, ?> adapter(CFG configProperties) {
-        return configProperties.getEnabled()
-                ? (adapterCreator != null ? adapterCreator.apply(configProperties) : null)
-                : new DisabledAdapter(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
     }
 
     private CFG mergeAliasConfiguration(Object aliasConfiguration, CFG coreConfiguration) {

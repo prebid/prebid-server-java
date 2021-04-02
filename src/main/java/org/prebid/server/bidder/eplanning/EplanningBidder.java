@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.eplanning;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -41,9 +40,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -63,6 +64,13 @@ public class EplanningBidder implements Bidder<Void> {
             CleanStepName.of("\\)\\(|\\(|\\)|:", "_"),
             CleanStepName.of("^_+|_+$", ""));
 
+    private static final Set<Integer> MOBILE_DEVICE_TYPES = new HashSet<>(Arrays.asList(1, 4, 5));
+    private static final String SIZE_FORMAT = "%sx%s";
+    private static final List<String> PRIORITY_SIZES_FOR_MOBILE
+            = new ArrayList<>(Arrays.asList("300x250", "320x50", "300x50", "1x1"));
+    private static final List<String> PRIORITY_SIZES_FOR_DESKTOP = new ArrayList<>(
+            Arrays.asList("300x250", "728x90", "300x600", "160x600", "970x250", "970x90", "1x1"));
+
     private static final TypeReference<ExtPrebid<?, ExtImpEplanning>> EPLANNING_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpEplanning>>() {
             };
@@ -79,6 +87,7 @@ public class EplanningBidder implements Bidder<Void> {
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<String> requestsStrings = new ArrayList<>();
+        boolean isMobile = isMobile(request);
 
         String clientId = null;
         for (final Imp imp : request.getImp()) {
@@ -89,7 +98,7 @@ public class EplanningBidder implements Bidder<Void> {
                 if (clientId == null) {
                     clientId = extImpEplanning.getClientId();
                 }
-                final String sizeString = resolveSizeString(imp);
+                final String sizeString = resolveSizeString(imp, isMobile);
                 final String name = getCleanAdUnitCode(extImpEplanning, () -> sizeString);
                 requestsStrings.add(name + ":" + sizeString);
             } catch (PreBidException e) {
@@ -98,7 +107,7 @@ public class EplanningBidder implements Bidder<Void> {
         }
 
         if (CollectionUtils.isEmpty(requestsStrings)) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final MultiMap headers = createHeaders(request.getDevice());
@@ -120,6 +129,12 @@ public class EplanningBidder implements Bidder<Void> {
             throw new PreBidException(String.format(
                     "EPlanning only supports banner Imps. Ignoring Imp ID=%s", imp.getId()));
         }
+    }
+
+    private boolean isMobile(BidRequest bidRequest) {
+        final Device device = bidRequest.getDevice();
+        final Integer deviceType = device != null ? device.getDevicetype() : null;
+        return MOBILE_DEVICE_TYPES.contains(deviceType);
     }
 
     private ExtImpEplanning validateAndModifyImpExt(Imp imp) throws PreBidException {
@@ -144,24 +159,25 @@ public class EplanningBidder implements Bidder<Void> {
         return extImpEplanning;
     }
 
-    private static String resolveSizeString(Imp imp) {
+    private static String resolveSizeString(Imp imp, boolean isMobile) {
         final Banner banner = imp.getBanner();
         final Integer bannerWidth = banner.getW();
         final Integer bannerHeight = banner.getH();
         if (bannerWidth != null && bannerHeight != null) {
-            return String.format("%sx%s", bannerWidth, bannerHeight);
+            return String.format(SIZE_FORMAT, bannerWidth, bannerHeight);
         }
+
         final List<Format> bannerFormats = banner.getFormat();
-        if (CollectionUtils.isNotEmpty(bannerFormats)) {
-            for (Format format : bannerFormats) {
-                final Integer formatHeight = format.getH();
-                final Integer formatWidth = format.getW();
-                if (formatHeight != null && formatWidth != null) {
-                    return String.format("%sx%s", formatWidth, formatHeight);
-                }
-            }
-        }
-        return NULL_SIZE;
+
+        final Set<String> formattedBannerSizes = CollectionUtils.emptyIfNull(bannerFormats).stream()
+                .filter(format -> format.getH() != null && format.getW() != null)
+                .map(format -> String.format(SIZE_FORMAT, format.getW(), format.getH()))
+                .collect(Collectors.toSet());
+
+        final List<String> prioritySizes = isMobile ? PRIORITY_SIZES_FOR_MOBILE : PRIORITY_SIZES_FOR_DESKTOP;
+        return prioritySizes.stream()
+                .filter(formattedBannerSizes::contains).findFirst()
+                .orElse(NULL_SIZE);
     }
 
     private static String cleanName(String name) {
@@ -177,21 +193,18 @@ public class EplanningBidder implements Bidder<Void> {
      */
     private static MultiMap createHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
+
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
-                    device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
-                    Objects.toString(device.getDnt(), null));
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
+
         return headers;
     }
 
     private String resolveRequestUri(BidRequest request, List<String> requestsStrings, String clientId) {
-        final Device device = request.getDevice();
-        final String ip = device != null ? device.getIp() : null;
-
         final Site site = request.getSite();
         String pageUrl = DEFAULT_PAGE_URL;
         if (site != null && StringUtils.isNotBlank(site.getPage())) {
@@ -230,6 +243,8 @@ public class EplanningBidder implements Bidder<Void> {
             uriBuilder.addParameter("uid", buyeruid);
         }
 
+        final Device device = request.getDevice();
+        final String ip = device != null ? device.getIp() : null;
         if (StringUtils.isNotBlank(ip)) {
             uriBuilder.addParameter("ip", ip);
         }
@@ -268,12 +283,13 @@ public class EplanningBidder implements Bidder<Void> {
             final HbResponse hbResponse = mapper.decodeValue(httpCall.getResponse().getBody(), HbResponse.class);
             return extractBids(hbResponse, bidRequest);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private Result<List<BidderBid>> extractBids(HbResponse hbResponse, BidRequest bidRequest) {
         final Map<String, String> nameSpaceToImpId = new HashMap<>();
+        boolean isMobile = isMobile(bidRequest);
         for (Imp imp : bidRequest.getImp()) {
             final ExtImpEplanning impExt;
             try {
@@ -281,7 +297,7 @@ public class EplanningBidder implements Bidder<Void> {
             } catch (PreBidException e) {
                 continue;
             }
-            final String name = getCleanAdUnitCode(impExt, () -> resolveSizeString(imp));
+            final String name = getCleanAdUnitCode(impExt, () -> resolveSizeString(imp, isMobile));
             nameSpaceToImpId.put(name, imp.getId());
         }
 
@@ -318,10 +334,5 @@ public class EplanningBidder implements Bidder<Void> {
                         .h(hbResponseAd.getHeight())
                         .build(),
                 BidType.banner, null);
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

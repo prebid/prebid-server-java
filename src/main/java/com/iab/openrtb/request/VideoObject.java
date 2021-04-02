@@ -9,6 +9,7 @@ import java.util.List;
 @Builder(toBuilder = true)
 @Value
 public class VideoObject {
+
     List<String> mimes;
 
     Integer minduration;

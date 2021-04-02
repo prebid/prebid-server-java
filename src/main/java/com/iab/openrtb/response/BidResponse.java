@@ -6,6 +6,7 @@ import lombok.Value;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This object is the top-level bid response object (i.e., the unnamed outer
@@ -63,22 +64,13 @@ public class BidResponse {
     ObjectNode ext;
 
     public static final Comparator<BidResponse> COMPARATOR = (left, right) -> {
-        if (left == null) {
+        if (Objects.isNull(left)
+                || left.getSeatbid().isEmpty()
+                || left.getSeatbid().get(0).getBid().isEmpty()
+                || Objects.isNull(right)) {
             return -1;
         }
-        if (left.getSeatbid().isEmpty()) {
-            return -1;
-        }
-        if (left.getSeatbid().get(0).getBid().isEmpty()) {
-            return -1;
-        }
-        if (right == null) {
-            return -1;
-        }
-        if (right.getSeatbid().isEmpty()) {
-            return 1;
-        }
-        if (right.getSeatbid().get(0).getBid().isEmpty()) {
+        if (right.getSeatbid().isEmpty() || right.getSeatbid().get(0).getBid().isEmpty()) {
             return 1;
         }
         return left.getSeatbid().get(0).getBid().get(0).getPrice()

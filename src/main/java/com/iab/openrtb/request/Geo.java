@@ -1,8 +1,8 @@
 package com.iab.openrtb.request;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 
 /**
  * This object encapsulates various methods for specifying a geographic location.
@@ -98,5 +98,5 @@ public class Geo {
     /**
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
-    ObjectNode ext;
+    ExtGeo ext;
 }

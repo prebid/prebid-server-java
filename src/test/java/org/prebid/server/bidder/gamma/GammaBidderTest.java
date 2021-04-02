@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -233,20 +232,6 @@ public class GammaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldSetAdmFromVastXmlIsPresentAndVideoType() throws JsonProcessingException {
         // given
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
@@ -257,6 +242,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("impId")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))
@@ -284,6 +270,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("impId")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))
@@ -328,6 +315,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("id")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().build()))
                                 .build()))
@@ -350,6 +338,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("id")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))
@@ -364,11 +353,6 @@ public class GammaBidderTest extends VertxTest {
         final GammaBid expectedBid = GammaBid.builder().adm("ADM").build();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(gammaBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(

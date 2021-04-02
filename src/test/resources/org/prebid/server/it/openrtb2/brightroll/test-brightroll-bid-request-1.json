@@ -3,7 +3,7 @@
   "imp": [
     {
       "id": "impId17",
-      "bidfloor": 0.30,
+      "bidfloor": 0.65,
       "banner": {
         "w": 300,
         "h": 250,
@@ -52,11 +52,6 @@
   "user": {
     "buyeruid": "BR-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },
@@ -210,7 +205,10 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

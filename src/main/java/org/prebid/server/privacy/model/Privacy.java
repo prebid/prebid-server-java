@@ -1,16 +1,16 @@
 package org.prebid.server.privacy.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.privacy.ccpa.Ccpa;
 
-@AllArgsConstructor(staticName = "of")
-@Value
-public final class Privacy {
+@Value(staticConstructor = "of")
+public class Privacy {
 
-    private final String gdpr;
+    String gdpr;
 
-    private final String consent;
+    String consentString;
 
-    private final Ccpa ccpa;
+    Ccpa ccpa;
+
+    Integer coppa;
 }

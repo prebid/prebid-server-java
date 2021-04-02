@@ -12,9 +12,13 @@
         ]
       },
       "ext": {
-        "datablocks": {
-          "host": "localhost:8090",
-          "sourceId": 1
+        "prebid": {
+          "bidder": {
+            "datablocks": {
+              "host": "localhost:8090",
+              "sourceId": 1
+            }
+          }
         }
       }
     },
@@ -29,9 +33,13 @@
         ]
       },
       "ext": {
-        "datablocks": {
-          "host": "localhost:8090",
-          "sourceId": 2
+        "prebid": {
+          "bidder": {
+            "datablocks": {
+              "host": "localhost:8090",
+              "sourceId": 2
+            }
+          }
         }
       }
     }
@@ -81,12 +89,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {

@@ -4,6 +4,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.file.FileSystem;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
+import io.vertx.ext.dropwizard.Match;
+import io.vertx.ext.dropwizard.MatchType;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,12 +16,20 @@ import org.springframework.context.annotation.Configuration;
 public class VertxConfiguration {
 
     @Bean
-    Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize) {
-        return Vertx.vertx(new VertxOptions()
+    Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize,
+                @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics) {
+        final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
+                .setEnabled(true)
+                .setRegistryName(MetricsConfiguration.METRIC_REGISTRY_NAME);
+        if (enablePerClientEndpointMetrics) {
+            metricsOptions.addMonitoredHttpClientEndpoint(new Match().setValue(".*").setType(MatchType.REGEX));
+        }
+
+        final VertxOptions vertxOptions = new VertxOptions()
                 .setWorkerPoolSize(workerPoolSize)
-                .setMetricsOptions(new DropwizardMetricsOptions()
-                        .setEnabled(true)
-                        .setRegistryName(MetricsConfiguration.METRIC_REGISTRY_NAME)));
+                .setMetricsOptions(metricsOptions);
+
+        return Vertx.vertx(vertxOptions);
     }
 
     @Bean

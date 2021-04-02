@@ -6,5 +6,6 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtImpGrid {
+
     Integer uid;
 }

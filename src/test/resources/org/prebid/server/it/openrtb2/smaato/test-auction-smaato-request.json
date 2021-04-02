@@ -1,0 +1,97 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "tagid": "2eb6bd58-865c-47ce-af7f-a918108c3fd2",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "smaato": {
+          "publisherId": "11000",
+          "adspaceId": "130563103"
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "ip": "193.168.244.1",
+    "language": "en",
+    "ifa": "ifaId",
+    "ua": "userAgent"
+  },
+  "site": {
+    "publisher": {
+      "id": "1100042525"
+    },
+    "page": "http://localhost:3000/server.html?pbjs_debug=true&endpoint=http://localhost:3000/bidder",
+    "ext": {
+      "data": {
+        "keywords": "power tools",
+        "search": "drill",
+        "content": {
+          "userrating": 4
+        }
+      }
+    }
+  },
+  "at": 1,
+  "tmax": 3000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "user": {
+    "ext": {
+      "consent": "gdprConsentString",
+      "data": {
+        "keywords": "a,b",
+        "gender": "M",
+        "yob": 1984,
+        "geo": {
+          "country": "ca"
+        }
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "includebidderkeys": true,
+        "includewinners": true,
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        }
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "auctiontimestamp": 1000
+    }
+  }
+}

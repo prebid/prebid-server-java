@@ -54,6 +54,21 @@
     }
   },
   "user": {
+    "data": [
+      {
+        "ext": {
+          "taxonomyname": "Iab"
+        },
+        "segment": [
+          {
+            "id": "segmentId1"
+          },
+          {
+            "id": "segmentId2"
+          }
+        ]
+      }
+    ],
     "ext": {
       "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
     }
@@ -114,7 +129,11 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "integration": "dmbjs",
+      "channel": {
+        "name": "web"
+      }
     }
   }
 }

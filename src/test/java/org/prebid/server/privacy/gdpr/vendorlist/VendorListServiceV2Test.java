@@ -18,6 +18,10 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Feature;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialFeature;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialPurpose;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV2;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 import org.prebid.server.vertx.http.HttpClient;
@@ -25,11 +29,11 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.File;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -41,7 +45,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
 
 public class VendorListServiceV2Test extends VertxTest {
 
@@ -79,6 +86,7 @@ public class VendorListServiceV2Test extends VertxTest {
                 "http://vendorlist/{VERSION}",
                 0,
                 REFRESH_MISSING_LIST_PERIOD_MS,
+                false,
                 null,
                 FALLBACK_VENDOR_LIST_PATH,
                 bidderCatalog,
@@ -103,6 +111,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -112,6 +121,62 @@ public class VendorListServiceV2Test extends VertxTest {
                         metrics,
                         jacksonMapper))
                 .hasMessage("dir creation error");
+    }
+
+    @Test
+    public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
+        // given
+        vendorListService = new VendorListServiceV2(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                FALLBACK_VENDOR_LIST_PATH,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper);
+
+        // when
+        final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
+
+        // then
+        verifyZeroInteractions(httpClient);
+        assertThat(future).succeededWith(singletonMap(
+                52, VendorV2.builder()
+                        .id(52)
+                        .purposes(EnumSet.of(ONE))
+                        .legIntPurposes(EnumSet.of(TWO))
+                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                        .features(EnumSet.noneOf(Feature.class))
+                        .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
+                        .build()));
+    }
+
+    @Test
+    public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
+        // then
+        assertThatThrownBy(() -> new VendorListServiceV2(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                null,
+                bidderCatalog,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                jacksonMapper))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("No fallback vendorList for deprecated version present");
     }
 
     @Test
@@ -126,6 +191,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -151,6 +217,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog,
@@ -176,6 +243,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         "http://vendorlist/%s",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
+                        false,
                         null,
                         FALLBACK_VENDOR_LIST_PATH,
                         bidderCatalog, vertx,
@@ -371,12 +439,12 @@ public class VendorListServiceV2Test extends VertxTest {
         assertThat(result).succeededWith(singletonMap(
                 52, VendorV2.builder()
                         .id(52)
-                        .purposes(singleton(1))
-                        .legIntPurposes(singleton(2))
-                        .flexiblePurposes(emptySet())
-                        .specialPurposes(emptySet())
-                        .features(emptySet())
-                        .specialFeatures(emptySet())
+                        .purposes(EnumSet.of(ONE))
+                        .legIntPurposes(EnumSet.of(TWO))
+                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                        .features(EnumSet.noneOf(Feature.class))
+                        .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                         .build()));
     }
 
@@ -385,21 +453,21 @@ public class VendorListServiceV2Test extends VertxTest {
         // given
         final VendorV2 firstExternalV2 = VendorV2.builder()
                 .id(52)
-                .purposes(singleton(1))
-                .legIntPurposes(singleton(2))
-                .flexiblePurposes(emptySet())
-                .specialPurposes(emptySet())
-                .features(emptySet())
-                .specialFeatures(emptySet())
+                .purposes(EnumSet.of(ONE))
+                .legIntPurposes(EnumSet.of(TWO))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                .features(EnumSet.noneOf(Feature.class))
+                .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
         final VendorV2 secondExternalV2 = VendorV2.builder()
                 .id(42)
-                .purposes(singleton(1))
-                .legIntPurposes(singleton(2))
-                .flexiblePurposes(emptySet())
-                .specialPurposes(emptySet())
-                .features(emptySet())
-                .specialFeatures(emptySet())
+                .purposes(EnumSet.of(ONE))
+                .legIntPurposes(EnumSet.of(TWO))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                .features(EnumSet.noneOf(Feature.class))
+                .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
         final Map<Integer, VendorV2> idToVendor = new HashMap<>();
         idToVendor.put(52, firstExternalV2);
@@ -436,12 +504,12 @@ public class VendorListServiceV2Test extends VertxTest {
         assertThat(future2).succeededWith(singletonMap(
                 52, VendorV2.builder()
                         .id(52)
-                        .purposes(singleton(1))
-                        .legIntPurposes(singleton(2))
-                        .flexiblePurposes(emptySet())
-                        .specialPurposes(emptySet())
-                        .features(emptySet())
-                        .specialFeatures(emptySet())
+                        .purposes(EnumSet.of(ONE))
+                        .legIntPurposes(EnumSet.of(TWO))
+                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                        .features(EnumSet.noneOf(Feature.class))
+                        .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                         .build()));
     }
 
@@ -520,12 +588,12 @@ public class VendorListServiceV2Test extends VertxTest {
     private static VendorListV2 givenVendorList() {
         final VendorV2 vendor = VendorV2.builder()
                 .id(52)
-                .purposes(singleton(1))
-                .legIntPurposes(singleton(2))
-                .flexiblePurposes(emptySet())
-                .specialPurposes(emptySet())
-                .features(emptySet())
-                .specialFeatures(emptySet())
+                .purposes(EnumSet.of(ONE))
+                .legIntPurposes(EnumSet.of(TWO))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                .features(EnumSet.noneOf(Feature.class))
+                .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
         return VendorListV2.of(1, new Date(), singletonMap(52, vendor));
     }

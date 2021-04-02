@@ -12,14 +12,18 @@ import java.util.List;
  * indicates that this impression is available under the terms of that deal.
  * Refer to Section 7.3 for more details.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Deal {
 
-    /** A unique identifier for the direct deal. (required) */
+    /**
+     * A unique identifier for the direct deal. (required)
+     */
     String id;
 
-    /** Minimum bid for this impression expressed in CPM. */
+    /**
+     * Minimum bid for this impression expressed in CPM.
+     */
     float bidfloor;
 
     /**
@@ -50,6 +54,8 @@ public class Deal {
      */
     List<String> wadomain;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

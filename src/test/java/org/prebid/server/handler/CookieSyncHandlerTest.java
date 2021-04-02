@@ -14,7 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
@@ -25,9 +25,13 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -35,6 +39,7 @@ import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 
@@ -58,11 +63,11 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
@@ -95,7 +100,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
 
@@ -116,33 +121,31 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
-        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, false, emptyList(),
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(
+                        Privacy.of("", EMPTY, Ccpa.EMPTY, 0),
+                        TcfContext.empty())));
+
+        cookieSyncHandler = new CookieSyncHandler(
+                "http://external-url",
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                1,
+                false,
+                emptyList(),
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper);
     }
 
     @Test
-    public void shouldRespondWithErrorIfOptedOut() {
-        // given
-        given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).setStatusCode(eq(401));
-        verify(httpResponse).setStatusMessage(eq("User has opted out"));
-        verify(httpResponse).end();
-        verify(routingContext, never()).getBody();
-        verifyNoMoreInteractions(httpResponse, tcfDefinerService);
-    }
-
-    @Test
-    public void shouldRespondWithErrorIfRequestBodyIsMissing() {
+    public void shouldRespondWithErrorAndSendToAnalyticsWithoutTcfWhenRequestBodyIsMissing() {
         // given
         given(routingContext.getBody()).willReturn(null);
 
@@ -153,14 +156,19 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).setStatusMessage(eq("Request has no body"));
-        verify(httpResponse).end();
+        verify(httpResponse).closed();
+        verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).end("Invalid request format: Request has no body");
+        verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
+        assertThat(cookieSyncEvent)
+                .isEqualTo(CookieSyncEvent.error(400, "Invalid request format: Request has no body"));
     }
 
     @Test
-    public void shouldRespondWithErrorIfRequestBodyCouldNotBeParsed() {
+    public void shouldRespondWithErrorAndSendToAnalyticsWithoutTcfWhenRequestBodyCouldNotBeParsed() {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("{"));
 
@@ -171,17 +179,24 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).setStatusMessage(eq("Request body cannot be parsed"));
-        verify(httpResponse).end();
+        verify(httpResponse).closed();
+        verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).end("Invalid request format: Request body cannot be parsed");
+        verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
+        assertThat(cookieSyncEvent)
+                .isEqualTo(CookieSyncEvent.error(400, "Invalid request format: Request body cannot be parsed"));
     }
 
     @Test
-    public void shouldRespondWithErrorIfGdprConsentIsMissing() {
+    public void shouldRespondWithErrorAndSendToAnalyticsWithTcfWhenOptedOut() {
         // given
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(CookieSyncRequest.of(emptyList(), 1, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).gdpr(1).build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
@@ -190,17 +205,45 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).setStatusMessage(eq("gdpr_consent is required if gdpr is 1"));
-        verify(httpResponse).end();
+        verify(httpResponse).closed();
+        verify(httpResponse).setStatusCode(401);
+        verify(httpResponse).end("Unauthorized: Sync is not allowed for this uids");
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
+        assertThat(cookieSyncEvent)
+                .isEqualTo(CookieSyncEvent.error(401, "Unauthorized: Sync is not allowed for this uids"));
+    }
+
+    @Test
+    public void shouldRespondWithErrorIfGdprConsentIsMissing() {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).gdpr(1).build()));
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).closed();
+        verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).end("Invalid request format: gdpr_consent is required if gdpr is 1");
+        verify(metrics).updateUserSyncBadRequestMetric();
+        verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
+        assertThat(cookieSyncEvent)
+                .isEqualTo(CookieSyncEvent.error(400, "Invalid request format: gdpr_consent is required if gdpr is 1"));
     }
 
     @Test
     public void shouldNotSendResponseIfClientClosedConnection() {
         // given
         given(routingContext.getBody()).willReturn(
-                givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null, null)));
+                givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).build()));
 
         givenTcfServiceReturningVendorIdResult(emptySet());
 
@@ -217,7 +260,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithExpectedHeaders() {
         // given
         given(routingContext.getBody()).willReturn(
-                givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null, null)));
+                givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).build()));
 
         givenTcfServiceReturningVendorIdResult(emptySet());
 
@@ -226,14 +269,14 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse)
-                .putHeader(eq(new AsciiString("Content-Type")), eq(new AsciiString("application/json")));
+                .putHeader(new AsciiString("Content-Type"), new AsciiString("application/json"));
     }
 
     @Test
-    public void shouldPassAccountToTcfWhenAccountIsFound() {
+    public void shouldPassAccountToPrivacyEnforcementServiceWhenAccountIsFound() {
         // given
         given(routingContext.getBody()).willReturn(
-                givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null, "account")));
+                givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).account("account").build()));
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true)).build();
@@ -241,6 +284,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.failedFuture("fail"));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -248,19 +293,20 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(applicationSettings).getAccountById(eq("account"), any());
 
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), eq(accountGdprConfig), any());
-        verify(tcfDefinerService).resultForBidderNames(anySet(), any(), any(), any(), eq(accountGdprConfig), any());
+        verify(privacyEnforcementService).contextFromCookieSyncRequest(any(), any(), eq(account), any());
     }
 
     @Test
-    public void shouldPassAccountToTcfWhenAccountIsNotFound() {
+    public void shouldPassAccountToPrivacyEnforcementServiceWhenAccountIsNotFound() {
         // given
         given(routingContext.getBody()).willReturn(
-                givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null, "account")));
+                givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).account("account").build()));
 
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.failedFuture("bad"));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.failedFuture("fail"));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -268,8 +314,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(applicationSettings).getAccountById(eq("account"), any());
 
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), isNull(), any());
-        verify(tcfDefinerService).resultForBidderNames(anySet(), any(), any(), any(), isNull(), any());
+        verify(privacyEnforcementService)
+                .contextFromCookieSyncRequest(any(), any(), eq(Account.empty("account")), any());
     }
 
     @Test
@@ -280,13 +326,12 @@ public class CookieSyncHandlerTest extends VertxTest {
                 jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
-        rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, "redirect", false);
+        rubiconUsersyncer = new Usersyncer(RUBICON, "url", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
@@ -310,18 +355,15 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         final String disabledBidder = "disabled_bidder";
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
-
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, false, emptyList(),
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
-        given(routingContext.getBody())
-                .willReturn(
-                        givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS), null, null, null, true, null,
-                                null)));
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).coopSync(true).build()));
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
@@ -353,13 +395,11 @@ public class CookieSyncHandlerTest extends VertxTest {
         final List<Collection<String>> coopBidders = asList(singletonList(RUBICON), singletonList(disabledBidder));
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, false, coopBidders,
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, coopBidders,
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
-        given(routingContext.getBody())
-                .willReturn(
-                        givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS), null, null, null, true, null,
-                                null)));
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).coopSync(true).build()));
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
@@ -382,6 +422,47 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithCoopBiddersWhenAccountCoopSyncTrue() throws IOException {
+        // given
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        final List<Collection<String>> coopBidders = singletonList(singletonList(RUBICON));
+
+        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, coopBidders,
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.builder()
+                        .bidders(singletonList(APPNEXUS))
+                        .account("account")
+                        .build()));
+
+        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
+                Account.builder()
+                        .cookieSync(AccountCookieSyncConfig.of(null, null, true))
+                        .build()));
+
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
+        rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
+        givenUsersyncersReturningFamilyName();
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie", asList(
+                BidderUsersyncStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(
+                        UsersyncInfo.of("http://adnxsexample.com", "redirect", false)).build(),
+                BidderUsersyncStatus.builder().bidder(RUBICON).noCookie(true).usersync(
+                        UsersyncInfo.of("http://rubiconexample.com", "redirect", false)).build())));
+    }
+
+    @Test
     public void shouldRespondWithPrioritisedCoopBidderWhenRequestCoopDefaultTrueAndLimitIsLessThanCoopSize()
             throws IOException {
         // given
@@ -391,12 +472,11 @@ public class CookieSyncHandlerTest extends VertxTest {
                 asList("bidder1", "bidder2"), singletonList("spam"));
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, true, priorityBidders,
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, true, priorityBidders,
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
-        given(routingContext.getBody())
-                .willReturn(givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS), null, null, null, null, 2,
-                        null)));
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).limit(2).build()));
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
@@ -421,7 +501,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithBidderStatusForAllBiddersIfBiddersListOmittedInRequest() throws IOException {
         // given
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(CookieSyncRequest.of(null, null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().build()));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
@@ -431,8 +511,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, false, emptyList(),
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
@@ -465,8 +545,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
@@ -490,9 +569,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
-        given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, "unsupported"), null, null, null, null, null, null)));
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.builder().bidders(asList(RUBICON, "unsupported")).build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         givenUsersyncersReturningFamilyName();
@@ -522,8 +600,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, "disabled"), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, "disabled")).build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         givenUsersyncersReturningFamilyName();
@@ -559,8 +636,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
@@ -587,11 +663,76 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldTolerateBiddersWithoutUsersyncUrl() throws IOException {
+        // given
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap("notRelevantBidder", UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
+                jacksonMapper));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
+
+        rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
+        givenUsersyncersReturningFamilyName();
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("ok", emptyList()));
+    }
+
+    @Test
+    public void shouldSkipVendorHostCheckAndContinueWithBiddersCheckWhenHostVendorIdIsMissing() throws IOException {
+        // given
+        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, null, false, emptyList(),
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+
+        final Uids uids = Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build();
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(uids, jacksonMapper));
+
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
+
+        rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
+        givenUsersyncersReturningFamilyName();
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
+
+        given(bidderCatalog.bidderInfoByName(APPNEXUS))
+                .willReturn(BidderInfo.create(true, null, null,
+                        null, null, null, 2, true, true, false));
+
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(tcfDefinerService, never()).resultForVendorIds(anySet(), any());
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1)
+                .extracting(BidderUsersyncStatus::getBidder, BidderUsersyncStatus::getError)
+                .containsOnly(tuple(APPNEXUS, "Rejected by TCF"));
+    }
+
+    @Test
     public void shouldUpdateCookieSyncSetAndRejectByTcfMetricForEachRejectedAndSyncedBidder() {
         // given
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
@@ -622,11 +763,10 @@ public class CookieSyncHandlerTest extends VertxTest {
                 jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
-        rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
-        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
+        rubiconUsersyncer = new Usersyncer(RUBICON, "url", null, null, null, false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "url", null, null, null, false);
         givenUsersyncersReturningFamilyName();
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
@@ -647,15 +787,14 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByTcf() throws IOException {
         // given
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, null, false, false, emptyList(),
-                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
+                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
@@ -664,7 +803,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
-        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBlockedVendorIdResult(set(1));
         givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
@@ -688,9 +827,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(
-                        givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS), null, null, null, null, null,
-                                null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).build()));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
@@ -717,7 +854,16 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithExpectedUsersyncInfo() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(singletonList(APPNEXUS), 1, "gdpr_consent1", null, null, null, null)));
+                CookieSyncRequest.builder()
+                        .bidders(singletonList(APPNEXUS))
+                        .gdpr(1)
+                        .gdprConsent("gdpr_consent1")
+                        .build()));
+
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(
+                        Privacy.of("1", "gdpr_consent1", Ccpa.EMPTY, 0),
+                        TcfContext.empty())));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
@@ -743,7 +889,12 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithUpdatedUsersyncInfoIfHostCookieAndUidsDiffers() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(singletonList(RUBICON), null, null, null, null, null, null)));
+                CookieSyncRequest.builder().bidders(singletonList(RUBICON)).build()));
+
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(
+                        Privacy.of("", EMPTY, Ccpa.EMPTY, 0),
+                        TcfContext.empty())));
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
@@ -773,7 +924,17 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithOriginalUsersyncInfoIfNoHostCookieFamilyInBiddersCookieFamily() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(singletonList(APPNEXUS), 1, "gdpr_consent1", "YNN", null, null, null)));
+                CookieSyncRequest.builder()
+                        .bidders(singletonList(APPNEXUS))
+                        .gdpr(1)
+                        .gdprConsent("gdpr_consent1")
+                        .usPrivacy("YNN")
+                        .build()));
+
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(
+                        Privacy.of("1", "gdpr_consent1", Ccpa.of("YNN"), 0),
+                        TcfContext.empty())));
 
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE,
@@ -802,7 +963,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithOriginalUsersyncInfoIfNoHostCookieInRequest() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(singletonList(RUBICON), null, null, null, null, null, null)));
+                CookieSyncRequest.builder().bidders(singletonList(RUBICON)).build()));
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
 
@@ -830,7 +991,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithOriginalUsersyncInfoIfHostCookieAndUidsAreEqual() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(singletonList(RUBICON), null, null, null, null, null, null)));
+                CookieSyncRequest.builder().bidders(singletonList(RUBICON)).build()));
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
 
@@ -859,7 +1020,12 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldTolerateMissingTcfParamsInRequestForUsersyncInfo() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(singletonList(APPNEXUS), null, "", null, null, null, null)));
+                CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).gdprConsent(EMPTY).build()));
+
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(
+                        Privacy.of("", EMPTY, Ccpa.EMPTY, 0),
+                        TcfContext.empty())));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.names()).willReturn(singleton(APPNEXUS));
@@ -888,9 +1054,82 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldLimitBidderStatuses() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(asList(RUBICON, APPNEXUS), 0, null, null, null, 1, null)));
+                CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).gdpr(0).limit(1).build()));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
+                Account.builder()
+                        .cookieSync(AccountCookieSyncConfig.of(5, 5, null))
+                        .build()));
+
+        rubiconUsersyncer = new Usersyncer(RUBICON,
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+                null, null, "redirect", false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect",
+                false);
+        givenUsersyncersReturningFamilyName();
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1);
+    }
+
+    @Test
+    public void shouldLimitBidderStatusesWithAccountDefaultLimit() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.builder()
+                .bidders(asList(RUBICON, APPNEXUS))
+                .gdpr(0)
+                .account("account")
+                .build()));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
+                Account.builder()
+                        .cookieSync(AccountCookieSyncConfig.of(1, null, null))
+                        .build()));
+
+        rubiconUsersyncer = new Usersyncer(RUBICON,
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+                null, null, "redirect", false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect",
+                false);
+        givenUsersyncersReturningFamilyName();
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1);
+    }
+
+    @Test
+    public void shouldLimitBidderStatusesWithAccountMaxLimit() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.builder()
+                .bidders(asList(RUBICON, APPNEXUS))
+                .gdpr(0)
+                .account("account")
+                .build()));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
+                Account.builder()
+                        .cookieSync(AccountCookieSyncConfig.of(5, 1, null))
+                        .build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON,
                 "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
@@ -919,7 +1158,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 Uids.builder().uids(liveUids).build(), jacksonMapper));
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(asList(RUBICON, APPNEXUS), 0, null, null, null, 1, null)));
+                CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).gdpr(0).limit(1).build()));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
@@ -945,7 +1184,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldNotLimitBidderStatusesIfLimitIsBiggerThanBiddersList() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.of(asList(RUBICON, APPNEXUS), 0, null, null, null, 3, null)));
+                CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).gdpr(0).limit(3).build()));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
@@ -971,7 +1210,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldIncrementMetrics() {
         // given
         given(routingContext.getBody()).willReturn(
-                givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null, null)));
+                givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).build()));
 
         givenTcfServiceReturningVendorIdResult(emptySet());
 
@@ -983,54 +1222,6 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassUnauthorizedEventToAnalyticsReporterIfOptedOut() {
-        given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(401, "User has opted out"));
-    }
-
-    @Test
-    public void shouldPassBadRequestEventToAnalyticsReporterIfRequestBodyIsMissing() {
-        // given
-        given(routingContext.getBody()).willReturn(null);
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(400, "Request has no body"));
-    }
-
-    @Test
-    public void shouldPassBadRequestEventToAnalyticsReporterIfRequestBodyCouldNotBeParsed() {
-        // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{"));
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
-        // when
-        cookieSyncHandler.handle(routingContext);
-
-        // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(400, "Request body cannot be parsed"));
-    }
-
-    @Test
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
@@ -1038,8 +1229,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(
-                        CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
@@ -1054,7 +1244,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
+        final CookieSyncEvent cookieSyncEvent = captureCookieSyncTcfEvent();
         assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.builder()
                 .status(200)
                 .bidderStatus(singletonList(BidderUsersyncStatus.builder()
@@ -1072,8 +1262,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(CookieSyncRequest.of(
-                        asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).build()));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
@@ -1104,20 +1293,25 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     private void givenTcfServiceReturningVendorIdResult(Set<Integer> vendorIds) {
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds), null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds, false), null)));
+    }
+
+    private void givenTcfServiceReturningBlockedVendorIdResult(Set<Integer> vendorIds) {
+        given(tcfDefinerService.resultForVendorIds(anySet(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds, true), null)));
     }
 
     private void givenTcfServiceReturningBidderNamesResult(Set<String> bidderNames) {
-        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(bidderNames), null)));
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(bidderNames, false), null)));
     }
 
-    private static <T> Map<T, PrivacyEnforcementAction> actions(Set<T> keys) {
+    private static <T> Map<T, PrivacyEnforcementAction> actions(Set<T> keys, boolean blockPixelSync) {
         return keys.stream()
                 .collect(Collectors.toMap(
                         identity(),
-                        vendorId -> PrivacyEnforcementAction.builder().blockPixelSync(false).build()));
+                        vendorId -> PrivacyEnforcementAction.builder().blockPixelSync(blockPixelSync).build()));
     }
 
     private static Buffer givenRequestBody(CookieSyncRequest request) {
@@ -1142,9 +1336,15 @@ public class CookieSyncHandlerTest extends VertxTest {
         return mapper.readValue(cookieSyncResponseCaptor.getValue(), CookieSyncResponse.class);
     }
 
+    private CookieSyncEvent captureCookieSyncTcfEvent() {
+        final ArgumentCaptor<CookieSyncEvent> cookieSyncEventCaptor = ArgumentCaptor.forClass(CookieSyncEvent.class);
+        verify(analyticsReporterDelegator).processEvent(cookieSyncEventCaptor.capture(), any());
+        return cookieSyncEventCaptor.getValue();
+    }
+
     private CookieSyncEvent captureCookieSyncEvent() {
         final ArgumentCaptor<CookieSyncEvent> cookieSyncEventCaptor = ArgumentCaptor.forClass(CookieSyncEvent.class);
-        verify(analyticsReporter).processEvent(cookieSyncEventCaptor.capture());
+        verify(analyticsReporterDelegator).processEvent(cookieSyncEventCaptor.capture());
         return cookieSyncEventCaptor.getValue();
     }
 

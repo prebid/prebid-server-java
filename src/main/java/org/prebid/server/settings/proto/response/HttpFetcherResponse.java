@@ -10,7 +10,7 @@ import java.util.Map;
 @Value
 public class HttpFetcherResponse {
 
-    private Map<String, ObjectNode> requests;
+    Map<String, ObjectNode> requests;
 
-    private Map<String, ObjectNode> imps;
+    Map<String, ObjectNode> imps;
 }

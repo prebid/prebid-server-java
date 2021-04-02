@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
@@ -93,7 +93,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
     @Mock
@@ -135,7 +135,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler = new AmpHandler(
                 ampRequestFactory,
                 exchangeService,
-                analyticsReporter,
+                analyticsReporterDelegator,
                 metrics,
                 clock,
                 bidderCatalog,
@@ -144,20 +144,6 @@ public class AmpHandlerTest extends VertxTest {
                 httpInteractionLogger,
                 jacksonMapper
         );
-    }
-
-    @Test
-    public void shouldSetRequestTypeMetricToAuctionContext() {
-        // given
-        given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
-
-        // when
-        ampHandler.handle(routingContext);
-
-        // then
-        final AuctionContext auctionContext = captureAuctionContext();
-        assertThat(auctionContext.getRequestTypeMetric()).isNotNull();
     }
 
     @Test
@@ -420,7 +406,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null, ExtBidResponsePrebid.of(1000L)))));
+                                null, null, ExtBidResponsePrebid.of(1000L)))));
 
         // when
         ampHandler.handle(routingContext);
@@ -443,7 +429,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null, ExtBidResponsePrebid.of(1000L)))));
+                                null, null, ExtBidResponsePrebid.of(1000L)))));
 
         // when
         ampHandler.handle(routingContext);
@@ -485,7 +471,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyBoolean(), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyInt());
     }
 
     @Test
@@ -507,7 +493,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), eq(true), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), anyInt());
     }
 
     @Test
@@ -525,7 +511,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), anyBoolean(), eq(1));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), eq(1));
     }
 
     @Test
@@ -769,6 +755,7 @@ public class AmpHandlerTest extends VertxTest {
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
+                .requestTypeMetric(MetricName.amp)
                 .timeout(timeout)
                 .build();
     }
@@ -797,7 +784,7 @@ public class AmpHandlerTest extends VertxTest {
 
     private AmpEvent captureAmpEvent() {
         final ArgumentCaptor<AmpEvent> captor = ArgumentCaptor.forClass(AmpEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture());
+        verify(analyticsReporterDelegator).processEvent(captor.capture(), any());
         return captor.getValue();
     }
 

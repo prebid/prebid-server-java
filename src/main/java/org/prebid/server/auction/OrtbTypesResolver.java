@@ -12,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,9 +37,12 @@ public class OrtbTypesResolver {
     private static final String USER = "user";
     private static final String APP = "app";
     private static final String SITE = "site";
+    private static final String CONTEXT = "context";
     private static final String BIDREQUEST = "bidrequest";
     private static final String TARGETING = "targeting";
     private static final String UNKNOWN_REFERER = "unknown referer";
+    private static final String DATA = "data";
+    private static final String EXT = "ext";
 
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_STANDARD_FIELDS;
     private static final Map<String, Set<String>> FIRST_ARRAY_ELEMENT_REQUEST_FIELDS;
@@ -66,9 +70,11 @@ public class OrtbTypesResolver {
     }
 
     private final JacksonMapper jacksonMapper;
+    private final JsonMerger jsonMerger;
 
-    public OrtbTypesResolver(JacksonMapper jacksonMapper) {
+    public OrtbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
     /**
@@ -83,9 +89,12 @@ public class OrtbTypesResolver {
         final JsonNode bidderConfigs = bidRequest.path("ext").path("prebid").path("bidderconfig");
         if (!bidderConfigs.isMissingNode() && bidderConfigs.isArray()) {
             for (JsonNode bidderConfig : bidderConfigs) {
-                final JsonNode config = bidderConfig.path("config").path("fpd");
-                if (!config.isMissingNode()) {
-                    normalizeStandardFpdFields(config, resolverWarnings, "bidrequest.ext.prebid.bidderconfig");
+
+                mergeFpdFieldsToOrtb2(bidderConfig);
+
+                final JsonNode ortb2Config = bidderConfig.path("config").path("ortb2");
+                if (!ortb2Config.isMissingNode()) {
+                    normalizeStandardFpdFields(ortb2Config, resolverWarnings, "bidrequest.ext.prebid.bidderconfig");
                 }
             }
         }
@@ -99,6 +108,52 @@ public class OrtbTypesResolver {
             // should never happen
             throw new InvalidRequestException("Failed to decode container node to string");
         }
+    }
+
+    /**
+     * Merges fpd fields into ortb2:
+     * config.fpd.context -> config.ortb2.site
+     * config.fpd.user -> config.ortb2.user
+     */
+    private void mergeFpdFieldsToOrtb2(JsonNode bidderConfig) {
+        final JsonNode config = bidderConfig.path("config");
+        final JsonNode configFpd = config.path("fpd");
+
+        if (configFpd.isMissingNode()) {
+            return;
+        }
+
+        final JsonNode configOrtb = config.path("ortb2");
+
+        final JsonNode fpdContext = configFpd.get(CONTEXT);
+        final JsonNode ortbSite = configOrtb.get(SITE);
+        final JsonNode updatedOrtbSite = ortbSite == null
+                ? fpdContext
+                : fpdContext != null ? jsonMerger.merge(fpdContext, ortbSite) : null;
+
+        final JsonNode fpdUser = configFpd.get(USER);
+        final JsonNode ortbUser = configOrtb.get(USER);
+        final JsonNode updatedOrtbUser = ortbUser == null
+                ? fpdUser
+                : fpdUser != null ? jsonMerger.merge(fpdUser, ortbUser) : null;
+
+        if (updatedOrtbUser == null && updatedOrtbSite == null) {
+            return;
+        }
+
+        final ObjectNode ortbObjectNode = configOrtb.isMissingNode()
+                ? jacksonMapper.mapper().createObjectNode()
+                : (ObjectNode) configOrtb;
+
+        if (updatedOrtbSite != null) {
+            ortbObjectNode.set(SITE, updatedOrtbSite);
+        }
+
+        if (updatedOrtbUser != null) {
+            ortbObjectNode.set(USER, updatedOrtbUser);
+        }
+
+        ((ObjectNode) config).set("ortb2", ortbObjectNode);
     }
 
     /**
@@ -172,6 +227,8 @@ public class OrtbTypesResolver {
                         .forEach(fieldName -> updateWithNormalizedField(containerObjectNode, fieldName,
                                 () -> toCommaSeparatedTextNode(containerObjectNode, fieldName, nodeName, nodePrefix,
                                         warnings)));
+
+                normalizeDataExtension(containerObjectNode, nodeName, nodePrefix, warnings);
             } else {
                 warnings.add(String.format("%s%s field ignored. Expected type is object, but was `%s`.",
                         nodePrefix, nodeName, containerNode.getNodeType().name()));
@@ -235,6 +292,38 @@ public class OrtbTypesResolver {
         } else {
             warnForExpectedStringArrayType(fieldName, containerName, warnings, nodePrefix, node.getNodeType());
             return null;
+        }
+    }
+
+    private void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
+                                        List<String> warnings) {
+        final JsonNode data = containerNode.get(DATA);
+        if (data == null || !data.isObject()) {
+            return;
+        }
+        final JsonNode extData = containerNode.path(EXT).path(DATA);
+        final JsonNode ext = containerNode.get(EXT);
+        if (!extData.isNull() && !extData.isMissingNode()) {
+            final JsonNode resolvedExtData = jsonMerger.merge(data, extData);
+            ((ObjectNode) ext).set(DATA, resolvedExtData);
+        } else {
+            copyDataToExtData(containerNode, containerName, nodePrefix, warnings, data);
+        }
+        containerNode.remove(DATA);
+    }
+
+    private void copyDataToExtData(ObjectNode containerNode, String containerName, String nodePrefix,
+                                   List<String> warnings, JsonNode data) {
+        final JsonNode ext = containerNode.get(EXT);
+        if (ext != null && ext.isObject()) {
+            ((ObjectNode) ext).set(DATA, data);
+        } else if (ext != null && !ext.isObject()) {
+            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is "
+                            + "object, but was %s. Replaced with object",
+                    nodePrefix, containerName, EXT, ext.getNodeType()));
+            containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
+        } else {
+            containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
         }
     }
 

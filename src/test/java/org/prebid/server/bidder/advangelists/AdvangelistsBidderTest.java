@@ -33,7 +33,6 @@ import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +43,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AdvangelistsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://test/get?pubid=";
+    private static final String ENDPOINT_URL = "http://test/get?pubid={{PublisherID}}";
 
     private AdvangelistsBidder advangelistsBidder;
 
@@ -63,6 +62,7 @@ public class AdvangelistsBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
@@ -72,14 +72,18 @@ public class AdvangelistsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+        });
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenExtPubIdIsNull() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), ExtImpAdvangelists.of(null, null));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()),
+                ExtImpAdvangelists.of(null, null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
@@ -93,7 +97,8 @@ public class AdvangelistsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenExtPubIdIsBlank() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), ExtImpAdvangelists.of(" ", null));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()),
+                ExtImpAdvangelists.of("", null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
@@ -124,26 +129,21 @@ public class AdvangelistsBidderTest extends VertxTest {
         // given
         final Imp impWithoutFormatFirst =
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
-        final Imp impWithoutFormatSecond =
-                givenImp(impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
         final Imp impWithoutType = givenImp(identity());
-        final Imp impWithoutPubIdFirst = givenImp(identity(), ExtImpAdvangelists.of(" ", null));
-        final Imp impWithoutPubIdSecond = givenImp(identity(), ExtImpAdvangelists.of(" ", null));
+        final Imp impWithoutPubIdFirst = givenImp(impBuilder -> impBuilder.banner(Banner.builder().build()),
+                ExtImpAdvangelists.of("", null));
         final Imp normalImp = givenImp(impBuilder -> impBuilder.video(Video.builder().build()));
 
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(impWithoutFormatFirst, impWithoutPubIdFirst, impWithoutFormatSecond, impWithoutPubIdSecond,
-                        normalImp, impWithoutType))
+                .imp(asList(impWithoutFormatFirst, impWithoutPubIdFirst, normalImp, impWithoutType))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(5)
-                .containsOnly(BidderError.badInput("No pubid value provided"),
-                        BidderError.badInput("No pubid value provided"),
-                        BidderError.badInput("Expected at least one banner.format entry or explicit w/h"),
+        assertThat(result.getErrors()).hasSize(3)
+                .containsExactlyInAnyOrder(BidderError.badInput("No pubid value provided"),
                         BidderError.badInput("Expected at least one banner.format entry or explicit w/h"),
                         BidderError.badInput("Unsupported impression has been received"));
         assertThat(result.getValue()).hasSize(1);
@@ -181,7 +181,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
-                        tuple("x-openrtb-version", "2.5"));
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
     }
 
     @Test
@@ -334,8 +334,10 @@ public class AdvangelistsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+        });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -404,11 +406,6 @@ public class AdvangelistsBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(advangelistsBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
@@ -445,6 +442,7 @@ public class AdvangelistsBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

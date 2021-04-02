@@ -1,0 +1,5 @@
+{
+  "bid001@7.77": "c1662cf6-f00a-4066-b71a-46d97abccc35",
+  "bid002@9.99": "dbaa191c-5a56-4655-85eb-da079f94e09f",
+  "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[https://example.com/nurl]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>": "62019cff-d657-42fc-8366-16c34e1fd28c"
+}

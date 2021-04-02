@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Imp;
@@ -12,6 +13,8 @@ import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.FileSystem;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +25,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -45,6 +49,8 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -57,6 +63,8 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private FileSystem fileSystem;
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock
@@ -71,18 +79,34 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
     private VideoStoredRequestProcessor target;
 
     @Before
-    public void setUp() {
-        target = new VideoStoredRequestProcessor(applicationSettings, validator, false, emptyList(),
-                BidRequest.builder().build(), metrics, timeoutFactory, timeoutResolver, 2000L, "USD", jacksonMapper);
+    public void setUp() throws JsonProcessingException {
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(BidRequest.builder().at(1).build())));
+
+        target = VideoStoredRequestProcessor.create(
+                false,
+                emptyList(),
+                2000L,
+                "USD",
+                "path/to/default/request.json",
+                fileSystem,
+                applicationSettings,
+                validator,
+                metrics,
+                timeoutFactory,
+                timeoutResolver,
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
     }
 
     @Test
     public void shouldReturnFailedFutureWhenFetchStoredIsFailed() {
         // given
-        given(applicationSettings.getVideoStoredData(any(), any(), any())).willReturn(Future.failedFuture("ERROR"));
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
+                Future.failedFuture("ERROR"));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), null);
 
         // then
@@ -120,17 +144,18 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
-        given(applicationSettings.getVideoStoredData(any(), any(), any())).willReturn(
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
                 Future.succeededFuture(storedDataResult));
         given(validator.validPods(any(), any())).willReturn(
                 WithPodErrors.of(singletonList(Pod.of(123, 20, STORED_POD_ID)), emptyList()));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), requestVideo);
 
         // then
-        verify(applicationSettings).getVideoStoredData(eq(singleton(STORED_REQUEST_ID)), eq(singleton(STORED_POD_ID)),
+        verify(applicationSettings).getVideoStoredData(any(), eq(singleton(STORED_REQUEST_ID)),
+                eq(singleton(STORED_POD_ID)),
                 any());
         verify(metrics).updateStoredRequestMetric(true);
         verify(metrics).updateStoredImpsMetric(true);
@@ -158,6 +183,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .build();
         final BidRequest expectedMergedRequest = BidRequest.builder()
                 .id("bid_id")
+                .at(1)
                 .imp(Arrays.asList(expectedImp1, expectedImp2))
                 .user(User.builder().buyeruid("appnexus").yob(123).gender("gender").keywords("keywords").build())
                 .site(Site.builder().id("siteId").content(content).build())
@@ -182,7 +208,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
         final StoredDataResult storedDataResult = StoredDataResult.of(emptyMap(), emptyMap(), emptyList());
 
-        given(applicationSettings.getVideoStoredData(any(), any(), any())).willReturn(
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
                 Future.succeededFuture(storedDataResult));
 
         final PodError podError1 = PodError.of(1, 1, singletonList("ERROR1"));
@@ -192,7 +218,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 WithPodErrors.of(emptyList(), Arrays.asList(podError1, podError2)));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), requestVideo);
 
         // then

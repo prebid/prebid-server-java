@@ -36,8 +36,12 @@ Add the file `stored_imps/{id}.json` and populate it with some [Imp](https://www
     ]
   },
   "ext": {
-    "appnexus": {
-      "placement_id": 10433394
+    "prebid": {
+      "bidder": {
+        "appnexus": {
+          "placement_id": 10433394
+        }
+      }
     }
   }
 }
@@ -83,8 +87,12 @@ You can also store _part_ of the Imp on the server. For example:
     ]
   },
   "ext": {
-    "appnexus": {
-      "placement_id": 10433394
+    "prebid": {
+      "bidder": {
+        "appnexus": {
+          "placement_id": 10433394
+        }
+      }
     }
   }
 }
@@ -122,7 +130,7 @@ So far, our examples have only used Stored Imp data. However, Stored Requests
 are also allowed on the [BidRequest](https://www.iab.com/wp-content/uploads/2016/03/OpenRTB-API-Specification-Version-2-5-FINAL.pdf#page=15).
 These work exactly the same way, but support storing properties like timeouts and price granularity.
 
-For example, assume the following `stored-requests/stored-request.json`:
+For example, assume the following `stored-requests/{id}.json`:
 
 ```json
 {
@@ -137,7 +145,7 @@ For example, assume the following `stored-requests/stored-request.json`:
   }
 ```
 
-Then an HTTP request like:
+Then HTTP request like:
 
 ```json
 {
@@ -148,7 +156,7 @@ Then an HTTP request like:
   "ext": {
     "prebid": {
       "storedrequest": {
-        "id": "stored-request.json"
+        "id": "{id}"
       }
     }
   }
@@ -178,8 +186,7 @@ Prebid Server does allow Stored BidRequests and Stored Imps in the same HTTP Req
 The Stored BidRequest will be applied first, and then the Stored Imps after.
 
 **Beware**: Stored Request data will not be applied recursively.
-If a Stored BidRequest includes Imps with their own Stored Request IDs,
-then the data for those Stored Imps not be resolved.
+If a Stored BidRequest includes Imps with their own Stored Request IDs, then the data for those Stored Imps will not be resolved.
 
 ## Alternate backends
 
@@ -193,13 +200,6 @@ For PostgreSQL:
 settings:
   database:
     type: postgres
-    host: localhost
-    port: 5432
-    dbname: database-name
-    user: username
-    password: password
-    stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)
-    amp-stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)
 ```
 
 For MySQL:
@@ -209,10 +209,11 @@ settings:
     type: mysql
 ```
 
-The select query columns of `stored-data-query` and `amp-stored-data-query` properties should correspond to the specific format:
-- first column: ID of stored data item
-- second column: value of stored data item
-- third column: type of stored data item. Can be `request` for stored requests or `imp` for stored impressions.
+The select query columns of `stored-requests-query` and `amp-stored-requests-query` properties should correspond to the specific format:
+- first column: account ID which is searched by.
+- second column: ID of stored data item which is searched by.
+- third column: value of stored data item.
+- forth column: type of stored data item. Can be `request` for stored requests or `imp` for stored impressions.
 
 ### HTTP backend
 
@@ -261,8 +262,8 @@ settings:
     dbname: database-name
     user: username
     password: password
-    stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)
-    amp-stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)
+    stored-requests-query: SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)
+    amp-stored-requests-query: SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)
   http:
     endpoint: http://stored-requests.prebid.com
     amp-endpoint: http://stored-requests.prebid.com?amp=true

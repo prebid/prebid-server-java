@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +54,7 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+    public void makeHttpRequestsShouldReturnErrorsIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
@@ -65,8 +64,15 @@ public class GumgumBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).hasSize(2)
+                .anySatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).isEqualTo("No valid impressions");
+                })
+                .anySatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -83,8 +89,8 @@ public class GumgumBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("No valid impressions"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -102,9 +108,9 @@ public class GumgumBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid or missing video field(s)");
-        assertThat(result.getErrors().get(1).getMessage()).startsWith("No valid impressions");
+        assertThat(result.getErrors())
+                .containsExactlyInAnyOrder(BidderError.badInput("Invalid or missing video field(s)"),
+                        BidderError.badInput("No valid impressions"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -122,12 +128,37 @@ public class GumgumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
                 .extracting(Banner::getId)
-                .containsOnly("banner_id");
+                .containsExactly("banner_id");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetEmtyStringIfZoneIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.site(Site.builder().build()),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of(null)))));
+        BidRequest.builder()
+                .site(Site.builder().build())
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.banner(null).video(null).audio(Audio.builder().build())),
+                        givenImp(identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getId)
+                .containsExactly("");
     }
 
     @Test
@@ -145,20 +176,19 @@ public class GumgumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
                 .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(600, 900));
+                .containsExactly(tuple(600, 900));
     }
 
     @Test
     public void makeHttpRequestsShouldSetBannerWidthAndHeightFromfirstFormatIfAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
+                impBuilder -> impBuilder.banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(450).build()))
                                 .build()));
 
@@ -167,12 +197,12 @@ public class GumgumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
                 .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(300, 450));
+                .containsExactly(tuple(300, 450));
     }
 
     @Test
@@ -186,7 +216,7 @@ public class GumgumBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
                 .containsNull();
     }
@@ -212,11 +242,11 @@ public class GumgumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getId)
-                .containsOnly("zone");
+                .containsExactly("zone");
     }
 
     @Test
@@ -228,9 +258,11 @@ public class GumgumBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -285,7 +317,7 @@ public class GumgumBidderTest extends VertxTest {
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(expectedBid, video, "USD"));
+                .containsExactly(BidderBid.of(expectedBid, video, "USD"));
     }
 
     @Test
@@ -303,12 +335,31 @@ public class GumgumBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(gumgumBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+    public void makeBidsShouldTolerateWithNullSeatOrBidValues() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
+                .build();
+
+        final BidResponse bidResponse = BidResponse.builder()
+                .cur("USD")
+                .seatbid(asList(SeatBid.builder()
+                        .bid(asList(Bid.builder().id("123").build(), null))
+                        .build(), null))
+                .build();
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+
+        // when
+        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
     }
 
     private static BidRequest givenBidRequest(

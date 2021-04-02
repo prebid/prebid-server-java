@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @RunWith(VertxUnitRunner.class)
 public class ConditionalLoggerTest {
@@ -42,6 +43,19 @@ public class ConditionalLoggerTest {
     @After
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
+    }
+
+    @Test
+    public void infoWithKeyShouldCallLoggerWithExpectedCount() {
+        // when
+        for (int i = 0; i < 10; i++) {
+            conditionalLogger.infoWithKey("key", "Log Message1", 2);
+            conditionalLogger.infoWithKey("key", "Log Message2", 2);
+        }
+
+        // then
+        verify(logger, times(10)).info("Log Message2");
+        verifyNoMoreInteractions(logger);
     }
 
     @Test

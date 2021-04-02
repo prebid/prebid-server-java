@@ -6,7 +6,6 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -34,7 +33,6 @@ public class YieldlabTest extends IntegrationTest {
                 .withQueryParam("lon", WireMock.equalTo("-0.128953"))
                 .withQueryParam("gdpr", WireMock.equalTo("0"))
                 .withQueryParam("consent", WireMock.equalTo("consentValue"))
-                .withHeader("Content-Type", WireMock.equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", WireMock.equalTo("application/json"))
                 .withHeader("User-Agent", WireMock.equalTo("userAgent"))
                 .withHeader("X-Forwarded-For", WireMock.equalTo("193.168.244.1"))
@@ -66,6 +64,6 @@ public class YieldlabTest extends IntegrationTest {
                 response, singletonList("yieldlab"));
 
         final String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, openrtbCacheDebugComparator());
     }
 }

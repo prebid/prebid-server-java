@@ -40,19 +40,25 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
@@ -67,6 +73,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -76,8 +83,10 @@ import java.util.stream.Stream;
 public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
-    private static final String CONTEXT_EXT = "context";
+    private static final String BIDDER_EXT = "bidder";
+    private static final String ASTERISK = "*";
     private static final Locale LOCALE = Locale.US;
+
     private static final String DOCUMENTATION = "https://iabtechlab.com/wp-content/uploads/2016/07/"
             + "OpenRTB-Native-Ads-Specification-Final-1.2.pdf";
 
@@ -130,6 +139,8 @@ public class RequestValidator {
                 validateBidAdjustmentFactors(
                         ObjectUtils.defaultIfNull(extRequestPrebid.getBidadjustmentfactors(), Collections.emptyMap()),
                         aliases);
+                validateExtBidPrebidData(extRequestPrebid.getData(), aliases);
+                validateSchains(extRequestPrebid.getSchains());
             }
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
@@ -199,6 +210,97 @@ public class RequestValidator {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %s",
                         bidder, format(adjustmentFactor));
+            }
+        }
+    }
+
+    private void validateSchains(List<ExtRequestPrebidSchain> schains) throws ValidationException {
+        if (schains == null) {
+            return;
+        }
+
+        final Set<String> schainBidders = new HashSet<>();
+        for (final ExtRequestPrebidSchain schain : schains) {
+            if (schain == null) {
+                continue;
+            }
+
+            final List<String> bidders = schain.getBidders();
+            if (bidders == null) {
+                continue;
+            }
+
+            for (final String bidder : bidders) {
+                if (schainBidders.contains(bidder)) {
+                    throw new ValidationException(
+                            "request.ext.prebid.schains contains multiple schains for bidder %s; "
+                                    + "it must contain no more than one per bidder.",
+                            bidder);
+                }
+
+                schainBidders.add(bidder);
+            }
+        }
+    }
+
+    private void validateExtBidPrebidData(ExtRequestPrebidData data, Map<String, String> aliases)
+            throws ValidationException {
+        if (data != null) {
+            validateEidPermissions(data.getEidPermissions(), aliases);
+        }
+    }
+
+    private void validateEidPermissions(List<ExtRequestPrebidDataEidPermissions> eidPermissions,
+                                        Map<String, String> aliases) throws ValidationException {
+        if (eidPermissions != null) {
+            final Set<String> uniqueEidsSources = new HashSet<>();
+            for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
+                validateEidPermission(eidPermission, aliases, uniqueEidsSources);
+            }
+        }
+    }
+
+    private void validateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission,
+                                       Map<String, String> aliases,
+                                       Set<String> uniqueEidsSources)
+            throws ValidationException {
+        if (eidPermission == null) {
+            throw new ValidationException("request.ext.prebid.data.eidpermissions[] can't be null");
+        }
+        final String eidPermissionSource = eidPermission.getSource();
+
+        validateEidPermissionSource(eidPermissionSource);
+        validateDuplicatedSources(uniqueEidsSources, eidPermissionSource);
+        validateEidPermissionBidders(eidPermission.getBidders(), aliases);
+    }
+
+    private void validateEidPermissionSource(String source) throws ValidationException {
+        if (StringUtils.isEmpty(source)) {
+            throw new ValidationException("Missing required value request.ext.prebid.data.eidPermissions[].source");
+        }
+    }
+
+    private void validateDuplicatedSources(Set<String> uniqueEidsSources, String eidSource) throws ValidationException {
+        if (uniqueEidsSources.contains(eidSource)) {
+            throw new ValidationException(String.format(
+                    "Duplicate source %s in request.ext.prebid.data.eidpermissions[]", eidSource));
+        }
+        uniqueEidsSources.add(eidSource);
+    }
+
+    private void validateEidPermissionBidders(List<String> bidders,
+                                              Map<String, String> aliases) throws ValidationException {
+
+        if (CollectionUtils.isEmpty(bidders)) {
+            throw new ValidationException("request.ext.prebid.data.eidpermissions[].bidders[] required values"
+                    + " but was empty or null");
+        }
+
+        for (String bidder : bidders) {
+            if (!bidderCatalog.isValidName(bidder) && !bidderCatalog.isValidName(aliases.get(bidder))
+                    && ObjectUtils.notEqual(bidder, ASTERISK)) {
+                throw new ValidationException(
+                        "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode : %s", bidder);
             }
         }
     }
@@ -392,18 +494,12 @@ public class RequestValidator {
                 }
             }
 
-            final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-            if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
-                throw new ValidationException("request.user contains a digitrust object that is not valid");
-            }
-
             final List<ExtUserEid> eids = extUser.getEids();
             if (eids != null) {
                 if (eids.isEmpty()) {
                     throw new ValidationException(
                             "request.user.ext.eids must contain at least one element or be undefined");
                 }
-                final Set<String> uniqueSources = new HashSet<>(eids.size());
                 for (int index = 0; index < eids.size(); index++) {
                     final ExtUserEid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
@@ -431,9 +527,10 @@ public class RequestValidator {
                             }
                         }
                     }
-                    uniqueSources.add(eid.getSource());
                 }
-
+                final Set<String> uniqueSources = eids.stream()
+                        .map(ExtUserEid::getSource)
+                        .collect(Collectors.toSet());
                 if (eids.size() != uniqueSources.size()) {
                     throw new ValidationException("request.user.ext.eids must contain unique sources");
                 }
@@ -492,12 +589,12 @@ public class RequestValidator {
 
     private Request parseNativeRequest(String rawStringNativeRequest, int impIndex) throws ValidationException {
         if (StringUtils.isBlank(rawStringNativeRequest)) {
-            throw new ValidationException("request.imp.[%d].ext.native contains empty request value", impIndex);
+            throw new ValidationException("request.imp[%d].native contains empty request value", impIndex);
         }
         try {
             return mapper.mapper().readValue(rawStringNativeRequest, Request.class);
         } catch (IOException e) {
-            throw new ValidationException("Error while parsing request.imp.[%d].ext.native.request", impIndex);
+            throw new ValidationException("Error while parsing request.imp[%d].native.request", impIndex);
         }
     }
 
@@ -736,17 +833,115 @@ public class RequestValidator {
     }
 
     private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
-        if (ext == null || ext.size() < 1) {
-            throw new ValidationException("request.imp[%d].ext must contain at least one bidder", impIndex);
+        validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex);
+    }
+
+    private void validateImpExtPrebid(JsonNode extPrebidNode, Map<String, String> aliases, int impIndex)
+            throws ValidationException {
+
+        if (extPrebidNode == null) {
+            throw new ValidationException(
+                    "request.imp[%d].ext.prebid must be defined", impIndex);
         }
 
-        final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = ext.fields();
+        if (!extPrebidNode.isObject()) {
+            throw new ValidationException(
+                    "request.imp[%d].ext.prebid must an object type", impIndex);
+        }
+
+        final JsonNode extPrebidBidderNode = extPrebidNode.get(BIDDER_EXT);
+
+        if (extPrebidBidderNode != null && !extPrebidBidderNode.isObject()) {
+            throw new ValidationException(
+                    "request.imp[%d].ext.prebid.bidder must be an object type", impIndex);
+        }
+
+        final ExtImpPrebid extPrebid = parseExtImpPrebid((ObjectNode) extPrebidNode, impIndex);
+
+        validateImpExtPrebidBidder(extPrebid, aliases, impIndex);
+        validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex);
+    }
+
+    private void validateImpExtPrebidBidder(ExtImpPrebid extPrebid, Map<String, String> aliases, int impIndex)
+            throws ValidationException {
+
+        final ObjectNode extPrebidBidder = extPrebid.getBidder();
+
+        if (extPrebidBidder == null) {
+            if (extPrebid.getStoredAuctionResponse() != null) {
+                return;
+            } else {
+                throw new ValidationException("request.imp[%d].ext.prebid.bidder must be defined", impIndex);
+            }
+        }
+
+        final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = extPrebidBidder.fields();
         while (bidderExtensions.hasNext()) {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidder = bidderExtension.getKey();
-            if (!Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT)) {
-                validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
+            validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
+        }
+    }
+
+    private void validateImpExtPrebidStoredResponses(ExtImpPrebid extPrebid,
+                                                     Map<String, String> aliases,
+                                                     int impIndex) throws ValidationException {
+        final ExtStoredAuctionResponse extStoredAuctionResponse = extPrebid.getStoredAuctionResponse();
+        if (extStoredAuctionResponse != null && extStoredAuctionResponse.getId() == null) {
+            throw new ValidationException("request.imp[%d].ext.prebid.storedauctionresponse.id should be defined",
+                    impIndex);
+        }
+
+        final List<ExtStoredBidResponse> storedBidResponses = extPrebid.getStoredBidResponse();
+        if (CollectionUtils.isNotEmpty(storedBidResponses)) {
+            final ObjectNode bidderNode = extPrebid.getBidder();
+            if (bidderNode == null || bidderNode.isEmpty()) {
+                throw new ValidationException(String.format(
+                        "request.imp[%d].ext.prebid.bidder should be defined for storedbidresponse", impIndex));
             }
+
+            for (ExtStoredBidResponse storedBidResponse : storedBidResponses) {
+                validateStoredBidResponse(storedBidResponse, bidderNode, aliases, impIndex);
+            }
+        }
+    }
+
+    private void validateStoredBidResponse(ExtStoredBidResponse extStoredBidResponse, ObjectNode bidderNode,
+                                           Map<String, String> aliases, int impIndex) throws ValidationException {
+        final String bidder = extStoredBidResponse.getBidder();
+        final String id = extStoredBidResponse.getId();
+        if (StringUtils.isEmpty(bidder)) {
+            throw new ValidationException(String.format(
+                    "request.imp[%d].ext.prebid.storedbidresponse.bidder was not defined", impIndex));
+        }
+
+        if (StringUtils.isEmpty(id)) {
+            throw new ValidationException(String.format(
+                    "Id was not defined for request.imp[%d].ext.prebid.storedbidresponse.id", impIndex));
+        }
+
+        final String resolvedBidder = aliases.getOrDefault(bidder, bidder);
+
+        if (!bidderCatalog.isValidName(resolvedBidder)) {
+            throw new ValidationException(String.format(
+                    "request.imp[%d].ext.prebid.storedbidresponse.bidder is not valid bidder", impIndex));
+        }
+
+        final boolean noCorrespondentBidderParameters = StreamUtil.asStream(bidderNode.fieldNames())
+                .noneMatch(impBidder -> impBidder.equals(resolvedBidder) || impBidder.equals(bidder));
+        if (noCorrespondentBidderParameters) {
+            throw new ValidationException(String.format(
+                    "request.imp[%d].ext.prebid.storedbidresponse.bidder does not have correspondent bidder parameters",
+                    impIndex));
+        }
+    }
+
+    private ExtImpPrebid parseExtImpPrebid(ObjectNode extImpPrebid, int impIndex) throws ValidationException {
+        try {
+            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new ValidationException(String.format(
+                    " bidRequest.imp[%d].ext.prebid: %s has invalid format", impIndex, e.getMessage()));
         }
     }
 
@@ -755,12 +950,12 @@ public class RequestValidator {
         if (bidderCatalog.isValidName(bidderName)) {
             final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
             if (!messages.isEmpty()) {
-                throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex,
+                throw new ValidationException("request.imp[%d].ext.prebid.bidder.%s failed validation.\n%s", impIndex,
                         bidderName, String.join("\n", messages));
             }
         } else if (!bidderCatalog.isDeprecatedName(bidderName)) {
             throw new ValidationException(
-                    "request.imp[%d].ext contains unknown bidder: %s", impIndex, bidderName);
+                    "request.imp[%d].ext.prebid.bidder contains unknown bidder: %s", impIndex, bidderName);
         }
     }
 
@@ -865,6 +1060,10 @@ public class RequestValidator {
                         impIndex, i);
             }
         }
+    }
+
+    private static boolean isObjectNode(JsonNode node) {
+        return node != null && node.isObject();
     }
 
     private static boolean hasPositiveValue(Integer value) {

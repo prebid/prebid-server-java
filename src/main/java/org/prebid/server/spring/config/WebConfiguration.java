@@ -13,21 +13,18 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.prebid.server.analytics.CompositeAnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
@@ -49,7 +46,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
-import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
@@ -146,7 +142,6 @@ public class WebConfiguration {
     Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
-                  AuctionHandler auctionHandler,
                   org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
                   AmpHandler openrtbAmpHandler,
                   VideoHandler openrtbVideoHandler,
@@ -167,7 +162,6 @@ public class WebConfiguration {
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
-        router.post("/auction").handler(auctionHandler);
         router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
         router.get("/openrtb2/amp").handler(openrtbAmpHandler);
         router.post("/openrtb2/video").handler(openrtbVideoHandler);
@@ -212,40 +206,10 @@ public class WebConfiguration {
     }
 
     @Bean
-    AuctionHandler auctionHandler(
-            ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog,
-            PreBidRequestContextFactory preBidRequestContextFactory,
-            CacheService cacheService,
-            Metrics metrics,
-            HttpAdapterConnector httpAdapterConnector,
-            Clock clock,
-            TcfDefinerService tcfDefinerService,
-            PrivacyExtractor privacyExtractor,
-            JacksonMapper mapper,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${geolocation.enabled}") boolean useGeoLocation) {
-
-        return new AuctionHandler(
-                applicationSettings,
-                bidderCatalog,
-                preBidRequestContextFactory,
-                cacheService,
-                metrics,
-                httpAdapterConnector,
-                clock,
-                tcfDefinerService,
-                privacyExtractor,
-                mapper,
-                hostVendorId,
-                useGeoLocation);
-    }
-
-    @Bean
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
             HttpInteractionLogger httpInteractionLogger,
@@ -265,7 +229,7 @@ public class WebConfiguration {
     AmpHandler openrtbAmpHandler(
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
             BidderCatalog bidderCatalog,
@@ -292,7 +256,7 @@ public class WebConfiguration {
             VideoRequestFactory videoRequestFactory,
             VideoResponseFactory videoResponseFactory,
             ExchangeService exchangeService,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -321,15 +285,15 @@ public class WebConfiguration {
             TcfDefinerService tcfDefinerService,
             PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporterDelegator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation,
-                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId,
+                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporterDelegator, metrics, timeoutFactory,
+                mapper);
     }
 
     @Bean
@@ -338,15 +302,24 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
+            PrivacyEnforcementService privacyEnforcementService,
             TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${geolocation.enabled}") boolean useGeoLocation,
-            CompositeAnalyticsReporter analyticsReporter,
+            AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, applicationSettings, bidderCatalog,
-                tcfDefinerService, hostVendorId, useGeoLocation, analyticsReporter, metrics, timeoutFactory);
+        return new SetuidHandler(
+                defaultTimeoutMs,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                privacyEnforcementService,
+                tcfDefinerService,
+                hostVendorId,
+                analyticsReporter,
+                metrics,
+                timeoutFactory);
     }
 
     @Bean
@@ -365,7 +338,12 @@ public class WebConfiguration {
             JacksonMapper mapper) {
 
         return new VtrackHandler(
-                defaultTimeoutMs, allowUnknownBidder, applicationSettings, bidderCatalog, cacheService, timeoutFactory,
+                defaultTimeoutMs,
+                allowUnknownBidder,
+                applicationSettings,
+                bidderCatalog,
+                cacheService,
+                timeoutFactory,
                 mapper);
     }
 
@@ -377,8 +355,11 @@ public class WebConfiguration {
             GoogleRecaptchaVerifier googleRecaptchaVerifier,
             UidsCookieService uidsCookieService) {
 
-        return new OptoutHandler(googleRecaptchaVerifier, uidsCookieService,
-                OptoutHandler.getOptoutRedirectUrl(externalUrl), HttpUtil.validateUrl(optoutUrl),
+        return new OptoutHandler(
+                googleRecaptchaVerifier,
+                uidsCookieService,
+                OptoutHandler.getOptoutRedirectUrl(externalUrl),
+                HttpUtil.validateUrl(optoutUrl),
                 HttpUtil.validateUrl(optinUrl));
     }
 
@@ -398,10 +379,10 @@ public class WebConfiguration {
     }
 
     @Bean
-    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter,
+    NotificationEventHandler eventNotificationHandler(AnalyticsReporterDelegator analyticsReporterDelegator,
                                                       TimeoutFactory timeoutFactory,
                                                       ApplicationSettings applicationSettings) {
-        return new NotificationEventHandler(compositeAnalyticsReporter, timeoutFactory, applicationSettings);
+        return new NotificationEventHandler(analyticsReporterDelegator, timeoutFactory, applicationSettings);
     }
 
     @Bean

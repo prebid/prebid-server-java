@@ -1,0 +1,18 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "randomid",
+        "impid": "test-imp-id",
+        "price": 0.5,
+        "adm": "<div id='rtb-widget",
+        "adid": "12345678",
+        "cid": "987",
+        "crid": "12345678",
+        "w": 300,
+        "h": 250
+      }
+    }
+  ]
+}

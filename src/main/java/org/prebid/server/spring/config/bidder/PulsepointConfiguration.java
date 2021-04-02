@@ -1,7 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.pulsepoint.PulsepointAdapter;
 import org.prebid.server.bidder.pulsepoint.PulsepointBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
@@ -47,10 +46,6 @@ public class PulsepointConfiguration {
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new PulsepointBidder(config.getEndpoint(), mapper))
-                .adapterCreator(config -> new PulsepointAdapter(
-                        config.getUsersync().getCookieFamilyName(),
-                        config.getEndpoint(),
-                        mapper))
                 .assemble();
     }
 }

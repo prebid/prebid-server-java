@@ -9,6 +9,7 @@ import java.util.List;
 @Builder(toBuilder = true)
 @Value
 public class ImageObject {
+
     Integer type;
 
     Integer w;

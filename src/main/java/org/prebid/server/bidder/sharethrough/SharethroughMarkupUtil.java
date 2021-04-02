@@ -21,7 +21,7 @@ class SharethroughMarkupUtil {
         final String encodedJsonResponse = Base64.getEncoder().encodeToString(jsonResponse.getBytes());
 
         tmplBody.append("<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=").append(arId)
-                .append("&adReceivedAt=").append(date.getTime()).append("\" />\n")
+                .append("&adReceivedAt=").append(date.toInstant().toEpochMilli()).append("\" />\n")
                 .append("\t\t<div data-str-native-key=\"").append(strUriParameters.getPkey()).append("\" ")
                 .append("data-stx-response-name=\"").append(strRespId).append("\"></div>\n")
                 .append("\t\t<script>var ").append(strRespId).append(" = ")

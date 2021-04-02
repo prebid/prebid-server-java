@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
@@ -52,12 +51,6 @@ public class RubiconConfiguration {
                         config.getXapi().getPassword(),
                         config.getMetaInfo().getSupportedVendors(),
                         config.getGenerateBidId(),
-                        mapper))
-                .adapterCreator(config -> new RubiconAdapter(
-                        config.getUsersync().getCookieFamilyName(),
-                        config.getEndpoint(),
-                        config.getXapi().getUsername(),
-                        config.getXapi().getPassword(),
                         mapper))
                 .assemble();
     }

@@ -50,7 +50,7 @@ public class UsersyncInfoAssemblerTest {
                         + "%26gdpr_consent%3D{{gdpr_consent}}"
                         + "%26us_privacy={{us_privacy}}",
                         null, null, null, false))
-                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"))).assemble();
+                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null)).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
@@ -65,7 +65,7 @@ public class UsersyncInfoAssemblerTest {
                         + "%26gdpr_consent%3D{{gdpr_consent}}"
                         + "%26us_privacy%3D{{us_privacy}}",
                         null, null, null, false))
-                .withPrivacy(Privacy.of(null, null, Ccpa.EMPTY)).assemble();
+                .withPrivacy(Privacy.of(null, null, Ccpa.EMPTY, null)).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D%26gdpr_consent%3D%26us_privacy%3D");
@@ -76,7 +76,7 @@ public class UsersyncInfoAssemblerTest {
         // given and when
         final UsersyncInfo result = UsersyncInfoAssembler
                 .from(new Usersyncer(null, "http://url?redir=a%3Db", null, null, null, false))
-                .withPrivacy(Privacy.of("1", "consent", Ccpa.of("YNN"))).assemble();
+                .withPrivacy(Privacy.of("1", "consent", Ccpa.of("YNN"), null)).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url?redir=a%3Db");
@@ -91,7 +91,7 @@ public class UsersyncInfoAssemblerTest {
                                 + "&us_privacy={{us_privacy}}"
                                 + "&uid=$UID",
                         "http://localhost:8000", null, false))
-                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"))).assemble();
+                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"), null)).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo(

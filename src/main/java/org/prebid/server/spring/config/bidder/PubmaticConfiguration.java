@@ -1,7 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.pubmatic.PubmaticAdapter;
 import org.prebid.server.bidder.pubmatic.PubmaticBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
@@ -47,10 +46,6 @@ public class PubmaticConfiguration {
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new PubmaticBidder(config.getEndpoint(), mapper))
-                .adapterCreator(config -> new PubmaticAdapter(
-                        config.getUsersync().getCookieFamilyName(),
-                        config.getEndpoint(),
-                        mapper))
                 .assemble();
     }
 }

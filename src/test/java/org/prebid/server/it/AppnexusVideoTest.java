@@ -38,8 +38,8 @@ public class AppnexusVideoTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/video/test-video-cache-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/video/test-video-cache-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
@@ -55,8 +55,7 @@ public class AppnexusVideoTest extends IntegrationTest {
                 .post("/openrtb2/video");
 
         // then
-        // TODO remove "empty" when VideoRequest will proceed consentValue.
-        final String expectedAuctionResponse = jsonFrom("openrtb2/video/test-video-appnexus-response-empty.json");
+        final String expectedAuctionResponse = jsonFrom("openrtb2/video/test-video-appnexus-response.json");
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
