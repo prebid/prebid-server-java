@@ -20,6 +20,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -295,7 +296,8 @@ public class HttpBidderRequester {
             final HttpRequest<T> request = httpCall.getRequest();
             final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                     .uri(request.getUri())
-                    .requestbody(request.getBody());
+                    .requestbody(request.getBody())
+                    .requestheaders(HttpUtil.toDebugHeaders(request.getHeaders()));
 
             final HttpResponse response = httpCall.getResponse();
             if (response != null) {

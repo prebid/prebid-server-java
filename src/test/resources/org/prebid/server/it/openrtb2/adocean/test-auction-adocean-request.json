@@ -47,7 +47,6 @@
     "fd": 1,
     "tid": "tid"
   },
-  "test": 1,
   "ext": {
     "prebid": {
       "currency": {

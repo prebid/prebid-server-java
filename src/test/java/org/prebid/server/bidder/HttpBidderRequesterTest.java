@@ -32,11 +32,13 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -290,13 +292,13 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .build(),
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri("uri2")
                         .body("requestBody2")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .build()),
                 emptyList()));
 
@@ -315,9 +317,42 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").responsebody("responseBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(200).build(),
                 ExtHttpCall.builder().uri("uri2").requestbody("requestBody2").responsebody("responseBody2")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(200).build());
+    }
+
+    @Test
+    public void shouldNotReturnSensitiveHeadersInFullDebugInfo() {
+        // given
+        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
+        headers.add("headerKey", "headerValue");
+        headers.add("Authorization", "authorizationValue");
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(headers)
+                        .build()),
+                emptyList()));
+
+        givenHttpClientReturnsResponses(
+                HttpClientResponse.of(200, null, "responseBody1"));
+
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
+
+        // when
+        final BidderSeatBid bidderSeatBid =
+                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, true).result();
+
+        // then
+        assertThat(bidderSeatBid.getHttpCalls())
+                .extracting(ExtHttpCall::getRequestheaders)
+                .flatExtracting(Map::keySet)
+                .containsExactly("headerKey");
     }
 
     @Test
@@ -327,8 +362,8 @@ public class HttpBidderRequesterTest extends VertxTest {
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri("uri1")
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
                         .build()),
                 emptyList()));
 
@@ -340,7 +375,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
-                ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").build());
+                ExtHttpCall.builder().uri("uri1").requestbody("requestBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
+                        .build());
     }
 
     @Test
@@ -351,7 +388,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .build()),
                 emptyList()));
 
@@ -365,7 +402,9 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
-                ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").build());
+                ExtHttpCall.builder().uri("uri1").requestbody("requestBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
+                        .build());
     }
 
     @Test
@@ -376,7 +415,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(new CaseInsensitiveHeaders().add("headerKey", "headerValue"))
                         .build()),
                 emptyList()));
 
@@ -391,6 +430,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").responsebody("responseBody1")
+                        .requestheaders(singletonMap("headerKey", singletonList("headerValue")))
                         .status(500).build());
         assertThat(bidderSeatBid.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage).containsOnly(
