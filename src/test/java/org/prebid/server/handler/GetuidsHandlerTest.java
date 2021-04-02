@@ -65,7 +65,7 @@ public class GetuidsHandlerTest extends VertxTest {
         uids.put("adnxs", new UidWithExpiry("Appnexus-uid",
                 ZonedDateTime.parse("2019-04-01T12:30:40.123456789Z")));
 
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(uids).bday(ZonedDateTime.parse("2019-04-01T13:28:40.123456789Z")).build(),
                 jacksonMapper));
 
@@ -82,7 +82,7 @@ public class GetuidsHandlerTest extends VertxTest {
     @Test
     public void shouldReturnEmptyBuyerUids() {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(Collections.emptyMap()).build(),
                 jacksonMapper));
 

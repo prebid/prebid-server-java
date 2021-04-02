@@ -5,6 +5,7 @@ import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -41,4 +42,8 @@ public class BidderSeatBid {
      * Error messages should help publishers understand what might account for "bad" bids.
      */
     List<BidderError> errors;
+
+    public static BidderSeatBid empty() {
+        return of(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+    }
 }

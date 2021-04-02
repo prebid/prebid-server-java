@@ -37,6 +37,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
@@ -178,6 +179,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    HookStageExecutor hookStageExecutor() {
+        return new HookStageExecutor();
+    }
+
+    @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
@@ -197,7 +203,8 @@ public class ServiceConfiguration {
             ApplicationSettings applicationSettings,
             PrivacyEnforcementService privacyEnforcementService,
             IdGenerator sourceIdGenerator,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            HookStageExecutor hookStageExecutor) {
 
         final List<String> blacklistedApps = splitToList(blacklistedAppsString);
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -222,6 +229,7 @@ public class ServiceConfiguration {
                 applicationSettings,
                 sourceIdGenerator,
                 privacyEnforcementService,
+                hookStageExecutor,
                 mapper);
     }
 
@@ -489,6 +497,7 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
+            HookStageExecutor hookStageExecutor,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -505,6 +514,7 @@ public class ServiceConfiguration {
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                hookStageExecutor,
                 metrics,
                 clock,
                 mapper);
@@ -514,6 +524,7 @@ public class ServiceConfiguration {
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             FileSystem fileSystem,
             ApplicationSettings applicationSettings,
             Metrics metrics,
@@ -524,8 +535,10 @@ public class ServiceConfiguration {
         return StoredRequestProcessor.create(
                 defaultTimeoutMs,
                 defaultBidRequestPath,
+                generateBidRequestId,
                 fileSystem,
                 applicationSettings,
+                new UUIDIdGenerator(),
                 metrics,
                 timeoutFactory,
                 mapper,

@@ -38,6 +38,9 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -45,12 +48,12 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
@@ -103,6 +106,7 @@ public class ExchangeService {
     private final CurrencyConversionService currencyService;
     private final BidResponseCreator bidResponseCreator;
     private final BidResponsePostProcessor bidResponsePostProcessor;
+    private final HookStageExecutor hookStageExecutor;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -118,6 +122,7 @@ public class ExchangeService {
                            CurrencyConversionService currencyService,
                            BidResponseCreator bidResponseCreator,
                            BidResponsePostProcessor bidResponsePostProcessor,
+                           HookStageExecutor hookStageExecutor,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper) {
@@ -136,6 +141,7 @@ public class ExchangeService {
         this.currencyService = Objects.requireNonNull(currencyService);
         this.bidResponseCreator = Objects.requireNonNull(bidResponseCreator);
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
+        this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -166,7 +172,8 @@ public class ExchangeService {
                         bidderRequests, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
                 .compose(bidderRequests -> CompositeFuture.join(
                         bidderRequests.stream()
-                                .map(bidderRequest -> requestBids(
+                                .map(bidderRequest -> invokeHooksAndRequestBids(
+                                        context,
                                         bidderRequest,
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
                                         debugEnabled,
@@ -186,7 +193,7 @@ public class ExchangeService {
                         bidderToMultiBid,
                         debugEnabled))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
-                        context.getRoutingContext(), uidsCookie, bidRequest, bidResponse, account));
+                        context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account));
     }
 
     private BidderAliases aliases(BidRequest bidRequest) {
@@ -943,6 +950,33 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
         return bidAdjustmentFactors != null ? bidAdjustmentFactors.get(bidder) : null;
+    }
+
+    private Future<BidderResponse> invokeHooksAndRequestBids(AuctionContext auctionContext,
+                                                             BidderRequest bidderRequest,
+                                                             Timeout timeout,
+                                                             boolean debugEnabled,
+                                                             BidderAliases aliases) {
+
+        return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext.getHookExecutionContext())
+                .compose(stageResult -> requestBidsOrRejectBidder(
+                        stageResult, bidderRequest, timeout, debugEnabled, aliases));
+    }
+
+    private Future<BidderResponse> requestBidsOrRejectBidder(
+            HookStageExecutionResult<BidderRequestPayload> hookStageResult,
+            BidderRequest bidderRequest,
+            Timeout timeout,
+            boolean debugEnabled,
+            BidderAliases aliases) {
+
+        return hookStageResult.isShouldReject()
+                ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
+                : requestBids(
+                bidderRequest.with(hookStageResult.getPayload().bidRequest()),
+                timeout,
+                debugEnabled,
+                aliases);
     }
 
     /**
