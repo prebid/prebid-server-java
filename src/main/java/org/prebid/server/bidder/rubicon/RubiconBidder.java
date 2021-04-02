@@ -74,6 +74,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -329,7 +330,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final App app = bidRequest.getApp();
 
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app)))
+                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app, bidRequest.getExt())))
                 .user(makeUser(bidRequest.getUser(), extRubicon))
                 .device(makeDevice(bidRequest.getDevice()))
                 .site(makeSite(site, impLanguage, extRubicon))
@@ -377,10 +378,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon, Site site, App app) {
+    private Imp makeImp(Imp imp,
+                        ExtImpPrebid extPrebid,
+                        ExtImpRubicon extRubicon,
+                        Site site, App app,
+                        ExtRequest extRequest) {
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
-                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app)));
+                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app, extRequest)));
 
         if (isVideo(imp)) {
             builder
@@ -418,13 +423,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
     }
 
-    private RubiconImpExt makeImpExt(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
+    private RubiconImpExt makeImpExt(Imp imp,
+                                     ExtImpRubicon rubiconImpExt,
+                                     Site site,
+                                     App app,
+                                     ExtRequest extRequest) {
+
         return RubiconImpExt.of(
                 RubiconImpExtRp.of(
                         rubiconImpExt.getZoneId(),
                         makeTarget(imp, rubiconImpExt, site, app),
                         RubiconImpExtRpTrack.of("", "")),
-                mapVendorsNamesToUrls(imp.getMetric()));
+                mapVendorsNamesToUrls(imp.getMetric()),
+                getMaxBids(extRequest));
     }
 
     private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
@@ -636,6 +647,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(metric -> ViewabilityVendors.valueOf(metric.getVendor()).getUrl())
                 .collect(Collectors.toList());
         return vendorsUrls.isEmpty() ? null : vendorsUrls;
+    }
+
+    private Integer getMaxBids(ExtRequest extRequest) {
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final List<ExtRequestPrebidMultiBid> multibids = extRequestPrebid != null
+                ? extRequestPrebid.getMultibid() : null;
+        final ExtRequestPrebidMultiBid extRequestPrebidMultiBid =
+                CollectionUtils.isNotEmpty(multibids) ? multibids.get(0) : null;
+        final Integer multibidMaxBids = extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
+
+        return multibidMaxBids != null ? multibidMaxBids : 1;
     }
 
     private static boolean isVideo(Imp imp) {

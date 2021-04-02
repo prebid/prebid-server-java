@@ -281,8 +281,8 @@ public class AmpRequestFactory {
         final ExtRequest updatedExtBidRequest = overrideExtBidRequest(bidRequest.getExt(), targeting);
 
         final BidRequest result;
-        if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null
-                || updatedRegs != null || updatedExtBidRequest != null) {
+        if (ObjectUtils.anyNotNull(updatedSite, updatedImp, updatedTimeout,
+                updatedUser, updatedRegs, updatedExtBidRequest)) {
             result = bidRequest.toBuilder()
                     .site(updatedSite != null ? updatedSite : bidRequest.getSite())
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
