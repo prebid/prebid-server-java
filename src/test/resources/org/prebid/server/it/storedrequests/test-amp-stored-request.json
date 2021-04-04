@@ -40,7 +40,13 @@
   ],
   "site": {
     "domain": "example.com",
-    "page": "http://www.example.com"
+    "page": "http://www.example.com",
+    "data": {
+      "root_site_data_list": [
+        "root_site_data_list_value_1",
+        "root_site_data_list_value_2"
+      ]
+    }
   },
   "tmax": 5000,
   "cur": [

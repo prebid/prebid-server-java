@@ -1,12 +1,16 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Maps;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
@@ -24,6 +28,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,6 +46,8 @@ import java.util.stream.Collectors;
 public class StoredRequestProcessor {
 
     private static final String OVERRIDE_BID_REQUEST_ID_TEMPLATE = "{{UUID}}";
+    private static final String DATA = "data";
+    private static final String EXT = "ext";
 
     private final long defaultTimeout;
     private final boolean generateBidRequestId;
@@ -140,10 +147,69 @@ public class StoredRequestProcessor {
                 applicationSettings.getAmpStoredData(
                         accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
                         .compose(storedDataResult -> updateMetrics(
-                                storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
+                                storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()))
+                        .compose(this::updateStoredData);
 
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap())
                 .map(this::generateBidRequestId);
+    }
+
+    private Future<StoredDataResult> updateStoredData(StoredDataResult storedDataResult) {
+        final Map<String, String> storedIdToRequest = storedDataResult.getStoredIdToRequest();
+        final Map<String, String> updatedStoredIdToRequest = MapUtils.isNotEmpty(storedIdToRequest)
+                ? updateStoredRequests(storedIdToRequest)
+                : storedIdToRequest;
+
+        return Future.succeededFuture(StoredDataResult.of(updatedStoredIdToRequest,
+                storedDataResult.getStoredIdToImp(),
+                storedDataResult.getErrors()));
+    }
+
+    private Map<String, String> updateStoredRequests(Map<String, String> storedIdToRequest) {
+        return storedIdToRequest.entrySet().stream()
+                .map(entry -> Maps.immutableEntry(entry.getKey(),
+                        normalizeSiteDataExtension(entry.getValue(), entry.getKey())))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private String normalizeSiteDataExtension(String storedRequest, String storedId) {
+        if (StringUtils.isBlank(storedRequest)) {
+            return storedRequest;
+        }
+        final ObjectNode containerNode;
+        try {
+            containerNode = (ObjectNode) mapper.mapper().readTree(storedRequest);
+        } catch (IOException e) {
+            throw new InvalidRequestException(
+                    String.format("Can't parse Json for stored request with id %s", storedId));
+        }
+
+        final ObjectNode siteNode = (ObjectNode) containerNode.get("site");
+        final JsonNode data = siteNode != null && !siteNode.isEmpty() ? siteNode.get("data") : null;
+        if (data == null || !data.isObject()) {
+            return storedRequest;
+        }
+        final JsonNode extData = siteNode.path(EXT).path(DATA);
+        final JsonNode ext = siteNode.get(EXT);
+        if (!extData.isNull() && !extData.isMissingNode()) {
+            final JsonNode resolvedExtData = jsonMerger.merge(data, extData);
+            ((ObjectNode) ext).set(DATA, resolvedExtData);
+        } else {
+            copyDataToExtData(siteNode, data);
+        }
+        siteNode.remove(DATA);
+        return containerNode.toString();
+    }
+
+    private void copyDataToExtData(ObjectNode containerNode, JsonNode data) {
+        final JsonNode ext = containerNode.get(EXT);
+        if (ext != null && ext.isObject()) {
+            ((ObjectNode) ext).set(DATA, data);
+        } else if (ext != null && !ext.isObject()) {
+            containerNode.set(EXT, mapper.mapper().createObjectNode().set(DATA, data));
+        } else {
+            containerNode.set(EXT, mapper.mapper().createObjectNode().set(DATA, data));
+        }
     }
 
     /**
@@ -225,7 +291,7 @@ public class StoredRequestProcessor {
 
         return storedDataFuture
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed: %s", exception.getMessage()))))
+                        String.format("Stored request process failed: %s", exception.getMessage()))))
                 .compose(result -> !result.getErrors().isEmpty()
                         ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
                         : Future.succeededFuture(result))

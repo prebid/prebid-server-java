@@ -33,6 +33,10 @@
             ],
             "gam-key2": [
               "val2"
+            ],
+            "root_site_data_list": [
+              "root_site_data_list_value_1",
+              "root_site_data_list_value_2"
             ]
           },
           "track": {

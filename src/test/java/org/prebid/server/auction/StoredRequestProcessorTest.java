@@ -1,6 +1,9 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -23,13 +26,14 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.json.JsonMerger;
 import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
@@ -396,6 +400,74 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
+    public void processAmpRequestShouldReturnErrorIfBidRequestCanNotBeParsed() throws IOException {
+        // given
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", "invalidValue"), emptyMap(), emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+
+        // then
+        assertThat(bidRequestFuture.failed()).isTrue();
+        assertThat(bidRequestFuture.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Stored request process failed: Can't parse Json for stored request with id 123");
+    }
+
+    @Test
+    public void processAmpRequestShouldMoveSiteDataToExistingSiteExtData() {
+        // given
+        final ObjectNode siteNode = mapper.createObjectNode();
+        siteNode.set("ext", mapper.valueToTree(singletonMap("extKey", "extValue")));
+        siteNode.set("data", mapper.valueToTree(singletonMap("someKey", "someValue")));
+        final ObjectNode bidRequestNode = mapper.valueToTree(BidRequest.builder().build());
+        bidRequestNode.set("site", siteNode);
+
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", bidRequestNode.toString()), emptyMap(), emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+
+        // then
+        final ExtSite expectedExtSite = ExtSite.of(null, mapper.valueToTree(singletonMap("someKey", "someValue")));
+        expectedExtSite.addProperty("extKey", new TextNode("extValue"));
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result())
+                .extracting(BidRequest::getSite)
+                .extracting("ext")
+                .containsExactly(expectedExtSite);
+    }
+
+    @Test
+    public void processAmpRequestShouldMoveSiteDataToSiteExtData() {
+        // given
+        final JsonNode siteDataNode = mapper.valueToTree(singletonMap("someKey", "someValue"));
+        final ObjectNode siteNode = mapper.createObjectNode();
+        siteNode.set("data", siteDataNode);
+        final ObjectNode bidRequestNode = mapper.valueToTree(BidRequest.builder().build());
+        bidRequestNode.set("site", siteNode);
+
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", bidRequestNode.toString()), emptyMap(), emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result())
+                .extracting(BidRequest::getSite)
+                .extracting("ext")
+                .extracting("data")
+                .containsExactly(siteDataNode);
+    }
+
+    @Test
     public void shouldReturnFailedFutureWhenStoredBidRequestJsonIsNotValid() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -636,7 +708,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Stored request fetching failed: Error during file fetching");
+                .hasMessage("Stored request process failed: Error during file fetching");
     }
 
     @Test
