@@ -191,7 +191,7 @@ public class AuctionRequestFactory {
 
         return executeEntrypointHooks(routingContext, body, hookExecutionContext)
                 .compose(httpRequestWrapper -> parseBidRequest(httpRequestWrapper, errors)
-                        .compose(bidRequest -> extractAccountAndExecuteRawAuctionHooks(
+                        .compose(bidRequest -> executeRawAuctionHooksAndCreateAuctionContext(
                                 bidRequest,
                                 httpRequestWrapper,
                                 hookExecutionContext,
@@ -243,38 +243,25 @@ public class AuctionRequestFactory {
         }
     }
 
-    private Future<AuctionContext> extractAccountAndExecuteRawAuctionHooks(BidRequest bidRequest,
-                                                                           HttpRequestWrapper httpRequestWrapper,
-                                                                           HookExecutionContext hookExecutionContext,
-                                                                           long startTime,
-                                                                           List<String> errors) {
+    private Future<AuctionContext> executeRawAuctionHooksAndCreateAuctionContext(
+            BidRequest bidRequest,
+            HttpRequestWrapper httpRequestWrapper,
+            HookExecutionContext hookExecutionContext,
+            long startTime,
+            List<String> errors) {
+
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
         return accountFrom(bidRequest, timeout, httpRequestWrapper)
-                .compose(account -> executeRawAuctionRequestHooksAndUpdate(
-                        bidRequest,
-                        httpRequestWrapper,
-                        account,
-                        hookExecutionContext,
-                        errors,
-                        timeout));
-    }
-
-    private Future<AuctionContext> executeRawAuctionRequestHooksAndUpdate(BidRequest bidRequest,
-                                                                          HttpRequestWrapper httpRequestWrapper,
-                                                                          Account account,
-                                                                          HookExecutionContext hookExecutionContext,
-                                                                          List<String> errors,
-                                                                          Timeout timeout) {
-        return executeRawAuctionRequestHooks(bidRequest, account, hookExecutionContext)
-                .compose(changedBidRequest -> updateBidRequest(httpRequestWrapper, changedBidRequest, account))
-                .compose(updatedBidRequest -> toAuctionContext(
-                        httpRequestWrapper,
-                        updatedBidRequest,
-                        account,
-                        requestTypeMetric(bidRequest),
-                        errors,
-                        timeout,
-                        hookExecutionContext));
+                .compose(account -> executeRawAuctionRequestHooks(bidRequest, account, hookExecutionContext)
+                        .compose(changedBidRequest -> updateBidRequest(httpRequestWrapper, changedBidRequest, account))
+                        .compose(updatedBidRequest -> toAuctionContext(
+                                httpRequestWrapper,
+                                updatedBidRequest,
+                                account,
+                                requestTypeMetric(bidRequest),
+                                errors,
+                                timeout,
+                                hookExecutionContext)));
     }
 
     protected Future<BidRequest> executeRawAuctionRequestHooks(BidRequest bidRequest,
