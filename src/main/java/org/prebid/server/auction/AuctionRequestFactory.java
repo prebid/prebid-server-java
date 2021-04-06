@@ -20,6 +20,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.PreAuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -191,12 +192,23 @@ public class AuctionRequestFactory {
 
         return executeEntrypointHooks(routingContext, body, hookExecutionContext)
                 .compose(httpRequestWrapper -> parseBidRequest(httpRequestWrapper, errors)
-                        .compose(bidRequest -> executeRawAuctionHooksAndCreateAuctionContext(
-                                bidRequest,
-                                httpRequestWrapper,
-                                hookExecutionContext,
-                                startTime,
-                                errors)));
+                        .compose(bidRequest -> getAccountAndCreatePreAuctionContext(bidRequest, startTime,
+                                httpRequestWrapper)))
+
+                .compose(preAuctionContext -> executeRawAuctionRequestHooks(preAuctionContext, hookExecutionContext)
+                        .map(preAuctionContext::with))
+
+                .compose(preAuctionContext -> updateBidRequest(preAuctionContext)
+                        .map(preAuctionContext::with))
+
+                .compose(preAuctionContext -> toAuctionContext(
+                        preAuctionContext.getHttpRequest(),
+                        preAuctionContext.getBidRequest(),
+                        preAuctionContext.getAccount(),
+                        requestTypeMetric(preAuctionContext.getBidRequest()),
+                        errors,
+                        preAuctionContext.getTimeout(),
+                        hookExecutionContext));
     }
 
     protected Future<HttpRequestWrapper> executeEntrypointHooks(RoutingContext routingContext,
@@ -243,31 +255,18 @@ public class AuctionRequestFactory {
         }
     }
 
-    private Future<AuctionContext> executeRawAuctionHooksAndCreateAuctionContext(
-            BidRequest bidRequest,
-            HttpRequestWrapper httpRequestWrapper,
-            HookExecutionContext hookExecutionContext,
-            long startTime,
-            List<String> errors) {
-
+    private Future<PreAuctionContext> getAccountAndCreatePreAuctionContext(BidRequest bidRequest,
+                                                                           long startTime,
+                                                                           HttpRequestWrapper httpRequestWrapper) {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
         return accountFrom(bidRequest, timeout, httpRequestWrapper)
-                .compose(account -> executeRawAuctionRequestHooks(bidRequest, account, hookExecutionContext)
-                        .compose(changedBidRequest -> updateBidRequest(httpRequestWrapper, changedBidRequest, account))
-                        .compose(updatedBidRequest -> toAuctionContext(
-                                httpRequestWrapper,
-                                updatedBidRequest,
-                                account,
-                                requestTypeMetric(bidRequest),
-                                errors,
-                                timeout,
-                                hookExecutionContext)));
+                .map(account -> PreAuctionContext.of(account, timeout, bidRequest, httpRequestWrapper));
     }
 
-    protected Future<BidRequest> executeRawAuctionRequestHooks(BidRequest bidRequest,
-                                                               Account account,
-                                                               HookExecutionContext hookExecutionContext) {
-
+    private Future<BidRequest> executeRawAuctionRequestHooks(PreAuctionContext preAuctionContext,
+                                                             HookExecutionContext hookExecutionContext) {
+        final BidRequest bidRequest = preAuctionContext.getBidRequest();
+        final Account account = preAuctionContext.getAccount();
         return hookStageExecutor.executeRawAuctionRequestStage(bidRequest, account, hookExecutionContext)
                 .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
     }
@@ -359,9 +358,10 @@ public class AuctionRequestFactory {
      * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> updateBidRequest(HttpRequestWrapper httpRequest,
-                                                BidRequest bidRequest,
-                                                Account account) {
+    private Future<BidRequest> updateBidRequest(PreAuctionContext preAuctionContext) {
+        final Account account = preAuctionContext.getAccount();
+        final BidRequest bidRequest = preAuctionContext.getBidRequest();
+        final HttpRequestWrapper httpRequest = preAuctionContext.getHttpRequest();
         return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, httpRequest, timeoutResolver))
                 .map(this::validateRequest)
