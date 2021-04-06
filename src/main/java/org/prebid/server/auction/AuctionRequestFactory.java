@@ -15,12 +15,12 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.auction.model.PreAuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -1195,5 +1195,21 @@ public class AuctionRequestFactory {
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {
         return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
+    }
+
+    @Value(staticConstructor = "of")
+    private static class PreAuctionContext {
+
+        Account account;
+
+        Timeout timeout;
+
+        BidRequest bidRequest;
+
+        HttpRequestWrapper httpRequest;
+
+        public PreAuctionContext with(BidRequest bidRequest) {
+            return of(this.account, this.timeout, bidRequest, this.httpRequest);
+        }
     }
 }
