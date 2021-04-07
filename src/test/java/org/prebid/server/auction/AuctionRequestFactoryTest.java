@@ -1990,9 +1990,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "configScopedBidderAlias")));
-        given(bidderCatalog.bidderInfoByName(eq("bidder2")))
+        given(bidderCatalog.bidderInfoByName("bidder2"))
                 .willReturn(BidderInfo.of(true, null, null, null, null, null, false, false));
-        given(bidderCatalog.bidderInfoByName(eq("configScopedBidderAlias")))
+        given(bidderCatalog.bidderInfoByName("configScopedBidderAlias"))
                 .willReturn(BidderInfo.of(true, "bidder2", null, null, null, null, false, false));
 
         // when

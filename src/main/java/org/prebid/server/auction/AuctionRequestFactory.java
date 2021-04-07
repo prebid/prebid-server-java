@@ -839,7 +839,6 @@ public class AuctionRequestFactory {
     private static Iterator<String> biddersFromImp(ObjectNode extImp) {
         final JsonNode extPrebid = extImp.get(PREBID_EXT);
         final JsonNode extPrebidBidder = isObjectNode(extPrebid) ? extPrebid.get(BIDDER_EXT) : null;
-
         return isObjectNode(extPrebidBidder) ? extPrebidBidder.fieldNames() : Collections.emptyIterator();
     }
 
