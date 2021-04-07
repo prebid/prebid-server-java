@@ -30,6 +30,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
@@ -65,6 +66,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountStatus;
@@ -75,7 +77,9 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -112,6 +116,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private IpAddressHelper ipAddressHelper;
     @Mock
     private UidsCookieService uidsCookieService;
+    @Mock
+    private BidderCatalog bidderCatalog;
     @Mock
     private RequestValidator requestValidator;
     @Mock
@@ -162,6 +168,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -202,6 +209,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -240,6 +248,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -313,6 +322,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1671,6 +1681,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1713,6 +1724,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1754,6 +1766,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1795,6 +1808,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1887,6 +1901,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1930,6 +1945,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
+                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1954,6 +1970,43 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getExt()).isSameAs(extBidRequest);
+    }
+
+    @Test
+    public void shouldAddPreconfiguredAliases() {
+        // given
+        final Imp imp1 = Imp.builder()
+                .ext(mapper.createObjectNode().set("requestScopedBidderAlias", mapper.createObjectNode()))
+                .build();
+        final Imp imp2 = Imp.builder()
+                .ext(mapper.createObjectNode().set("configScopedBidderAlias", mapper.createObjectNode()))
+                .build();
+
+        givenBidRequest(BidRequest.builder()
+                .imp(asList(imp1, imp2))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("requestScopedBidderAlias", "bidder1"))
+                        .build()))
+                .build());
+
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "configScopedBidderAlias")));
+        given(bidderCatalog.bidderInfoByName(eq("bidder2")))
+                .willReturn(BidderInfo.of(true, null, null, null, null, null, false, false));
+        given(bidderCatalog.bidderInfoByName(eq("configScopedBidderAlias")))
+                .willReturn(BidderInfo.of(true, "bidder2", null, null, null, null, false, false));
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .flatExtracting(extRequestPrebid -> extRequestPrebid.getAliases().entrySet())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("requestScopedBidderAlias", "bidder1"),
+                        tuple("configScopedBidderAlias", "bidder2"));
     }
 
     @Test
@@ -2096,7 +2149,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfEidsPermissionsContainsWrongDataType() throws JsonProcessingException {
+    public void shouldReturnFailedFutureIfEidsPermissionsContainsWrongDataType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -2125,7 +2178,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfEidsPermissionsBiddersContainsWrongDataType() throws JsonProcessingException {
+    public void shouldReturnFailedFutureIfEidsPermissionsBiddersContainsWrongDataType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
