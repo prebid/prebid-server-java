@@ -808,15 +808,16 @@ public class AuctionRequestFactory {
                 Collections.emptyMap());
 
         final Map<String, String> preconfiguredAliases = bidderCatalog.names().stream()
-                .filter(bidder -> aliasOfBidder(bidder) != null)
+                .filter(bidder -> aliasOf(bidder) != null)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toMap(Function.identity(), this::aliasOfBidder));
+                .collect(Collectors.toMap(Function.identity(), this::aliasOf));
 
         // go through imps' bidders and figure out preconfigured aliases existing in bid request
         final Map<String, String> resolvedAliases = imps.stream()
                 .filter(Objects::nonNull)
-                .filter(imp -> imp.getExt() != null) // request validator is not called yet
-                .flatMap(imp -> StreamUtil.asStream(biddersFromImp(imp)))
+                .map(Imp::getExt)
+                .filter(Objects::nonNull) // request validator is not called yet
+                .flatMap(extImp -> StreamUtil.asStream(biddersFromImp(extImp)))
                 .filter(bidder -> !aliases.containsKey(bidder))
                 .filter(preconfiguredAliases::containsKey)
                 .distinct()
@@ -832,12 +833,12 @@ public class AuctionRequestFactory {
         return result;
     }
 
-    private String aliasOfBidder(String bidder) {
+    private String aliasOf(String bidder) {
         return bidderCatalog.bidderInfoByName(bidder).getAliasOf();
     }
 
-    private Iterator<String> biddersFromImp(Imp imp) {
-        final JsonNode extPrebid = imp.getExt().get(PREBID_EXT);
+    private static Iterator<String> biddersFromImp(ObjectNode extImp) {
+        final JsonNode extPrebid = extImp.get(PREBID_EXT);
         final JsonNode extPrebidBidder = isObjectNode(extPrebid) ? extPrebid.get(BIDDER_EXT) : null;
 
         return isObjectNode(extPrebidBidder) ? extPrebidBidder.fieldNames() : Collections.emptyIterator();
