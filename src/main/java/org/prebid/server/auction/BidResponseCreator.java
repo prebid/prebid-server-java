@@ -207,7 +207,7 @@ public class BidResponseCreator {
                 final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
                         ? bidIdGenerator.generateId()
                         : null;
-                String bidId = bid.getId();
+                final String bidId = bid.getId();
                 bidIdToGeneratedBidId.put(bidId, generatedBidId);
 
                 if (bidderBid.getType().equals(BidType.video)) {
