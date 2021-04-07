@@ -809,7 +809,6 @@ public class AuctionRequestFactory {
 
         final Map<String, String> preconfiguredAliases = bidderCatalog.names().stream()
                 .filter(bidder -> aliasOf(bidder) != null)
-                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Function.identity(), this::aliasOf));
 
         // go through imps' bidders and figure out preconfigured aliases existing in bid request
