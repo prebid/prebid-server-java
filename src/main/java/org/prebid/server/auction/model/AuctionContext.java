@@ -43,4 +43,8 @@ public class AuctionContext {
     GeoInfo geoInfo;
 
     HookExecutionContext hookExecutionContext;
+
+    public AuctionContext with(BidRequest bidRequest) {
+        return toBuilder().bidRequest(bidRequest).build();
+    }
 }

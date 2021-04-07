@@ -11,6 +11,8 @@ import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,9 +31,13 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -81,6 +87,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock
+    private HookStageExecutor hookStageExecutor;
+    @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
@@ -116,9 +124,15 @@ public class AuctionHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
+
         auctionHandler = new AuctionHandler(
                 auctionRequestFactory,
                 exchangeService,
+                hookStageExecutor,
                 analyticsReporterDelegator,
                 metrics,
                 clock,
@@ -236,6 +250,57 @@ public class AuctionHandlerTest extends VertxTest {
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
         verify(httpResponse).end(eq("Account id is not provided"));
+    }
+
+    @Test
+    public void shouldRespondWithNoContentIfRequestRejected() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new RejectedRequestException(null)));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(204));
+    }
+
+    @Test
+    public void shouldRespondWithNoContentIfProcessedAuctionRequestHooksRejectRequest() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.of(true, null)));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(200));
+    }
+
+    @Test
+    public void shouldUseBidRequestModifiedByProcessedAuctionRequestHooks() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(UnaryOperator.identity());
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+
+        final BidRequest modifiedBidRequest = BidRequest.builder().id("modified").imp(emptyList()).build();
+        final AuctionRequestPayloadImpl auctionRequestPayload = AuctionRequestPayloadImpl.of(modifiedBidRequest);
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.of(false, auctionRequestPayload)));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionContext expectedAuctionContext = auctionContext.toBuilder().bidRequest(modifiedBidRequest).build();
+        verify(exchangeService).holdAuction(expectedAuctionContext);
     }
 
     @Test
@@ -713,5 +778,13 @@ public class AuctionHandlerTest extends VertxTest {
                 .headers(emptyMap())
                 .cookies(emptyMap())
                 .build();
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class AuctionRequestPayloadImpl implements AuctionRequestPayload {
+
+        BidRequest bidRequest;
+
     }
 }

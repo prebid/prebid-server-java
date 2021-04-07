@@ -6,6 +6,7 @@ import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -21,7 +22,13 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.RejectedBidRequestException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
@@ -29,6 +36,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -45,6 +53,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private final AuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
+    private final HookStageExecutor hookStageExecutor;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
@@ -53,6 +62,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     public AuctionHandler(AuctionRequestFactory auctionRequestFactory,
                           ExchangeService exchangeService,
+                          HookStageExecutor hookStageExecutor,
                           AnalyticsReporterDelegator analyticsDelegator,
                           Metrics metrics,
                           Clock clock,
@@ -61,6 +71,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
+        this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -81,6 +92,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         auctionRequestFactory.fromRequest(routingContext, startTime)
 
+                .compose(auctionContext -> executeProcessedAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with))
+
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .map(context -> updateAppAndNoCookieAndImpsMetrics(context))
 
@@ -89,6 +103,24 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
                 .map(result -> addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
                 .setHandler(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
+    }
+
+    private Future<BidRequest> executeProcessedAuctionRequestHooks(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
+
+        return hookStageExecutor.executeProcessedAuctionRequestStage(bidRequest, account, hookExecutionContext)
+                .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
+    }
+
+    private BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
+                                    HookExecutionContext hookExecutionContext) {
+        if (stageResult.isShouldReject()) {
+            throw new RejectedBidRequestException(hookExecutionContext);
+        }
+
+        return stageResult.getPayload().bidRequest();
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -167,6 +199,24 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN.code();
                 body = message;
+            } else if (exception instanceof RejectedRequestException) {
+                // TODO change metric to hook specific
+                metricRequestStatus = MetricName.rejected;
+                final String message = exception.getMessage();
+                errorMessages = Collections.singletonList(message);
+
+                status = HttpResponseStatus.NO_CONTENT.code();
+                body = message;
+
+            } else if (exception instanceof RejectedBidRequestException) {
+                // TODO change metric to hook specific
+                metricRequestStatus = MetricName.rejected;
+                final String message = exception.getMessage();
+                errorMessages = Collections.singletonList(message);
+
+                status = HttpResponseStatus.OK.code();
+                body = message;
+
             } else {
                 metricRequestStatus = MetricName.err;
                 logger.error("Critical error while running the auction", exception);

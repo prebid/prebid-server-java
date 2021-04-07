@@ -12,6 +12,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -34,7 +35,13 @@ import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.RejectedBidRequestException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
@@ -50,6 +57,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.AmpResponse;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -77,6 +85,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
+    private final HookStageExecutor hookStageExecutor;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
@@ -88,6 +97,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
                       ExchangeService exchangeService,
+                      HookStageExecutor hookStageExecutor,
                       AnalyticsReporterDelegator analyticsDelegator,
                       Metrics metrics,
                       Clock clock,
@@ -99,6 +109,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
+        this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -121,6 +132,9 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         ampRequestFactory.fromRequest(routingContext, startTime)
+
+                .compose(auctionContext -> executeProcessedAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with))
 
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
@@ -147,6 +161,24 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         addToEvent(result.getRight().getTargeting(), ampEventBuilder::targeting, result))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+    }
+
+    private Future<BidRequest> executeProcessedAuctionRequestHooks(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
+
+        return hookStageExecutor.executeProcessedAuctionRequestStage(bidRequest, account, hookExecutionContext)
+                .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
+    }
+
+    private BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
+                                    HookExecutionContext hookExecutionContext) {
+        if (stageResult.isShouldReject()) {
+            throw new RejectedBidRequestException(hookExecutionContext);
+        }
+
+        return stageResult.getPayload().bidRequest();
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -337,6 +369,24 @@ public class AmpHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN.code();
                 body = message;
+            } else if (exception instanceof RejectedRequestException) {
+                // TODO change metric to hook specific
+                metricRequestStatus = MetricName.rejected;
+                final String message = exception.getMessage();
+                errorMessages = Collections.singletonList(message);
+
+                status = HttpResponseStatus.NO_CONTENT.code();
+                body = message;
+
+            } else if (exception instanceof RejectedBidRequestException) {
+                // TODO change metric to hook specific
+                metricRequestStatus = MetricName.rejected;
+                final String message = exception.getMessage();
+                errorMessages = Collections.singletonList(message);
+
+                status = HttpResponseStatus.OK.code();
+                body = message;
+
             } else {
                 final String message = exception.getMessage();
 

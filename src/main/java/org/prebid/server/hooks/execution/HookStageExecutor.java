@@ -12,6 +12,7 @@ import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
@@ -55,6 +56,19 @@ public class HookStageExecutor {
             @Override
             public String body() {
                 return body;
+            }
+        }));
+    }
+
+    public Future<HookStageExecutionResult<AuctionRequestPayload>> executeProcessedAuctionRequestStage(
+            BidRequest bidRequest,
+            Account account,
+            HookExecutionContext context) {
+
+        return Future.succeededFuture(HookStageExecutionResult.of(false, new AuctionRequestPayload() {
+            @Override
+            public BidRequest bidRequest() {
+                return bidRequest;
             }
         }));
     }

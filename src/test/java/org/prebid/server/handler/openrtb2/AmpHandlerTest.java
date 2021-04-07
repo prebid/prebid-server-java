@@ -15,6 +15,8 @@ import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,9 +38,13 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -57,6 +63,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -90,6 +97,8 @@ public class AmpHandlerTest extends VertxTest {
     private AmpRequestFactory ampRequestFactory;
     @Mock
     private ExchangeService exchangeService;
+    @Mock
+    private HookStageExecutor hookStageExecutor;
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
@@ -132,9 +141,15 @@ public class AmpHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
+
         ampHandler = new AmpHandler(
                 ampRequestFactory,
                 exchangeService,
+                hookStageExecutor,
                 analyticsReporterDelegator,
                 metrics,
                 clock,
@@ -263,6 +278,57 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
         verify(httpResponse).end(eq("Account id is not provided"));
+    }
+
+    @Test
+    public void shouldRespondWithNoContentIfRequestRejected() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new RejectedRequestException(null)));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(204));
+    }
+
+    @Test
+    public void shouldRespondWithNoContentIfProcessedAuctionRequestHooksRejectRequest() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(UnaryOperator.identity())));
+
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.of(true, null)));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(200));
+    }
+
+    @Test
+    public void shouldUseBidRequestModifiedByProcessedAuctionRequestHooks() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(UnaryOperator.identity());
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+
+        final BidRequest modifiedBidRequest = BidRequest.builder().id("modified").imp(emptyList()).build();
+        final AuctionRequestPayloadImpl auctionRequestPayload = AuctionRequestPayloadImpl.of(modifiedBidRequest);
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+                .willReturn(Future.succeededFuture(HookStageExecutionResult.of(false, auctionRequestPayload)));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        final AuctionContext expectedAuctionContext = auctionContext.toBuilder().bidRequest(modifiedBidRequest).build();
+        verify(exchangeService).holdAuction(expectedAuctionContext);
     }
 
     @Test
@@ -794,5 +860,13 @@ public class AmpHandlerTest extends VertxTest {
                 .headers(headers)
                 .cookies(emptyMap())
                 .build();
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class AuctionRequestPayloadImpl implements AuctionRequestPayload {
+
+        BidRequest bidRequest;
+
     }
 }

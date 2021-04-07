@@ -42,6 +42,7 @@ import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
+import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.Metrics;
@@ -209,6 +210,7 @@ public class WebConfiguration {
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
+            HookStageExecutor hookStageExecutor,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
@@ -218,6 +220,7 @@ public class WebConfiguration {
         return new org.prebid.server.handler.openrtb2.AuctionHandler(
                 auctionRequestFactory,
                 exchangeService,
+                hookStageExecutor,
                 analyticsReporter,
                 metrics,
                 clock,
@@ -229,6 +232,7 @@ public class WebConfiguration {
     AmpHandler openrtbAmpHandler(
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
+            HookStageExecutor hookStageExecutor,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
@@ -241,6 +245,7 @@ public class WebConfiguration {
         return new AmpHandler(
                 ampRequestFactory,
                 exchangeService,
+                hookStageExecutor,
                 analyticsReporter,
                 metrics,
                 clock,
