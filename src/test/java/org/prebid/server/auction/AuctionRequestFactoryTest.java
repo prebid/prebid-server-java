@@ -49,6 +49,7 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.metric.MetricName;
@@ -175,6 +176,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
                                 invocation.getArgument(0),
                                 invocation.getArgument(1),
                                 invocation.getArgument(2)))));
+
+        given(hookStageExecutor.executeRawAuctionRequestStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
 
         factory = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -415,6 +421,47 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfEntrypointHooksRejectRequest() {
         // given
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
+
+        givenValidBidRequest();
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RejectedRequestException.class);
+        assertThat(((RejectedRequestException) future.cause()).getHookExecutionContext())
+                .isEqualTo(HookExecutionContext.of(Endpoint.openrtb2_auction));
+    }
+
+    @Test
+    public void shouldUseBidRequestModifiedByRawAuctionRequestHooks() {
+        // given
+        given(hookStageExecutor.executeRawAuctionRequestStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        AuctionRequestPayloadImpl.of(
+                                BidRequest.builder()
+                                        .app(App.builder().bundle("org.company.application").build())
+                                        .build()))));
+
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().domain("example.com").build())
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getSite()).isNull();
+        assertThat(request.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfRawAuctionRequestHookRejectRequest() {
+        // given
+        given(hookStageExecutor.executeRawAuctionRequestStage(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
 
         givenValidBidRequest();
@@ -2670,5 +2717,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
         MultiMap headers;
 
         String body;
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class AuctionRequestPayloadImpl implements AuctionRequestPayload {
+
+        BidRequest bidRequest;
     }
 }
