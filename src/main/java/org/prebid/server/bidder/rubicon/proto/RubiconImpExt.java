@@ -12,4 +12,6 @@ public class RubiconImpExt {
     RubiconImpExtRp rp;
 
     List<String> viewabilityvendors;
+
+    Integer maxbids;
 }
