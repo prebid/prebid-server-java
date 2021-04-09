@@ -306,7 +306,7 @@ public class RequestValidator {
     }
 
     private boolean isUnknownBidderOrAlias(String bidder, Map<String, String> aliases) {
-        return !bidderCatalog.isValidName(bidder) && !bidderCatalog.isAlias(bidder) && !aliases.containsKey(bidder);
+        return !bidderCatalog.isValidName(bidder) && !aliases.containsKey(bidder);
     }
 
     private static String format(BigDecimal value) {
@@ -953,7 +953,7 @@ public class RequestValidator {
                 throw new ValidationException("request.imp[%d].ext.prebid.bidder.%s failed validation.\n%s", impIndex,
                         bidderName, String.join("\n", messages));
             }
-        } else if (!bidderCatalog.isDeprecatedName(bidderName) && !bidderCatalog.isAlias(bidderName)) {
+        } else if (!bidderCatalog.isDeprecatedName(bidderName)) {
             throw new ValidationException(
                     "request.imp[%d].ext.prebid.bidder contains unknown bidder: %s", impIndex, bidderName);
         }
