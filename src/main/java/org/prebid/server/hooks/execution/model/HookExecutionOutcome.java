@@ -9,9 +9,7 @@ import java.util.List;
 @Value
 public class HookExecutionOutcome {
 
-    String moduleCode;
-
-    String hookCode;
+    HookId hookId;
 
     Long executionTime;
 
