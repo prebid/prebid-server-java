@@ -110,11 +110,6 @@
       },
       "multibid": [
         {
-          "bidder": "rubicon",
-          "maxbids": 2,
-          "targetbiddercodeprefix": "rubN"
-        },
-        {
           "bidder": "appnexus",
           "maxbids": 2
         }

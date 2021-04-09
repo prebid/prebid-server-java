@@ -307,7 +307,8 @@ public class PrivacyEnforcementService {
             TcfContext tcfContext, Set<String> bidders, BidderAliases aliases, Account account) {
 
         return tcfDefinerService.resultForBidderNames(
-                Collections.unmodifiableSet(bidders), VendorIdResolver.of(aliases), tcfContext, account.getGdpr())
+                Collections.unmodifiableSet(bidders), VendorIdResolver.of(aliases, bidderCatalog), tcfContext,
+                account.getGdpr())
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 
