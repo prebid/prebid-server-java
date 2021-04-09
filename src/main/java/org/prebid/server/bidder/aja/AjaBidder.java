@@ -1,14 +1,13 @@
 package org.prebid.server.bidder.aja;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.aja.proto.ExtImpAja;
 import org.prebid.server.bidder.model.BidderBid;
@@ -121,30 +120,17 @@ public class AjaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode != HttpResponseStatus.OK.code()) {
-            if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-                return Result.of(Collections.emptyList(), Collections.emptyList());
-            } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-                return Result.emptyWithError(BidderError.badInput(
-                        String.format("Unexpected status code: %d", statusCode)));
-            } else {
-                return Result.emptyWithError(BidderError.badServerResponse(
-                        String.format("Unexpected status code: %d", statusCode)));
-            }
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private Result<List<BidderBid>> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
         }
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
@@ -179,10 +165,5 @@ public class AjaBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException(String.format("Response received for unexpected type of bid bidID: %s", bidId));
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

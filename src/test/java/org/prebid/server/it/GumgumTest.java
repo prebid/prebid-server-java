@@ -11,6 +11,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -25,13 +27,18 @@ public class GumgumTest extends IntegrationTest {
         // given
         // GumGum bid response for imp 001 and 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/gumgum-exchange"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/gumgum/test-gumgum-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gumgum/test-gumgum-bid-response-1.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/gumgum/test-cache-gumgum-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/gumgum/test-cache-gumgum-response.json"))));
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/gumgum/test-cache-gumgum-request.json")))
+                .willReturn(aResponse().withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/gumgum/test-cache-matcher-gumgum.json")));
 
         // when
         final Response response = given(SPEC)
@@ -40,7 +47,7 @@ public class GumgumTest extends IntegrationTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"gum":"GUM-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7Imd1bSI6IkdVTS1VSUQifX0=")
+                .cookie("uids", "eyJ1aWRzIjp7Imd1bWd1bSI6IkdVTS1VSUQifX0=")
                 .body(jsonFrom("openrtb2/gumgum/test-auction-gumgum-request.json"))
                 .post("/openrtb2/auction");
 

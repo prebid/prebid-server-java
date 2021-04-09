@@ -3,15 +3,6 @@
     {
       "type": "json",
       "value": {
-        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
-        "impid": "impStoredAuctionResponse",
-        "price": 0.8,
-        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "466223845",
         "impid": "impId2",
         "price": 4.26,
@@ -55,10 +46,54 @@
     {
       "type": "json",
       "value": {
-        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
-        "impid": "impStoredBidResponse",
-        "price": 0.8,
-        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
+        "id": "7706636740145184841",
+        "impid": "impId3",
+        "price": 5.5,
+        "adm": "some-test-ad",
+        "adid": "29681110",
+        "adomain": [
+          "appnexus.com"
+        ],
+        "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+        "cid": "958",
+        "crid": "29681110",
+        "w": 300,
+        "h": 250,
+        "wurl": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
+        "ext": {
+          "appnexus": {
+            "brand_id": 1,
+            "auction_id": 8189378542222915032,
+            "bidder_id": 2,
+            "bid_ad_type": 0,
+            "ranking_price": 0.0
+          }
+        }
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "880290288",
+        "impid": "impId1",
+        "price": 8.43,
+        "adm": "<Impression><![CDATA[]]></Impression>",
+        "crid": "crid1",
+        "w": 300,
+        "h": 250,
+        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
+        "ext": {
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          }
+        }
       }
     },
     {
@@ -95,6 +130,7 @@
       "value": {
         "id": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
         "impid": "impStoredAuctionResponse",
+        "crid": "crid1",
         "price": 0.9,
         "wurl": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
       }
@@ -102,54 +138,11 @@
     {
       "type": "json",
       "value": {
-        "id": "880290288",
-        "impid": "impId1",
-        "price": 8.43,
-        "adm": "<Impression><![CDATA[]]></Impression>",
+        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
+        "impid": "impStoredAuctionResponse",
         "crid": "crid1",
-        "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
-        "ext": {
-          "rp": {
-            "targeting": [
-              {
-                "key": "rpfl_1001",
-                "values": [
-                  "2_tier0100"
-                ]
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "7706636740145184841",
-        "impid": "impId3",
-        "price": 5.5,
-        "adm": "some-test-ad",
-        "adid": "29681110",
-        "adomain": [
-          "appnexus.com"
-        ],
-        "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
-        "cid": "958",
-        "crid": "29681110",
-        "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
-        "ext": {
-          "appnexus": {
-            "brand_id": 1,
-            "auction_id": 8189378542222915032,
-            "bidder_id": 2,
-            "bid_ad_type": 0,
-            "ranking_price": 0.0
-          }
-        }
+        "price": 0.8,
+        "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
       }
     },
     {

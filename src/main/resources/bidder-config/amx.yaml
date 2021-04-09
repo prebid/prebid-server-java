@@ -1,0 +1,25 @@
+adapters:
+  amx:
+    enabled: false
+    endpoint: http://pbs.amxrtb.com/auction/openrtb
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prebid@amxrtb.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
+      redirect-url: /setuid?bidder=amx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
+      cookie-family-name: amx
+      type: redirect
+      support-cors: false

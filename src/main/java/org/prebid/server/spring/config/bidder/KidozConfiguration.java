@@ -21,6 +21,7 @@ import javax.validation.constraints.NotBlank;
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/kidoz.yaml", factory = YamlPropertySourceFactory.class)
 public class KidozConfiguration {
+
     private static final String BIDDER_NAME = "kidoz";
 
     @Autowired

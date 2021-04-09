@@ -86,6 +86,14 @@ public class ImplicitParametersExtractorTest {
     }
 
     @Test
+    public void domainFromShouldFailIfUrlIsMissing() {
+        assertThatCode(() -> extractor.domainFrom(null))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Invalid URL 'null': null")
+                .hasCauseInstanceOf(MalformedURLException.class);
+    }
+
+    @Test
     public void domainFromShouldFailIfUrlCouldNotBeParsed() {
         assertThatCode(() -> extractor.domainFrom("httpP://non_an_url"))
                 .isInstanceOf(PreBidException.class)

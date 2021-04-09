@@ -10,6 +10,7 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtImpZeroclickfraud {
+
     @JsonProperty("sourceId")
     Integer sourceId;
 

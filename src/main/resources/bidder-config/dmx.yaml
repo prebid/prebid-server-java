@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: steve@districtm.net
+      maintainer-email: prebid@districtm.net
       app-media-types:
         - banner
         - video
@@ -18,8 +18,8 @@ adapters:
       supported-vendors:
       vendor-id: 144
     usersync:
-      url: https://dmx.districtm.io/s/v1/img/s/10007?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect=
-      redirect-url: /setuid?bidder=datablocks&gdpr=${gdpr}&gdpr_consent=${gdpr_consent}&uid=${uid}
+      url:
+      redirect-url:
       cookie-family-name: dmx
       type: redirect
       support-cors: false

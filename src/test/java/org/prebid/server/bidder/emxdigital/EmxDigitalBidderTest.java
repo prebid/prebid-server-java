@@ -1,12 +1,14 @@
 package org.prebid.server.bidder.emxdigital;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -30,35 +32,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.within;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class EmxDigitalBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     private EmxDigitalBidder emxDigitalBidder;
-
-    private static BidResponse givenBidResponse(
-            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
 
     @Before
     public void setUp() {
@@ -234,6 +220,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         final Imp expectedImp = Imp.builder()
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
                 .banner(Banner.builder().w(100).h(100).build())
                 .tagid("123")
                 .secure(1)
@@ -246,6 +233,187 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .containsOnly(expectedImp);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldRemoveVast40ProtocolFromVideo() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .video(Video.builder()
+                                .mimes(Collections.singletonList("someMime"))
+                                .protocols(Arrays.asList(1, 7, 2))
+                                .w(100)
+                                .h(100)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .build()))
+                .tmax(1000L)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+                .makeHttpRequests(bidRequest);
+
+        // then
+        final Imp expectedImp = Imp.builder()
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
+                .video(Video.builder()
+                        .mimes(Collections.singletonList("someMime"))
+                        .protocols(Arrays.asList(1, 2))
+                        .w(100)
+                        .h(100)
+                        .build())
+                .tagid("123")
+                .secure(0)
+                .bidfloor(new BigDecimal("2"))
+                .bidfloorcur("USD")
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .containsOnly(expectedImp);
+    }
+
+    @Test
+    public void shouldThrowExceptionIfVideoDoNotHaveAtLeastOneSizeParameter() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .video(Video.builder().mimes(Collections.singletonList("someMime")).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .build()))
+                .tmax(1000L)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+                .makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Video: Need at least one size to build request"));
+    }
+
+    @Test
+    public void shouldThrowExceptionIfVideoDoNotHaveAnyMimeParameter() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .build()))
+                .tmax(1000L)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+                .makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Video: missing required field mimes"));
+    }
+
+    @Test
+    public void requestSecureShouldBeOneIfPageStartsWithHttps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().w(100).h(100).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .build()))
+                .tmax(1000L)
+                .site(Site.builder().page("https://exmaple/").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+                .makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(request -> request.getImp().get(0).getSecure())
+                .containsOnly(1);
+    }
+
+    @Test
+    public void requestSecureShouldBeOneIfUrlStartsWithHttps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().w(100).h(100).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .build()))
+                .tmax(1000L)
+                .app(App.builder().domain("https://exmaple/").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+                .makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getSecure)
+                .containsOnly(1);
+    }
+
+    @Test
+    public void requestSecureShouldBe1IfStoreUrlStartsWithHttps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().w(100).h(100).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .build()))
+                .tmax(1000L)
+                .app(App.builder().storeurl("https://exmaple/").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+                .makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getSecure)
+                .containsOnly(1);
+    }
+
+    @Test
+    public void requestSecureShouldBe0IfPageDoNotStartsWithHttps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().w(100).h(100).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .build()))
+                .tmax(1000L)
+                .site(Site.builder().page("http://exmaple/").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+                .makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getSecure)
+                .containsOnly(0);
     }
 
     @Test
@@ -272,6 +440,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .format(singletonList(Format.builder().h(30).w(31).build())).build();
 
         final Imp expectedImp = Imp.builder()
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("1", "asd"))))
                 .banner(expectedBanner)
                 .tagid("1")
                 .secure(0)
@@ -412,7 +581,7 @@ public class EmxDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldAlwaysReturnBannerBidWithChangedBidImpId() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWithChangedBidImpId() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -431,9 +600,61 @@ public class EmxDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(emxDigitalBidder.extractTargeting(mapper.createObjectNode()))
-                .isEqualTo(emptyMap());
+    public void makeBidsShouldReturnVideoBidIfAdmContainsVastPrefix() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.id("321").adm("<vast data=test").impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().id("321").adm("<vast data=test").impid("321").build(),
+                        video, "USD"));
     }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfAdmContainsXmlPrefix() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.id("321").adm("<?xml data=test").impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().id("321").adm("<?xml data=test").impid("321").build(),
+                        video, "USD"));
+    }
+
+    private static BidResponse givenBidResponse(
+            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build();
+    }
+
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return HttpCall.success(
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
+    }
+
 }
 

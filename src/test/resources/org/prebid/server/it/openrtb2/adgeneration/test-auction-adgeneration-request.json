@@ -20,6 +20,7 @@
   ],
   "device": {
     "pxratio": 4.2,
+    "ua": "some-agent",
     "dnt": 2,
     "language": "en",
     "ifa": "ifaId"
@@ -75,12 +76,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {

@@ -1,0 +1,27 @@
+adapters:
+  smartyads:
+    enabled: false
+    endpoint: http://{{Host}}.smartyads.com/bid?rtb_seat_id={{SourceId}}&secret_key={{AccountID}}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: support@smartyads.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://as.ck-ie.com/prebid.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+      redirect-url: /setuid?bidder=smartyads&uid=[uid]
+      cookie-family-name: smartyads
+      type: redirect
+      support-cors: false

@@ -1,9 +1,9 @@
 package org.prebid.server.auction;
 
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.BidderCatalog;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -21,8 +21,8 @@ public class BidderAliases {
     private BidderAliases(
             Map<String, String> aliasToBidder, Map<String, Integer> aliasToVendorId, BidderCatalog bidderCatalog) {
 
-        this.aliasToBidder = ObjectUtils.firstNonNull(aliasToBidder, Collections.emptyMap());
-        this.aliasToVendorId = ObjectUtils.firstNonNull(aliasToVendorId, Collections.emptyMap());
+        this.aliasToBidder = MapUtils.emptyIfNull(aliasToBidder);
+        this.aliasToVendorId = MapUtils.emptyIfNull(aliasToVendorId);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
     }
 
@@ -43,7 +43,7 @@ public class BidderAliases {
     public String resolveBidder(String aliasOrBidder) {
         return aliasToBidder.containsKey(aliasOrBidder)
                 ? aliasToBidder.get(aliasOrBidder)
-                : ObjectUtils.firstNonNull(resolveBidderViaCatalog(aliasOrBidder), aliasOrBidder);
+                : ObjectUtils.defaultIfNull(resolveBidderViaCatalog(aliasOrBidder), aliasOrBidder);
     }
 
     public Integer resolveAliasVendorId(String alias) {

@@ -16,7 +16,7 @@
       "ext": {
         "pubmatic": {
           "adSlot": "slot9@300x250:zzz",
-          "publisherId": "publisherId",
+          "publisherId": "   publisherId   ",
           "keywords": [{
             "key": "pmZoneID",
             "value": ["Zone1", "Zone2"]
@@ -103,12 +103,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {

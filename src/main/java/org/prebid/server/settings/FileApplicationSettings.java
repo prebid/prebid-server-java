@@ -5,12 +5,10 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AdUnitConfig;
 import org.prebid.server.settings.model.SettingsFile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
@@ -41,7 +39,6 @@ public class FileApplicationSettings implements ApplicationSettings {
     private static final String JSON_SUFFIX = ".json";
 
     private final Map<String, Account> accounts;
-    private final Map<String, String> configs;
     private final Map<String, String> storedIdToRequest;
     private final Map<String, String> storedIdToImp;
     private final Map<String, String> storedIdToSeatBid;
@@ -56,10 +53,6 @@ public class FileApplicationSettings implements ApplicationSettings {
                 Account::getId,
                 Function.identity());
 
-        configs = toMap(settingsFile.getConfigs(),
-                AdUnitConfig::getId,
-                config -> ObjectUtils.defaultIfNull(config.getConfig(), StringUtils.EMPTY));
-
         this.storedIdToRequest = readStoredData(fileSystem, Objects.requireNonNull(storedRequestsDir));
         this.storedIdToImp = readStoredData(fileSystem, Objects.requireNonNull(storedImpsDir));
         this.storedIdToSeatBid = readStoredData(fileSystem, Objects.requireNonNull(storedResponsesDir));
@@ -70,18 +63,14 @@ public class FileApplicationSettings implements ApplicationSettings {
         return mapValueToFuture(accounts, accountId, "Account");
     }
 
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return mapValueToFuture(configs, adUnitConfigId, "AdUnitConfig");
-    }
-
     /**
      * Creates {@link StoredDataResult} by checking if any ids are missed in storedRequest map
      * and adding an error to list for each missed Id
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;} with all loaded files and errors list.
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
                 ? StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList())
                 : StoredDataResult.of(
@@ -92,6 +81,18 @@ public class FileApplicationSettings implements ApplicationSettings {
                         errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
                         .flatMap(Collection::stream)
                         .collect(Collectors.toList())));
+    }
+
+    @Override
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        return getStoredData(accountId, requestIds, Collections.emptySet(), timeout);
+    }
+
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                       Timeout timeout) {
+        return getStoredData(accountId, requestIds, impIds, timeout);
     }
 
     /**
@@ -106,16 +107,6 @@ public class FileApplicationSettings implements ApplicationSettings {
                 : StoredResponseDataResult.of(
                 existingStoredIdToJson(responseIds, storedIdToSeatBid),
                 errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid)));
-    }
-
-    @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getStoredData(requestIds, Collections.emptySet(), timeout);
-    }
-
-    @Override
-    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getStoredData(requestIds, impIds, timeout);
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {

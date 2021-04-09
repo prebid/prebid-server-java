@@ -1,0 +1,234 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "21521324",
+          "impid": "impId1",
+          "price": 12.43,
+          "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250,
+          "exp": 120,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_size_rubicon": "300x250",
+                "hb_cache_id": "07a81993-a3f4-4582-89c1-44a6935b192b",
+                "hb_cache_path_rubicon": "{{ cache.path }}",
+                "hb_cache_host_rubicon": "{{ cache.host }}",
+                "hb_pb": "12.40",
+                "hb_pb_rubicon": "12.40",
+                "hb_cache_id_rubicon": "07a81993-a3f4-4582-89c1-44a6935b192b",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_uuid": "e15f6dcb-7b3b-4c32-be95-9b9d6f8f9320",
+                "hb_size": "300x250",
+                "hb_uuid_rubicon": "e15f6dcb-7b3b-4c32-be95-9b9d6f8f9320",
+                "hb_bidder": "rubicon",
+                "hb_bidder_rubicon": "rubicon",
+                "hb_cache_host": "{{ cache.host }}"
+              },
+              "targetbiddercode": "rubicon",
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}07a81993-a3f4-4582-89c1-44a6935b192b",
+                  "cacheId": "07a81993-a3f4-4582-89c1-44a6935b192b"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}e15f6dcb-7b3b-4c32-be95-9b9d6f8f9320",
+                  "cacheId": "e15f6dcb-7b3b-4c32-be95-9b9d6f8f9320"
+                }
+              },
+              "events": {
+                "win": "{{ event.url }}t=win&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int=",
+                "imp": "{{ event.url }}t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int="
+              }
+            },
+            "bidder": {
+              "rp": {
+                "targeting": [
+                  {
+                    "key": "rpfl_1001",
+                    "values": [
+                      "2_tier0100"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "880290288",
+          "impid": "impId1",
+          "price": 8.43,
+          "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250,
+          "exp": 120,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb_rubN2": "8.40",
+                "hb_uuid_rubN2": "d4f001de-4cc9-4857-9fad-70feff5c0dbc",
+                "hb_cache_host_rubN2": "{{ cache.host }}",
+                "hb_bidder_rubN2": "rubN2",
+                "hb_cache_path_rubN2": "{{ cache.path }}",
+                "hb_size_rubN2": "300x250",
+                "hb_cache_id_rubN2": "683fe79f-6df7-4971-ac70-820e0486992d"
+              },
+              "targetbiddercode": "rubN2",
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}683fe79f-6df7-4971-ac70-820e0486992d",
+                  "cacheId": "683fe79f-6df7-4971-ac70-820e0486992d"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}d4f001de-4cc9-4857-9fad-70feff5c0dbc",
+                  "cacheId": "d4f001de-4cc9-4857-9fad-70feff5c0dbc"
+                }
+              },
+              "events": {
+                "win": "{{ event.url }}t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=",
+                "imp": "{{ event.url }}t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int="
+              }
+            },
+            "bidder": {
+              "rp": {
+                "targeting": [
+                  {
+                    "key": "rpfl_1001",
+                    "values": [
+                      "2_tier0100"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "seat": "rubicon",
+      "group": 0
+    },
+    {
+      "bid": [
+        {
+          "id": "7706636740145184841",
+          "impid": "impId1",
+          "price": 5.5,
+          "adm": "some-test-ad2",
+          "adid": "29681110",
+          "adomain": [
+            "appnexus.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+          "cid": "958",
+          "crid": "29681110",
+          "exp": 120,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb_appnexus": "5.50",
+                "hb_uuid_appnexus": "5d7bfab8-69ea-416e-a5a1-a64db0bb218c",
+                "hb_cache_path_appnexus": "{{ cache.path }}",
+                "hb_bidder_appnexus": "appnexus",
+                "hb_cache_host_appnexus": "{{ cache.host }}",
+                "hb_cache_id_appnexus": "9ef753e9-e7b7-4309-b46a-65df40f75909"
+              },
+              "targetbiddercode": "appnexus",
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}9ef753e9-e7b7-4309-b46a-65df40f75909",
+                  "cacheId": "9ef753e9-e7b7-4309-b46a-65df40f75909"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}5d7bfab8-69ea-416e-a5a1-a64db0bb218c",
+                  "cacheId": "5d7bfab8-69ea-416e-a5a1-a64db0bb218c"
+                }
+              },
+              "events": {
+                "win": "{{ event.url }}t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=",
+                "imp": "{{ event.url }}t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int="
+              }
+            },
+            "bidder": {
+              "appnexus": {
+                "brand_id": 1,
+                "auction_id": 8189378542222915032,
+                "bidder_id": 2,
+                "bid_ad_type": 1,
+                "ranking_price": 0.0
+              }
+            }
+          }
+        },
+        {
+          "id": "222214214214",
+          "impid": "impId1",
+          "price": 2.0,
+          "adm": "some-test-ad1",
+          "adid": "69595837",
+          "adomain": [
+            "appnexus.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=69595837",
+          "cid": "958",
+          "crid": "69595837",
+          "cat": [
+            "IAB20-3"
+          ],
+          "exp": 120,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}c2da8624-f28a-4d01-bbd7-f348478c1185",
+                  "cacheId": "c2da8624-f28a-4d01-bbd7-f348478c1185"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}d71b6640-811b-480b-9f34-e6858ec80e40",
+                  "cacheId": "d71b6640-811b-480b-9f34-e6858ec80e40"
+                }
+              },
+              "events": {
+                "win": "{{ event.url }}t=win&b=222214214214&a=5001&ts=1000&bidder=appnexus&f=i&int=",
+                "imp": "{{ event.url }}t=imp&b=222214214214&a=5001&ts=1000&bidder=appnexus&f=i&int="
+              }
+            },
+            "bidder": {
+              "appnexus": {
+                "brand_id": 1,
+                "brand_category_id": 1,
+                "auction_id": 5607483846416358664,
+                "bidder_id": 2,
+                "bid_ad_type": 1
+              }
+            }
+          }
+        }
+      ],
+      "seat": "appnexus",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "appnexus": "{{ appnexus.response_time_ms }}",
+      "rubicon": "{{ rubicon.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}

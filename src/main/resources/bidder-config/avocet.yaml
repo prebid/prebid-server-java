@@ -1,0 +1,25 @@
+adapters:
+  avocet:
+    enabled: false
+    endpoint: https://
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: developers@avocet.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 63
+    usersync:
+      url: https://ads.avct.cloud/getuid?&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
+      redirect-url: /setuid?bidder=avocet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={{UUID}}
+      cookie-family-name: avocet
+      type: redirect
+      support-cors: false

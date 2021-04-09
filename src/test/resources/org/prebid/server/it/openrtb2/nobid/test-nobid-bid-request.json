@@ -1,0 +1,76 @@
+{
+  "id": "some-request-id",
+  "imp": [
+    {
+      "id": "testimpid",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "tagid": "impId021",
+      "ext": {
+        "bidder": {
+          "siteId" : 23,
+          "placementId" : 25
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "test-user-agent",
+    "ip": "123.123.123.123",
+    "language": "en",
+    "dnt": 0
+  },
+  "user": {
+    "buyeruid": "NB-UID"
+  },
+  "at": 1,
+  "tmax": 1000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "includewinners": true,
+        "includebidderkeys": true
+      },
+      "cache": {
+        "bids": {}
+      },
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
+    }
+  }
+}

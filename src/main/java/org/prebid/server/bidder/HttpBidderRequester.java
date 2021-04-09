@@ -8,7 +8,9 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -44,26 +46,27 @@ public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
-    private static final int NOTIFICATION_TIMEOUT_MS = 200;
-
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
+    private final BidderErrorNotifier bidderErrorNotifier;
 
     public HttpBidderRequester(HttpClient httpClient,
-                               BidderRequestCompletionTrackerFactory completionTrackerFactory) {
+                               BidderRequestCompletionTrackerFactory completionTrackerFactory,
+                               BidderErrorNotifier bidderErrorNotifier) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
+        this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
     }
 
     /**
      * Executes given request to a given bidder.
      */
     public <T> Future<BidderSeatBid> requestBids(
-            Bidder<T> bidder, BidRequest bidRequest, Timeout timeout, boolean debugEnabled) {
+            Bidder<T> bidder, BidderRequest bidderRequest, Timeout timeout, boolean debugEnabled) {
+        final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
-
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
         final List<HttpRequest<T>> httpRequests = httpRequestsWithErrors.getValue();
 
@@ -71,13 +74,20 @@ public class HttpBidderRequester {
             return emptyBidderSeatBidWithErrors(bidderErrors);
         }
 
-        final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(bidRequest);
+        final String storedResponse = bidderRequest.getStoredResponse();
+        final String bidderName = bidderRequest.getBidder();
 
+        // stored response available only for single request interaction for the moment.
+        final Stream<Future<HttpCall<T>>> httpCalls = isStoredResponse(httpRequests, storedResponse, bidderName)
+                ? Stream.of(makeStoredHttpCall(httpRequests.get(0), storedResponse))
+                : httpRequests.stream().map(httpRequest -> doRequest(httpRequest, timeout));
+
+        final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(bidRequest);
         final ResultBuilder<T> resultBuilder = new ResultBuilder<>(httpRequests, bidderErrors, completionTracker);
 
-        final List<Future<Void>> httpRequestFutures = httpRequests.stream()
-                .map(httpRequest -> doRequest(httpRequest, timeout, bidder))
+        final List<Future<Void>> httpRequestFutures = httpCalls
                 .map(httpCallFuture -> httpCallFuture
+                        .map(httpCall -> bidderErrorNotifier.processTimeout(httpCall, bidder))
                         .map(httpCall -> processHttpCall(bidder, bidRequest, resultBuilder, httpCall)))
                 .collect(Collectors.toList());
 
@@ -87,6 +97,29 @@ public class HttpBidderRequester {
 
         return completionFuture
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
+    }
+
+    private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
+                                         String storedResponse,
+                                         String bidder) {
+        if (StringUtils.isBlank(storedResponse)) {
+            return false;
+        }
+
+        if (httpRequests.size() > 1) {
+            logger.warn("More than one request was created for stored response, when only single stored response "
+                    + "per bidder is supported for the moment. Request to real {0} bidder "
+                    + "will be performed .", bidder);
+            return false;
+        }
+
+        return true;
+    }
+
+    final <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest,
+                                                     String storedResponse) {
+        return Future.succeededFuture(HttpCall.success(httpRequest, HttpResponse.of(HttpResponseStatus.OK.code(), null,
+                storedResponse), null));
     }
 
     /**
@@ -105,7 +138,7 @@ public class HttpBidderRequester {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private <T> Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, Timeout timeout, Bidder<T> bidder) {
+    private <T> Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, Timeout timeout) {
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
             return failResponse(new TimeoutException("Timeout has been exceeded"), httpRequest);
@@ -114,8 +147,7 @@ public class HttpBidderRequester {
         return httpClient.request(httpRequest.getMethod(), httpRequest.getUri(), httpRequest.getHeaders(),
                 httpRequest.getBody(), remainingTimeout)
                 .compose(response -> processResponse(response, httpRequest))
-                .recover(exception -> failResponse(exception, httpRequest))
-                .map(httpCall -> notifyTimeoutBidder(bidder, httpCall));
+                .recover(exception -> failResponse(exception, httpRequest));
     }
 
     /**
@@ -133,30 +165,6 @@ public class HttpBidderRequester {
 
         return Future.succeededFuture(
                 HttpCall.failure(httpRequest, BidderError.create(exception.getMessage(), errorType)));
-    }
-
-    /**
-     * Calls when bidder's exchange responds with timeout and sends notification if bidder supports it.
-     */
-    private <T> HttpCall<T> notifyTimeoutBidder(Bidder<T> bidder, HttpCall<T> httpCall) {
-        final BidderError bidderError = httpCall.getError();
-        final BidderError.Type errorType = bidderError != null ? bidderError.getType() : null;
-
-        if (errorType == BidderError.Type.timeout && bidder instanceof TimeoutBidder) {
-            final TimeoutBidder<T> timeoutBidder = (TimeoutBidder<T>) bidder;
-            final HttpRequest<Void> timeoutNotification = timeoutBidder.makeTimeoutNotification(httpCall.getRequest());
-
-            if (timeoutNotification != null) {
-                httpClient.request(
-                        timeoutNotification.getMethod(),
-                        timeoutNotification.getUri(),
-                        timeoutNotification.getHeaders(),
-                        timeoutNotification.getBody(),
-                        NOTIFICATION_TIMEOUT_MS);
-            }
-        }
-
-        return httpCall;
     }
 
     /**
@@ -193,18 +201,25 @@ public class HttpBidderRequester {
     }
 
     private static <T> Result<List<BidderBid>> makeBids(Bidder<T> bidder, HttpCall<T> httpCall, BidRequest bidRequest) {
-        if (httpCall.getError() != null || !isOkOrNoContent(httpCall)) {
-            return null;
-        }
-        return bidder.makeBids(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
+
+        return httpCall.getError() != null
+                ? null
+                : makeResult(bidder, httpCall, bidRequest);
     }
 
     /**
-     * Returns true if response HTTP status code is equal to 200 or 204, otherwise false.
+     * Returns result based on response status code
      */
-    private static boolean isOkOrNoContent(HttpCall httpCall) {
+    private static <T> Result<List<BidderBid>> makeResult(Bidder<T> bidder, HttpCall<T> httpCall,
+                                                          BidRequest bidRequest) {
         final int statusCode = httpCall.getResponse().getStatusCode();
-        return statusCode == HttpResponseStatus.OK.code() || statusCode == HttpResponseStatus.NO_CONTENT.code();
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.empty();
+        }
+        if (statusCode != HttpResponseStatus.OK.code()) {
+            return null;
+        }
+        return bidder.makeBids(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
     }
 
     /**

@@ -1,10 +1,10 @@
 package org.prebid.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -14,8 +14,13 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.currency.CurrencyConversionService;
 
+import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
+import static java.util.Collections.singletonMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -38,38 +43,42 @@ public class CurrencyRatesHandlerTest extends VertxTest {
         currencyRatesHandler = new CurrencyRatesHandler(currencyConversionService, jacksonMapper);
 
         given(routingContext.response()).willReturn(httpResponse);
+        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
     }
 
     @Test
     public void handleShouldReturnLastUpdatedString() throws JsonProcessingException {
         // given
+        given(currencyConversionService.isExternalRatesActive())
+                .willReturn(true);
+        given(currencyConversionService.getCurrencyServerUrl())
+                .willReturn("http://currency-server/latest");
+        given(currencyConversionService.getRefreshPeriod())
+                .willReturn(12345L);
         given(currencyConversionService.getLastUpdated())
                 .willReturn(ZonedDateTime.parse("2018-11-06T19:25:48.085Z"));
 
-        // when
-        currencyRatesHandler.handle(routingContext);
-
-        // then
-        final String expectedResponse = mapper.writeValueAsString(Response.of("2018-11-06T19:25:48.085Z"));
-        verify(httpResponse).end(expectedResponse);
-    }
-
-    @Test
-    public void handleShouldRespondWithNoValue() throws JsonProcessingException {
-        // given
-        given(currencyConversionService.getLastUpdated()).willReturn(null);
+        final Map<String, Map<String, BigDecimal>> rates = new HashMap<>();
+        rates.put("USD", singletonMap("EUR", BigDecimal.TEN));
+        rates.put("EUR", singletonMap("USD", BigDecimal.ONE));
+        given(currencyConversionService.getExternalCurrencyRates())
+                .willReturn(rates);
 
         // when
         currencyRatesHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(mapper.writeValueAsString(Response.of("no value")));
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class Response {
-
-        String lastUpdate;
+        final String expectedResponse = mapper.writeValueAsString(
+                mapper.createObjectNode()
+                        .put("active", true)
+                        .put("source", "http://currency-server/latest")
+                        .put("fetchingIntervalNs", 12345000000L)
+                        .put("lastUpdated", "2018-11-06T19:25:48.085Z")
+                        .<ObjectNode>set("rates", mapper.createObjectNode()
+                                .<ObjectNode>set("EUR", mapper.createObjectNode()
+                                        .put("USD", BigDecimal.ONE))
+                                .<ObjectNode>set("USD", mapper.createObjectNode()
+                                        .put("EUR", BigDecimal.TEN))));
+        verify(httpResponse).end(eq(expectedResponse));
     }
 }

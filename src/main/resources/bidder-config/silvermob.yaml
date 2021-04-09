@@ -1,0 +1,24 @@
+adapters:
+  silvermob:
+    enabled: false
+    endpoint: http://{{Host}}.silvermob.com/marketplace/api/dsp/bid/{{ZoneID}}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: support@silvermob.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: silvermob
+      type: redirect
+      support-cors: false

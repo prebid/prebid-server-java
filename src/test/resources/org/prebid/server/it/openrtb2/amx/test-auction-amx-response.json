@@ -1,0 +1,61 @@
+{
+  "id": "some-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "testid",
+          "impid": "testimpid",
+          "price": 0.01,
+          "adid": "2068416",
+          "cid": "8048",
+          "crid": "24080",
+          "adm": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><VAST version=\"2.0\"><Ad id=\"128a6.44d74.46b3\"><InLine><Error><![CDATA[http://example.net/hbx/verr?e=]]></Error><Impression><![CDATA[http://example.net/hbx/vimp?lid=test&aid=testapp]]></Impression><Impression><![CDATA[https://example.com/nurl]]></Impression><Impression><![CDATA[https://example.com/imp-tracker/pixel.gif?param=1&param2=2]]></Impression><Creatives><Creative sequence=\"1\"><Linear><Duration>00:00:15</Duration><TrackingEvents><Tracking event=\"firstQuartile\"><![CDATA[https://example.com?event=first_quartile]]></Tracking></TrackingEvents><VideoClicks><ClickThrough><![CDATA[http://example.com]]></ClickThrough></VideoClicks><MediaFiles><MediaFile delivery=\"progressive\" width=\"16\" height=\"9\" type=\"video/mp4\" bitrate=\"800\"><![CDATA[https://example.com/media.mp4]]></MediaFile></MediaFiles></Linear></Creative></Creatives></InLine></Ad></VAST>",
+          "nurl": "",
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb": "0.00",
+                "hb_cache_id_amx": "3c0769d8-0dd9-465c-8bf3-f570605ba698",
+                "hb_bidder_amx": "amx",
+                "hb_bidder": "amx",
+                "hb_cache_id": "3c0769d8-0dd9-465c-8bf3-f570605ba698",
+                "hb_pb_amx": "0.00",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_amx": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_amx": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}3c0769d8-0dd9-465c-8bf3-f570605ba698",
+                  "cacheId": "3c0769d8-0dd9-465c-8bf3-f570605ba698"
+                }
+              }
+            },
+            "bidder": {
+              "himp": [
+                "https://example.com/imp-tracker/pixel.gif?param=1&param2=2"
+              ],
+              "startdelay": 0
+            }
+          }
+        }
+      ],
+      "seat": "amx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "amx": "{{ amx.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 1000
+  }
+}

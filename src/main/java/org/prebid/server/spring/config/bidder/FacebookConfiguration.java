@@ -51,7 +51,7 @@ public class FacebookConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(usersync, null))
                 .bidderCreator(configProperties.getEnabled()
                         ? () -> new FacebookBidder(configProperties.getEndpoint(), configProperties.getPlatformId(),
-                        configProperties.getAppSecret(), mapper)
+                        configProperties.getAppSecret(), configProperties.getTimeoutNotificationUrlTemplate(), mapper)
                         : null)
                 .assemble();
     }
@@ -67,5 +67,8 @@ public class FacebookConfiguration {
 
         @NotNull
         private String appSecret;
+
+        @NotNull
+        private String timeoutNotificationUrlTemplate;
     }
 }

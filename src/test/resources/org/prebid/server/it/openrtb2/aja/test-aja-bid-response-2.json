@@ -9,6 +9,7 @@
           "price": 9.99,
           "crid": "crid002",
           "cid": "cid002",
+          "nurl": "https://example.com/nurl",
           "adomain": [
             "psacentral.org"
           ],

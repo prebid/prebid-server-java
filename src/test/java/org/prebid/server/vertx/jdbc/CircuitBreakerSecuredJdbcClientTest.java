@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -22,6 +23,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -30,7 +32,6 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -193,7 +194,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
     }
 
     @Test
-    public void executeQueryShouldReportMetricsOnCircuitOpened(TestContext context) {
+    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen(TestContext context) {
         // given
         givenExecuteQueryReturning(singletonList(
                 Future.failedFuture(new RuntimeException("exception1"))));
@@ -202,12 +203,16 @@ public class CircuitBreakerSecuredJdbcClientTest {
         final Future<?> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
+        final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
+        verify(metrics).createDatabaseCircuitBreakerGauge(gaugeValueProviderCaptor.capture());
+        final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
+
         future.setHandler(context.asyncAssertFailure(throwable ->
-                verify(metrics).updateDatabaseCircuitBreakerMetric(eq(true))));
+                assertThat(gaugeValueProvider.getAsBoolean()).isTrue()));
     }
 
     @Test
-    public void executeQueryShouldReportMetricsOnCircuitClosed(TestContext context) {
+    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed(TestContext context) {
         // given
         givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
@@ -224,8 +229,12 @@ public class CircuitBreakerSecuredJdbcClientTest {
                 resultSet -> resultSet.getResults().get(0).getString(0), timeout); // 3 call
 
         // then
-        future.setHandler(context.asyncAssertSuccess(result ->
-                verify(metrics).updateDatabaseCircuitBreakerMetric(eq(false))));
+        final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
+        verify(metrics).createDatabaseCircuitBreakerGauge(gaugeValueProviderCaptor.capture());
+        final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
+
+        future.setHandler(context.asyncAssertSuccess(throwable ->
+                assertThat(gaugeValueProvider.getAsBoolean()).isFalse()));
     }
 
     @SuppressWarnings("unchecked")

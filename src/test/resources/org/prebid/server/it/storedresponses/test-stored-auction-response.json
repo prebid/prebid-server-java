@@ -4,6 +4,7 @@
       {
         "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
         "impid": "impStoredAuctionResponse",
+        "crid": "crid1",
         "price": 0.8
       }
     ],
@@ -15,6 +16,7 @@
       {
         "id": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
         "impid": "impStoredAuctionResponse",
+        "crid": "crid1",
         "price": 0.9
       }
     ],

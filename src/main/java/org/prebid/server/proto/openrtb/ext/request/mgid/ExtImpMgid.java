@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 )
 @Value
 public class ExtImpMgid {
+
     @JsonProperty("accountId")
     String accountId;
 

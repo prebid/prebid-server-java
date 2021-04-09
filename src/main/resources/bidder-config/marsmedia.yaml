@@ -16,7 +16,7 @@ adapters:
         - banner
         - video
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 776
     usersync:
       url: https://dmp.rtbsrv.com/dmp/profiles/cm?p_id=179&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
       redirect-url: /setuid?bidder=marsmedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UUID}

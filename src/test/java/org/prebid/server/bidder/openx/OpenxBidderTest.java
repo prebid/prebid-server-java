@@ -462,11 +462,6 @@ public class OpenxBidderTest extends VertxTest {
                 .containsOnly(Collections.emptyList(), Collections.emptyList());
     }
 
-    @Test
-    public void extractTargeting() {
-        assertThat(openxBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
-    }
-
     private static Map<String, JsonNode> givenCustomParams(String key, Object values) {
         return singletonMap(key, mapper.valueToTree(values));
     }

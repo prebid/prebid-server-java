@@ -22,7 +22,7 @@
     "buyeruid": "BF-UID"
   },
   "adapterName": "BF_PREBID_S2S",
-  "adapterVersion": "0.9.0",
+  "adapterVersion": "0.9.1",
   "ip": "193.168.244.1",
   "requestId": "tid"
 }

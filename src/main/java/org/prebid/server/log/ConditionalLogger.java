@@ -7,6 +7,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -19,8 +20,8 @@ public class ConditionalLogger {
     private final String key;
     private final Logger logger;
 
-    private ConcurrentMap<String, AtomicInteger> messageToCount;
-    private ConcurrentMap<String, Long> messageToWait;
+    private final ConcurrentMap<String, AtomicInteger> messageToCount;
+    private final ConcurrentMap<String, Long> messageToWait;
 
     public ConditionalLogger(String key, Logger logger) {
         this.key = key; // can be null
@@ -43,12 +44,20 @@ public class ConditionalLogger {
         this(null, logger);
     }
 
+    public void infoWithKey(String key, String message, int limit) {
+        log(key, limit, logger -> logger.info(message));
+    }
+
     public void info(String message, int limit) {
         log(message, limit, logger -> logger.info(message));
     }
 
     public void info(String message, long duration, TimeUnit unit) {
         log(message, duration, unit, logger -> logger.info(message));
+    }
+
+    public void errorWithKey(String key, String message, int limit) {
+        log(key, limit, logger -> logger.error(message));
     }
 
     public void error(String message, int limit) {
@@ -73,6 +82,12 @@ public class ConditionalLogger {
 
     public void warn(String message, long duration, TimeUnit unit) {
         log(message, duration, unit, logger -> logger.warn(message));
+    }
+
+    public void warn(String message, double samplingRate) {
+        if (samplingRate >= 1.0d || ThreadLocalRandom.current().nextDouble() < samplingRate) {
+            logger.warn(message);
+        }
     }
 
     /**

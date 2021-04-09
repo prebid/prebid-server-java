@@ -15,6 +15,10 @@ public class HttpClientProperties {
     @Min(1)
     private Integer maxPoolSize;
 
+    private Integer idleTimeoutMs;
+
+    private Integer poolCleanerPeriodMs;
+
     @NotNull
     @Min(1)
     private Integer connectTimeoutMs;

@@ -10,7 +10,11 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountStatus;
+import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -57,7 +61,7 @@ public class FileApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnEmptyWhenAccountsAreMissing() {
         // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs:"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("domains:"));
 
         final FileApplicationSettings applicationSettings =
                 new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
@@ -104,7 +108,12 @@ public class FileApplicationSettingsTest {
                         + "defaultIntegration: 'web',"
                         + "analyticsConfig: {"
                         + "auction-events: {amp: 'true'}"
-                        + "}"
+                        + "},"
+                        + "bidValidations: {"
+                        + "banner-creative-max-size: 'enforce'"
+                        + "},"
+                        + "status: 'active',"
+                        + "cookie-sync: {default-limit: 5,max-limit: 8,default-coop-sync: true}"
                         + "}"
                         + "]"));
 
@@ -140,6 +149,9 @@ public class FileApplicationSettingsTest {
                 .truncateTargetAttr(20)
                 .defaultIntegration("web")
                 .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
+                .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
+                .status(AccountStatus.active)
+                .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                 .build());
     }
 
@@ -160,56 +172,6 @@ public class FileApplicationSettingsTest {
     }
 
     @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyWhenConfigsAreMissing() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> config = applicationSettings.getAdUnitConfigById("123", null);
-
-        // then
-        assertThat(config.failed()).isTrue();
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnPresentConfig() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
-                "configs: [ {id: '123', config: '{\"bidder\": \"rubicon\"}'}, {id: '456'} ]"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> adUnitConfigById1 = applicationSettings.getAdUnitConfigById("123", null);
-        final Future<String> adUnitConfigById2 = applicationSettings.getAdUnitConfigById("456", null);
-
-        // then
-        assertThat(adUnitConfigById1.succeeded()).isTrue();
-        assertThat(adUnitConfigById1.result()).isEqualTo("{\"bidder\": \"rubicon\"}");
-        assertThat(adUnitConfigById2.succeeded()).isTrue();
-        assertThat(adUnitConfigById2.result()).isEqualTo("");
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyForUnknownConfig() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs: [ id: '123', id: '456' ]"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> config = applicationSettings.getAdUnitConfigById("789", null);
-
-        // then
-        assertThat(config.failed()).isTrue();
-    }
-
-    @Test
     public void getStoredDataShouldReturnResultWithNotFoundErrorForNonExistingRequestId() {
         // given
         given(fileSystem.readDirBlocking(anyString()))
@@ -224,7 +186,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(singleton("2"), emptySet(), null);
+                applicationSettings.getStoredData(null, singleton("2"), emptySet(), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
@@ -252,7 +214,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(emptySet(), singleton("2"), null);
+                applicationSettings.getStoredData(null, emptySet(), singleton("2"), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/imps/1.json"));
@@ -279,7 +241,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(singleton("1"), singleton("2"), null);
+                applicationSettings.getStoredData(null, singleton("1"), singleton("2"), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
@@ -306,7 +268,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getAmpStoredData(emptySet(), singleton("2"), null);
+                applicationSettings.getAmpStoredData(null, emptySet(), singleton("2"), null);
 
         // then
         assertThat(storedRequestResult.result().getErrors()).isNotNull().isEmpty();
@@ -338,7 +300,7 @@ public class FileApplicationSettingsTest {
         verify(fileSystem).readFileBlocking(eq("/home/user/responses/1.json"));
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().isEmpty();
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().isEmpty();
     }
 
     @Test
@@ -367,7 +329,7 @@ public class FileApplicationSettingsTest {
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No stored seatbid found for id: 2"));
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().hasSize(1)
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 
@@ -396,7 +358,7 @@ public class FileApplicationSettingsTest {
         verify(fileSystem).readFileBlocking(eq("/home/user/responses/1.json"));
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().hasSize(1)
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 

@@ -5,7 +5,6 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -38,8 +37,11 @@ public class DatablocksTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/datablocks/test-cache-datablocks-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/datablocks/test-cache-datablocks-response.json"))));
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/datablocks/test-cache-datablocks-request.json")))
+                .willReturn(aResponse().withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/datablocks/test-cache-matcher-datablocks.json")));
 
         // when
         final Response response = given(SPEC)
@@ -57,6 +59,6 @@ public class DatablocksTest extends IntegrationTest {
                 "openrtb2/datablocks/test-auction-datablocks-response.json",
                 response, singletonList("datablocks"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }

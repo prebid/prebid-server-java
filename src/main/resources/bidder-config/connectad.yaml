@@ -1,0 +1,23 @@
+adapters:
+  connectad:
+    enabled: false
+    endpoint: http://bidder.connectad.io/API?src=pbs
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: support@connectad.io
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 138
+    usersync:
+      url: https://cdn.connectad.io/connectmyusers.php?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
+      redirect-url: /setuid?bidder=connectad&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&&us_privacy={{us_privacy}}&uid=
+      cookie-family-name: connectad
+      type: redirect
+      support-cors: false

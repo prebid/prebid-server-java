@@ -5,6 +5,7 @@ adapters:
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
+    generate-bid-id: true
     deprecated-names:
     aliases:
     meta-info:

@@ -23,13 +23,12 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.admixer.ExtImpAdmixer;
 
-import java.util.Collections;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,18 +55,79 @@ public class AdmixerBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
+    public void shouldSetBidfloorToZeroIfExtImpFloorValuIsNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                        .build();
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdmixer.of("tentententtentententtentententetetet", null,
+                                        givenCustomParams("foo1", singletonList("bar1"))))))
+                        .build()))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
+        final Imp expectedImp = Imp.builder()
+                .id("123")
+                .tagid("tentententtentententtentententetetet")
+                .bidfloor(BigDecimal.ZERO)
+                .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
+                                givenCustomParams("foo1", singletonList("bar1")))))
+                .build();
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(expectedImp);
+    }
+
+    @Test
+    public void shouldSetExtToNullIfCustomParamsAreNotPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdmixer.of("tentententtentententtentententetetet", null, null))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Imp expectedImp = Imp.builder()
+                .id("123")
+                .tagid("tentententtentententtentententetetet")
+                .bidfloor(BigDecimal.ZERO)
+                .ext(null)
+                .build();
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(expectedImp);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))).build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_input
+                && error.getMessage().startsWith("Wrong Admixer bidder ext in imp with id : 123"));
     }
 
     @Test
@@ -85,7 +145,7 @@ public class AdmixerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("ZoneId must be UUID/GUID"));
+                .containsExactly(BidderError.badInput("ZoneId must be UUID/GUID"));
     }
 
     @Test
@@ -97,7 +157,22 @@ public class AdmixerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                && error.getMessage().startsWith("Failed to decode:"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyResponseWhenResponseIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall =
+                givenHttpCall(mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, BidRequest.builder().build());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -112,9 +187,7 @@ public class AdmixerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result).isNotNull()
-                .extracting(Result::getValue, Result::getErrors)
-                .containsOnly(Collections.emptyList(), Collections.emptyList());
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -124,17 +197,34 @@ public class AdmixerBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(
                         BidResponse.builder()
-                        .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
-                        .build()));
+                                .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
+                                .build()));
 
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result).isNotNull()
-                .extracting(Result::getValue, Result::getErrors)
-                .containsOnly(Collections.emptyList(), Collections.emptyList());
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -148,12 +238,12 @@ public class AdmixerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                .build());
+                        .build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -172,7 +262,7 @@ public class AdmixerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -191,7 +281,7 @@ public class AdmixerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
     @Test
@@ -210,16 +300,12 @@ public class AdmixerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(admixerBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();

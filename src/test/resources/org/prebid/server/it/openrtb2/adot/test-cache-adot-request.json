@@ -1,0 +1,21 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "bidImpId001",
+        "impid": "impId001",
+        "crid": "crid001",
+        "price": 1.16346,
+        "adm": "some-test-ad",
+        "w": 320,
+        "h": 250,
+        "ext": {
+          "adot": {
+            "media_type": "banner"
+          }
+        }
+      }
+    }
+  ]
+}

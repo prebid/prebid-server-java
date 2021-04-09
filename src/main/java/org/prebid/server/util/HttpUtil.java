@@ -46,22 +46,11 @@ public final class HttpUtil {
     public static final CharSequence EXPIRES_HEADER = HttpHeaders.createOptimized("Expires");
     public static final CharSequence PRAGMA_HEADER = HttpHeaders.createOptimized("Pragma");
     public static final CharSequence LOCATION_HEADER = HttpHeaders.createOptimized("Location");
+    public static final CharSequence CONNECTION_HEADER = HttpHeaders.createOptimized("Connection");
+    public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
+    public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
 
     private HttpUtil() {
-    }
-
-    /**
-     * Detects whether browser is safari or not by user agent analysis.
-     */
-    public static boolean isSafari(String userAgent) {
-        // this is a simple heuristic based on this article:
-        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
-        //
-        // there are libraries available doing different kinds of User-Agent analysis but they impose performance
-        // implications as well, example: https://github.com/nielsbasjes/yauaa
-        return StringUtils.isNotBlank(userAgent)
-                && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
-                && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
     }
 
     /**

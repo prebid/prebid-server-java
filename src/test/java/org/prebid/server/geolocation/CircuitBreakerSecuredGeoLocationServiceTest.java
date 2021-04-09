@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -20,10 +21,10 @@ import org.prebid.server.metric.Metrics;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -168,7 +169,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @Test
-    public void lookupShouldReportMetricsOnCircuitOpened(TestContext context) {
+    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen(TestContext context) {
         // given
         givenWrappedGeoLocationReturning(Future.failedFuture(new RuntimeException("exception")));
 
@@ -176,11 +177,15 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         doLookup(context);
 
         // then
-        verify(metrics).updateGeoLocationCircuitBreakerMetric(eq(true));
+        final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
+        verify(metrics).createGeoLocationCircuitBreakerGauge(gaugeValueProviderCaptor.capture());
+        final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
+
+        assertThat(gaugeValueProvider.getAsBoolean()).isTrue();
     }
 
     @Test
-    public void lookupShouldReportMetricsOnCircuitClosed(TestContext context) {
+    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed(TestContext context) {
         // given
         givenWrappedGeoLocationReturning(
                 Future.failedFuture(new RuntimeException("exception")),
@@ -192,7 +197,11 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         doLookup(context); // 2 call
 
         // then
-        verify(metrics).updateGeoLocationCircuitBreakerMetric(eq(false));
+        final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
+        verify(metrics).createGeoLocationCircuitBreakerGauge(gaugeValueProviderCaptor.capture());
+        final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
+
+        assertThat(gaugeValueProvider.getAsBoolean()).isFalse();
     }
 
     @SuppressWarnings("unchecked")
