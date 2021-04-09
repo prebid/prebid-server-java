@@ -77,7 +77,7 @@
         "id": "880290288",
         "impid": "impId1",
         "price": 8.43,
-        "adm": "<Impression><![CDATA[]]></Impression>",
+        "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=dmbjs]]></Impression>",
         "crid": "crid1",
         "w": 300,
         "h": 250,
