@@ -34,6 +34,10 @@ public class BidderError {
         return BidderError.of(message, Type.failed_to_request_bids);
     }
 
+    public static BidderError warning(String message, Type type) {
+        return BidderError.of(message, type);
+    }
+
     public static BidderError timeout(String message) {
         return BidderError.of(message, Type.timeout);
     }
@@ -70,7 +74,13 @@ public class BidderError {
         failed_to_request_bids(4),
 
         timeout(1),
-        generic(999);
+        generic(999),
+
+        // Defines numeric codes for well-known warnings.
+        invalid_privacy_consent(10001),
+        account_level_debug_disabled(10002),
+        bidder_level_debug_disabled(10003),
+        unknown(10999);
 
         private final Integer code;
 

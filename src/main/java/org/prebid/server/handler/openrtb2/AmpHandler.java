@@ -47,7 +47,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderMessage;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.AmpResponse;
 import org.prebid.server.util.HttpUtil;
@@ -181,7 +181,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
 
         final ExtResponseDebug extResponseDebug;
-        final Map<String, List<ExtBidderError>> errors;
+        final Map<String, List<ExtBidderMessage>> errors;
         // Fetch debug and errors information from response if requested
         if (isDebugEnabled(bidRequest)) {
             final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
@@ -268,7 +268,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         return extBidResponse != null ? extBidResponse.getDebug() : null;
     }
 
-    private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
+    private static Map<String, List<ExtBidderMessage>> errorsFrom(ExtBidResponse extBidResponse) {
         return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
 

@@ -341,6 +341,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
                         emptyList(),
+                        emptyList(),
                         emptyList()),
                 100));
 
@@ -374,6 +375,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         BidType.banner,
                                         "USD")),
                         emptyList(),
+                        emptyList(),
                         emptyList()),
                 100));
     }
@@ -385,6 +387,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
                         emptyList(),
                         emptyList()),
                 100));
@@ -410,6 +413,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         BidType.banner,
                                         "USD")),
                                 emptyList(),
+                                emptyList(),
                                 emptyList()),
                         100),
                 BidderResponse.of(
@@ -419,6 +423,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         Bid.builder().id("bid2").impid("storedImp").build(),
                                         BidType.banner,
                                         "USD")),
+                                emptyList(),
                                 emptyList(),
                                 emptyList()),
                         0));
@@ -447,6 +452,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                 BidType.banner,
                                 "USD")),
                         emptyList(),
+                        emptyList(),
                         emptyList()),
                 0));
     }
@@ -458,6 +464,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR")),
+                        emptyList(),
                         emptyList(),
                         emptyList()),
                 100));
@@ -487,6 +494,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         BidType.banner,
                                         "EUR")),
                         emptyList(),
+                        emptyList(),
                         emptyList()),
                 100));
     }
@@ -498,6 +506,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
                         emptyList(),
                         emptyList()),
                 100));
@@ -538,6 +547,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         BidType.banner,
                                         "USD")),
                         emptyList(),
+                        emptyList(),
                         emptyList()),
                 100));
     }
@@ -571,6 +581,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
                         emptyList(),
+                        emptyList(),
                         emptyList()),
                 100));
 
@@ -585,6 +596,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        emptyList(),
                         emptyList(),
                         emptyList()),
                 100));

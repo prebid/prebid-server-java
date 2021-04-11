@@ -59,6 +59,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderMessage;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -150,7 +151,7 @@ public class ExchangeService {
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
         final Account account = context.getAccount();
-        final List<String> debugWarnings = context.getDebugWarnings();
+        final List<ExtBidderMessage> debugWarnings = context.getDebugWarnings();
 
         final List<SeatBid> storedAuctionResponses = new ArrayList<>();
         final BidderAliases aliases = aliases(bidRequest);
@@ -261,7 +262,8 @@ public class ExchangeService {
         return requestExt != null ? requestExt.getPrebid() : null;
     }
 
-    private static Map<String, MultiBidConfig> bidderToMultiBids(BidRequest bidRequest, List<String> debugWarnings) {
+    private static Map<String, MultiBidConfig> bidderToMultiBids(BidRequest bidRequest,
+                                                                 List<ExtBidderMessage> debugWarnings) {
         final ExtRequestPrebid extRequestPrebid = extRequestPrebid(bidRequest);
         final Collection<ExtRequestPrebidMultiBid> multiBids = extRequestPrebid != null
                 ? CollectionUtils.emptyIfNull(extRequestPrebid.getMultibid())
@@ -275,8 +277,9 @@ public class ExchangeService {
             final String codePrefix = prebidMultiBid.getTargetBidderCodePrefix();
 
             if (bidder != null && CollectionUtils.isNotEmpty(bidders)) {
-                debugWarnings.add(String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
-                        + "Only bidder %s will be used.", bidder, bidders, bidder));
+                debugWarnings.add(ExtBidderMessage.of(BidderError.Type.unknown.getCode(),
+                        String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
+                                + "Only bidder %s will be used.", bidder, bidders, bidder)));
 
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
                 continue;
@@ -286,14 +289,16 @@ public class ExchangeService {
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
             } else if (CollectionUtils.isNotEmpty(bidders)) {
                 if (codePrefix != null) {
-                    debugWarnings.add(String.format("Invalid MultiBid: CodePrefix %s that was specified for bidders %s "
-                            + "will be skipped.", codePrefix, bidders));
+                    debugWarnings.add(ExtBidderMessage.of(BidderError.Type.unknown.getCode(),
+                            String.format("Invalid MultiBid: CodePrefix %s that was specified for bidders %s "
+                                    + "will be skipped.", codePrefix, bidders)));
                 }
 
                 bidders.forEach(currentBidder ->
                         tryAddBidderWithMultiBid(currentBidder, maxBids, null, bidderToMultiBid, debugWarnings));
             } else {
-                debugWarnings.add("Invalid MultiBid: Bidder and bidders was not specified.");
+                debugWarnings.add(ExtBidderMessage.of(BidderError.Type.unknown.getCode(),
+                        "Invalid MultiBid: Bidder and bidders was not specified."));
             }
         }
 
@@ -304,15 +309,17 @@ public class ExchangeService {
                                                  Integer maxBids,
                                                  String codePrefix,
                                                  Map<String, MultiBidConfig> bidderToMultiBid,
-                                                 List<String> debugWarnings) {
+                                                 List<ExtBidderMessage> debugWarnings) {
         if (bidderToMultiBid.containsKey(bidder)) {
-            debugWarnings.add(String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder));
+            debugWarnings.add(ExtBidderMessage.of(BidderError.Type.unknown.getCode(),
+                    String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder)));
             return;
         }
 
         if (maxBids == null) {
-            debugWarnings.add(String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
-                    + "will be skipped.", bidder));
+            debugWarnings.add(ExtBidderMessage.of(BidderError.Type.unknown.getCode(),
+                    String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
+                            + "will be skipped.", bidder)));
             return;
         }
 
@@ -1034,7 +1041,11 @@ public class ExchangeService {
 
         return errors.isEmpty()
                 ? bidderResponse
-                : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors));
+                : bidderResponse.with(
+                BidderSeatBid.of(validBids,
+                        seatBid.getHttpCalls(),
+                        errors,
+                        Collections.emptyList()));
     }
 
     private void addAsBidderErrors(List<String> messages, List<BidderError> errors) {
@@ -1081,7 +1092,11 @@ public class ExchangeService {
             }
         }
 
-        return bidderResponse.with(BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors));
+        return bidderResponse.with(
+                BidderSeatBid.of(updatedBidderBids,
+                        seatBid.getHttpCalls(),
+                        errors,
+                        Collections.emptyList()));
     }
 
     private static BigDecimal adjustPrice(BigDecimal priceAdjustmentFactor, BigDecimal price) {

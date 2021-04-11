@@ -67,7 +67,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderMessage;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.settings.model.Account;
@@ -1876,7 +1876,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).adm("[]").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 BidderSeatBid.of(singletonList(BidderBid.of(bid, xNative, null)), null,
-                        singletonList(BidderError.badInput("bad_input"))), 100));
+                        singletonList(BidderError.badInput("bad_input")), emptyList()), 100));
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
 
         givenCacheServiceResult(CacheServiceResult.of(
@@ -1897,11 +1897,11 @@ public class BidResponseCreatorTest extends VertxTest {
 
         assertThat(responseExt.getErrors()).hasSize(2).containsOnly(
                 entry("bidder1", asList(
-                        ExtBidderError.of(2, "bad_input"),
-                        ExtBidderError.of(3, "Failed to decode: Cannot deserialize instance of `com.iab."
+                        ExtBidderMessage.of(2, "bad_input"),
+                        ExtBidderMessage.of(3, "Failed to decode: Cannot deserialize instance of `com.iab."
                                 + "openrtb.response.Response` out of START_ARRAY token\n at [Source: (String)\"[]\"; "
                                 + "line: 1, column: 1]"))),
-                entry("cache", singletonList(ExtBidderError.of(999, "cacheError"))));
+                entry("cache", singletonList(ExtBidderMessage.of(999, "cacheError"))));
 
         assertThat(responseExt.getResponsetimemillis()).hasSize(2)
                 .containsOnly(entry("bidder1", 100), entry("cache", 666));
@@ -1976,7 +1976,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderBid.of(bid2, banner, "USD"),
                 BidderBid.of(bid3, banner, "USD"));
         final List<BidderResponse> bidderResponses = singletonList(
-                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
+                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList(), emptyList()), 100));
 
         final Video storedVideo = Video.builder().maxduration(100).h(2).w(2).build();
         given(storedRequestProcessor.videoStoredDataResult(any(), anyList(), anyList(), any()))
@@ -2014,7 +2014,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid1 = Bid.builder().id("bidId1").impid(IMP_ID).price(BigDecimal.valueOf(5.67)).build();
         final List<BidderBid> bidderBids = singletonList(BidderBid.of(bid1, banner, "USD"));
         final List<BidderResponse> bidderResponses = singletonList(
-                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
+                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList(), emptyList()), 100));
 
         given(storedRequestProcessor.videoStoredDataResult(any(), anyList(), anyList(), any()))
                 .willReturn(Future.failedFuture("Bad timeout"));
@@ -2029,7 +2029,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(result.result().getExt()).isEqualTo(
                 mapper.valueToTree(ExtBidResponse.of(null,
                         singletonMap("prebid",
-                                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "Bad timeout"))),
+                                singletonList(ExtBidderMessage.of(BidderError.Type.generic.getCode(), "Bad timeout"))),
                         null,
                         singletonMap("bidder1", 100),
                         1000L,
@@ -2061,7 +2061,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse.getExt()).isEqualTo(
                 mapper.valueToTree(ExtBidResponse.of(null,
                         singletonMap(invalidBidderName,
-                                singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
+                                singletonList(ExtBidderMessage.of(BidderError.Type.bad_input.getCode(),
                                         "invalid has been deprecated and is no longer available. Use valid instead."))),
                         null,
                         singletonMap("bidder1", 100),
@@ -2082,7 +2082,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid1 = Bid.builder().id("bidId1").impid(IMP_ID).price(BigDecimal.valueOf(5.67)).build();
         final List<BidderBid> bidderBids = singletonList(BidderBid.of(bid1, banner, "USD"));
         final List<BidderResponse> bidderResponses = singletonList(
-                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
+                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList(), emptyList()), 100));
 
         // when
         final Future<BidResponse> result =
@@ -2092,7 +2092,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(result.result().getExt()).isEqualTo(
                 mapper.valueToTree(ExtBidResponse.of(null,
                         singletonMap("prebid",
-                                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                                singletonList(ExtBidderMessage.of(BidderError.Type.generic.getCode(),
                                         "privacy error"))),
                         null,
                         singletonMap("bidder1", 100), 1000L, null,
@@ -2103,7 +2103,8 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabled() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp());
-        final List<String> warnings = asList("warning1", "warning2");
+        final List<ExtBidderMessage> warnings = asList(ExtBidderMessage.of(10999, "warning1"),
+                ExtBidderMessage.of(10999, "warning2"));
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
                 builder -> builder.debugWarnings(warnings));
@@ -2121,7 +2122,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 BidderSeatBid.of(singletonList(BidderBid.of(bid, banner, null)),
-                        singletonList(ExtHttpCall.builder().status(200).build()), null), 100));
+                        singletonList(ExtHttpCall.builder().status(200).build()), null, emptyList()), 100));
 
         // when
         final BidResponse bidResponse =
@@ -2141,8 +2142,8 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(responseExt.getWarnings())
                 .containsOnly(
                         entry("prebid", Arrays.asList(
-                                ExtBidderError.of(BidderError.Type.generic.getCode(), "warning1"),
-                                ExtBidderError.of(BidderError.Type.generic.getCode(), "warning2"))));
+                                ExtBidderMessage.of(BidderError.Type.unknown.getCode(), "warning1"),
+                                ExtBidderMessage.of(BidderError.Type.unknown.getCode(), "warning2"))));
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2272,7 +2273,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private static BidderSeatBid givenSeatBid(BidderBid... bids) {
-        return BidderSeatBid.of(mutableList(bids), emptyList(), emptyList());
+        return BidderSeatBid.of(mutableList(bids), emptyList(), emptyList(), emptyList());
     }
 
     private static ExtRequestTargeting givenTargeting() {

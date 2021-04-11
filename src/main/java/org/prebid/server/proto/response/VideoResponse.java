@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderMessage;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public class VideoResponse {
 
     ExtResponseDebug extResponseDebug;
 
-    Map<String, List<ExtBidderError>> errors;
+    Map<String, List<ExtBidderMessage>> errors;
 
     ObjectNode ext;
 }

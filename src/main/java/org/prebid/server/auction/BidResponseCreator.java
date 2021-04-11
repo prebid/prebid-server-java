@@ -63,7 +63,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderMessage;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
@@ -221,10 +221,10 @@ public class BidResponseCreator {
         final Set<BidInfo> winningBidInfos = targeting == null
                 ? null
                 : bidderResponseToTargetingBidInfos.values().stream()
-                        .flatMap(Collection::stream)
-                        .filter(TargetingBidInfo::isWinningBid)
-                        .map(TargetingBidInfo::getBidInfo)
-                        .collect(Collectors.toSet());
+                .flatMap(Collection::stream)
+                .filter(TargetingBidInfo::isWinningBid)
+                .map(TargetingBidInfo::getBidInfo)
+                .collect(Collectors.toSet());
 
         final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBidInfos : bidInfos;
 
@@ -421,7 +421,7 @@ public class BidResponseCreator {
                                             VideoStoredDataResult videoStoredDataResult,
                                             long auctionTimestamp,
                                             boolean debugEnabled,
-                                            Map<String, List<ExtBidderError>> bidErrors) {
+                                            Map<String, List<ExtBidderMessage>> bidErrors) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
@@ -429,10 +429,10 @@ public class BidResponseCreator {
                 ? ExtResponseDebug.of(toExtHttpCalls(bidderResponses, cacheResult), bidRequest)
                 : null;
 
-        final Map<String, List<ExtBidderError>> errors =
+        final Map<String, List<ExtBidderMessage>> errors =
                 toExtBidderErrors(bidderResponses, auctionContext, cacheResult, videoStoredDataResult, bidErrors);
-        final Map<String, List<ExtBidderError>> warnings = debugEnabled
-                ? toExtBidderWarnings(auctionContext)
+        final Map<String, List<ExtBidderMessage>> warnings = debugEnabled
+                ? toExtBidderWarnings(auctionContext, bidderResponses)
                 : null;
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponses, cacheResult);
 
@@ -529,12 +529,12 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private Map<String, List<ExtBidderError>> toExtBidderErrors(Collection<BidderResponse> bidderResponses,
-                                                                AuctionContext auctionContext,
-                                                                CacheServiceResult cacheResult,
-                                                                VideoStoredDataResult videoStoredDataResult,
-                                                                Map<String, List<ExtBidderError>> bidErrors) {
-        final Map<String, List<ExtBidderError>> errors = new HashMap<>();
+    private Map<String, List<ExtBidderMessage>> toExtBidderErrors(Collection<BidderResponse> bidderResponses,
+                                                                  AuctionContext auctionContext,
+                                                                  CacheServiceResult cacheResult,
+                                                                  VideoStoredDataResult videoStoredDataResult,
+                                                                  Map<String, List<ExtBidderMessage>> bidErrors) {
+        final Map<String, List<ExtBidderMessage>> errors = new HashMap<>();
 
         errors.putAll(extractBidderErrors(bidderResponses));
         errors.putAll(extractDeprecatedBiddersErrors(auctionContext.getBidRequest()));
@@ -548,9 +548,9 @@ public class BidResponseCreator {
     }
 
     /**
-     * Returns a map with bidder name as a key and list of {@link ExtBidderError}s as a value.
+     * Returns a map with bidder name as a key and list of {@link ExtBidderMessage}s as a value.
      */
-    private static Map<String, List<ExtBidderError>> extractBidderErrors(Collection<BidderResponse> bidderResponses) {
+    private static Map<String, List<ExtBidderMessage>> extractBidderErrors(Collection<BidderResponse> bidderResponses) {
         return bidderResponses.stream()
                 .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors()))
                 .collect(Collectors.toMap(BidderResponse::getBidder,
@@ -558,73 +558,73 @@ public class BidResponseCreator {
     }
 
     /**
-     * Maps a list of {@link BidderError} to a list of {@link ExtBidderError}s.
+     * Maps a list of {@link BidderError} to a list of {@link ExtBidderMessage}s.
      */
-    private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
+    private static List<ExtBidderMessage> errorsDetails(List<BidderError> errors) {
         return errors.stream()
-                .map(bidderError -> ExtBidderError.of(bidderError.getType().getCode(), bidderError.getMessage()))
+                .map(bidderError -> ExtBidderMessage.of(bidderError.getType().getCode(), bidderError.getMessage()))
                 .collect(Collectors.toList());
     }
 
     /**
-     * Returns a map with deprecated bidder name as a key and list of {@link ExtBidderError}s as a value.
+     * Returns a map with deprecated bidder name as a key and list of {@link ExtBidderMessage}s as a value.
      */
-    private Map<String, List<ExtBidderError>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
+    private Map<String, List<ExtBidderMessage>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
                 .flatMap(imp -> asStream(imp.getExt().fieldNames()))
                 .distinct()
                 .filter(bidderCatalog::isDeprecatedName)
                 .collect(Collectors.toMap(Function.identity(),
-                        bidder -> Collections.singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
+                        bidder -> Collections.singletonList(ExtBidderMessage.of(BidderError.Type.bad_input.getCode(),
                                 bidderCatalog.errorForDeprecatedName(bidder)))));
     }
 
     /**
-     * Returns a singleton map with "prebid" as a key and list of {@link ExtBidderError}s errors as a value.
+     * Returns a singleton map with "prebid" as a key and list of {@link ExtBidderMessage}s errors as a value.
      */
-    private static Map<String, List<ExtBidderError>> extractPrebidErrors(VideoStoredDataResult videoStoredDataResult,
-                                                                         AuctionContext auctionContext) {
-        final List<ExtBidderError> storedErrors = extractStoredErrors(videoStoredDataResult);
-        final List<ExtBidderError> contextErrors = extractContextErrors(auctionContext);
+    private static Map<String, List<ExtBidderMessage>> extractPrebidErrors(VideoStoredDataResult videoStoredDataResult,
+                                                                           AuctionContext auctionContext) {
+        final List<ExtBidderMessage> storedErrors = extractStoredErrors(videoStoredDataResult);
+        final List<ExtBidderMessage> contextErrors = extractContextErrors(auctionContext);
         if (storedErrors.isEmpty() && contextErrors.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        final List<ExtBidderError> collectedErrors = Stream.concat(contextErrors.stream(), storedErrors.stream())
+        final List<ExtBidderMessage> collectedErrors = Stream.concat(contextErrors.stream(), storedErrors.stream())
                 .collect(Collectors.toList());
         return Collections.singletonMap(PREBID_EXT, collectedErrors);
     }
 
     /**
-     * Returns a list of {@link ExtBidderError}s of stored request errors.
+     * Returns a list of {@link ExtBidderMessage}s of stored request errors.
      */
-    private static List<ExtBidderError> extractStoredErrors(VideoStoredDataResult videoStoredDataResult) {
+    private static List<ExtBidderMessage> extractStoredErrors(VideoStoredDataResult videoStoredDataResult) {
         final List<String> errors = videoStoredDataResult.getErrors();
         if (CollectionUtils.isNotEmpty(errors)) {
             return errors.stream()
-                    .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
+                    .map(message -> ExtBidderMessage.of(BidderError.Type.generic.getCode(), message))
                     .collect(Collectors.toList());
         }
         return Collections.emptyList();
     }
 
     /**
-     * Returns a list of {@link ExtBidderError}s of auction context prebid errors.
+     * Returns a list of {@link ExtBidderMessage}s of auction context prebid errors.
      */
-    private static List<ExtBidderError> extractContextErrors(AuctionContext auctionContext) {
+    private static List<ExtBidderMessage> extractContextErrors(AuctionContext auctionContext) {
         return auctionContext.getPrebidErrors().stream()
-                .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
+                .map(message -> ExtBidderMessage.of(BidderError.Type.generic.getCode(), message))
                 .collect(Collectors.toList());
     }
 
     /**
-     * Returns a singleton map with "cache" as a key and list of {@link ExtBidderError}s cache errors as a value.
+     * Returns a singleton map with "cache" as a key and list of {@link ExtBidderMessage}s cache errors as a value.
      */
-    private static Map<String, List<ExtBidderError>> extractCacheErrors(CacheServiceResult cacheResult) {
+    private static Map<String, List<ExtBidderMessage>> extractCacheErrors(CacheServiceResult cacheResult) {
         final Throwable error = cacheResult.getError();
         if (error != null) {
-            final ExtBidderError extBidderError = ExtBidderError.of(BidderError.Type.generic.getCode(),
+            final ExtBidderMessage extBidderError = ExtBidderMessage.of(BidderError.Type.generic.getCode(),
                     error.getMessage());
             return Collections.singletonMap(CACHE, Collections.singletonList(extBidderError));
         }
@@ -634,10 +634,10 @@ public class BidResponseCreator {
     /**
      * Adds bid errors: if value by key exists - add errors to its list, otherwise - add an entry.
      */
-    private static void addBidErrors(Map<String, List<ExtBidderError>> errors,
-                                     Map<String, List<ExtBidderError>> bidErrors) {
-        for (Map.Entry<String, List<ExtBidderError>> errorEntry : bidErrors.entrySet()) {
-            final List<ExtBidderError> extBidderErrors = errors.get(errorEntry.getKey());
+    private static void addBidErrors(Map<String, List<ExtBidderMessage>> errors,
+                                     Map<String, List<ExtBidderMessage>> bidErrors) {
+        for (Map.Entry<String, List<ExtBidderMessage>> errorEntry : bidErrors.entrySet()) {
+            final List<ExtBidderMessage> extBidderErrors = errors.get(errorEntry.getKey());
             if (extBidderErrors != null) {
                 extBidderErrors.addAll(errorEntry.getValue());
             } else {
@@ -646,20 +646,34 @@ public class BidResponseCreator {
         }
     }
 
-    private Map<String, List<ExtBidderError>> toExtBidderWarnings(AuctionContext auctionContext) {
-        final Map<String, List<ExtBidderError>> warnings = new HashMap<>(extractContextWarnings(auctionContext));
+    private Map<String, List<ExtBidderMessage>> toExtBidderWarnings(AuctionContext auctionContext,
+                                                                    Collection<BidderResponse> bidderResponses) {
+        final Collection<ExtBidderMessage> contextWarnings = extractContextWarnings(auctionContext);
+        final List<ExtBidderMessage> bidderWarnings = extractBidderWarnings(bidderResponses);
+        if (contextWarnings.isEmpty() && bidderWarnings.isEmpty()) {
+            return null;
+        }
+        final Map<String, List<ExtBidderMessage>> warnings = new HashMap<>();
+        warnings.put(PREBID_EXT, Stream.concat(contextWarnings.stream(), bidderWarnings.stream())
+                .collect(Collectors.toList()));
 
-        return warnings.isEmpty() ? null : warnings;
+        return warnings;
     }
 
-    private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
-        final List<ExtBidderError> contextWarnings = auctionContext.getDebugWarnings().stream()
-                .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
-                .collect(Collectors.toList());
+    private static Collection<ExtBidderMessage> extractContextWarnings(AuctionContext auctionContext) {
 
-        return contextWarnings.isEmpty()
-                ? Collections.emptyMap()
-                : Collections.singletonMap(PREBID_EXT, contextWarnings);
+        return CollectionUtils.emptyIfNull(auctionContext.getDebugWarnings());
+    }
+
+    private static List<ExtBidderMessage> extractBidderWarnings(Collection<BidderResponse> bidderResponses) {
+
+        return bidderResponses.stream()
+                .map(BidderResponse::getSeatBid)
+                .filter(Objects::nonNull)
+                .map(BidderSeatBid::getWarnings)
+                .flatMap(Collection::stream)
+                .map(warning -> ExtBidderMessage.of(warning.getType().getCode(), warning.getMessage()))
+                .collect(Collectors.toList());
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
@@ -699,7 +713,7 @@ public class BidResponseCreator {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
 
-        final Map<String, List<ExtBidderError>> bidErrors = new HashMap<>();
+        final Map<String, List<ExtBidderMessage>> bidErrors = new HashMap<>();
         final List<SeatBid> seatBids = bidderResponseToTargetingBidInfos.values().stream()
                 .filter(CollectionUtils::isNotEmpty)
                 .map(targetingBidInfos -> toSeatBid(
@@ -784,7 +798,7 @@ public class BidResponseCreator {
                               Map<Bid, CacheInfo> bidToCacheInfo,
                               VideoStoredDataResult videoStoredDataResult,
                               Account account,
-                              Map<String, List<ExtBidderError>> bidErrors,
+                              Map<String, List<ExtBidderMessage>> bidErrors,
                               EventsContext eventsContext) {
 
         final String bidder = targetingBidInfos.stream()
@@ -826,7 +840,7 @@ public class BidResponseCreator {
                       Map<String, Video> impIdToStoredVideo,
                       Account account,
                       EventsContext eventsContext,
-                      Map<String, List<ExtBidderError>> bidErrors) {
+                      Map<String, List<ExtBidderMessage>> bidErrors) {
         final BidInfo bidInfo = targetingBidInfo.getBidInfo();
         final Bid bid = bidInfo.getBid();
         final BidType bidType = bidInfo.getBidType();
@@ -857,7 +871,7 @@ public class BidResponseCreator {
                 addNativeMarkup(bid, bidRequest.getImp());
             } catch (PreBidException e) {
                 bidErrors.computeIfAbsent(bidder, ignored -> new ArrayList<>())
-                        .add(ExtBidderError.of(BidderError.Type.bad_server_response.getCode(), e.getMessage()));
+                        .add(ExtBidderMessage.of(BidderError.Type.bad_server_response.getCode(), e.getMessage()));
                 return null;
             }
         }

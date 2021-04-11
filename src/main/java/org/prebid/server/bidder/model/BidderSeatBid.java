@@ -41,4 +41,6 @@ public class BidderSeatBid {
      * Error messages should help publishers understand what might account for "bad" bids.
      */
     List<BidderError> errors;
+
+    List<BidderError> warnings;
 }

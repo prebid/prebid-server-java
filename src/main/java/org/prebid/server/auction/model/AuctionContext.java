@@ -10,6 +10,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderMessage;
 import org.prebid.server.settings.model.Account;
 
 import java.util.List;
@@ -33,7 +34,7 @@ public class AuctionContext {
 
     List<String> prebidErrors;
 
-    List<String> debugWarnings;
+    List<ExtBidderMessage> debugWarnings;
 
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 

@@ -132,7 +132,7 @@ public class HttpBidderRequester {
                 BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(), bidderErrors.isEmpty()
                         ? Collections.singletonList(BidderError.failedToRequestBids(
                         "The bidder failed to generate any bid requests, but also failed to generate an error"))
-                        : bidderErrors));
+                        : bidderErrors, Collections.emptyList()));
     }
 
     /**
@@ -283,9 +283,17 @@ public class HttpBidderRequester {
                     ? httpCalls.stream().map(ResultBuilder::toExt).collect(Collectors.toList())
                     : Collections.emptyList();
 
-            final List<BidderError> errors = errors(previousErrors, httpCalls, errorsRecorded);
+            final List<BidderError> errors = errors(previousErrors, httpCalls, errorsRecorded, debugEnabled);
 
-            return BidderSeatBid.of(bidsRecorded, extHttpCalls, errors);
+            final List<BidderError> bidderErrors = errors.stream()
+                    .filter(error -> error.getType().getCode() < 10000)
+                    .collect(Collectors.toList());
+
+            final List<BidderError> bidderWarnings = errors.stream()
+                    .filter(error -> error.getType().getCode() >= 10000)
+                    .collect(Collectors.toList());
+
+            return BidderSeatBid.of(bidsRecorded, extHttpCalls, bidderErrors, bidderWarnings);
         }
 
         /**
@@ -310,7 +318,7 @@ public class HttpBidderRequester {
          * Assembles all errors for {@link BidderSeatBid} into the list of {@link BidderError}s.
          */
         private static <R> List<BidderError> errors(List<BidderError> requestErrors, List<HttpCall<R>> calls,
-                                                    List<BidderError> responseErrors) {
+                                                    List<BidderError> responseErrors, boolean debugEnabled) {
 
             final List<BidderError> bidderErrors = new ArrayList<>(requestErrors);
             bidderErrors.addAll(
@@ -318,6 +326,11 @@ public class HttpBidderRequester {
                             responseErrors.stream(),
                             calls.stream().map(HttpCall::getError).filter(Objects::nonNull))
                             .collect(Collectors.toList()));
+            if (!debugEnabled) {
+                bidderErrors.add(BidderError.create("debug turned off for bidder",
+                        BidderError.Type.bidder_level_debug_disabled));
+            }
+
             return bidderErrors;
         }
     }

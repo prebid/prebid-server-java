@@ -71,8 +71,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
@@ -84,7 +84,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderMessage;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -760,18 +760,23 @@ public class ExchangeServiceTest extends VertxTest {
         expectedMultiBidMap.put(expectedFirstMultiBid4.getBidder(), expectedFirstMultiBid4);
         expectedMultiBidMap.put(expectedSecondMultiBid4.getBidder(), expectedSecondMultiBid4);
 
+        final int expectedWarningsCode = BidderError.Type.unknown.getCode();
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
                 .debugWarnings(asList(
-                        "Invalid MultiBid: bidder bidder2 and bidders [invalid] specified."
-                                + " Only bidder bidder2 will be used.",
-                        "Invalid MultiBid: bidder bidder3 and bidders [invalid] specified."
-                                + " Only bidder bidder3 will be used.",
-                        "Invalid MultiBid: MaxBids for bidder bidder3 is not specified and will be skipped.",
-                        "Invalid MultiBid: Bidder bidder1 specified multiple times.",
-                        "Invalid MultiBid: CodePrefix bi1_3 that was specified for bidders [bidder1] will be skipped.",
-                        "Invalid MultiBid: Bidder bidder1 specified multiple times.",
-                        "Invalid MultiBid: CodePrefix ignored that was specified for bidders [bidder4, bidder5]"
-                                + " will be skipped."))
+                        ExtBidderMessage.of(expectedWarningsCode, "Invalid MultiBid: bidder bidder2 and bidders "
+                                + "[invalid] specified. Only bidder bidder2 will be used."),
+                        ExtBidderMessage.of(expectedWarningsCode, "Invalid MultiBid: bidder bidder3 and bidders "
+                                + "[invalid] specified. Only bidder bidder3 will be used."),
+                        ExtBidderMessage.of(expectedWarningsCode, "Invalid MultiBid: MaxBids for bidder bidder3 "
+                                + "is not specified and will be skipped."),
+                        ExtBidderMessage.of(expectedWarningsCode, "Invalid MultiBid: Bidder bidder1 "
+                                + "specified multiple times."),
+                        ExtBidderMessage.of(expectedWarningsCode, "Invalid MultiBid: CodePrefix bi1_3 "
+                                + "that was specified for bidders [bidder1] will be skipped."),
+                        ExtBidderMessage.of(expectedWarningsCode, "Invalid MultiBid: Bidder bidder1 "
+                                + "specified multiple times."),
+                        ExtBidderMessage.of(expectedWarningsCode, "Invalid MultiBid: CodePrefix "
+                                + "ignored that was specified for bidders [bidder4, bidder5] will be skipped.")))
                 .build();
 
         final ArgumentCaptor<List<BidderResponse>> captor = ArgumentCaptor.forClass(List.class);
@@ -780,8 +785,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(captor.getValue()).containsOnly(
                 BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                        BidderBid.of(thirdBid, banner, null)), emptyList(), emptyList()), 0),
-                BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList()), 0));
+                        BidderBid.of(thirdBid, banner, null)), emptyList(), emptyList(), emptyList()), 0),
+                BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList(), emptyList()), 0));
     }
 
     @Test
@@ -868,6 +873,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .status(200)
                         .responsebody("bidder1_responseBody1")
                         .build()),
+                emptyList(),
                 emptyList()));
 
         final BidRequest bidRequest = givenBidRequest(
@@ -892,7 +898,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .status(200)
                         .responsebody("bidder1_responseBody1")
                         .build()),
-                emptyList()));
+                emptyList(), emptyList()));
 
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("bidder1", 1)),
@@ -1041,8 +1047,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(responseBidValidator.validate(any(), any(), any(), any()))
                 .willReturn(ValidationResult.error("BidResponse currency is not valid: USDD"));
 
-        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                "BidResponse currency is not valid: USDD"));
+        final List<ExtBidderMessage> bidderErrors = singletonList(
+                ExtBidderMessage.of(BidderError.Type.generic.getCode(), "BidResponse currency is not valid: USDD"));
         givenBidResponseCreator(singletonMap("bidder1", bidderErrors));
 
         // when
@@ -1122,7 +1128,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 singletonList(BidderBid.of(
                                         Bid.builder().id("bidId1").price(ONE).build(), BidType.banner, "USD")),
                                 null,
-                                emptyList()),
+                                emptyList(), emptyList()),
                         100)));
 
         givenBidResponseCreator(singletonList(Bid.builder().id("bidId1").build()));
@@ -2391,6 +2397,7 @@ public class ExchangeServiceTest extends VertxTest {
                         Bid.builder().id("bidId").price(price)
                                 .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
                 emptyList(),
+                emptyList(),
                 emptyList()));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
@@ -2493,7 +2500,8 @@ public class ExchangeServiceTest extends VertxTest {
                                 BidderError.badServerResponse("rubicon error"),
                                 BidderError.failedToRequestBids("rubicon failed to request bids"),
                                 BidderError.timeout("timeout error"),
-                                BidderError.generic("timeout error")))));
+                                BidderError.generic("timeout error")),
+                        emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
@@ -2635,7 +2643,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderSeatBid givenSeatBid(List<BidderBid> bids) {
-        return BidderSeatBid.of(bids, emptyList(), emptyList());
+        return BidderSeatBid.of(bids, emptyList(), emptyList(), emptyList());
     }
 
     private static BidderSeatBid givenSingleSeatBid(BidderBid bid) {
@@ -2692,7 +2700,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenBidResponseWithBids(bids)));
     }
 
-    private void givenBidResponseCreator(Map<String, List<ExtBidderError>> errors) {
+    private void givenBidResponseCreator(Map<String, List<ExtBidderMessage>> errors) {
         given(bidResponseCreator.create(anyList(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenBidResponseWithError(errors)));
     }
@@ -2704,7 +2712,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponseWithError(Map<String, List<ExtBidderError>> errors) {
+    private static BidResponse givenBidResponseWithError(Map<String, List<ExtBidderMessage>> errors) {
         return BidResponse.builder()
                 .seatbid(emptyList())
                 .ext(mapper.valueToTree(ExtBidResponse.of(null, errors, null, null, null, null, null)))
