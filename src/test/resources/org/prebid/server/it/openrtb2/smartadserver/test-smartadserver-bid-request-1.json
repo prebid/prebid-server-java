@@ -24,8 +24,13 @@
     }
   ],
   "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
     "publisher": {
       "id": "73"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
