@@ -52,7 +52,6 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
@@ -109,7 +108,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
 
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
-        given(httpResponse.putHeader(any(CharSequence.class), anyString())).willReturn(httpResponse);
+        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
         given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("test", "test"));
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("rubicon", "audienceNetwork")));
@@ -493,7 +492,7 @@ public class SetuidHandlerTest extends VertxTest {
         verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse, never()).sendFile(any());
         verify(httpResponse).putHeader(eq(HttpHeaders.CONTENT_LENGTH), eq("0"));
-        verify(httpResponse).putHeader(eq(HttpHeaders.CONTENT_TYPE), eq("text/html"));
+        verify(httpResponse).putHeader(eq(HttpHeaders.CONTENT_TYPE), eq(HttpHeaders.TEXT_HTML));
     }
 
     @Test
@@ -518,7 +517,7 @@ public class SetuidHandlerTest extends VertxTest {
         verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse, never()).sendFile(any());
         verify(httpResponse).putHeader(eq(HttpHeaders.CONTENT_LENGTH), eq("0"));
-        verify(httpResponse).putHeader(eq(HttpHeaders.CONTENT_TYPE), eq("text/html"));
+        verify(httpResponse).putHeader(eq(HttpHeaders.CONTENT_TYPE), eq(HttpHeaders.TEXT_HTML));
     }
 
     @Test

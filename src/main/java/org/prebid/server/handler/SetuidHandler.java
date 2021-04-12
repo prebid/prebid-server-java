@@ -52,7 +52,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private static final String ACCOUNT_PARAM = "account";
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS = 451;
     private static final String REDIRECT = "redirect";
-    private static final String TEXT_HTML = "text/html";
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
@@ -63,7 +62,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
-    private final Map<String, String> activeCookieFamilyNamesToType;
+    private final Map<String, String> cookieNameToSyncType;
 
     public SetuidHandler(long defaultTimeout,
                          UidsCookieService uidsCookieService,
@@ -86,7 +85,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
 
-        activeCookieFamilyNamesToType = bidderCatalog.names().stream()
+        cookieNameToSyncType = bidderCatalog.names().stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
                 .distinct() // built-in aliases looks like bidders with the same usersyncers
@@ -121,7 +120,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                                 .timeout(timeout)
                                 .account(account)
                                 .cookieName(cookieName)
-                                .cookieType(activeCookieFamilyNamesToType.get(cookieName))
+                                .syncType(cookieNameToSyncType.get(cookieName))
                                 .privacyContext(privacyContext)
                                 .build()));
     }
@@ -155,7 +154,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private Exception validateSetuidContext(SetuidContext setuidContext) {
         final String cookieName = setuidContext.getCookieName();
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
-        if (isCookieNameBlank || !activeCookieFamilyNamesToType.containsKey(cookieName)) {
+        if (isCookieNameBlank || !cookieNameToSyncType.containsKey(cookieName)) {
             final String cookieNameError = isCookieNameBlank ? "required" : "invalid";
             return new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
         }
@@ -248,7 +247,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         // Send pixel file to response if "format=img"
         final String format = routingContext.request().getParam(FORMAT_PARAM);
-        if (shouldRespondWithPixel(format, setuidContext.getCookieType())) {
+        if (shouldRespondWithPixel(format, setuidContext.getSyncType())) {
             routingContext.response().sendFile(PIXEL_FILE_PATH);
         } else {
             respondWith(routingContext, status, null);
@@ -263,9 +262,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .build(), tcfContext);
     }
 
-    private boolean shouldRespondWithPixel(String format, String cookieType) {
+    private boolean shouldRespondWithPixel(String format, String syncType) {
         return StringUtils.equals(format, IMG_FORMAT_PARAM)
-                || !StringUtils.equals(format, BLANK_FORMAT_PARAM) && StringUtils.equals(cookieType, REDIRECT);
+                || !StringUtils.equals(format, BLANK_FORMAT_PARAM) && StringUtils.equals(syncType, REDIRECT);
     }
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
@@ -312,7 +311,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         } else {
             context.response()
                     .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
-                    .putHeader(HttpHeaders.CONTENT_TYPE, TEXT_HTML)
+                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
                     .end();
         }
     }
