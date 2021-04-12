@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -29,7 +30,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
@@ -61,6 +61,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.settings.ApplicationSettings;
@@ -74,7 +76,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -111,8 +112,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private IpAddressHelper ipAddressHelper;
     @Mock
     private UidsCookieService uidsCookieService;
-    @Mock
-    private BidderCatalog bidderCatalog;
     @Mock
     private RequestValidator requestValidator;
     @Mock
@@ -163,7 +162,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -204,7 +202,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -243,7 +240,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -317,7 +313,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1676,7 +1671,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1719,7 +1713,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1761,7 +1754,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1803,7 +1795,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1896,7 +1887,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1940,7 +1930,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
                 ortbTypesResolver,
@@ -1965,44 +1954,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getExt()).isSameAs(extBidRequest);
-    }
-
-    @Test
-    public void shouldAddMissingAliases() {
-        // given
-        final Imp imp1 = Imp.builder()
-                .ext(mapper.createObjectNode()
-                        .set("requestScopedBidderAlias", mapper.createObjectNode()))
-                .build();
-        final Imp imp2 = Imp.builder()
-                .ext(mapper.createObjectNode()
-                        .set("configScopedBidderAlias", mapper.createObjectNode()))
-                .build();
-
-        givenBidRequest(BidRequest.builder()
-                .imp(asList(imp1, imp2))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .aliases(singletonMap("requestScopedBidderAlias", "bidder1"))
-                        .targeting(ExtRequestTargeting.builder().build())
-                        .build()))
-                .build());
-
-        given(bidderCatalog.isAlias("configScopedBidderAlias")).willReturn(true);
-        given(bidderCatalog.nameByAlias("configScopedBidderAlias")).willReturn("bidder2");
-
-        // when
-        final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
-        final BidRequest request = auctionContextFuture.result().getBidRequest();
-
-        // then
-        assertThat(singletonList(request))
-                .extracting(BidRequest::getExt)
-                .extracting(ExtRequest::getPrebid)
-                .flatExtracting(extRequestPrebid -> extRequestPrebid.getAliases().entrySet())
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple("requestScopedBidderAlias", "bidder1"),
-                        tuple("configScopedBidderAlias", "bidder2"));
     }
 
     @Test
@@ -2142,6 +2093,72 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).containsOnly("error1", "error2");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfEidsPermissionsContainsWrongDataType() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(emptyList(), null))
+                        .build()))
+                .build();
+
+        final ObjectNode requestNode = mapper.convertValue(bidRequest, ObjectNode.class);
+        final JsonNode eidPermissionNode = mapper.convertValue(
+                ExtRequestPrebidDataEidPermissions.of("source", emptyList()), JsonNode.class);
+
+        requestNode.with("ext").with("prebid").with("data").set("eidpermissions", eidPermissionNode);
+
+        given(routingContext.getBody()).willReturn(Buffer.buffer(requestNode.toString()));
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .hasSize(1)
+                .allSatisfy(message ->
+                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize instance"));
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfEidsPermissionsBiddersContainsWrongDataType() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(emptyList(), null))
+                        .build()))
+                .build();
+
+        final ObjectNode requestNode = mapper.convertValue(bidRequest, ObjectNode.class);
+
+        final ObjectNode eidPermissionNode = mapper.convertValue(
+                ExtRequestPrebidDataEidPermissions.of("source", emptyList()), ObjectNode.class);
+
+        eidPermissionNode.put("bidders", "notArrayValue");
+
+        final ArrayNode arrayNode = requestNode
+                .with("ext")
+                .with("prebid")
+                .with("data")
+                .putArray("eidpermissions");
+        arrayNode.add(eidPermissionNode);
+
+        given(routingContext.getBody()).willReturn(Buffer.buffer(requestNode.toString()));
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .hasSize(1)
+                .allSatisfy(message ->
+                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize instance"));
     }
 
     @Test

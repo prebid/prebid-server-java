@@ -6,7 +6,7 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names: indexExchange
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: pdu-supply-prebid@indexexchange.com
       app-media-types:

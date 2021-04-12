@@ -6,7 +6,7 @@
   "properties": {
     "pid": {
       "type": "string",
-      "description": "Placement idd"
+      "description": "Placement id"
     },
     "nq": {
       "type": "array",
@@ -23,10 +23,12 @@
       "type": "string",
       "description": "any segment value provided by publisher"
     },
-    "ref" : {
+    "ref": {
       "type": "string",
       "description": "referer"
     }
   },
-  "required": ["pid"]
+  "required": [
+    "pid"
+  ]
 }

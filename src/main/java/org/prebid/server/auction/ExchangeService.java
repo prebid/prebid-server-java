@@ -50,6 +50,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
@@ -57,6 +58,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -86,6 +88,7 @@ public class ExchangeService {
     private static final String ALL_BIDDERS_CONFIG = "*";
     private static final Integer DEFAULT_MULTIBID_LIMIT_MIN = 1;
     private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
+    private static final String EID_ALLOWED_FOR_ALL_BIDDERS = "*";
 
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
@@ -158,7 +161,8 @@ public class ExchangeService {
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
-                .compose(storedResponseResult -> extractBidderRequests(context, storedResponseResult, aliases))
+                .compose(storedResponseResult -> extractBidderRequests(
+                        context, storedResponseResult, aliases, bidderToMultiBid))
                 .map(bidderRequests -> updateRequestMetric(
                         bidderRequests, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
                 .compose(bidderRequests -> CompositeFuture.join(
@@ -363,7 +367,8 @@ public class ExchangeService {
      */
     private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context,
                                                               StoredResponseResult storedResponseResult,
-                                                              BidderAliases aliases) {
+                                                              BidderAliases aliases,
+                                                              Map<String, MultiBidConfig> bidderToMultiBid) {
         final List<Imp> imps = storedResponseResult.getRequiredRequestImps().stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()) != null)
                 .collect(Collectors.toList());
@@ -375,7 +380,7 @@ public class ExchangeService {
                 .collect(Collectors.toList());
 
         return makeBidderRequests(bidders, context, aliases, storedResponseResult.getImpBidderToStoredBidResponse(),
-                imps);
+                imps, bidderToMultiBid);
     }
 
     private static JsonNode bidderParamsFromImpExt(ObjectNode ext) {
@@ -408,7 +413,8 @@ public class ExchangeService {
                                                            AuctionContext context,
                                                            BidderAliases aliases,
                                                            Map<String, Map<String, String>> impBidderToStoredResponse,
-                                                           List<Imp> imps) {
+                                                           List<Imp> imps,
+                                                           Map<String, MultiBidConfig> bidderToMultiBid) {
 
         final BidRequest bidRequest = context.getBidRequest();
         final User user = bidRequest.getUser();
@@ -416,20 +422,21 @@ public class ExchangeService {
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
         final ExtRequest requestExt = bidRequest.getExt();
-        final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(requestExt);
-
+        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
+        final Map<String, List<String>> eidPermissions = getEidPermissions(prebid);
         final Map<String, User> bidderToUser =
-                prepareUsers(bidders, context, aliases, bidRequest, extUser, uidsBody, biddersToConfigs);
+                prepareUsers(bidders, context, aliases, bidRequest, extUser, uidsBody, biddersToConfigs,
+                        eidPermissions);
 
         return privacyEnforcementService
                 .mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
                         getBidderRequests(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
-                                biddersToConfigs));
+                                bidderToMultiBid, biddersToConfigs));
     }
 
-    private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+    private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequestPrebid prebid) {
         final List<ExtRequestPrebidBidderConfig> bidderConfigs = prebid == null ? null : prebid.getBidderconfig();
 
         if (CollectionUtils.isEmpty(bidderConfigs)) {
@@ -451,6 +458,20 @@ public class ExchangeService {
             }
         }
         return bidderToConfig;
+    }
+
+    /**
+     * Retrieves user eids from {@link ExtRequestPrebid} and converts them to map, where keys are eids sources
+     * and values are allowed bidders
+     */
+    private Map<String, List<String>> getEidPermissions(ExtRequestPrebid prebid) {
+        final ExtRequestPrebidData prebidData = prebid != null ? prebid.getData() : null;
+        final List<ExtRequestPrebidDataEidPermissions> eidPermissions = prebidData != null
+                ? prebidData.getEidPermissions()
+                : null;
+        return CollectionUtils.emptyIfNull(eidPermissions).stream()
+                .collect(Collectors.toMap(ExtRequestPrebidDataEidPermissions::getSource,
+                        ExtRequestPrebidDataEidPermissions::getBidders));
     }
 
     /**
@@ -478,7 +499,8 @@ public class ExchangeService {
                                            BidRequest bidRequest,
                                            ExtUser extUser,
                                            Map<String, String> uidsBody,
-                                           Map<String, ExtBidderConfigOrtb> biddersToConfigs) {
+                                           Map<String, ExtBidderConfigOrtb> biddersToConfigs,
+                                           Map<String, List<String>> eidPermissions) {
 
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
 
@@ -489,7 +511,7 @@ public class ExchangeService {
 
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
             final User preparedUser = prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
-                    context.getUidsCookie(), useFirstPartyData, fpdConfig);
+                    context.getUidsCookie(), useFirstPartyData, fpdConfig, eidPermissions);
             bidderToUser.put(bidder, preparedUser);
         }
         return bidderToUser;
@@ -509,12 +531,17 @@ public class ExchangeService {
                              Map<String, String> uidsBody,
                              UidsCookie uidsCookie,
                              boolean useFirstPartyData,
-                             ExtBidderConfigOrtb fpdConfig) {
+                             ExtBidderConfigOrtb fpdConfig,
+                             Map<String, List<String>> eidPermissions) {
 
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
+        final List<ExtUserEid> userEids = extractUserEids(user);
+        final List<ExtUserEid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions, aliases);
+        final boolean shouldUpdateUserEids = extUser != null
+                && allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
         final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
         final boolean shouldCleanExtData = extUser != null && extUser.getData() != null && !useFirstPartyData;
-        final boolean shouldUpdateUserExt = shouldCleanExtData || shouldCleanExtPrebid;
+        final boolean shouldUpdateUserExt = shouldCleanExtData || shouldCleanExtPrebid || shouldUpdateUserEids;
         final boolean shouldCleanData = user != null && user.getData() != null && !useFirstPartyData;
 
         User maskedUser = user;
@@ -528,6 +555,7 @@ public class ExchangeService {
                 final ExtUser updatedExtUser = extUser.toBuilder()
                         .prebid(shouldCleanExtPrebid ? null : extUser.getPrebid())
                         .data(shouldCleanExtData ? null : extUser.getData())
+                        .eids(shouldUpdateUserEids ? nullIfEmpty(allowedUserEids) : userEids)
                         .build();
                 userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
             }
@@ -558,6 +586,41 @@ public class ExchangeService {
     }
 
     /**
+     * Extracts {@link List<ExtUserEid>} from {@link User}.
+     * Returns null if user or its extension is null.
+     */
+    private List<ExtUserEid> extractUserEids(User user) {
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        return extUser != null ? extUser.getEids() : null;
+    }
+
+    /**
+     * Returns {@link List<ExtUserEid>} allowed by {@param eidPermissions} per source per bidder.
+     */
+    private List<ExtUserEid> resolveAllowedEids(List<ExtUserEid> userEids, String bidder,
+                                                Map<String, List<String>> eidPermissions, BidderAliases aliases) {
+        return CollectionUtils.emptyIfNull(userEids)
+                .stream()
+                .filter(extUserEid -> isUserEidAllowed(extUserEid.getSource(), eidPermissions, bidder, aliases))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns true if {@param source} allowed by {@param eidPermissions} for particular bidder taking into account
+     * ealiases.
+     */
+    private boolean isUserEidAllowed(String source, Map<String, List<String>> eidPermissions, String bidder,
+                                     BidderAliases aliases) {
+        final List<String> allowedBidders = eidPermissions.get(source);
+        return CollectionUtils.isEmpty(allowedBidders)
+                || allowedBidders.contains(EID_ALLOWED_FOR_ALL_BIDDERS)
+                || allowedBidders.contains(bidder)
+                || allowedBidders.contains(aliases.resolveBidder(bidder))
+                || allowedBidders.stream().map(aliases::resolveBidder)
+                .anyMatch(allowedBidder -> allowedBidder.equals(bidder));
+    }
+
+    /**
      * Extracts UID from uids from body or {@link UidsCookie}.
      */
     private String extractUid(Map<String, String> uidsBody, UidsCookie uidsCookie, String bidder) {
@@ -579,6 +642,7 @@ public class ExchangeService {
                                                   BidRequest bidRequest,
                                                   Map<String, Map<String, String>> impBidderToStoredBidResponse,
                                                   List<Imp> imps,
+                                                  Map<String, MultiBidConfig> bidderToMultiBid,
                                                   Map<String, ExtBidderConfigOrtb> biddersToConfigs) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
@@ -592,6 +656,7 @@ public class ExchangeService {
                         bidRequest,
                         impBidderToStoredBidResponse,
                         imps,
+                        bidderToMultiBid,
                         biddersToConfigs,
                         bidderToPrebidBidders))
                 .filter(Objects::nonNull)
@@ -629,6 +694,7 @@ public class ExchangeService {
                                               BidRequest bidRequest,
                                               Map<String, Map<String, String>> impBidderToStoredBidResponse,
                                               List<Imp> imps,
+                                              Map<String, MultiBidConfig> bidderToMultiBid,
                                               Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                               Map<String, JsonNode> bidderToPrebidBidders) {
 
@@ -667,7 +733,7 @@ public class ExchangeService {
                 .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
                 .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidRequest))
-                .ext(prepareExt(bidder, bidderToPrebidBidders, bidRequest.getExt()))
+                .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build());
     }
 
@@ -821,6 +887,7 @@ public class ExchangeService {
      */
     private ExtRequest prepareExt(String bidder,
                                   Map<String, JsonNode> bidderToPrebidBidders,
+                                  Map<String, MultiBidConfig> bidderToMultiBid,
                                   ExtRequest requestExt) {
 
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
@@ -833,7 +900,12 @@ public class ExchangeService {
         final boolean suppressBidderConfig = extPrebidBidderconfig != null;
         final boolean suppressPrebidData = extPrebidData != null;
 
-        if (bidderToPrebidBidders.isEmpty() && !suppressSchains && !suppressBidderConfig && !suppressPrebidData) {
+        if (bidderToPrebidBidders.isEmpty()
+                && bidderToMultiBid.isEmpty()
+                && !suppressSchains
+                && !suppressBidderConfig
+                && !suppressPrebidData) {
+
             return requestExt;
         }
 
@@ -848,11 +920,20 @@ public class ExchangeService {
 
         return ExtRequest.of(
                 extPrebidBuilder
+                        .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
                         .bidders(bidders)
                         .schains(null)
                         .data(null)
                         .bidderconfig(null)
                         .build());
+    }
+
+    private List<ExtRequestPrebidMultiBid> resolveExtRequestMultiBids(MultiBidConfig multiBidConfig,
+                                                                      String bidder) {
+        return multiBidConfig != null
+                ? Collections.singletonList(ExtRequestPrebidMultiBid.of(
+                bidder, null, multiBidConfig.getMaxBids(), multiBidConfig.getTargetBidderCodePrefix()))
+                : null;
     }
 
     /**
@@ -1092,5 +1173,9 @@ public class ExchangeService {
                 errorMetric = MetricName.unknown_error;
         }
         return errorMetric;
+    }
+
+    private <T> List<T> nullIfEmpty(List<T> value) {
+        return CollectionUtils.isEmpty(value) ? null : value;
     }
 }
