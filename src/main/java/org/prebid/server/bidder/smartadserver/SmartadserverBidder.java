@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -59,13 +60,20 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpSmartadserver extImpSmartadserver = parseImpExt(imp);
+                final String networkId = String.valueOf(extImpSmartadserver.getNetworkId());
+                final Optional<Site> siteOpt = Optional.ofNullable(request.getSite());
+                final Publisher publisher = siteOpt.flatMap(site -> Optional.ofNullable(site.getPublisher()))
+                        .map(p -> p.toBuilder())
+                        .orElse(Publisher.builder())
+                        .id(networkId)
+                        .build();
+                final Site site = siteOpt
+                        .map(s -> s.toBuilder())
+                        .orElse(Site.builder())
+                        .publisher(publisher).build();
                 final BidRequest updatedRequest = request.toBuilder()
                         .imp(Collections.singletonList(imp))
-                        .site(Site.builder()
-                                .publisher(Publisher.builder()
-                                        .id(String.valueOf(extImpSmartadserver.getNetworkId()))
-                                        .build())
-                                .build())
+                        .site(site)
                         .build();
                 result.add(createSingleRequest(updatedRequest));
             } catch (PreBidException e) {
