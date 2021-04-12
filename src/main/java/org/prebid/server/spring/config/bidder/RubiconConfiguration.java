@@ -12,6 +12,7 @@ import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 @Configuration
@@ -26,6 +28,10 @@ import javax.validation.constraints.NotNull;
 public class RubiconConfiguration {
 
     private static final String BIDDER_NAME = "rubicon";
+
+    @Value("${external-url}")
+    @NotBlank
+    private String externalUrl;
 
     @Autowired
     private JacksonMapper mapper;
@@ -44,7 +50,7 @@ public class RubiconConfiguration {
     BidderDeps rubiconBidderDeps() {
         return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .usersyncerCreator(UsersyncerCreator.create(null))
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new RubiconBidder(
                         config.getEndpoint(),
                         config.getXapi().getUsername(),
