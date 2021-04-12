@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.requestfactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,6 +20,13 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.OrtbTypesResolver;
+import org.prebid.server.auction.PriceGranularity;
+import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
@@ -73,27 +80,34 @@ public class AmpRequestFactory {
     private static final int NO_LIMIT_SPLIT_MODE = -1;
     private static final String AMP_CHANNEL = "amp";
 
+    private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
-    private final AuctionRequestFactory auctionRequestFactory;
     private final OrtbTypesResolver ortbTypesResolver;
     private final ImplicitParametersExtractor implicitParametersExtractor;
+    private final AuctionImplicitParametersInjector auctionImplicitParametersInjector;
     private final FpdResolver fpdResolver;
+    private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
 
     public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
-                             AuctionRequestFactory auctionRequestFactory,
+                             Ortb2RequestFactory ortb2RequestFactory,
                              OrtbTypesResolver ortbTypesResolver,
                              ImplicitParametersExtractor implicitParametersExtractor,
+                             AuctionImplicitParametersInjector auctionImplicitParametersInjector,
                              FpdResolver fpdResolver,
+                             PrivacyEnforcementService privacyEnforcementService,
                              TimeoutResolver timeoutResolver,
                              JacksonMapper mapper) {
+
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
-        this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
+        this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
+        this.auctionImplicitParametersInjector = Objects.requireNonNull(auctionImplicitParametersInjector);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -101,32 +115,42 @@ public class AmpRequestFactory {
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        final String tagId = routingContext.request().getParam(TAG_ID_REQUEST_PARAM);
-        if (StringUtils.isBlank(tagId)) {
-            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
-        }
-        return createBidRequest(routingContext, tagId)
-                .compose(bidRequestWithErrors -> auctionRequestFactory.toAuctionContext(
+        return createBidRequest(routingContext)
+                .compose(bidRequestWithErrors -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
                         routingContext,
                         bidRequestWithErrors.getLeft(),
                         MetricName.amp,
-                        bidRequestWithErrors.getRight(),
                         startTime,
-                        timeoutResolver));
+                        bidRequestWithErrors.getRight()))
+
+                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(
+                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(
+                                auctionContext.getBidRequest(),
+                                auctionContext.getAccount(),
+                                auctionContext.getPrivacyContext())));
     }
 
     /**
      * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<Tuple2<BidRequest, List<String>>> createBidRequest(RoutingContext context, String tagId) {
+    private Future<Tuple2<BidRequest, List<String>>> createBidRequest(RoutingContext context) {
+        final String tagId = context.request().getParam(TAG_ID_REQUEST_PARAM);
+        if (StringUtils.isBlank(tagId)) {
+            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
+        }
+
         final List<String> errors = new ArrayList<>();
         return storedRequestProcessor.processAmpRequest(context.request().getParam(ACCOUNT_REQUEST_PARAM), tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))
-                .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context, timeoutResolver))
-                .map(auctionRequestFactory::validateRequest)
+                .map(bidRequest -> auctionImplicitParametersInjector.fillImplicitParameters(bidRequest, context,
+                        timeoutResolver))
+                .map(ortb2RequestFactory::validateRequest)
                 .map(bidRequest -> Tuple2.of(bidRequest, errors));
     }
 
