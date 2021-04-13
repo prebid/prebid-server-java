@@ -13,7 +13,10 @@
       },
       "ext": {
         "between": {
-          "host": "127.0.0.1"
+          "host": "lbs-ru1.ads",
+          "publisher_id": "publisherTestID",
+          "bid_floor": 12.2345,
+          "bid_floor_cur": "RUB"
         }
       }
     }
@@ -22,9 +25,12 @@
     "pxratio": 4.2,
     "dnt": 2,
     "language": "en",
-    "ifa": "ifaId"
+    "ifa": "ifaId",
+    "ua": "testUa",
+    "ip": "193.168.244.1"
   },
   "site": {
+    "page": "awesomePage",
     "publisher": {
       "id": "publisherId"
     }

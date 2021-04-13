@@ -4,13 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -29,11 +28,12 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -48,40 +48,31 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    private final MultiMap headers;
-
     public AdtargetBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
-        headers = HttpUtil.headers();
     }
 
-    /**
-     * Creates POST HTTP requests which should be made to fetch bids.
-     */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final Result<Map<Integer, List<Imp>>> sourceIdToImpsResult = mapSourceIdToImp(request.getImp());
 
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceIdToImpsResult.getValue().entrySet()) {
-            final String url = String.format("%s?aid=%d", endpointUrl, sourceIdToImps.getKey());
+            final String url = String.format("%s?aid=%d", endpointUrl,
+                    ObjectUtils.defaultIfNull(sourceIdToImps.getKey(), 0));
             final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
-            final String bidRequestBody = mapper.encode(bidRequest);
             httpRequests.add(HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(url)
-                    .body(bidRequestBody)
-                    .headers(headers)
+                    .body(mapper.encode(bidRequest))
+                    .headers(HttpUtil.headers())
                     .payload(bidRequest)
                     .build());
         }
         return Result.of(httpRequests, sourceIdToImpsResult.getErrors());
     }
 
-    /**
-     * Validates and creates {@link Map} where sourceId is used as key and {@link List} of {@link Imp} as value.
-     */
     private Result<Map<Integer, List<Imp>>> mapSourceIdToImp(List<Imp> imps) {
         final List<BidderError> errors = new ArrayList<>();
         final Map<Integer, List<Imp>> sourceToImps = new HashMap<>();
@@ -102,9 +93,6 @@ public class AdtargetBidder implements Bidder<BidRequest> {
         return Result.of(sourceToImps, errors);
     }
 
-    /**
-     * Extracts {@link ExtImpAdtarget} from imp.ext.bidder.
-     */
     private ExtImpAdtarget parseImpAdtarget(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ADTARGET_EXT_TYPE_REFERENCE).getBidder();
@@ -114,10 +102,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
         }
     }
 
-    /**
-     * Validates {@link Imp}s. Throws {@link PreBidException} in case of {@link Imp} is invalid.
-     */
-    private void validateImpression(Imp imp) {
+    private static void validateImpression(Imp imp) {
         final String impId = imp.getId();
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(String.format(
@@ -130,9 +115,6 @@ public class AdtargetBidder implements Bidder<BidRequest> {
         }
     }
 
-    /**
-     * Updates {@link Imp} with bidfloor if it is present in imp.ext.bidder
-     */
     private Imp updateImp(Imp imp, ExtImpAdtarget extImpAdtarget) {
         final AdtargetImpExt adtargetImpExt = AdtargetImpExt.of(extImpAdtarget);
         final BigDecimal bidFloor = extImpAdtarget.getBidFloor();
@@ -142,61 +124,51 @@ public class AdtargetBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    /**
-     * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
-     */
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return extractBids(bidResponse, bidRequest.getImp());
+            return Result.of(extractBids(bidResponse, bidRequest.getImp(), errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    /**
-     * Extracts {@link Bid}s from response.
-     */
-    private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Result.empty()
-                : createBiddersBid(bidResponse, imps);
+                ? Collections.emptyList()
+                : createBiddersBid(bidResponse, imps, errors);
     }
 
-    /**
-     * Extracts {@link Bid}s from response and finds its type against matching {@link Imp}. In case matching {@link Imp}
-     * was not found, {@link Bid} is considered as not valid.
-     */
-    private static Result<List<BidderBid>> createBiddersBid(BidResponse bidResponse, List<Imp> imps) {
-
-        final Map<String, Imp> idToImps = imps.stream().collect(Collectors.toMap(Imp::getId, Function.identity()));
-        final List<BidderBid> bidderBids = new ArrayList<>();
-        final List<BidderError> errors = new ArrayList<>();
-
-        bidResponse.getSeatbid().stream()
+    private static List<BidderBid> createBiddersBid(BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
+        return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .forEach(bid -> addBidOrError(bid, idToImps, bidderBids, errors, bidResponse.getCur()));
-
-        return Result.of(bidderBids, errors);
+                .map(bid -> createBidderBid(bid, imps, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
-    /**
-     * Creates {@link BidderBid} from {@link Bid} if it has matching {@link Imp}, otherwise adds error to error list.
-     */
-    private static void addBidOrError(Bid bid, Map<String, Imp> idToImps, List<BidderBid> bidderBids,
-                                      List<BidderError> errors, String currency) {
-        final String bidImpId = bid.getImpid();
-
-        if (idToImps.containsKey(bidImpId)) {
-            final Video video = idToImps.get(bidImpId).getVideo();
-            bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, currency));
-        } else {
-            errors.add(BidderError.badServerResponse(String.format(
-                    "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));
+    private static BidderBid createBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+        final BidType bidType;
+        try {
+            bidType = getBidType(bid.getImpid(), bid.getId(), imps);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
         }
+        return BidderBid.of(bid, bidType, currency);
+    }
+
+    private static BidType getBidType(String bidImpId, String bidId, List<Imp> imps) {
+        final Optional<Imp> impWithBidId = imps.stream().filter(imp -> imp.getId().equals(bidImpId)).findFirst();
+        if (impWithBidId.isPresent()) {
+            return impWithBidId.get().getVideo() != null ? BidType.video : BidType.banner;
+        }
+        throw new PreBidException(String.format(
+                "ignoring bid id=%s, request doesn't contain any impression with id=%s", bidId, bidImpId));
     }
 }

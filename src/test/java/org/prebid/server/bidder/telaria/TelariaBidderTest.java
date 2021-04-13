@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -28,11 +27,11 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,21 +56,6 @@ public class TelariaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Telaria: Missing Imp Object"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfImpHasNoVideo() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -83,7 +67,7 @@ public class TelariaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Telaria: Only Supports Video"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Telaria: Only Supports Video"));
     }
 
     @Test
@@ -98,7 +82,7 @@ public class TelariaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Telaria: Banner not supported"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Telaria: Banner not supported"));
     }
 
     @Test
@@ -128,7 +112,7 @@ public class TelariaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Telaria: Seat Code required"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Telaria: Seat Code required"));
     }
 
     @Test
@@ -145,7 +129,7 @@ public class TelariaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .containsNull();
@@ -172,9 +156,9 @@ public class TelariaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsOnly(jacksonMapper.fillExtension(
+                .containsExactly(jacksonMapper.fillExtension(
                         ExtRequest.empty(), TelariaRequestExt.of(mapper.createObjectNode().put("custom", "1234"))));
     }
 
@@ -193,7 +177,7 @@ public class TelariaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getApp)
                 .extracting(App::getId)
                 .containsNull();
@@ -212,12 +196,65 @@ public class TelariaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getApp)
                 .extracting(App::getPublisher)
                 .extracting(Publisher::getId)
-                .containsOnly("seatCode");
+                .containsExactly("seatCode");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetSitePublisherIdIfSiteIsPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .site(Site.builder().publisher(Publisher.builder().build()).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher)
+                .extracting(Publisher::getId)
+                .containsExactly("seatCode");
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyBidderBidsFromSecondSeatBid() throws JsonProcessingException {
+        // given
+        final SeatBid firstSeatBId = SeatBid.builder()
+                .bid(singletonList(Bid.builder()
+                        .impid("123")
+                        .build()))
+                .build();
+
+        final SeatBid secondSeatBid = SeatBid.builder()
+                .bid(singletonList(Bid.builder()
+                        .impid("456")
+                        .build()))
+                .build();
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(Arrays.asList(firstSeatBId, secondSeatBid))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
     }
 
     @Test
@@ -237,14 +274,13 @@ public class TelariaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .flatExtracting(r -> r.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
                         tuple("x-openrtb-version", "2.5"),
-                        tuple("Accept-Encoding", "gzip"),
                         tuple("User-Agent", "userAgent"),
                         tuple("X-Forwarded-For", "123.123.123.12"),
                         tuple("Accept-Language", "en"),
@@ -260,9 +296,11 @@ public class TelariaBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -271,6 +309,21 @@ public class TelariaBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfNoBidsFromSeatArePresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder().build())).build()));
 
         // when
         final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, null);
@@ -296,7 +349,7 @@ public class TelariaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     private static BidRequest givenBidRequest(
@@ -330,11 +383,9 @@ public class TelariaBidderTest extends VertxTest {
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                .add("x-fb-an-errors", "who are you?");
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, headers, body),
+                HttpResponse.of(200, null, body),
                 null);
     }
 }

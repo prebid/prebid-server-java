@@ -1,5 +1,6 @@
 package org.prebid.server.it;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -35,11 +36,13 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -63,7 +66,7 @@ public class ApplicationTest extends IntegrationTest {
     private static final String ADFORM = "adform";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
-    private static final String APPNEXUS_CONFIGURED_ALIAS = "districtm";
+    private static final String DISTRICTM_APPNEXUS_ALIAS = "districtm";
     private static final String RUBICON = "rubicon";
 
     private static final int ADMIN_PORT = 8060;
@@ -109,8 +112,8 @@ public class ApplicationTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom(
-                        "openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
@@ -136,105 +139,79 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void auctionShouldRespondWithBidsFromAppnexusAlias() throws IOException {
+    public void openrtb2MultiBidAuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
         // given
-        // appnexus bid response for ad unit 4
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("auction/districtm/test-districtm-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/districtm/test-districtm-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("auction/districtm/test-cache-districtm-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/districtm/test-cache-districtm-response.json"))));
-
-        // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"adnxs":"12345"}}
-                .cookie("uids", "eyJ1aWRzIjp7ImFkbnhzIjoiMTIzNDUifX0=")
-                .queryParam("debug", "1")
-                .body(jsonFrom("auction/districtm/test-auction-districtm-request.json"))
-                .post("/auction");
-
-        // then
-        assertThat(response.header("Cache-Control")).isEqualTo("no-cache, no-store, must-revalidate");
-        assertThat(response.header("Pragma")).isEqualTo("no-cache");
-        assertThat(response.header("Expires")).isEqualTo("0");
-        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
-        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
-
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(
-                "auction/districtm/test-auction-districtm-response.json",
-                response, asList(APPNEXUS, APPNEXUS_CONFIGURED_ALIAS));
-        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
-    }
-
-    @Test
-    public void auctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException {
-        // given
-        // rubicon bid response for ad unit 1
+        // rubicon bid response for imp 1
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("prebid-server/1.0"))
-                .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-request-1.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-rubicon-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/rubicon_appnexus_multi_bid/test-rubicon-bid-response-1.json"))));
 
-        // rubicon bid response for ad unit 2
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-request-2.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
-
-        // rubicon bid response for ad unit 3
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-request-3.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-3.json"))));
-
-        // appnexus bid response for ad unit 4
+        // appnexus bid response for imp 1
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-appnexus-bid-request-1.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("auction/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-appnexus-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/rubicon_appnexus_multi_bid/test-appnexus-bid-response-1.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom(
-                        "auction/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom(
-                        "auction/rubicon_appnexus/test-cache-rubicon-appnexus-response.json"))));
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-cache-rubicon-appnexus-request.json")))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/rubicon_appnexus_multi_bid/test-cache-matcher-rubicon-appnexus.json")
+                ));
 
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
-                .queryParam("debug", "1")
-                .body(jsonFrom("auction/rubicon_appnexus/test-auction-rubicon-appnexus-request.json"))
-                .post("/auction");
+                .body(jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-auction-rubicon-appnexus-request.json"))
+                .post("/openrtb2/auction");
 
         // then
-        assertThat(response.header("Cache-Control")).isEqualTo("no-cache, no-store, must-revalidate");
-        assertThat(response.header("Pragma")).isEqualTo("no-cache");
-        assertThat(response.header("Expires")).isEqualTo("0");
-        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
-        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
-
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(
-                "auction/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/rubicon_appnexus_multi_bid/test-auction-rubicon-appnexus-response.json",
                 response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
-        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
+    }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithStoredBidResponse() throws IOException, JSONException {
+        // given
+        // pre-bid cache
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/storedresponse/test-cache-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/storedresponse/test-cache-response.json"))));
+
+        // when
+        final Response response = given(SPEC)
+                .header("Referer", "http://www.example.com")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
+                .body(jsonFrom("openrtb2/storedresponse/test-auction-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/storedresponse/test-auction-response.json",
+                response, singletonList(RUBICON));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 
     @Test
@@ -252,7 +229,8 @@ public class ApplicationTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("amp/test-cache-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("amp/test-cache-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName", "amp/test-cache-matcher-amp.json")
@@ -273,13 +251,17 @@ public class ApplicationTest extends IntegrationTest {
                         + "&oh=120"
                         + "&timeout=10000000"
                         + "&slot=overwrite-tagId"
+                        + "&targeting=%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D"
                         + "&curl=https%3A%2F%2Fgoogle.com"
                         + "&account=accountId"
                         + "&consent_string=1YNN");
 
         // then
-        JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),
-                JSONCompareMode.NON_EXTENSIBLE);
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "amp/test-amp-response.json",
+                response,
+                asList(RUBICON, APPNEXUS));
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -446,7 +428,7 @@ public class ApplicationTest extends IntegrationTest {
     public void vtrackShouldReturnJsonWithUids() throws JSONException, IOException {
         // given and when
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("vtrack/test-cache-request.json"), true, false))
+                .withRequestBody(equalToBidCacheRequest(jsonFrom("vtrack/test-cache-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("vtrack/test-vtrack-response.json"))));
 
         final Response response = given(SPEC)
@@ -478,34 +460,47 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void biddersParamsShouldReturnBidderSchemas() throws JSONException {
-        // given
-        final Map<String, JsonNode> bidderNameToSchema = getBidderNamesFromParamFiles().stream()
-                .collect(Collectors.toMap(Function.identity(), ApplicationTest::jsonSchemaToJsonNode));
-
+    public void biddersParamsShouldReturnBidderSchemas() throws JSONException, IOException {
         // when
         final Response response = given(SPEC)
                 .when()
                 .get("/bidders/params");
 
         // then
-        JSONAssert.assertEquals(bidderNameToSchema.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        final Map<String, JsonNode> responseAsMap = jacksonMapper.decodeValue(response.asString(),
+                new TypeReference<Map<String, JsonNode>>() {
+                });
+
+        final List<String> bidders = getBidderNamesFromParamFiles();
+        final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        bidderName -> jsonSchemaToJsonNode(aliases.getOrDefault(bidderName, bidderName))));
+
+        assertThat(responseAsMap.keySet()).containsOnlyElementsOf(expectedMap.keySet());
+        assertThat(responseAsMap).containsAllEntriesOf(expectedMap);
+
+        JSONAssert.assertEquals(expectedMap.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
-    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws JSONException, IOException {
-        // given
-        final List<String> bidderNames = getBidderNamesFromParamFiles();
-        final List<String> bidderAliases = getBidderAliasesFromConfigFiles();
-
+    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws IOException {
         // when
         final Response response = given(SPEC)
                 .when()
                 .get("/info/bidders");
 
         // then
-        final String expectedResponse = CollectionUtils.union(bidderNames, bidderAliases).toString();
-        JSONAssert.assertEquals(expectedResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        final List<String> responseAsList = jacksonMapper.decodeValue(response.asString(),
+                new TypeReference<List<String>>() {
+                });
+
+        final List<String> bidders = getBidderNamesFromParamFiles();
+        final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        final Collection<String> expectedBidders = CollectionUtils.union(bidders, aliases.keySet());
+
+        assertThat(responseAsList).containsOnlyElementsOf(expectedBidders);
     }
 
     @Test
@@ -665,27 +660,30 @@ public class ApplicationTest extends IntegrationTest {
         return Collections.emptyList();
     }
 
-    private static List<String> getBidderAliasesFromConfigFiles() throws IOException {
+    private static Map<String, String> getBidderAliasesFromConfigFiles() throws IOException {
         final String folderPath = "src/main/resources/bidder-config";
         final File folder = new File(folderPath);
         final String[] files = folder.list();
         if (files != null) {
             final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
-            final List<String> aliases = new ArrayList<>();
+            final Map<String, String> aliases = new HashMap<>();
             for (String fileName : files) {
                 final JsonNode configNode = mapper.readValue(new File(folderPath, fileName), JsonNode.class);
-                final JsonNode aliasesNode = configNode.get("adapters").fields().next().getValue().get("aliases");
+                final Map.Entry<String, JsonNode> bidderEntry = configNode.get("adapters").fields().next();
+                final String bidderName = bidderEntry.getKey();
+                final JsonNode aliasesNode = bidderEntry.getValue().get("aliases");
 
-                if (!aliasesNode.isNull()) {
-                    for (String alias : aliasesNode.textValue().split(",")) {
-                        aliases.add(alias.trim());
+                if (aliasesNode.isObject()) {
+                    Iterator<String> iterator = aliasesNode.fieldNames();
+                    while (iterator.hasNext()) {
+                        aliases.put(iterator.next().trim(), bidderName);
                     }
                 }
             }
             return aliases;
         }
-        return Collections.emptyList();
+        return Collections.emptyMap();
     }
 
     private static JsonNode jsonSchemaToJsonNode(String bidderName) {

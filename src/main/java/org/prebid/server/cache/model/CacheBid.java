@@ -3,6 +3,7 @@ package org.prebid.server.cache.model;
 import com.iab.openrtb.response.Bid;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.cache.CacheService;
 
 /**
@@ -12,7 +13,7 @@ import org.prebid.server.cache.CacheService;
 @Value
 public class CacheBid {
 
-    Bid bid;
+    BidInfo bidInfo;
 
     Integer ttl;
 }

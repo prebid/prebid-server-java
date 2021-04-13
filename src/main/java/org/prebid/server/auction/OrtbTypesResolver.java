@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.ConditionalLogger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,10 +34,13 @@ import java.util.stream.StreamSupport;
 public class OrtbTypesResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(OrtbTypesResolver.class);
+    private static final ConditionalLogger ORTB_TYPES_RESOLVING_LOGGER =
+            new ConditionalLogger("ortb_resolving_warnings", logger);
 
     private static final String USER = "user";
     private static final String APP = "app";
     private static final String SITE = "site";
+    private static final String CONTEXT = "context";
     private static final String BIDREQUEST = "bidrequest";
     private static final String TARGETING = "targeting";
     private static final String UNKNOWN_REFERER = "unknown referer";
@@ -88,9 +92,12 @@ public class OrtbTypesResolver {
         final JsonNode bidderConfigs = bidRequest.path("ext").path("prebid").path("bidderconfig");
         if (!bidderConfigs.isMissingNode() && bidderConfigs.isArray()) {
             for (JsonNode bidderConfig : bidderConfigs) {
-                final JsonNode config = bidderConfig.path("config").path("fpd");
-                if (!config.isMissingNode()) {
-                    normalizeStandardFpdFields(config, resolverWarnings, "bidrequest.ext.prebid.bidderconfig");
+
+                mergeFpdFieldsToOrtb2(bidderConfig);
+
+                final JsonNode ortb2Config = bidderConfig.path("config").path("ortb2");
+                if (!ortb2Config.isMissingNode()) {
+                    normalizeStandardFpdFields(ortb2Config, resolverWarnings, "bidrequest.ext.prebid.bidderconfig");
                 }
             }
         }
@@ -104,6 +111,52 @@ public class OrtbTypesResolver {
             // should never happen
             throw new InvalidRequestException("Failed to decode container node to string");
         }
+    }
+
+    /**
+     * Merges fpd fields into ortb2:
+     * config.fpd.context -> config.ortb2.site
+     * config.fpd.user -> config.ortb2.user
+     */
+    private void mergeFpdFieldsToOrtb2(JsonNode bidderConfig) {
+        final JsonNode config = bidderConfig.path("config");
+        final JsonNode configFpd = config.path("fpd");
+
+        if (configFpd.isMissingNode()) {
+            return;
+        }
+
+        final JsonNode configOrtb = config.path("ortb2");
+
+        final JsonNode fpdContext = configFpd.get(CONTEXT);
+        final JsonNode ortbSite = configOrtb.get(SITE);
+        final JsonNode updatedOrtbSite = ortbSite == null
+                ? fpdContext
+                : fpdContext != null ? jsonMerger.merge(fpdContext, ortbSite) : null;
+
+        final JsonNode fpdUser = configFpd.get(USER);
+        final JsonNode ortbUser = configOrtb.get(USER);
+        final JsonNode updatedOrtbUser = ortbUser == null
+                ? fpdUser
+                : fpdUser != null ? jsonMerger.merge(fpdUser, ortbUser) : null;
+
+        if (updatedOrtbUser == null && updatedOrtbSite == null) {
+            return;
+        }
+
+        final ObjectNode ortbObjectNode = configOrtb.isMissingNode()
+                ? jacksonMapper.mapper().createObjectNode()
+                : (ObjectNode) configOrtb;
+
+        if (updatedOrtbSite != null) {
+            ortbObjectNode.set(SITE, updatedOrtbSite);
+        }
+
+        if (updatedOrtbUser != null) {
+            ortbObjectNode.set(USER, updatedOrtbUser);
+        }
+
+        ((ObjectNode) config).set("ortb2", ortbObjectNode);
     }
 
     /**
@@ -245,16 +298,16 @@ public class OrtbTypesResolver {
         }
     }
 
-    public void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
-                                       List<String> warnings) {
+    private void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
+                                        List<String> warnings) {
         final JsonNode data = containerNode.get(DATA);
-        if (data == null || data.isNull()) {
+        if (data == null || !data.isObject()) {
             return;
         }
         final JsonNode extData = containerNode.path(EXT).path(DATA);
         final JsonNode ext = containerNode.get(EXT);
         if (!extData.isNull() && !extData.isMissingNode()) {
-            final JsonNode resolvedExtData = jsonMerger.merge(extData, data);
+            final JsonNode resolvedExtData = jsonMerger.merge(data, extData);
             ((ObjectNode) ext).set(DATA, resolvedExtData);
         } else {
             copyDataToExtData(containerNode, containerName, nodePrefix, warnings, data);
@@ -293,12 +346,10 @@ public class OrtbTypesResolver {
         if (CollectionUtils.isNotEmpty(resolverWarning)) {
             warnings.addAll(updateWithWarningPrefix(resolverWarning));
             // log only 1% of cases
-            if (System.currentTimeMillis() % 100 == 0) {
-                logger.info(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
-                        String.join("\n", resolverWarning),
-                        StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
-                        containerName, containerValue));
-            }
+            ORTB_TYPES_RESOLVING_LOGGER.warn(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
+                    String.join("\n", resolverWarning),
+                    StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
+                    containerName, containerValue), 0.01);
         }
     }
 

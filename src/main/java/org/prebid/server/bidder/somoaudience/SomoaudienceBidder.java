@@ -1,11 +1,9 @@
 package org.prebid.server.bidder.somoaudience;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -35,6 +33,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Somoaudience {@link Bidder} implementation.
+ */
 public class SomoaudienceBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSomoaudience>> SOMOAUDIENCE_EXT_TYPE_REFERENCE =
@@ -68,7 +69,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 videoAndNativeImps.add(imp);
             } else {
                 errors.add(BidderError.badInput(String.format(
-                        "SomoAudience only supports banner and video imps. Ignoring imp id=%s", imp.getId())));
+                        "SomoAudience only supports [banner, video, native] imps. Ignoring imp id : %s", imp.getId())));
             }
         }
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
@@ -95,7 +96,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         String placementHash = null;
         for (Imp imp : imps) {
             try {
-                final ExtImpSomoaudience extImpSomoaudience = parseAndValidateImpExt(imp);
+                final ExtImpSomoaudience extImpSomoaudience = parseImpExt(imp);
                 placementHash = extImpSomoaudience.getPlacementHash();
                 final BigDecimal bidFloor = extImpSomoaudience.getBidFloor();
                 final Imp modifiedImp = imp.toBuilder()
@@ -107,7 +108,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-        if (CollectionUtils.isEmpty(validImps)) {
+        if (validImps.size() == 0) {
             return null;
         }
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
@@ -116,58 +117,45 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         requestBuilder.ext(requestExtension);
 
         final BidRequest outgoingRequest = requestBuilder.build();
-        final String body = mapper.encode(outgoingRequest);
 
-        final MultiMap headers = basicHeaders();
-        final Device requestDevice = outgoingRequest.getDevice();
-        if (requestDevice != null) {
-            addDeviceHeaders(headers, requestDevice);
-        }
         final String url = String.format("%s?s=%s", endpointUrl, placementHash);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
-                .body(body)
-                .headers(headers)
+                .body(mapper.encode(outgoingRequest))
+                .headers(headers(outgoingRequest.getDevice()))
                 .payload(outgoingRequest)
                 .build();
     }
 
-    private ExtImpSomoaudience parseAndValidateImpExt(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-        if (impExt == null || impExt.size() == 0) {
-            throw new PreBidException(String.format("ignoring imp id=%s, extImpBidder is empty", imp.getId()));
-        }
-
-        final ExtImpSomoaudience extImpSomoaudience;
+    private ExtImpSomoaudience parseImpExt(Imp imp) {
         try {
-            extImpSomoaudience = mapper.mapper().convertValue(imp.getExt(),
+            return mapper.mapper().convertValue(imp.getExt(),
                     SOMOAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format(
                     "ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(), e.getMessage()));
         }
-        return extImpSomoaudience;
     }
 
-    private static MultiMap basicHeaders() {
-        return HttpUtil.headers()
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+    private static MultiMap headers(Device device) {
+        final MultiMap headers = HttpUtil.headers();
+        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+
+            final Integer dnt = device.getDnt();
+            if (dnt != null) {
+                headers.add(HttpUtil.DNT_HEADER, dnt.toString());
+            }
+        }
+        return headers;
     }
 
-    private static void addDeviceHeaders(MultiMap headers, Device device) {
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
-
-        final Integer dnt = device.getDnt();
-        headers.add("DNT", dnt != null ? dnt.toString() : "0");
-    }
-
-    /**
-     * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
-     */
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
@@ -178,18 +166,12 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         }
     }
 
-    /**
-     * Extracts {@link Bid}s from response.
-     */
     private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Result.empty()
                 : Result.withValues(createBiddersBid(bidResponse, imps));
     }
 
-    /**
-     * Extracts {@link Bid}s from response.
-     */
     private static List<BidderBid> createBiddersBid(BidResponse bidResponse, List<Imp> imps) {
 
         return bidResponse.getSeatbid().stream()
@@ -197,14 +179,11 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidderType(imps, bid.getImpid()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getType(imps, bid.getImpid()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Defines {@link BidType} depends on {@link Imp} with the same impId
-     */
-    private static BidType getBidderType(List<Imp> imps, String impId) {
+    private static BidType getType(List<Imp> imps, String impId) {
         return imps.stream()
                 .filter(imp -> Objects.equals(imp.getId(), impId))
                 .findAny()
@@ -212,9 +191,6 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 .orElse(BidType.banner);
     }
 
-    /**
-     * Returns {@link BidType} depends on {@link Imp}s banner, video or native types.
-     */
     private static BidType bidTypeFromImp(Imp imp) {
         BidType bidType = BidType.banner;
         if (imp.getBanner() == null) {

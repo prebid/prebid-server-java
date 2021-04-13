@@ -18,16 +18,13 @@ import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
@@ -145,7 +142,6 @@ public class WebConfiguration {
     Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
-                  AuctionHandler auctionHandler,
                   org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
                   AmpHandler openrtbAmpHandler,
                   VideoHandler openrtbVideoHandler,
@@ -166,7 +162,6 @@ public class WebConfiguration {
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
-        router.post("/auction").handler(auctionHandler);
         router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
         router.get("/openrtb2/amp").handler(openrtbAmpHandler);
         router.post("/openrtb2/video").handler(openrtbVideoHandler);
@@ -208,35 +203,6 @@ public class WebConfiguration {
                         HttpUtil.X_REQUESTED_WITH_HEADER.toString())))
                 .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.HEAD,
                         HttpMethod.OPTIONS)));
-    }
-
-    @Bean
-    AuctionHandler auctionHandler(
-            ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog,
-            PreBidRequestContextFactory preBidRequestContextFactory,
-            CacheService cacheService,
-            Metrics metrics,
-            HttpAdapterConnector httpAdapterConnector,
-            Clock clock,
-            TcfDefinerService tcfDefinerService,
-            PrivacyEnforcementService privacyEnforcementService,
-            JacksonMapper mapper,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId) {
-
-        return new AuctionHandler(
-                applicationSettings,
-                bidderCatalog,
-                preBidRequestContextFactory,
-                cacheService,
-                metrics,
-                httpAdapterConnector,
-                clock,
-                tcfDefinerService,
-                privacyEnforcementService,
-                mapper,
-                hostVendorId
-        );
     }
 
     @Bean

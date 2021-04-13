@@ -90,7 +90,7 @@ public class YieldlabBidder implements Bidder<Void> {
                 .filter(Objects::nonNull)
                 .flatMap(map -> map.entrySet().stream())
                 .filter(entry -> entry.getKey() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (channel1, channel2) -> channel1));
 
         final String adSlotIdsParams = adSlotIds.stream().sorted().collect(Collectors.joining(AD_SLOT_ID_SEPARATOR));
         return ExtImpYieldlab.builder().adslotId(adSlotIdsParams).targeting(targeting).build();

@@ -11,14 +11,12 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
-import org.prebid.server.auction.BidResponseReducer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.SchainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
@@ -27,11 +25,11 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
+import org.prebid.server.auction.WinningBidComparator;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
-import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
@@ -60,6 +58,7 @@ import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
+import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
@@ -94,6 +93,7 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            VastModifier vastModifier,
             EventsService eventsService,
             HttpClient httpClient,
             Metrics metrics,
@@ -105,10 +105,16 @@ public class ServiceConfiguration {
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
+                vastModifier,
                 eventsService,
                 metrics,
                 clock,
                 mapper);
+    }
+
+    @Bean
+    VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService) {
+        return new VastModifier(bidderCatalog, eventsService);
     }
 
     @Bean
@@ -172,26 +178,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PreBidRequestContextFactory preBidRequestContextFactory(
-            TimeoutResolver timeoutResolver,
-            ImplicitParametersExtractor implicitParametersExtractor,
-            IpAddressHelper ipAddressHelper,
-            ApplicationSettings applicationSettings,
-            UidsCookieService uidsCookieService,
-            TimeoutFactory timeoutFactory,
-            JacksonMapper mapper) {
-
-        return new PreBidRequestContextFactory(
-                timeoutResolver,
-                implicitParametersExtractor,
-                ipAddressHelper,
-                applicationSettings,
-                uidsCookieService,
-                timeoutFactory,
-                mapper);
-    }
-
-    @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
@@ -203,7 +189,6 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             UidsCookieService uidsCookieService,
-            BidderCatalog bidderCatalog,
             RequestValidator requestValidator,
             OrtbTypesResolver ortbTypesResolver,
             TimeoutResolver timeoutResolver,
@@ -227,7 +212,6 @@ public class ServiceConfiguration {
                 implicitParametersExtractor,
                 ipAddressHelper,
                 uidsCookieService,
-                bidderCatalog,
                 requestValidator,
                 new InterstitialProcessor(),
                 ortbTypesResolver,
@@ -468,9 +452,10 @@ public class ServiceConfiguration {
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
             BidderCatalog bidderCatalog,
+            VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            BidResponseReducer bidResponseReducer,
+            WinningBidComparator winningBidComparator,
             IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
@@ -479,9 +464,10 @@ public class ServiceConfiguration {
         return new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
+                vastModifier,
                 eventsService,
                 storedRequestProcessor,
-                bidResponseReducer,
+                winningBidComparator,
                 bidIdGenerator,
                 truncateAttrChars,
                 clock,
@@ -526,6 +512,7 @@ public class ServiceConfiguration {
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             FileSystem fileSystem,
             ApplicationSettings applicationSettings,
             Metrics metrics,
@@ -536,8 +523,10 @@ public class ServiceConfiguration {
         return StoredRequestProcessor.create(
                 defaultTimeoutMs,
                 defaultBidRequestPath,
+                generateBidRequestId,
                 fileSystem,
                 applicationSettings,
+                new UUIDIdGenerator(),
                 metrics,
                 timeoutFactory,
                 mapper,
@@ -545,16 +534,15 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    BidResponseReducer bidResponseReducer() {
-        return new BidResponseReducer();
+    WinningBidComparator winningBidComparator() {
+        return new WinningBidComparator();
     }
 
     @Bean
     StoredResponseProcessor storedResponseProcessor(ApplicationSettings applicationSettings,
-                                                    BidderCatalog bidderCatalog,
                                                     JacksonMapper mapper) {
 
-        return new StoredResponseProcessor(applicationSettings, bidderCatalog, mapper);
+        return new StoredResponseProcessor(applicationSettings, mapper);
     }
 
     @Bean
@@ -574,15 +562,6 @@ public class ServiceConfiguration {
     @Bean
     PrivacyExtractor privacyExtractor() {
         return new PrivacyExtractor();
-    }
-
-    @Bean
-    HttpAdapterConnector httpAdapterConnector(HttpClient httpClient,
-                                              PrivacyExtractor privacyExtractor,
-                                              Clock clock,
-                                              JacksonMapper mapper) {
-
-        return new HttpAdapterConnector(httpClient, privacyExtractor, clock, mapper);
     }
 
     @Bean

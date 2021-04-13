@@ -134,7 +134,7 @@ If you find that some bidders use Gross bids, publishers can adjust for it with 
   "ext": {
     "prebid": {
       "bidadjustmentfactors": {
-        "appnexus: 0.8,
+        "appnexus": 0.8,
         "rubicon": 0.7
       }
     }

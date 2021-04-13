@@ -6,16 +6,15 @@ import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationPropert
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 public class UsersyncerCreator {
 
     private UsersyncerCreator() {
-
     }
 
-    public static Supplier<Usersyncer> create(UsersyncConfigurationProperties usersync, String externalUrl) {
-        return () -> createAndValidate(usersync, externalUrl);
+    public static Function<UsersyncConfigurationProperties, Usersyncer> create(String externalUrl) {
+        return usersyncConfig -> createAndValidate(usersyncConfig, externalUrl);
     }
 
     private static Usersyncer createAndValidate(UsersyncConfigurationProperties usersync, String externalUrl) {

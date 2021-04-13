@@ -52,8 +52,9 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String NURL_VIDEO_TYPE = "nurl";
+    private static final String ADM_VIDEO_TYPE = "adm";
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.9.0";
+    private static final String BEACHFRONT_VERSION = "0.9.1";
     private static final String NURL_VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
     private static final String TEST_IP = "192.168.255.255";
 
@@ -81,8 +82,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<Imp> videoImps = new ArrayList<>();
         for (Imp imp : bidRequest.getImp()) {
             final Banner banner = imp.getBanner();
-            if (banner != null
-                    && (checkFormats(banner.getFormat()) || (banner.getH() != null && banner.getW() != null))) {
+            if (checkFormats(banner)) {
                 bannerImps.add(imp);
             }
             if (imp.getVideo() != null) {
@@ -140,7 +140,8 @@ public class BeachfrontBidder implements Bidder<Void> {
                 : videoWithId;
     }
 
-    private static boolean checkFormats(List<Format> formats) {
+    private static boolean checkFormats(Banner banner) {
+        final List<Format> formats = banner != null ? banner.getFormat() : null;
         final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.get(0) : null;
         final boolean isHeightNonZero = firstFormat != null && !Objects.equals(firstFormat.getH(), 0);
         final boolean isWidthNonZero = firstFormat != null && !Objects.equals(firstFormat.getW(), 0);
@@ -306,12 +307,12 @@ public class BeachfrontBidder implements Bidder<Void> {
             }
 
             final String videoResponseType = extImpBeachfront.getVideoResponseType();
-            final String responseType = StringUtils.isBlank(videoResponseType) ? NURL_VIDEO_TYPE : videoResponseType;
+            final String responseType = StringUtils.isBlank(videoResponseType) ? ADM_VIDEO_TYPE : videoResponseType;
             final BeachfrontVideoRequest.BeachfrontVideoRequestBuilder requestBuilder = BeachfrontVideoRequest.builder()
                     .appId(appId)
                     .videoResponseType(responseType);
 
-            if (responseType.equals(NURL_VIDEO_TYPE) || responseType.equals("both")) {
+            if (responseType.equals(NURL_VIDEO_TYPE)) {
                 requestBuilder.isPrebid(true);
             }
 
@@ -327,7 +328,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             final App app = bidRequest.getApp();
             if (app != null && StringUtils.isBlank(app.getDomain()) && StringUtils.isNotBlank(app.getBundle())) {
                 final String trimmedBundle = StringUtils.removeStart(app.getBundle(), "_");
-                final String[] split = StringUtils.removeEnd(trimmedBundle, "_").split(".");
+                final String[] split = StringUtils.removeEnd(trimmedBundle, "_").split("\\.");
 
                 if (split.length > 1) {
                     bidRequestBuilder.app(app.toBuilder().domain(String.format("%s.%s", split[1], split[0])).build());

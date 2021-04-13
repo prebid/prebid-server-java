@@ -183,16 +183,6 @@ public class HttpApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyResult() {
-        // when
-        final Future<String> future = httpApplicationSettings.getAdUnitConfigById(null, null);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(PreBidException.class).hasMessage("Not supported");
-    }
-
-    @Test
     public void getStoredResponsesShouldReturnFailedFutureWithNotSupportedReason() {
         // when
         final Future<StoredResponseDataResult> future = httpApplicationSettings.getStoredResponses(null, null);

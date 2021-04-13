@@ -22,7 +22,7 @@ public class UsersyncerCreatorTest {
         config.setSupportCors(true);
 
         // when and then
-        assertThat(UsersyncerCreator.create(config, "http://localhost:8000").get())
+        assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config))
                 .extracting(usersyncer -> usersyncer.getPrimaryMethod().getRedirectUrl())
                 .containsOnly("http://localhost:8000/redirect-url");
     }
@@ -37,7 +37,7 @@ public class UsersyncerCreatorTest {
         config.setSupportCors(true);
 
         // when and then
-        assertThat(UsersyncerCreator.create(config, null).get())
+        assertThat(UsersyncerCreator.create(null).apply(config))
                 .extracting(usersyncer -> usersyncer.getPrimaryMethod().getRedirectUrl())
                 .containsOnly("");
     }
@@ -52,7 +52,7 @@ public class UsersyncerCreatorTest {
         config.setSupportCors(true);
 
         // given, when and then
-        assertThatThrownBy(() -> UsersyncerCreator.create(config, null).get())
+        assertThatThrownBy(() -> UsersyncerCreator.create(null).apply(config))
                 .hasCauseExactlyInstanceOf(MalformedURLException.class)
                 .hasMessage("URL supplied is not valid: null");
     }
@@ -77,7 +77,7 @@ public class UsersyncerCreatorTest {
         config.setSecondary(secondaryMethodConfig);
 
         // when and then
-        assertThat(UsersyncerCreator.create(config, "http://localhost:8000").get()).isEqualTo(
+        assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config)).isEqualTo(
                 Usersyncer.of(
                         "rubicon",
                         Usersyncer.UsersyncMethod.of(
@@ -111,7 +111,7 @@ public class UsersyncerCreatorTest {
         config.setSecondary(secondaryMethodConfig);
 
         // when and then
-        assertThatThrownBy(() -> UsersyncerCreator.create(config, "http://localhost:8000").get())
+        assertThatThrownBy(() -> UsersyncerCreator.create("http://localhost:8000").apply(config))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageStartingWith("Invalid usersync configuration: primary method is missing while secondary is"
                         + " present. Configuration:");

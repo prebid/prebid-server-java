@@ -1,5 +1,6 @@
 package com.iab.openrtb.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
@@ -18,6 +19,8 @@ import java.util.List;
 @Builder(toBuilder = true)
 @Value
 public class Content {
+
+    private static final Content EMPTY = Content.builder().build();
 
     /** ID uniquely identifying the content. */
     String id;
@@ -114,4 +117,9 @@ public class Content {
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */
     ObjectNode ext;
+
+    @JsonIgnore
+    public boolean isEmpty() {
+        return this.equals(EMPTY);
+    }
 }

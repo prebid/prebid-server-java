@@ -20,7 +20,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
-import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
@@ -45,7 +44,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.settings.model.Account;
 
@@ -228,44 +226,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void contextFromLegacyRequestShouldReturnContext() {
-        // given
-        final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder()
-                .preBidRequest(PreBidRequest.builder()
-                        .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
-                        .user(User.builder()
-                                .ext(ExtUser.builder()
-                                        .consent("consent")
-                                        .build())
-                                .build())
-                        .build())
-                .ip("ip")
-                .build();
-
-        final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
-                .consentString("consent")
-                .consent(TCStringEmpty.create())
-                .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(tcfContext));
-
-        final String accountId = "account";
-
-        // when
-        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromLegacyRequest(
-                preBidRequestContext, Account.empty(accountId));
-
-        // then
-        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
-        FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
-
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.legacy, null, accountId);
-        verify(tcfDefinerService)
-                .resolveTcfContext(eq(privacy), eq("ip"), isNull(), eq(expectedRequestLogInfo), isNull());
-    }
-
-    @Test
     public void contextFromSetuidRequestShouldReturnContext() {
         // given
         final HttpServerRequest request = mock(HttpServerRequest.class);
@@ -278,7 +238,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final String accountId = "account";
@@ -292,8 +252,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.setuid, null, accountId);
-        verify(tcfDefinerService)
-                .resolveTcfContext(eq(privacy), eq("ip"), isNull(), eq(expectedRequestLogInfo), isNull());
+        verify(tcfDefinerService).resolveTcfContext(
+                eq(privacy), eq("ip"), isNull(), eq(MetricName.setuid), eq(expectedRequestLogInfo), isNull());
     }
 
     @Test
@@ -314,7 +274,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final String accountId = "account";
@@ -328,8 +288,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.cookiesync, null, accountId);
-        verify(tcfDefinerService)
-                .resolveTcfContext(eq(privacy), eq("ip"), isNull(), eq(expectedRequestLogInfo), isNull());
+        verify(tcfDefinerService).resolveTcfContext(
+                eq(privacy), eq("ip"), isNull(), eq(MetricName.cookiesync), eq(expectedRequestLogInfo), isNull());
     }
 
     @Test
@@ -1177,7 +1137,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 context,
                 bidderToUser,
                 asList(bidder1Name, bidder2Name, bidder3Name),
-                BidderAliases.of(bidderCatalog))
+                BidderAliases.of(null, null, bidderCatalog))
                 .result();
 
         // then
@@ -1231,7 +1191,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, singletonList(BIDDER_NAME), BidderAliases.of(bidderCatalog))
+                .mask(context, bidderToUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null, bidderCatalog))
                 .result();
 
         // then
@@ -1530,7 +1490,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceCcpa) {
-        return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, true), enforceCcpa, false);
+        return BidderInfo.of(
+                true,
+                null,
+                null,
+                null,
+                null,
+                new BidderInfo.GdprInfo(gdprVendorId, true),
+                enforceCcpa,
+                false);
     }
 }

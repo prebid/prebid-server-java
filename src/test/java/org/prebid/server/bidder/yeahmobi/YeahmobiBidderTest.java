@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.request.yeahmobi.ExtImpYeahmobi;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,8 +61,24 @@ public class YeahmobiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid ExtImpYeahmobi value");
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid ExtImpYeahmobi value"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorOfEveryNotValidImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(givenImp(impBuilder -> impBuilder
+                                .id("123")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                        givenImp(identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Impression id=123, has invalid Ext"));
     }
 
     @Test
@@ -78,8 +95,9 @@ public class YeahmobiBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://gw-zoneId-bid.yeahtargeter.com/prebid/bid");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://gw-zoneId-bid.yeahtargeter.com/prebid/bid");
     }
 
     @Test
@@ -105,12 +123,33 @@ public class YeahmobiBidderTest extends VertxTest {
                 + "{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getXNative)
                 .extracting(Native::getRequest)
-                .containsOnly(expectedNativeRequest);
+                .containsExactly(expectedNativeRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddEmptyNativeRequestIfRequestNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().build())
+                        .xNative(Native.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getXNative)
+                .extracting(Native::getRequest)
+                .containsExactly("{\"native\":{}}");
     }
 
     @Test
@@ -136,12 +175,12 @@ public class YeahmobiBidderTest extends VertxTest {
                 + "{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getXNative)
                 .extracting(Native::getRequest)
-                .containsOnly(expectedNativeRequest);
+                .containsExactly(expectedNativeRequest);
     }
 
     @Test
@@ -153,9 +192,11 @@ public class YeahmobiBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -203,7 +244,26 @@ public class YeahmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "EUR"));
     }
 
     @Test
@@ -221,7 +281,7 @@ public class YeahmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "EUR"));
     }
 
     @Test
@@ -240,7 +300,7 @@ public class YeahmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "EUR"));
     }
 
     private static BidRequest givenBidRequest(
@@ -259,13 +319,14 @@ public class YeahmobiBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpYeahmobi.of("pubId", "zoneId")))))
+                .banner(Banner.builder().id("banner_id").build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYeahmobi.of("pubId", "zoneId")))))
                 .build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
@@ -274,7 +335,6 @@ public class YeahmobiBidderTest extends VertxTest {
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+                HttpResponse.of(200, null, body), null);
     }
 }

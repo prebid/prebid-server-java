@@ -32,7 +32,6 @@ public class TelariaTest extends IntegrationTest {
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
-                .withHeader("Accept-Encoding", equalTo("gzip"))
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("Content-Length", equalTo("633"))
                 .withHeader("DNT", equalTo("2"))
@@ -42,8 +41,11 @@ public class TelariaTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/telaria/test-cache-telaria-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/telaria/test-cache-telaria-response.json"))));
+                .withRequestBody(equalToBidCacheRequest(
+                        jsonFrom("openrtb2/telaria/test-cache-telaria-request.json")))
+                .willReturn(aResponse().withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/telaria/test-cache-matcher-telaria.json")));
 
         // when
         final Response response = given(SPEC)

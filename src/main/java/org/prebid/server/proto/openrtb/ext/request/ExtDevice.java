@@ -13,9 +13,11 @@ import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 @ToString(callSuper = true)
 public class ExtDevice extends FlexibleExtension {
 
+    Integer atts;
+
     ExtDevicePrebid prebid;
 
     public static ExtDevice empty() {
-        return of(null);
+        return of(null, null);
     }
 }
