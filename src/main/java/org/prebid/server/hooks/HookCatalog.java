@@ -1,5 +1,7 @@
-package org.prebid.server.hooks.v1;
+package org.prebid.server.hooks;
 
+import org.prebid.server.hooks.v1.Hook;
+import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
