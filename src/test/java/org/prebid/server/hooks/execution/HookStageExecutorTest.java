@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.HookCatalog;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.EntrypointPayloadImpl;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
@@ -37,7 +38,6 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
-import org.prebid.server.hooks.HookCatalog;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -403,7 +403,6 @@ public class HookStageExecutorTest extends VertxTest {
                     vertx.setTimer(50L, timerId -> promise.fail(new RuntimeException("Failed after a while")));
                     return promise.future();
                 });
-
 
         // hook implementation takes too long - in async group
         givenEntrypointHook(
@@ -960,7 +959,6 @@ public class HookStageExecutorTest extends VertxTest {
     private String executionPlan(Map<Endpoint, EndpointExecutionPlan> endpoints) {
         return jacksonMapper.encode(ExecutionPlan.of(endpoints));
     }
-
 
     private static StageExecutionPlan execPlanTwoGroupsTwoHooksEach() {
         return StageExecutionPlan.of(asList(
