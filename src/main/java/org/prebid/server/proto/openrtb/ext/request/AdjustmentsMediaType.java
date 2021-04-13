@@ -10,5 +10,12 @@ public enum AdjustmentsMediaType {
     xNative,
     video,
     @JsonProperty("video-outstream")
-    video_outstream
+    video_outstream;
+
+    @Override
+    public String toString() {
+        return this == xNative ? "native"
+                : this == video_outstream ? "video-outstream"
+                : super.toString();
+    }
 }

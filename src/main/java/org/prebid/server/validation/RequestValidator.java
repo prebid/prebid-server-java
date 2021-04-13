@@ -36,6 +36,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.AdjustmentsMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -213,6 +214,39 @@ public class RequestValidator {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %s",
                         bidder, format(adjustmentFactor));
+            }
+        }
+        final Map<AdjustmentsMediaType, Map<String, BigDecimal>> adjustmentsMediaTypeFactors = adjustmentFactors != null
+                ? adjustmentFactors.getMediatypes()
+                : null;
+
+        if (adjustmentsMediaTypeFactors == null) {
+            return;
+        }
+
+        for (Map.Entry<AdjustmentsMediaType, Map<String, BigDecimal>> entry : adjustmentsMediaTypeFactors.entrySet()) {
+            validateBidAdjustmentFactorsByMediatype(entry.getKey(), entry.getValue(), aliases);
+        }
+    }
+
+    private void validateBidAdjustmentFactorsByMediatype(AdjustmentsMediaType mediaType,
+                                                         Map<String, BigDecimal> bidderAdjustments,
+                                                         Map<String, String> aliases) throws ValidationException {
+
+        for (Map.Entry<String, BigDecimal> bidderAdjustment : bidderAdjustments.entrySet()) {
+            final String bidder = bidderAdjustment.getKey();
+
+            if (isUnknownBidderOrAlias(bidder, aliases)) {
+                throw new ValidationException(
+                        "request.ext.prebid.bidadjustmentfactors.%s.%s is not a known bidder or alias",
+                        mediaType, bidder);
+            }
+
+            final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
+            if (adjustmentFactor.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new ValidationException(
+                        "request.ext.prebid.bidadjustmentfactors.%s.%s must be a positive number. Got %s",
+                        mediaType, bidder, format(adjustmentFactor));
             }
         }
     }
