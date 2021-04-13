@@ -34,6 +34,7 @@ import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
@@ -104,6 +105,14 @@ public class HookStageExecutor {
                 timeout -> InvocationContextImpl.of(timeoutFactory.create(timeout), endpoint),
                 Stage.entrypoint,
                 context);
+    }
+
+    public Future<HookStageExecutionResult<AuctionRequestPayload>> executeRawAuctionRequestStage(
+            BidRequest bidRequest,
+            Account account,
+            HookExecutionContext context) {
+
+        return Future.succeededFuture(HookStageExecutionResult.of(false, () -> bidRequest));
     }
 
     public Future<HookStageExecutionResult<BidderRequestPayload>> executeBidderRequestStage(

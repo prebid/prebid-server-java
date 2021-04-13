@@ -15,12 +15,12 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
@@ -34,6 +34,7 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
@@ -67,11 +68,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Currency;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -105,7 +103,6 @@ public class AuctionRequestFactory {
     private final ImplicitParametersExtractor paramsExtractor;
     private final IpAddressHelper ipAddressHelper;
     private final UidsCookieService uidsCookieService;
-    private final BidderCatalog bidderCatalog;
     private final RequestValidator requestValidator;
     private final InterstitialProcessor interstitialProcessor;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -127,7 +124,6 @@ public class AuctionRequestFactory {
                                  ImplicitParametersExtractor paramsExtractor,
                                  IpAddressHelper ipAddressHelper,
                                  UidsCookieService uidsCookieService,
-                                 BidderCatalog bidderCatalog,
                                  RequestValidator requestValidator,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
@@ -149,7 +145,6 @@ public class AuctionRequestFactory {
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
@@ -189,15 +184,24 @@ public class AuctionRequestFactory {
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
         return executeEntrypointHooks(routingContext, body, hookExecutionContext)
-                .compose(httpRequest -> createBidRequest(httpRequest, errors)
-                        .compose(bidRequest -> toAuctionContext(
-                                httpRequest,
-                                bidRequest,
-                                requestTypeMetric(bidRequest),
-                                errors,
-                                startTime,
-                                timeoutResolver,
-                                hookExecutionContext)));
+                .compose(httpRequestWrapper -> parseBidRequest(httpRequestWrapper, errors)
+                        .compose(bidRequest -> getAccountAndCreatePreAuctionContext(bidRequest, startTime,
+                                httpRequestWrapper)))
+
+                .compose(preAuctionContext -> executeRawAuctionRequestHooks(preAuctionContext, hookExecutionContext)
+                        .map(preAuctionContext::with))
+
+                .compose(preAuctionContext -> updateBidRequest(preAuctionContext)
+                        .map(preAuctionContext::with))
+
+                .compose(preAuctionContext -> toAuctionContext(
+                        preAuctionContext.getHttpRequest(),
+                        preAuctionContext.getBidRequest(),
+                        preAuctionContext.getAccount(),
+                        requestTypeMetric(preAuctionContext.getBidRequest()),
+                        errors,
+                        preAuctionContext.getTimeout(),
+                        hookExecutionContext));
     }
 
     protected Future<HttpRequestWrapper> executeEntrypointHooks(RoutingContext routingContext,
@@ -231,11 +235,73 @@ public class AuctionRequestFactory {
                 .build();
     }
 
+    private Future<BidRequest> parseBidRequest(HttpRequestWrapper httpRequest, List<String> errors) {
+        try {
+            final JsonNode bidRequestNode = bodyAsJsonNode(httpRequest.getBody());
+
+            final String referer = paramsExtractor.refererFrom(httpRequest);
+            ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
+
+            return Future.succeededFuture(jsonNodeAsBidRequest(bidRequestNode));
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+    }
+
+    private Future<PreAuctionContext> getAccountAndCreatePreAuctionContext(BidRequest bidRequest,
+                                                                           long startTime,
+                                                                           HttpRequestWrapper httpRequestWrapper) {
+        final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
+        return accountFrom(bidRequest, timeout, httpRequestWrapper)
+                .map(account -> PreAuctionContext.of(account, timeout, bidRequest, httpRequestWrapper));
+    }
+
+    private Future<BidRequest> executeRawAuctionRequestHooks(PreAuctionContext preAuctionContext,
+                                                             HookExecutionContext hookExecutionContext) {
+        final BidRequest bidRequest = preAuctionContext.getBidRequest();
+        final Account account = preAuctionContext.getAccount();
+        return hookStageExecutor.executeRawAuctionRequestStage(bidRequest, account, hookExecutionContext)
+                .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
+    }
+
+    private BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
+                                    HookExecutionContext hookExecutionContext) {
+        if (stageResult.isShouldReject()) {
+            throw new RejectedRequestException(hookExecutionContext);
+        }
+
+        return stageResult.getPayload().bidRequest();
+    }
+
     /**
      * Returns filled out {@link AuctionContext} based on given arguments.
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
+    Future<AuctionContext> toAuctionContext(HttpRequestWrapper httpRequest,
+                                            BidRequest bidRequest,
+                                            Account account,
+                                            MetricName requestTypeMetric,
+                                            List<String> errors,
+                                            Timeout timeout,
+                                            HookExecutionContext hookExecutionContext) {
+
+        return privacyEnforcementService.contextFromBidRequest(bidRequest, account, requestTypeMetric, timeout, errors)
+                .map(privacyContext -> AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
+                        .bidRequest(enrichBidRequestWithAccountAndPrivacyData(bidRequest, account, privacyContext))
+                        .requestTypeMetric(requestTypeMetric)
+                        .timeout(timeout)
+                        .account(account)
+                        .prebidErrors(errors)
+                        .debugWarnings(new ArrayList<>())
+                        .privacyContext(privacyContext)
+                        .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                        .hookExecutionContext(hookExecutionContext)
+                        .build());
+    }
+
     Future<AuctionContext> toAuctionContext(HttpRequestWrapper httpRequest,
                                             BidRequest bidRequest,
                                             MetricName requestTypeMetric,
@@ -247,22 +313,8 @@ public class AuctionRequestFactory {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
         return accountFrom(bidRequest, timeout, httpRequest)
-                .compose(account -> privacyEnforcementService.contextFromBidRequest(
-                        bidRequest, account, requestTypeMetric, timeout, errors)
-                        .map(privacyContext -> AuctionContext.builder()
-                                .httpRequest(httpRequest)
-                                .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
-                                .bidRequest(enrichBidRequestWithAccountAndPrivacyData(
-                                        bidRequest, account, privacyContext))
-                                .requestTypeMetric(requestTypeMetric)
-                                .timeout(timeout)
-                                .account(account)
-                                .prebidErrors(errors)
-                                .debugWarnings(new ArrayList<>())
-                                .privacyContext(privacyContext)
-                                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
-                                .hookExecutionContext(hookExecutionContext)
-                                .build()));
+                .compose(account -> toAuctionContext(httpRequest, bidRequest, account, requestTypeMetric, errors,
+                        timeout, hookExecutionContext));
     }
 
     private String extractAndValidateBody(RoutingContext context) {
@@ -277,15 +329,6 @@ public class AuctionRequestFactory {
         }
 
         return body;
-    }
-
-    private BidRequest parseRequest(HttpRequestWrapper httpRequest, List<String> errors) {
-        final JsonNode bidRequestNode = bodyAsJsonNode(httpRequest.getBody());
-
-        final String referer = paramsExtractor.refererFrom(httpRequest);
-        ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
-
-        return jsonNodeAsBidRequest(bidRequestNode);
     }
 
     private JsonNode bodyAsJsonNode(String body) {
@@ -305,18 +348,14 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Parses {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
+     * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> createBidRequest(HttpRequestWrapper httpRequest, List<String> errors) {
-        final BidRequest bidRequest;
-        try {
-            bidRequest = parseRequest(httpRequest, errors);
-        } catch (Exception e) {
-            return Future.failedFuture(e);
-        }
-
-        return storedRequestProcessor.processStoredRequests(accountIdFrom(bidRequest), bidRequest)
+    private Future<BidRequest> updateBidRequest(PreAuctionContext preAuctionContext) {
+        final Account account = preAuctionContext.getAccount();
+        final BidRequest bidRequest = preAuctionContext.getBidRequest();
+        final HttpRequestWrapper httpRequest = preAuctionContext.getHttpRequest();
+        return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, httpRequest, timeoutResolver))
                 .map(this::validateRequest)
                 .map(interstitialProcessor::process);
@@ -711,18 +750,15 @@ public class AuctionRequestFactory {
         final ExtRequestPrebid prebid = ext.getPrebid();
 
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, getImpMediaTypes(imps));
-        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
         final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
         final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest);
 
-        if (updatedTargeting != null || updatedAliases != null || updatedCache != null || updatedChannel != null) {
+        if (updatedTargeting != null || updatedCache != null || updatedChannel != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
 
             return ExtRequest.of(prebidBuilder
-                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
-                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
                     .cache(ObjectUtils.defaultIfNull(updatedCache,
@@ -859,41 +895,6 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Returns aliases according to request.imp[i].ext.{bidder}
-     * or null (if no aliases at all or they are already presented in request).
-     */
-    private Map<String, String> aliasesOrNull(ExtRequestPrebid prebid, List<Imp> imps) {
-        final Map<String, String> aliases = getIfNotNullOrDefault(prebid, ExtRequestPrebid::getAliases,
-                Collections.emptyMap());
-
-        // go through imps' bidders and figure out preconfigured aliases
-        final Map<String, String> resolvedAliases = imps.stream()
-                .filter(Objects::nonNull)
-                .filter(imp -> imp.getExt() != null) // request validator is not called yet
-                .flatMap(imp -> StreamUtil.asStream(biddersFromImp(imp))
-                        .filter(bidder -> !aliases.containsKey(bidder))
-                        .filter(bidderCatalog::isAlias))
-                .distinct()
-                .collect(Collectors.toMap(Function.identity(), bidderCatalog::nameByAlias));
-
-        final Map<String, String> result;
-        if (resolvedAliases.isEmpty()) {
-            result = null;
-        } else {
-            result = new HashMap<>(aliases);
-            result.putAll(resolvedAliases);
-        }
-        return result;
-    }
-
-    private Iterator<String> biddersFromImp(Imp imp) {
-        final JsonNode extPrebid = imp.getExt().get(PREBID_EXT);
-        final JsonNode extPrebidBidder = isObjectNode(extPrebid) ? extPrebid.get(BIDDER_EXT) : null;
-
-        return isObjectNode(extPrebidBidder) ? extPrebidBidder.fieldNames() : Collections.emptyIterator();
-    }
-
-    /**
      * Returns populated {@link ExtRequestPrebidCache} or null if no changes were applied.
      */
     private ExtRequestPrebidCache cacheOrNull(ExtRequestPrebid prebid) {
@@ -960,10 +961,6 @@ public class AuctionRequestFactory {
         return target != null ? getter.apply(target) : null;
     }
 
-    private static <T, R> R getIfNotNullOrDefault(T target, Function<T, R> getter, R defaultValue) {
-        return ObjectUtils.defaultIfNull(getIfNotNull(target, getter), defaultValue);
-    }
-
     /**
      * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
      */
@@ -979,7 +976,8 @@ public class AuctionRequestFactory {
      * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
     private Timeout timeout(BidRequest bidRequest, long startTime, TimeoutResolver timeoutResolver) {
-        final long timeout = timeoutResolver.adjustTimeout(bidRequest.getTmax());
+        final long resolvedRequestTimeout = timeoutResolver.resolve(bidRequest.getTmax());
+        final long timeout = timeoutResolver.adjustTimeout(resolvedRequestTimeout);
         return timeoutFactory.create(startTime, timeout);
     }
 
@@ -999,8 +997,8 @@ public class AuctionRequestFactory {
         return blankAccountId
                 ? responseForEmptyAccount(httpRequest)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
+                        .compose(this::ensureAccountActive,
+                                exception -> accountFallback(exception, accountId, httpRequest));
     }
 
     /**
@@ -1148,5 +1146,21 @@ public class AuctionRequestFactory {
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {
         return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
+    }
+
+    @Value(staticConstructor = "of")
+    private static class PreAuctionContext {
+
+        Account account;
+
+        Timeout timeout;
+
+        BidRequest bidRequest;
+
+        HttpRequestWrapper httpRequest;
+
+        public PreAuctionContext with(BidRequest bidRequest) {
+            return of(this.account, this.timeout, bidRequest, this.httpRequest);
+        }
     }
 }

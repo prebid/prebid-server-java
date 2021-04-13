@@ -47,9 +47,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
@@ -2743,7 +2743,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldEmptyValidationMessagesWhenBidderIsKnownAndAdjustmentIsValid() {
+    public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownAndAdjustmentIsValid() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(
@@ -2759,7 +2759,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldEmptyValidationMessagesWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
+    public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
         // given
         final String rubiconAlias = "rubicon_alias";
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -2778,23 +2778,22 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldEmptyValidationMessagesWhenBidderIsKnownBidderConfigAliasAndAdjustmentIsValid() {
+    public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownBidderConfigAliasAndAdjustmentIsValid() {
         // given
         final String rubiconAlias = "rubicon_alias";
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(
                         ExtRequestPrebid.builder()
+                                .aliases(singletonMap(rubiconAlias, "rubicon"))
                                 .bidadjustmentfactors(singletonMap(rubiconAlias, BigDecimal.valueOf(1.1)))
                                 .build()))
                 .build();
-
-        given(bidderCatalog.isAlias(any())).willReturn(true);
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        verify(bidderCatalog).isAlias(rubiconAlias);
+        verify(bidderCatalog).isValidName(rubiconAlias);
 
         assertThat(result.getErrors()).isEmpty();
     }
