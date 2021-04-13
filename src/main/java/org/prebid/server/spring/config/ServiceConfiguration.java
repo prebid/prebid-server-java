@@ -180,7 +180,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    Ortb2ImplicitParametersResolver implicitParametersInjector(
+    Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,

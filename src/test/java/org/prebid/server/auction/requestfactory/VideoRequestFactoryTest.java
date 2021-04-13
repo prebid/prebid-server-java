@@ -64,7 +64,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Mock
     private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
-    private Ortb2ImplicitParametersResolver implicitParametersInjector;
+    private Ortb2ImplicitParametersResolver paramsResolver;
     @Mock
     private VideoStoredRequestProcessor videoStoredRequestProcessor;
     @Mock
@@ -94,7 +94,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 Integer.MAX_VALUE,
                 false,
                 ortb2RequestFactory,
-                implicitParametersInjector,
+                paramsResolver,
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
@@ -126,7 +126,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 Integer.MAX_VALUE,
                 true,
                 ortb2RequestFactory,
-                implicitParametersInjector,
+                paramsResolver,
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
@@ -149,7 +149,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 2,
                 true,
                 ortb2RequestFactory,
-                implicitParametersInjector,
+                paramsResolver,
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
@@ -241,7 +241,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(ortb2RequestFactory).fetchAccountAndCreateAuctionContext(
                 routingContext, bidRequest, MetricName.video, 0, new ArrayList<>());
         verify(ortb2RequestFactory).validateRequest(bidRequest);
-        verify(implicitParametersInjector).resolve(bidRequest, routingContext, timeoutResolver);
+        verify(paramsResolver).resolve(bidRequest, routingContext, timeoutResolver);
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(eq(bidRequest), any(), any());
 
         assertThat(result.result().getData().getBidRequest()).isEqualTo(bidRequest);
@@ -296,7 +296,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                                 .build()));
 
         given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
-        given(implicitParametersInjector.resolve(any(), any(), any()))
+        given(paramsResolver.resolve(any(), any(), any()))
                 .willAnswer(answerWithFirstArgument());
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any(), any(), any()))

@@ -31,7 +31,7 @@ public class AuctionRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
-    private final Ortb2ImplicitParametersResolver paramsInjector;
+    private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
@@ -42,7 +42,7 @@ public class AuctionRequestFactory {
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
-                                 Ortb2ImplicitParametersResolver paramsInjector,
+                                 Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
                                  PrivacyEnforcementService privacyEnforcementService,
@@ -53,7 +53,7 @@ public class AuctionRequestFactory {
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
-        this.paramsInjector = Objects.requireNonNull(paramsInjector);
+        this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -147,7 +147,7 @@ public class AuctionRequestFactory {
         final RoutingContext routingContext = auctionContext.getRoutingContext();
 
         return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
-                .map(resolvedBidRequest -> paramsInjector.resolve(resolvedBidRequest, routingContext, timeoutResolver))
+                .map(resolvedBidRequest -> paramsResolver.resolve(resolvedBidRequest, routingContext, timeoutResolver))
                 .map(ortb2RequestFactory::validateRequest)
                 .map(interstitialProcessor::process);
     }

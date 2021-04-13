@@ -40,7 +40,7 @@ public class VideoRequestFactory {
     private final boolean enforceStoredRequest;
 
     private final Ortb2RequestFactory ortb2RequestFactory;
-    private final Ortb2ImplicitParametersResolver implicitParametersInjector;
+    private final Ortb2ImplicitParametersResolver paramsResolver;
     private final VideoStoredRequestProcessor storedRequestProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
@@ -49,7 +49,7 @@ public class VideoRequestFactory {
     public VideoRequestFactory(int maxRequestSize,
                                boolean enforceStoredRequest,
                                Ortb2RequestFactory ortb2RequestFactory,
-                               Ortb2ImplicitParametersResolver implicitParametersInjector,
+                               Ortb2ImplicitParametersResolver paramsResolver,
                                VideoStoredRequestProcessor storedRequestProcessor,
                                PrivacyEnforcementService privacyEnforcementService,
                                TimeoutResolver timeoutResolver,
@@ -58,7 +58,7 @@ public class VideoRequestFactory {
         this.enforceStoredRequest = enforceStoredRequest;
         this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
-        this.implicitParametersInjector = Objects.requireNonNull(implicitParametersInjector);
+        this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
@@ -212,7 +212,7 @@ public class VideoRequestFactory {
     private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(RoutingContext routingContext,
                                                                         WithPodErrors<BidRequest> bidRequestToErrors) {
         final BidRequest bidRequest = bidRequestToErrors.getData();
-        final BidRequest updatedBidRequest = implicitParametersInjector.resolve(bidRequest, routingContext,
+        final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, routingContext,
                 timeoutResolver);
         final BidRequest validBidRequest = ortb2RequestFactory.validateRequest(updatedBidRequest);
         return WithPodErrors.of(validBidRequest, bidRequestToErrors.getPodErrors());
