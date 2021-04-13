@@ -45,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
@@ -136,9 +137,7 @@ public class RequestValidator {
                 }
                 aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
                 validateAliases(aliases);
-                validateBidAdjustmentFactors(
-                        ObjectUtils.defaultIfNull(extRequestPrebid.getBidadjustmentfactors(), Collections.emptyMap()),
-                        aliases);
+                validateBidAdjustmentFactors(extRequestPrebid.getBidadjustmentfactors(), aliases);
                 validateExtBidPrebidData(extRequestPrebid.getData(), aliases);
                 validateSchains(extRequestPrebid.getSchains());
             }
@@ -194,10 +193,14 @@ public class RequestValidator {
         }
     }
 
-    private void validateBidAdjustmentFactors(Map<String, BigDecimal> adjustmentFactors, Map<String, String> aliases)
-            throws ValidationException {
+    private void validateBidAdjustmentFactors(ExtRequestBidadjustmentfactors adjustmentFactors,
+                                              Map<String, String> aliases) throws ValidationException {
 
-        for (Map.Entry<String, BigDecimal> bidderAdjustment : adjustmentFactors.entrySet()) {
+        final Map<String, BigDecimal> bidderAdjustments = adjustmentFactors != null
+                ? adjustmentFactors.getAdjustments()
+                : Collections.emptyMap();
+
+        for (Map.Entry<String, BigDecimal> bidderAdjustment : bidderAdjustments.entrySet()) {
             final String bidder = bidderAdjustment.getKey();
 
             if (isUnknownBidderOrAlias(bidder, aliases)) {

@@ -57,6 +57,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.AdjustmentsMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
@@ -64,6 +65,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
@@ -71,8 +73,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
@@ -98,6 +100,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -2189,10 +2192,13 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()))));
 
+        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        givenAdjustments.addFactor("bidder", BigDecimal.valueOf(10));
+
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(emptyMap())
-                        .bidadjustmentfactors(singletonMap("bidder", BigDecimal.valueOf(10)))
+                        .bidadjustmentfactors(givenAdjustments)
                         .auctiontimestamp(1000L)
                         .build())));
 
@@ -2529,23 +2535,92 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
+        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
+
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(emptyMap())
-                        .bidadjustmentfactors(singletonMap("bidder", BigDecimal.valueOf(2.468)))
+                        .bidadjustmentfactors(givenAdjustments)
                         .auctiontimestamp(1000L)
                         .build())));
 
-        givenBidResponseCreator(singletonList(Bid.builder().price(BigDecimal.valueOf(4.936)).build()));
-
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        assertThat(bidResponse.getSeatbid())
-                .flatExtracting(SeatBid::getBid)
+        final List<BidderResponse> capturedBidResponses = captureBidResponse();
+        assertThat(capturedBidResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(BidderBid::getBid)
                 .extracting(Bid::getPrice)
                 .containsExactly(BigDecimal.valueOf(4.936));
+    }
+
+    @Test
+    public void shouldReturnBidsWithAdjustedPricesWhenAdjustmentMediaFactorPresent() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("bidder", bidder, givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
+
+        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(AdjustmentsMediaType.banner,
+                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(emptyMap())
+                        .bidadjustmentfactors(givenAdjustments)
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final List<BidderResponse> capturedBidResponses = captureBidResponse();
+        assertThat(capturedBidResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(BigDecimal.valueOf(6.912));
+    }
+
+    @Test
+    public void shouldAdjustPriceWithPriorityForMediaTypeAdjustment() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("bidder", bidder, givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
+
+        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(AdjustmentsMediaType.banner,
+                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .build();
+        givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(emptyMap())
+                        .bidadjustmentfactors(givenAdjustments)
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final List<BidderResponse> capturedBidResponses = captureBidResponse();
+        assertThat(capturedBidResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(BigDecimal.valueOf(6.912));
     }
 
     @Test
@@ -2556,12 +2631,15 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 givenBid(Bid.builder().price(BigDecimal.ONE).build()))));
 
+        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        givenAdjustments.addFactor("some-other-bidder", BigDecimal.TEN);
+
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(emptyMap())
                         .auctiontimestamp(1000L)
                         .currency(ExtRequestCurrency.of(null, false))
-                        .bidadjustmentfactors(singletonMap("some-other-bidder", BigDecimal.TEN))
+                        .bidadjustmentfactors(givenAdjustments)
                         .build())));
 
         // when
@@ -2593,6 +2671,12 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         return bidRequestCaptor.getValue().getBidRequest();
+    }
+
+    private List<BidderResponse> captureBidResponse() {
+        final ArgumentCaptor<List<BidderResponse>> bidderResponseCaptor = ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(bidderResponseCaptor.capture(), any(), any(), any(), anyBoolean());
+        return bidderResponseCaptor.getValue();
     }
 
     private static BidRequest givenBidRequest(
