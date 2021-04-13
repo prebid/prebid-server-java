@@ -33,6 +33,7 @@ import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
@@ -336,10 +337,6 @@ public class HookStageExecutor {
             Stage stage,
             HookExecutionContext hookExecutionContext) {
 
-        final StageExecutionOutcome stageExecutionOutcome = StageExecutionOutcome.of(stageResult.groupResults().stream()
-                .map(groupResult -> GroupExecutionOutcome.of(groupResult.hookExecutionOutcomes()))
-                .collect(Collectors.toList()));
-
         hookExecutionContext.getStageOutcomes().put(stage, stageResult.toStageExecutionOutcome());
 
         return stageResult.shouldReject()
@@ -372,19 +369,21 @@ public class HookStageExecutor {
 
             hookExecutionOutcomes.add(toExecutionOutcome(invocationResult, hookId, executionTime));
 
-            switch (invocationResult.action()) {
-                case reject:
-                    shouldReject = true;
-                    payload = null;
-                    break;
-                case update:
-                    payload = invocationResult.payloadUpdate().apply(payload);
-                    break;
-                case no_action:
-                    break;
-                default:
-                    throw new IllegalStateException(
-                            String.format("Unknown invocation action %s", invocationResult.action()));
+            if (invocationResult.status() == InvocationStatus.success && invocationResult.action() != null) {
+                switch (invocationResult.action()) {
+                    case reject:
+                        shouldReject = true;
+                        payload = null;
+                        break;
+                    case update:
+                        payload = applyPayloadUpdate(invocationResult.payloadUpdate());
+                        break;
+                    case no_action:
+                        break;
+                    default:
+                        throw new IllegalStateException(
+                                String.format("Unknown invocation action %s", invocationResult.action()));
+                }
             }
 
             return this;
@@ -436,6 +435,10 @@ public class HookStageExecutor {
         }
 
         private static ExecutionStatus toExecutionStatus(InvocationStatus status) {
+            if (status == null) {
+                return null;
+            }
+
             switch (status) {
                 case success:
                     return ExecutionStatus.success;
@@ -447,6 +450,10 @@ public class HookStageExecutor {
         }
 
         private static ExecutionAction toExecutionAction(InvocationAction action) {
+            if (action == null) {
+                return null;
+            }
+
             switch (action) {
                 case reject:
                     return ExecutionAction.reject;
@@ -456,6 +463,20 @@ public class HookStageExecutor {
                     return ExecutionAction.no_action;
                 default:
                     throw new IllegalStateException(String.format("Unknown invocation action %s", action));
+            }
+        }
+
+        private T applyPayloadUpdate(PayloadUpdate<T> payloadUpdate) {
+            if (payloadUpdate == null) {
+                // TODO: log error?
+                return payload;
+            }
+
+            try {
+                return payloadUpdate.apply(payload);
+            } catch (Exception e) {
+                // TODO: log error?
+                return payload;
             }
         }
     }
