@@ -51,6 +51,7 @@
         <iabtcf.version>2.0.7</iabtcf.version>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
+        <spotbugs.version>3.1.12</spotbugs.version>
 
         <mbid.version>1.0-SNAPSHOT</mbid.version>
 
@@ -72,6 +73,7 @@
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
         <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
+        <spotbugs.maven.plugin.version>3.1.11</spotbugs.maven.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -674,6 +676,33 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <version>${spotbugs.maven.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <effort>Max</effort>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.github.spotbugs</groupId>
+                                <artifactId>spotbugs</artifactId>
+                                <version>${spotbugs.version}</version>
+                                <scope>compile</scope>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <effort>Max</effort>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
