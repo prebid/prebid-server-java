@@ -28,7 +28,7 @@
     }
   ],
   "device": {
-    "ua" : "userAgent",
+    "ua": "userAgent",
     "pxratio": 4.2,
     "dnt": 2,
     "language": "en",
