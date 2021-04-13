@@ -33,7 +33,9 @@
                 "win": "{{ event.url }}t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs",
                 "imp": "{{ event.url }}t=imp&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
               }
-            }
+            },
+            "origbidcpm": 0.9,
+            "origbidcur": "USD"
           }
         },
         {
@@ -86,7 +88,9 @@
                 "bid_ad_type": 0,
                 "ranking_price": 0.0
               }
-            }
+            },
+            "origbidcpm": 5.5,
+            "origbidcur": "USD"
           }
         },
         {
@@ -138,7 +142,9 @@
                 "bidder_id": 2,
                 "bid_ad_type": 3
               }
-            }
+            },
+            "origbidcpm": 1.0,
+            "origbidcur": "USD"
           }
         }
       ],
@@ -193,7 +199,9 @@
                 "bid_ad_type": 0,
                 "ranking_price": 0.0
               }
-            }
+            },
+            "origbidcpm": 5.00,
+            "origbidcur": "USD"
           }
         }
       ],
@@ -227,7 +235,9 @@
                 "win": "{{ event.url }}t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs",
                 "imp": "{{ event.url }}t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
               }
-            }
+            },
+            "origbidcpm": 0.8,
+            "origbidcur": "USD"
           }
         },
         {
@@ -284,7 +294,8 @@
                   }
                 ]
               }
-            }
+            },
+            "origbidcpm": 8.43
           }
         },
         {
@@ -322,7 +333,8 @@
                   "cacheId": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e"
                 }
               }
-            }
+            },
+            "origbidcpm": 4.26
           }
         }
       ],

@@ -99,6 +99,8 @@ public class BidResponseCreator {
 
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
+    private static final String ORIGINAL_BID_CPM = "origbidcpm";
+    private static final String ORIGINAL_BID_CURRENCY = "origbidcur";
     private static final String SKADN_PROPERTY = "skadn";
     private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
 
@@ -362,12 +364,18 @@ public class BidResponseCreator {
                 .map(BidderSeatBid::getBids)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bidderBid -> toBidInfo(bidderBid.getBid(), bidderBid.getType(), imps, bidderResponse.getBidder(),
+                .map(bidderBid ->
+                        toBidInfo(bidderBid.getBid(),
+                        bidderBid.getBidCurrency(),
+                        bidderBid.getType(),
+                        imps,
+                        bidderResponse.getBidder(),
                         bidIdToGeneratedBidId))
                 .collect(Collectors.toList());
     }
 
     private BidInfo toBidInfo(Bid bid,
+                              String bidCurrency,
                               BidType type,
                               List<Imp> imps,
                               String bidder,
@@ -375,6 +383,7 @@ public class BidResponseCreator {
         return BidInfo.builder()
                 .generatedBidId(bidIdToGeneratedBidId.get(bid.getId()))
                 .bid(bid)
+                .bidCurrency(bidCurrency)
                 .bidType(type)
                 .bidder(bidder)
                 .correspondingImp(correspondingImp(bid, imps))
@@ -931,6 +940,16 @@ public class BidResponseCreator {
                 .build();
 
         bid.setExt(createBidExt(bid.getExt(), extBidPrebid));
+
+        final BigDecimal originalBidPrice = bid.getPrice();
+        if (Objects.nonNull(originalBidPrice)) {
+            bid.getExt().put(ORIGINAL_BID_CPM, originalBidPrice);
+        }
+
+        final String originalBidCurrency = bidInfo.getBidCurrency();
+        if (StringUtils.isNotBlank(originalBidCurrency)) {
+            bid.getExt().put(ORIGINAL_BID_CURRENCY, originalBidCurrency);
+        }
 
         final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
         bid.setExp(ttl);
