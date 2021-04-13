@@ -84,7 +84,7 @@ public class AmpRequestFactory {
     private final StoredRequestProcessor storedRequestProcessor;
     private final OrtbTypesResolver ortbTypesResolver;
     private final ImplicitParametersExtractor implicitParametersExtractor;
-    private final AuctionImplicitParametersInjector auctionImplicitParametersInjector;
+    private final Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver;
     private final FpdResolver fpdResolver;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
@@ -94,7 +94,7 @@ public class AmpRequestFactory {
                              Ortb2RequestFactory ortb2RequestFactory,
                              OrtbTypesResolver ortbTypesResolver,
                              ImplicitParametersExtractor implicitParametersExtractor,
-                             AuctionImplicitParametersInjector auctionImplicitParametersInjector,
+                             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
                              FpdResolver fpdResolver,
                              PrivacyEnforcementService privacyEnforcementService,
                              TimeoutResolver timeoutResolver,
@@ -104,7 +104,7 @@ public class AmpRequestFactory {
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
-        this.auctionImplicitParametersInjector = Objects.requireNonNull(auctionImplicitParametersInjector);
+        this.ortb2ImplicitParametersResolver = Objects.requireNonNull(ortb2ImplicitParametersResolver);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -148,8 +148,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))
-                .map(bidRequest -> auctionImplicitParametersInjector.fillImplicitParameters(bidRequest, context,
-                        timeoutResolver))
+                .map(bidRequest -> ortb2ImplicitParametersResolver.resolve(bidRequest, context, timeoutResolver))
                 .map(ortb2RequestFactory::validateRequest)
                 .map(bidRequest -> Tuple2.of(bidRequest, errors));
     }

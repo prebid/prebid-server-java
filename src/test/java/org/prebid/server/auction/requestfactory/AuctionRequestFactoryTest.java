@@ -66,7 +66,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
-    private AuctionImplicitParametersInjector paramsInjector;
+    private Ortb2ImplicitParametersResolver paramsInjector;
     @Mock
     private InterstitialProcessor interstitialProcessor;
     @Mock
@@ -109,7 +109,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
-        given(paramsInjector.fillImplicitParameters(any(), any(), any()))
+        given(paramsInjector.resolve(any(), any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
         given(ortb2RequestFactory.validateRequest(any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -395,7 +395,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(paramsInjector.fillImplicitParameters(any(), any(), any())).willReturn(updatedBidRequest);
+        given(paramsInjector.resolve(any(), any(), any())).willReturn(updatedBidRequest);
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();

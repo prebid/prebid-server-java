@@ -31,7 +31,7 @@ public class AuctionRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
-    private final AuctionImplicitParametersInjector paramsInjector;
+    private final Ortb2ImplicitParametersResolver paramsInjector;
     private final InterstitialProcessor interstitialProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
@@ -42,7 +42,7 @@ public class AuctionRequestFactory {
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
-                                 AuctionImplicitParametersInjector paramsInjector,
+                                 Ortb2ImplicitParametersResolver paramsInjector,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
                                  PrivacyEnforcementService privacyEnforcementService,
@@ -147,8 +147,7 @@ public class AuctionRequestFactory {
         final RoutingContext routingContext = auctionContext.getRoutingContext();
 
         return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
-                .map(resolvedBidRequest -> paramsInjector.fillImplicitParameters(resolvedBidRequest,
-                        routingContext, timeoutResolver))
+                .map(resolvedBidRequest -> paramsInjector.resolve(resolvedBidRequest, routingContext, timeoutResolver))
                 .map(ortb2RequestFactory::validateRequest)
                 .map(interstitialProcessor::process);
     }

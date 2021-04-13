@@ -40,7 +40,7 @@ public class VideoRequestFactory {
     private final boolean enforceStoredRequest;
 
     private final Ortb2RequestFactory ortb2RequestFactory;
-    private final AuctionImplicitParametersInjector implicitParametersInjector;
+    private final Ortb2ImplicitParametersResolver implicitParametersInjector;
     private final VideoStoredRequestProcessor storedRequestProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
@@ -49,7 +49,7 @@ public class VideoRequestFactory {
     public VideoRequestFactory(int maxRequestSize,
                                boolean enforceStoredRequest,
                                Ortb2RequestFactory ortb2RequestFactory,
-                               AuctionImplicitParametersInjector implicitParametersInjector,
+                               Ortb2ImplicitParametersResolver implicitParametersInjector,
                                VideoStoredRequestProcessor storedRequestProcessor,
                                PrivacyEnforcementService privacyEnforcementService,
                                TimeoutResolver timeoutResolver,
@@ -212,8 +212,8 @@ public class VideoRequestFactory {
     private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(RoutingContext routingContext,
                                                                         WithPodErrors<BidRequest> bidRequestToErrors) {
         final BidRequest bidRequest = bidRequestToErrors.getData();
-        final BidRequest updatedBidRequest = implicitParametersInjector.fillImplicitParameters(bidRequest,
-                routingContext, timeoutResolver);
+        final BidRequest updatedBidRequest = implicitParametersInjector.resolve(bidRequest, routingContext,
+                timeoutResolver);
         final BidRequest validBidRequest = ortb2RequestFactory.validateRequest(updatedBidRequest);
         return WithPodErrors.of(validBidRequest, bidRequestToErrors.getPodErrors());
     }

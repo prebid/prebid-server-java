@@ -25,7 +25,7 @@ import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparator;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
-import org.prebid.server.auction.requestfactory.AuctionImplicitParametersInjector;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
@@ -180,7 +180,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AuctionImplicitParametersInjector implicitParametersInjector(
+    Ortb2ImplicitParametersResolver implicitParametersInjector(
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
@@ -191,7 +191,7 @@ public class ServiceConfiguration {
 
         final List<String> blacklistedApps = splitToList(blacklistedAppsString);
 
-        return new AuctionImplicitParametersInjector(
+        return new Ortb2ImplicitParametersResolver(
                 shouldCacheOnlyWinningBids,
                 adServerCurrency,
                 blacklistedApps,
@@ -229,7 +229,7 @@ public class ServiceConfiguration {
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
-            AuctionImplicitParametersInjector auctionImplicitParametersInjector,
+            Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver timeoutResolver,
@@ -240,7 +240,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 implicitParametersExtractor,
-                auctionImplicitParametersInjector,
+                ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
                 ortbTypesResolver,
                 privacyEnforcementService,
@@ -267,7 +267,7 @@ public class ServiceConfiguration {
                                         Ortb2RequestFactory ortb2RequestFactory,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
-                                        AuctionImplicitParametersInjector auctionImplicitParametersInjector,
+                                        Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
                                         FpdResolver fpdResolver,
                                         PrivacyEnforcementService privacyEnforcementService,
                                         TimeoutResolver timeoutResolver,
@@ -278,7 +278,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 ortbTypesResolver,
                 implicitParametersExtractor,
-                auctionImplicitParametersInjector,
+                ortb2ImplicitParametersResolver,
                 fpdResolver,
                 privacyEnforcementService,
                 timeoutResolver,
@@ -291,7 +291,7 @@ public class ServiceConfiguration {
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             VideoStoredRequestProcessor storedRequestProcessor,
             Ortb2RequestFactory ortb2RequestFactory,
-            AuctionImplicitParametersInjector auctionImplicitParametersInjector,
+            Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver timeoutResolver,
             JacksonMapper mapper) {
@@ -300,7 +300,7 @@ public class ServiceConfiguration {
                 maxRequestSize,
                 enforceStoredRequest,
                 ortb2RequestFactory,
-                auctionImplicitParametersInjector,
+                ortb2ImplicitParametersResolver,
                 storedRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,

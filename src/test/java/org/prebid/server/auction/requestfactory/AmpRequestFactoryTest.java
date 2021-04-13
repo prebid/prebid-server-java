@@ -92,7 +92,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Mock
     private ImplicitParametersExtractor implicitParametersExtractor;
     @Mock
-    private AuctionImplicitParametersInjector auctionImplicitParametersInjector;
+    private Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver;
     @Mock
     private FpdResolver fpdResolver;
     @Mock
@@ -140,7 +140,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 ortb2RequestFactory,
                 ortbTypesResolver,
                 implicitParametersExtractor,
-                auctionImplicitParametersInjector,
+                ortb2ImplicitParametersResolver,
                 fpdResolver,
                 privacyEnforcementService,
                 timeoutResolver,
@@ -549,7 +549,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(auctionImplicitParametersInjector).fillImplicitParameters(captor.capture(), any(), any());
+        verify(ortb2ImplicitParametersResolver).resolve(captor.capture(), any(), any());
 
         assertThat(captor.getValue().getTest()).isEqualTo(1);
     }
@@ -569,7 +569,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(auctionImplicitParametersInjector).fillImplicitParameters(captor.capture(), any(), any());
+        verify(ortb2ImplicitParametersResolver).resolve(captor.capture(), any(), any());
 
         final ExtRequest extRequest = captor.getValue().getExt();
         assertThat(extRequest.getPrebid().getDebug()).isEqualTo(1);
@@ -1506,7 +1506,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(auctionImplicitParametersInjector.fillImplicitParameters(any(), any(), any()))
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any()))
                 .willReturn(updatedBidRequest);
 
         // when
@@ -1556,7 +1556,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
                                 .build()));
 
-        given(auctionImplicitParametersInjector.fillImplicitParameters(any(), any(), any())).willAnswer(
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any())).willAnswer(
                 answerWithFirstArgument());
         given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
 

@@ -60,7 +60,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-public class AuctionImplicitParametersInjectorTest extends VertxTest {
+public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
     private static final List<String> BLACKLISTED_APPS = singletonList("bad_app");
 
@@ -74,7 +74,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
     @Mock
     private IdGenerator idGenerator;
 
-    private AuctionImplicitParametersInjector target;
+    private Ortb2ImplicitParametersResolver target;
 
     @Mock
     private RoutingContext routingContext;
@@ -95,7 +95,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        target = new AuctionImplicitParametersInjector(
+        target = new Ortb2ImplicitParametersResolver(
                 false,
                 "USD",
                 BLACKLISTED_APPS,
@@ -111,7 +111,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -135,7 +135,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -158,7 +158,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -187,7 +187,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -217,7 +217,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -235,7 +235,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(httpRequest.getHeader("DNT")).willReturn("invalid");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getDnt()).isNull();
@@ -247,7 +247,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(httpRequest.getHeader("DNT")).willReturn("1");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getDnt()).isOne();
@@ -263,7 +263,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getDnt()).isZero();
@@ -280,7 +280,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -297,7 +297,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -315,7 +315,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -333,7 +333,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -351,7 +351,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -369,7 +369,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -387,7 +387,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -405,7 +405,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -423,7 +423,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -442,7 +442,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -462,7 +462,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -481,7 +481,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -500,7 +500,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -520,7 +520,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -538,7 +538,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -557,7 +557,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -577,7 +577,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -596,7 +596,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -615,7 +615,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -635,7 +635,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -654,7 +654,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -674,7 +674,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -693,7 +693,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -713,7 +713,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -732,7 +732,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -751,7 +751,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -771,7 +771,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -790,7 +790,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -810,7 +810,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -829,7 +829,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -848,7 +848,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -861,7 +861,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getImp()).flatExtracting(Imp::getSecure).containsOnly(1);
@@ -877,7 +877,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -892,7 +892,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getSecure).containsOnly(1, 0);
@@ -908,7 +908,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -939,7 +939,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -979,7 +979,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -1011,7 +1011,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -1037,7 +1037,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result).isSameAs(bidRequest);
@@ -1046,7 +1046,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
     @Test
     public void shouldSetSiteExtIfNoReferer() {
         // when
-        final BidRequest result = target.fillImplicitParameters(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite())
@@ -1062,7 +1062,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1076,7 +1076,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
 
         // when
-        final BidRequest result = target.fillImplicitParameters(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1094,7 +1094,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willReturn("site.com");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         verify(paramsExtractor).domainFrom(eq("http://page.site.com/page1.html"));
@@ -1114,7 +1114,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1133,7 +1133,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1149,7 +1149,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1165,7 +1165,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getSource())
@@ -1178,7 +1178,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().at(0).build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
@@ -1190,7 +1190,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().at(null).build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
@@ -1202,7 +1202,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().cur(null).build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getCur()).isEqualTo(singletonList("USD"));
@@ -1214,7 +1214,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getTmax()).isEqualTo(2000L);
@@ -1231,7 +1231,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         // result was wrapped to list because extracting method works different on iterable and not iterable objects,
@@ -1256,7 +1256,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThatThrownBy(() -> target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver))
+        assertThatThrownBy(() -> target.resolve(bidRequest, routingContext, timeoutResolver))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Invalid string price granularity with value: invalid");
     }
@@ -1272,7 +1272,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1301,7 +1301,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1323,7 +1323,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1345,7 +1345,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1368,7 +1368,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1382,7 +1382,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
     @Test
     public void shouldSetDefaultIncludeBidderKeysToFalseIfIncludeBidderKeysIsMissedAndWinningonlyIsTrueInConfig() {
         // given
-        target = new AuctionImplicitParametersInjector(
+        target = new Ortb2ImplicitParametersResolver(
                 true,
                 "USD",
                 BLACKLISTED_APPS,
@@ -1399,7 +1399,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getExt())
@@ -1410,7 +1410,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenExtRequestPrebidIsNull() {
         // given
-        target = new AuctionImplicitParametersInjector(
+        target = new Ortb2ImplicitParametersResolver(
                 true,
                 "USD",
                 BLACKLISTED_APPS,
@@ -1425,7 +1425,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1439,7 +1439,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenExtRequestPrebidCacheIsNull() {
         // given
-        target = new AuctionImplicitParametersInjector(
+        target = new Ortb2ImplicitParametersResolver(
                 true,
                 "USD",
                 BLACKLISTED_APPS,
@@ -1454,7 +1454,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1468,7 +1468,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenCacheWinningonlyIsNull() {
         // given
-        target = new AuctionImplicitParametersInjector(
+        target = new Ortb2ImplicitParametersResolver(
                 true,
                 "USD",
                 BLACKLISTED_APPS,
@@ -1485,7 +1485,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1509,7 +1509,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1534,7 +1534,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1548,7 +1548,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromRequestWhenCacheWinningonlyIsPresent() {
         // given
-        target = new AuctionImplicitParametersInjector(
+        target = new Ortb2ImplicitParametersResolver(
                 true,
                 "USD",
                 BLACKLISTED_APPS,
@@ -1565,7 +1565,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1589,7 +1589,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(result.getExt()).isSameAs(extBidRequest);
@@ -1605,7 +1605,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1625,7 +1625,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1644,7 +1644,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1666,7 +1666,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1687,7 +1687,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1706,7 +1706,7 @@ public class AuctionImplicitParametersInjectorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(BlacklistedAppException.class)
-                .isThrownBy(() -> target.fillImplicitParameters(bidRequest, routingContext, timeoutResolver))
+                .isThrownBy(() -> target.resolve(bidRequest, routingContext, timeoutResolver))
                 .withMessage("Prebid-server does not process requests from App ID: bad_app");
     }
 

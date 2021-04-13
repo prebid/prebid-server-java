@@ -48,9 +48,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class AuctionImplicitParametersInjector {
+public class Ortb2ImplicitParametersResolver {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuctionImplicitParametersInjector.class);
+    private static final Logger logger = LoggerFactory.getLogger(Ortb2ImplicitParametersResolver.class);
 
     private static final String WEB_CHANNEL = "web";
     private static final String APP_CHANNEL = "app";
@@ -69,13 +69,13 @@ public class AuctionImplicitParametersInjector {
     private final IdGenerator sourceIdGenerator;
     private final JacksonMapper mapper;
 
-    public AuctionImplicitParametersInjector(boolean shouldCacheOnlyWinningBids,
-                                             String adServerCurrency,
-                                             List<String> blacklistedApps,
-                                             ImplicitParametersExtractor paramsExtractor,
-                                             IpAddressHelper ipAddressHelper,
-                                             IdGenerator sourceIdGenerator,
-                                             JacksonMapper mapper) {
+    public Ortb2ImplicitParametersResolver(boolean shouldCacheOnlyWinningBids,
+                                           String adServerCurrency,
+                                           List<String> blacklistedApps,
+                                           ImplicitParametersExtractor paramsExtractor,
+                                           IpAddressHelper ipAddressHelper,
+                                           IdGenerator sourceIdGenerator,
+                                           JacksonMapper mapper) {
 
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
@@ -104,9 +104,9 @@ public class AuctionImplicitParametersInjector {
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
-    BidRequest fillImplicitParameters(BidRequest bidRequest,
-                                      RoutingContext context,
-                                      TimeoutResolver timeoutResolver) {
+    BidRequest resolve(BidRequest bidRequest,
+                       RoutingContext context,
+                       TimeoutResolver timeoutResolver) {
         checkBlacklistedApp(bidRequest);
 
         final BidRequest result;
