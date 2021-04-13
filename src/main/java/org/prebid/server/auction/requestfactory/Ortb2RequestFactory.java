@@ -95,6 +95,37 @@ public class Ortb2RequestFactory {
     }
 
     /**
+     * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
+     */
+    public BidRequest validateRequest(BidRequest bidRequest) {
+        final ValidationResult validationResult = requestValidator.validate(bidRequest);
+        if (validationResult.hasErrors()) {
+            throw new InvalidRequestException(validationResult.getErrors());
+        }
+        return bidRequest;
+    }
+
+    public BidRequest enrichBidRequestWithAccountAndPrivacyData(BidRequest bidRequest,
+                                                                Account account,
+                                                                PrivacyContext privacyContext) {
+
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequest enrichedRequestExt = enrichExtRequest(requestExt, account);
+
+        final Device device = bidRequest.getDevice();
+        final Device enrichedDevice = enrichDevice(device, privacyContext);
+
+        if (enrichedRequestExt != null || enrichedDevice != null) {
+            return bidRequest.toBuilder()
+                    .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
+                    .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
+                    .build();
+        }
+
+        return bidRequest;
+    }
+
+    /**
      * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
     private Timeout timeout(BidRequest bidRequest, long startTime, TimeoutResolver timeoutResolver) {
@@ -200,37 +231,6 @@ public class Ortb2RequestFactory {
                 ? Future.failedFuture(new UnauthorizedAccountException(
                 String.format("Account %s is inactive", accountId), accountId))
                 : Future.succeededFuture(account);
-    }
-
-    /**
-     * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
-     */
-    public BidRequest validateRequest(BidRequest bidRequest) {
-        final ValidationResult validationResult = requestValidator.validate(bidRequest);
-        if (validationResult.hasErrors()) {
-            throw new InvalidRequestException(validationResult.getErrors());
-        }
-        return bidRequest;
-    }
-
-    public BidRequest enrichBidRequestWithAccountAndPrivacyData(BidRequest bidRequest,
-                                                                Account account,
-                                                                PrivacyContext privacyContext) {
-
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequest enrichedRequestExt = enrichExtRequest(requestExt, account);
-
-        final Device device = bidRequest.getDevice();
-        final Device enrichedDevice = enrichDevice(device, privacyContext);
-
-        if (enrichedRequestExt != null || enrichedDevice != null) {
-            return bidRequest.toBuilder()
-                    .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
-                    .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
-                    .build();
-        }
-
-        return bidRequest;
     }
 
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
