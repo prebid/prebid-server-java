@@ -84,7 +84,7 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldMergeExistingPublisherData() {
+    public void makeHttpRequestsShouldUpdateSiteObjectIfPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(Function.identity())))
@@ -98,13 +98,16 @@ public class SmartadserverBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = smartadserverBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        final Site site = result.getValue().get(0).getPayload().getSite();
-        assertThat(site).isEqualTo(Site.builder()
+        final Site expectedSite = Site.builder()
                 .domain("www.foo.com")
                 .publisher(Publisher.builder().domain("foo.com").id("4").build())
-                .build());
+                .build();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .containsExactly(expectedSite);
     }
 
     @Test

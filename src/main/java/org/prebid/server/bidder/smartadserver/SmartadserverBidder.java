@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -60,20 +59,9 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpSmartadserver extImpSmartadserver = parseImpExt(imp);
-                final String networkId = String.valueOf(extImpSmartadserver.getNetworkId());
-                final Optional<Site> siteOpt = Optional.ofNullable(request.getSite());
-                final Publisher publisher = siteOpt.flatMap(site -> Optional.ofNullable(site.getPublisher()))
-                        .map(p -> p.toBuilder())
-                        .orElse(Publisher.builder())
-                        .id(networkId)
-                        .build();
-                final Site site = siteOpt
-                        .map(s -> s.toBuilder())
-                        .orElse(Site.builder())
-                        .publisher(publisher).build();
                 final BidRequest updatedRequest = request.toBuilder()
                         .imp(Collections.singletonList(imp))
-                        .site(site)
+                        .site(modifySite(request.getSite(), extImpSmartadserver.getNetworkId()))
                         .build();
                 result.add(createSingleRequest(updatedRequest));
             } catch (PreBidException e) {
@@ -113,6 +101,21 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 .setPath(String.format("%s/api/bid", StringUtils.removeEnd(uri.getPath(), "/")))
                 .addParameter("callerId", "5")
                 .toString();
+    }
+
+    private Site modifySite(Site site, Integer networkId) {
+        final Site.SiteBuilder siteBuilder = site != null ? site.toBuilder() : Site.builder();
+        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+
+        return siteBuilder.publisher(modifyPublisher(sitePublisher, networkId)).build();
+    }
+
+    private Publisher modifyPublisher(Publisher publisher, Integer networkId) {
+        final Publisher.PublisherBuilder publisherBuilder = publisher != null
+                ? publisher.toBuilder()
+                : Publisher.builder();
+
+        return publisherBuilder.id(String.valueOf(networkId)).build();
     }
 
     @Override
