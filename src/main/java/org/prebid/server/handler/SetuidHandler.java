@@ -89,7 +89,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
                 .distinct() // built-in aliases looks like bidders with the same usersyncers
-                .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, Usersyncer::getType));
+                .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
     }
 
     private static Integer validateHostVendorId(Integer gdprHostVendorId) {
@@ -97,6 +97,10 @@ public class SetuidHandler implements Handler<RoutingContext> {
             logger.warn("gdpr.host-vendor-id not specified. Will skip host company GDPR checks");
         }
         return gdprHostVendorId;
+    }
+
+    private static String preferredUserSyncType(Usersyncer usersyncer) {
+        return usersyncer.getPrimaryMethod().getType();
     }
 
     @Override
