@@ -103,7 +103,7 @@ public class StoredRequestProcessor {
      * fetched jsons from source. In case any error happen during the process, returns failedFuture with
      * InvalidRequestException {@link InvalidRequestException} as cause.
      */
-    Future<BidRequest> processStoredRequests(String accountId, BidRequest bidRequest) {
+    public Future<BidRequest> processStoredRequests(String accountId, BidRequest bidRequest) {
         final Map<BidRequest, String> bidRequestToStoredRequestId;
         final Map<Imp, String> impToStoredRequestId;
         try {
@@ -134,7 +134,7 @@ public class StoredRequestProcessor {
     /**
      * Fetches AMP request from the source.
      */
-    Future<BidRequest> processAmpRequest(String accountId, String ampRequestId) {
+    public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId) {
         final BidRequest bidRequest = defaultBidRequest != null ? defaultBidRequest : BidRequest.builder().build();
         final Future<StoredDataResult> ampStoredDataFuture =
                 applicationSettings.getAmpStoredData(
