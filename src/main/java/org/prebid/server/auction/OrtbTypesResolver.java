@@ -85,7 +85,7 @@ public class OrtbTypesResolver {
      * and bidderconfig.
      * Mutates both parameters, {@param fpdContainerNode} and {@param warnings}.
      */
-    void normalizeBidRequest(JsonNode bidRequest, List<String> warnings, String referer) {
+    public void normalizeBidRequest(JsonNode bidRequest, List<String> warnings, String referer) {
         final List<String> resolverWarnings = new ArrayList<>();
         final String rowOriginBidRequest = getOriginalRowContainerNode(bidRequest);
         normalizeRequestFpdFields(bidRequest, resolverWarnings);
@@ -163,7 +163,7 @@ public class OrtbTypesResolver {
      * Resolves fields types inconsistency to ortb2 protocol for {@param targeting}.
      * Mutates both parameters, {@param targeting} and {@param warnings}.
      */
-    void normalizeTargeting(JsonNode targeting, List<String> warnings, String referer) {
+    public void normalizeTargeting(JsonNode targeting, List<String> warnings, String referer) {
         final List<String> resolverWarnings = new ArrayList<>();
         final String rowOriginTargeting = getOriginalRowContainerNode(targeting);
         normalizeStandardFpdFields(targeting, resolverWarnings, TARGETING);
