@@ -2549,7 +2549,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        final List<BidderResponse> capturedBidResponses = captureBidResponse();
+        final List<BidderResponse> capturedBidResponses = captureBidResponses();
         assertThat(capturedBidResponses)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
@@ -2581,7 +2581,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        final List<BidderResponse> capturedBidResponses = captureBidResponse();
+        final List<BidderResponse> capturedBidResponses = captureBidResponses();
         assertThat(capturedBidResponses)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
@@ -2614,7 +2614,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        final List<BidderResponse> capturedBidResponses = captureBidResponse();
+        final List<BidderResponse> capturedBidResponses = captureBidResponses();
         assertThat(capturedBidResponses)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
@@ -2673,7 +2673,7 @@ public class ExchangeServiceTest extends VertxTest {
         return bidRequestCaptor.getValue().getBidRequest();
     }
 
-    private List<BidderResponse> captureBidResponse() {
+    private List<BidderResponse> captureBidResponses() {
         final ArgumentCaptor<List<BidderResponse>> bidderResponseCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(bidderResponseCaptor.capture(), any(), any(), any(), anyBoolean());
         return bidderResponseCaptor.getValue();

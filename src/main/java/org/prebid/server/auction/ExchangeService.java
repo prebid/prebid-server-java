@@ -73,7 +73,6 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -1133,7 +1132,7 @@ public class ExchangeService {
     private static BigDecimal resolveAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,
                                                       AdjustmentsMediaType mediaType,
                                                       String bidder) {
-        final EnumMap<AdjustmentsMediaType, Map<String, BigDecimal>> mediatypes =
+        final Map<AdjustmentsMediaType, Map<String, BigDecimal>> mediatypes =
                 extBidadjustmentfactors.getMediatypes();
         final Map<String, BigDecimal> adjustmentsByMediatypes = mediatypes != null ? mediatypes.get(mediaType) : null;
         final BigDecimal adjustmentFactorByMediaType =
