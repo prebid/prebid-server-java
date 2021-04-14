@@ -43,4 +43,15 @@ public class AuctionContext {
     GeoInfo geoInfo;
 
     HookExecutionContext hookExecutionContext;
+
+    public AuctionContext with(BidRequest bidRequest) {
+        return this.toBuilder().bidRequest(bidRequest).build();
+    }
+
+    public AuctionContext with(PrivacyContext privacyContext) {
+        return this.toBuilder()
+                .privacyContext(privacyContext)
+                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                .build();
+    }
 }

@@ -21,6 +21,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.CookieSyncContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncInfoAssembler;
+import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -62,11 +63,16 @@ import java.util.stream.Collectors;
 public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
+
     private static final Map<CharSequence, AsciiString> JSON_HEADERS_MAP = Collections.singletonMap(
             HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
+    private static final String HOST_BIDDER_USERSYNC_URL_TEMPLATE =
+            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s&f=%s";
+    private static final String SETUID_RESPONSE_FORMAT_BLANK = "b";
+    private static final String SETUID_RESPONSE_FORMAT_IMAGE = "i";
 
     private final String externalUrl;
     private final long defaultTimeout;
@@ -165,6 +171,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
                                 .cookieSyncRequest(cookieSyncRequest)
+                                .usersyncMethodChooser(
+                                        UsersyncMethodChooser.from(cookieSyncRequest.getFilterSettings()))
                                 .timeout(timeout)
                                 .account(account)
                                 .privacyContext(privacyContext)
@@ -423,9 +431,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
-        final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
-                .map(bidder -> bidderStatusFor(bidder, routingContext, uidsCookie, rejectedBidders, privacy))
+                .map(bidder -> bidderStatusFor(bidder, cookieSyncContext, rejectedBidders))
                 .filter(Objects::nonNull) // skip bidder with live UID
                 .collect(Collectors.toList());
 
@@ -461,10 +468,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * Creates {@link BidderUsersyncStatus} for given bidder.
      */
     private BidderUsersyncStatus bidderStatusFor(String bidder,
-                                                 RoutingContext context,
-                                                 UidsCookie uidsCookie,
-                                                 RejectedBidders rejectedBidders,
-                                                 Privacy privacy) {
+                                                 CookieSyncContext cookieSyncContext,
+                                                 RejectedBidders rejectedBidders) {
 
         final Set<String> biddersRejectedByTcf = rejectedBidders.getRejectedByTcf();
         final Set<String> biddersRejectedByCcpa = rejectedBidders.getRejectedByCcpa();
@@ -487,26 +492,31 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return bidderStatusBuilder(bidder)
                     .error(REJECTED_BY_CCPA)
                     .build();
-        } else {
-            final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidder);
-
-            if (StringUtils.isEmpty(usersyncer.getUsersyncUrl())) {
-                // there is nothing to sync
-                return null;
-            }
-            final UsersyncInfo hostBidderUsersyncInfo = hostBidderUsersyncInfo(context, privacy, usersyncer);
-
-            if (hostBidderUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {
-                return bidderStatusBuilder(bidder)
-                        .noCookie(true)
-                        .usersync(ObjectUtils.defaultIfNull(
-                                hostBidderUsersyncInfo,
-                                UsersyncInfoAssembler.from(usersyncer).withPrivacy(privacy).assemble()))
-                        .build();
-            }
         }
 
-        return null;
+        final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidder);
+
+        final Usersyncer.UsersyncMethod usersyncMethod =
+                cookieSyncContext.getUsersyncMethodChooser().choose(usersyncer, bidder);
+        if (usersyncMethod == null) {
+            // there is nothing to sync
+            return null;
+        }
+
+        final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
+        final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
+        final String cookieFamilyName = usersyncer.getCookieFamilyName();
+        final String uidFromHostCookieToSet = resolveUidFromHostCookie(routingContext, cookieFamilyName);
+        if (uidFromHostCookieToSet == null && uidsCookie.hasLiveUidFrom(cookieFamilyName)) {
+            return null;
+        }
+
+        final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
+
+        return bidderStatusBuilder(bidder)
+                .noCookie(true)
+                .usersync(toUsersyncInfo(usersyncMethod, cookieFamilyName, uidFromHostCookieToSet, privacy))
+                .build();
     }
 
     private static BidderUsersyncStatus.BidderUsersyncStatusBuilder bidderStatusBuilder(String bidder) {
@@ -514,8 +524,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     /**
-     * Returns {@link UsersyncInfo} with updated usersync-url (pointed directly to Prebid Server /setuid endpoint)
-     * or null if normal usersync flow should be applied.
+     * Returns UID from host cookie to sync with uids cookie or null if normal usersync flow should be applied.
      * <p>
      * Uids cookie should be in sync with host-cookie value, so the next conditions must be satisfied:
      * <p>
@@ -525,31 +534,68 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * <p>
      * 3. Host-bidder uid value in uids cookie should not exist or be different from host-cookie uid value.
      */
-    private UsersyncInfo hostBidderUsersyncInfo(RoutingContext context, Privacy privacy, Usersyncer usersyncer) {
-        final String cookieFamilyName = usersyncer.getCookieFamilyName();
-        if (Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
-
-            final Map<String, String> cookies = HttpUtil.cookiesAsMap(context);
-            final String hostCookieUid = uidsCookieService.parseHostCookie(cookies);
-
-            if (hostCookieUid != null) {
-                final Uids parsedUids = uidsCookieService.parseUids(cookies);
-                final Map<String, UidWithExpiry> uidsMap = parsedUids != null ? parsedUids.getUids() : null;
-                final UidWithExpiry uidWithExpiry = uidsMap != null ? uidsMap.get(cookieFamilyName) : null;
-                final String uid = uidWithExpiry != null ? uidWithExpiry.getUid() : null;
-
-                if (!Objects.equals(hostCookieUid, uid)) {
-                    final String url = String.format("%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
-                                    + "&us_privacy={{us_privacy}}&uid=%s", externalUrl, cookieFamilyName,
-                            HttpUtil.encodeUrl(hostCookieUid));
-                    return UsersyncInfoAssembler.from(usersyncer)
-                            .withUrl(url)
-                            .withPrivacy(privacy)
-                            .assemble();
-                }
-            }
+    private String resolveUidFromHostCookie(RoutingContext context, String cookieFamilyName) {
+        if (!Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
+            return null;
         }
-        return null;
+
+        final Map<String, String> cookies = HttpUtil.cookiesAsMap(context);
+        final String hostCookieUid = uidsCookieService.parseHostCookie(cookies);
+
+        if (hostCookieUid == null) {
+            return null;
+        }
+
+        final Uids parsedUids = uidsCookieService.parseUids(cookies);
+        final Map<String, UidWithExpiry> uidsMap = parsedUids != null ? parsedUids.getUids() : null;
+        final UidWithExpiry uidWithExpiry = uidsMap != null ? uidsMap.get(cookieFamilyName) : null;
+        final String uid = uidWithExpiry != null ? uidWithExpiry.getUid() : null;
+
+        if (Objects.equals(hostCookieUid, uid)) {
+            return null;
+        }
+
+        return hostCookieUid;
+    }
+
+    private UsersyncInfo toUsersyncInfo(Usersyncer.UsersyncMethod usersyncMethod,
+                                        String cookieFamilyName,
+                                        String uidFromHostCookieToSet,
+                                        Privacy privacy) {
+
+        final UsersyncInfoAssembler usersyncInfoAssembler = UsersyncInfoAssembler.from(usersyncMethod);
+
+        return (uidFromHostCookieToSet == null
+                ? usersyncInfoAssembler
+                : usersyncInfoAssembler
+                .withUrl(toHostBidderUsersyncUrl(cookieFamilyName, usersyncMethod, uidFromHostCookieToSet)))
+                .withPrivacy(privacy)
+                .assemble();
+    }
+
+    /**
+     * Returns updated usersync-url pointed directly to Prebid Server /setuid endpoint.
+     */
+    private String toHostBidderUsersyncUrl(String cookieFamilyName,
+                                           Usersyncer.UsersyncMethod usersyncMethod,
+                                           String hostCookieUid) {
+
+        return String.format(
+                HOST_BIDDER_USERSYNC_URL_TEMPLATE,
+                externalUrl,
+                cookieFamilyName,
+                HttpUtil.encodeUrl(hostCookieUid),
+                setuidResponseFormatFrom(usersyncMethod));
+    }
+
+    private static String setuidResponseFormatFrom(Usersyncer.UsersyncMethod usersyncMethod) {
+        switch (usersyncMethod.getType()) {
+            case Usersyncer.UsersyncMethod.REDIRECT_TYPE:
+                return SETUID_RESPONSE_FORMAT_IMAGE;
+            case Usersyncer.UsersyncMethod.IFRAME_TYPE:
+            default:
+                return SETUID_RESPONSE_FORMAT_BLANK;
+        }
     }
 
     private void updateCookieSyncMatchMetrics(Collection<String> syncBidders,
