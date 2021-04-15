@@ -367,6 +367,7 @@ public class BidResponseCreator {
                 .map(bidderBid ->
                         toBidInfo(bidderBid.getBid(),
                                 bidderBid.getBidCurrency(),
+                                bidderBid.getOrigbidcpm(),
                                 bidderBid.getType(),
                                 imps,
                                 bidderResponse.getBidder(),
@@ -376,6 +377,7 @@ public class BidResponseCreator {
 
     private BidInfo toBidInfo(Bid bid,
                               String bidCurrency,
+                              BigDecimal origbidcpm,
                               BidType type,
                               List<Imp> imps,
                               String bidder,
@@ -383,6 +385,7 @@ public class BidResponseCreator {
         return BidInfo.builder()
                 .generatedBidId(bidIdToGeneratedBidId.get(bid.getId()))
                 .bid(bid)
+                .origbidcpm(origbidcpm)
                 .bidCurrency(bidCurrency)
                 .bidType(type)
                 .bidder(bidder)
@@ -939,7 +942,7 @@ public class BidResponseCreator {
                 .video(extBidPrebidVideo)
                 .build();
 
-        bid.setExt(createBidExt(bid.getExt(), extBidPrebid, bid.getPrice(), bidInfo.getBidCurrency()));
+        bid.setExt(createBidExt(bid.getExt(), extBidPrebid, bidInfo.getOrigbidcpm(), bidInfo.getBidCurrency()));
 
         final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
         bid.setExp(ttl);

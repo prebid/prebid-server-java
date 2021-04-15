@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
+import java.math.BigDecimal;
+
 @Builder(toBuilder = true)
 @Value
 public class BidInfo {
@@ -15,6 +17,8 @@ public class BidInfo {
     Bid bid;
 
     String bidCurrency;
+
+    BigDecimal origbidcpm;
 
     Imp correspondingImp;
 

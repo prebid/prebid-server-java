@@ -2250,7 +2250,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1", BigDecimal.valueOf(2.0));
         final BidderError expectedError =
                 BidderError.generic("Unable to convert bid currency CUR2 to desired ad server currency USD");
 
@@ -2291,7 +2291,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(argumentCaptor.getValue()).hasSize(2);
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD", BigDecimal.valueOf(2.0));
         assertThat(argumentCaptor.getValue())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
