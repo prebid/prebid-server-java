@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.execution.model;
+package org.prebid.server.hooks.execution.v1;
 
 import lombok.Value;
 import lombok.experimental.Accessors;

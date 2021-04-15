@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.execution.model;
+package org.prebid.server.hooks.execution.v1.auction;
 
 import com.iab.openrtb.request.BidRequest;
 import lombok.Value;
