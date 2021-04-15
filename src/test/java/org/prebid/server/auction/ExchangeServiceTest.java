@@ -58,8 +58,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
-import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -212,7 +212,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(schainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
-        given(hookStageExecutor.executeBidderRequestStage(any(), any()))
+        given(hookStageExecutor.executeBidderRequestStage(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         BidderRequestPayloadImpl.of(invocation.<BidderRequest>getArgument(0).getBidRequest()))));
@@ -432,7 +432,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldSkipBidderWhenRejectedByBidderRequestHooks() {
         // given
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
-                .when(hookStageExecutor).executeBidderRequestStage(any(), any());
+                .when(hookStageExecutor).executeBidderRequestStage(any(), any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
 
@@ -451,7 +451,7 @@ public class ExchangeServiceTest extends VertxTest {
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                 false,
                 BidderRequestPayloadImpl.of(BidRequest.builder().id("bidderRequestId").build()))))
-                .when(hookStageExecutor).executeBidderRequestStage(any(), any());
+                .when(hookStageExecutor).executeBidderRequestStage(any(), any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
 
@@ -2820,13 +2820,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(User::getExt)
                 .flatExtracting(ExtUser::getEids)
                 .isEqualTo(expectedExtUserEids);
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class BidderRequestPayloadImpl implements BidderRequestPayload {
-
-        BidRequest bidRequest;
     }
 
     @Accessors(fluent = true)

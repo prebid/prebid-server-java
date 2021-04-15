@@ -980,7 +980,10 @@ public class ExchangeService {
                                                              boolean debugEnabled,
                                                              BidderAliases aliases) {
 
-        return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext.getHookExecutionContext())
+        return hookStageExecutor.executeBidderRequestStage(
+                bidderRequest,
+                auctionContext.getAccount(),
+                auctionContext.getHookExecutionContext())
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, timeout, debugEnabled, aliases));
     }

@@ -10,21 +10,24 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
-import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
-import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
+import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
+import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
+import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
+import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
+import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.json.DecodeException;
@@ -114,14 +117,24 @@ public class HookStageExecutor {
 
     public Future<HookStageExecutionResult<BidderRequestPayload>> executeBidderRequestStage(
             BidderRequest bidderRequest,
+            Account account,
             HookExecutionContext context) {
 
-        return Future.succeededFuture(HookStageExecutionResult.of(false, new BidderRequestPayload() {
-            @Override
-            public BidRequest bidRequest() {
-                return bidderRequest.getBidRequest();
-            }
-        }));
+        final BidRequest bidRequest = bidderRequest.getBidRequest();
+        final String bidder = bidderRequest.getBidder();
+
+        final Endpoint endpoint = context.getEndpoint();
+        final Stage stage = Stage.bidder_request;
+
+        return this.<BidderRequestPayload, BidderInvocationContext>stageExecutor()
+                .withStage(stage)
+                .withExecutionPlan(planFor(account, endpoint, stage))
+                .withInitialPayload(BidderRequestPayloadImpl.of(bidRequest))
+                .withHookProvider(hookId ->
+                        hookCatalog.bidderRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
+                .withHookExecutionContext(context)
+                .execute();
     }
 
     public Future<HookStageExecutionResult<AuctionResponsePayload>> executeAuctionResponseStage(
@@ -190,6 +203,20 @@ public class HookStageExecutor {
                 endpoint,
                 isDebugEnabled(bidRequest),
                 accountConfigFor(account, hookId));
+    }
+
+    private InvocationContextProvider<BidderInvocationContext> bidderInvocationContextProvider(
+            Endpoint endpoint,
+            BidRequest bidRequest,
+            Account account,
+            String bidder) {
+
+        return (timeout, hookId) -> BidderInvocationContextImpl.of(
+                createTimeout(timeout),
+                endpoint,
+                isDebugEnabled(bidRequest),
+                accountConfigFor(account, hookId),
+                bidder);
     }
 
     private Timeout createTimeout(Long timeout) {

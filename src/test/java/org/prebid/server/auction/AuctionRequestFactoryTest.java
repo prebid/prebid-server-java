@@ -21,8 +21,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import lombok.Value;
-import lombok.experimental.Accessors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,8 +46,8 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -2221,7 +2219,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfEidsPermissionsContainsWrongDataType() throws JsonProcessingException {
+    public void shouldReturnFailedFutureIfEidsPermissionsContainsWrongDataType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -2250,7 +2248,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfEidsPermissionsBiddersContainsWrongDataType() throws JsonProcessingException {
+    public void shouldReturnFailedFutureIfEidsPermissionsBiddersContainsWrongDataType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -2654,23 +2652,5 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     private void givenValidBidRequest() {
         givenBidRequest(BidRequest.builder().build());
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class EntrypointPayloadImpl implements EntrypointPayload {
-
-        MultiMap queryParams;
-
-        MultiMap headers;
-
-        String body;
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class AuctionRequestPayloadImpl implements AuctionRequestPayload {
-
-        BidRequest bidRequest;
     }
 }
