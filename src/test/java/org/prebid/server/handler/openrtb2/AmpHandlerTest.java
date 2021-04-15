@@ -26,7 +26,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.AmpRequestFactory;
+import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
@@ -406,7 +406,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null, ExtBidResponsePrebid.of(1000L)))));
+                                null, null, ExtBidResponsePrebid.of(1000L)))));
 
         // when
         ampHandler.handle(routingContext);
@@ -429,7 +429,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null, ExtBidResponsePrebid.of(1000L)))));
+                                null, null, ExtBidResponsePrebid.of(1000L)))));
 
         // when
         ampHandler.handle(routingContext);

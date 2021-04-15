@@ -7,11 +7,11 @@
         "impid": "impId001",
         "price": 1.3,
         "adm": "adm001",
-        "adid" : "adid001",
-        "cid" : "cid001",
-        "crid" : "crid001",
-        "w" : 300,
-        "h" : 250
+        "adid": "adid001",
+        "cid": "cid001",
+        "crid": "crid001",
+        "w": 300,
+        "h": 250
       }
     }
   ]

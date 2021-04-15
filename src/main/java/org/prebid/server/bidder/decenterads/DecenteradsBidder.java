@@ -61,7 +61,7 @@ public class DecenteradsBidder implements Bidder<BidRequest> {
 
     private static JsonNode resolveImpExt(ObjectNode impExt) {
         final JsonNode newImExt = impExt.get("bidder");
-        if (newImExt == null || newImExt.isEmpty()) {
+        if (newImExt.isEmpty()) {
             throw new PreBidException("bidder parameters required");
         }
         return newImExt;

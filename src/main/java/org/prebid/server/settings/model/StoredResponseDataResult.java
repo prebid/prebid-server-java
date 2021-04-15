@@ -10,7 +10,7 @@ import java.util.Map;
 @Value
 public class StoredResponseDataResult {
 
-    Map<String, String> storedSeatBid;
+    Map<String, String> idToStoredResponses;
 
     List<String> errors;
 }

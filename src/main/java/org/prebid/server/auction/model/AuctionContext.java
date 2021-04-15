@@ -33,9 +33,22 @@ public class AuctionContext {
 
     List<String> prebidErrors;
 
+    List<String> debugWarnings;
+
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 
     PrivacyContext privacyContext;
 
     GeoInfo geoInfo;
+
+    public AuctionContext with(BidRequest bidRequest) {
+        return this.toBuilder().bidRequest(bidRequest).build();
+    }
+
+    public AuctionContext with(PrivacyContext privacyContext) {
+        return this.toBuilder()
+                .privacyContext(privacyContext)
+                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                .build();
+    }
 }

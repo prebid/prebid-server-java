@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.requestfactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
@@ -23,9 +23,20 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.OrtbTypesResolver;
+import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -53,6 +64,7 @@ import java.util.function.Function;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -66,30 +78,41 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AmpRequestFactoryTest extends VertxTest {
 
+    private static final String ACCOUNT_ID = "acc_id";
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
-    private AuctionRequestFactory auctionRequestFactory;
-    @Mock
-    private TimeoutResolver timeoutResolver;
-
-    private AmpRequestFactory factory;
-    @Mock
-    private HttpServerRequest httpRequest;
-    @Mock
-    private RoutingContext routingContext;
+    private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
     private ImplicitParametersExtractor implicitParametersExtractor;
     @Mock
+    private Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver;
+    @Mock
     private FpdResolver fpdResolver;
+    @Mock
+    private PrivacyEnforcementService privacyEnforcementService;
+    @Mock
+    private TimeoutResolver timeoutResolver;
+
+    private AmpRequestFactory target;
+
+    @Mock
+    private HttpServerRequest httpRequest;
+    @Mock
+    private RoutingContext routingContext;
+
+    private BidRequest defaultBidRequest;
 
     @Before
     public void setUp() {
+        defaultBidRequest = BidRequest.builder().build();
+
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
@@ -106,8 +129,22 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));
 
-        factory = new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, ortbTypesResolver,
-                implicitParametersExtractor, fpdResolver, timeoutResolver, jacksonMapper);
+        final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
+                Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                TcfContext.empty());
+        given(privacyEnforcementService.contextFromBidRequest(any()))
+                .willReturn(Future.succeededFuture(defaultPrivacyContext));
+
+        target = new AmpRequestFactory(
+                storedRequestProcessor,
+                ortb2RequestFactory,
+                ortbTypesResolver,
+                implicitParametersExtractor,
+                ortb2ImplicitParametersResolver,
+                fpdResolver,
+                privacyEnforcementService,
+                timeoutResolver,
+                jacksonMapper);
     }
 
     @Test
@@ -116,7 +153,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam("tag_id")).willReturn(null);
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         verifyZeroInteractions(storedRequestProcessor);
@@ -132,7 +169,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(identity());
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -148,7 +185,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(identity(), imp, imp);
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -168,7 +205,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(bidRequest));
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -183,7 +220,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(identity(), Imp.builder().build());
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -198,7 +235,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(builder -> builder.ext(ExtRequest.empty()), Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         // result was wrapped to list because extracting method works different on iterable and not iterable objects,
@@ -229,7 +266,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        factory.fromRequest(routingContext, 0L).result();
+        target.fromRequest(routingContext, 0L).result();
 
         // then
         verify(ortbTypesResolver).normalizeTargeting(any(), anyList(), any());
@@ -244,7 +281,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -272,7 +309,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -296,7 +333,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -320,7 +357,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -340,7 +377,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -365,7 +402,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -385,7 +422,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -411,7 +448,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -420,10 +457,6 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getIncludebrandcategory, ExtRequestTargeting::getTruncateattrchars)
                 .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true), 10));
-    }
-
-    private Answer<Object> answerWithFirstArgument() {
-        return invocationOnMock -> invocationOnMock.getArguments()[0];
     }
 
     @Test
@@ -435,7 +468,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -453,7 +486,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -473,7 +506,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -491,7 +524,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -512,11 +545,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        factory.fromRequest(routingContext, 0L);
+        target.fromRequest(routingContext, 0L);
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
+        verify(ortb2ImplicitParametersResolver).resolve(captor.capture(), any(), any());
 
         assertThat(captor.getValue().getTest()).isEqualTo(1);
     }
@@ -532,11 +565,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        factory.fromRequest(routingContext, 0L);
+        target.fromRequest(routingContext, 0L);
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
+        verify(ortb2ImplicitParametersResolver).resolve(captor.capture(), any(), any());
 
         final ExtRequest extRequest = captor.getValue().getExt();
         assertThat(extRequest.getPrebid().getDebug()).isEqualTo(1);
@@ -553,7 +586,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -573,7 +606,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -594,7 +627,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -616,7 +649,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -638,7 +671,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -661,7 +694,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -684,7 +717,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -716,7 +749,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -747,7 +780,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -778,7 +811,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -808,7 +841,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -837,7 +870,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -863,7 +896,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -889,7 +922,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -917,7 +950,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -945,7 +978,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -973,7 +1006,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -1001,7 +1034,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -1029,7 +1062,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -1057,7 +1090,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -1089,7 +1122,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -1119,7 +1152,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build()).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -1141,7 +1174,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getTmax()).isEqualTo(1000L);
@@ -1161,8 +1194,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest firstResult = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-        final BidRequest secondResult = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest firstResult = target.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest secondResult = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         final User expectedUser = User.builder()
@@ -1188,7 +1221,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(result.getUser())
@@ -1209,7 +1242,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(result.getUser())
@@ -1230,7 +1263,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(result.getUser())
@@ -1249,12 +1282,13 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        factory.fromRequest(routingContext, 0L).result();
+        target.fromRequest(routingContext, 0L).result();
 
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<List<String>> errorsCaptor = ArgumentCaptor.forClass(
                 List.class);
-        verify(auctionRequestFactory).toAuctionContext(any(), any(), any(), errorsCaptor.capture(), anyLong(), any());
+        verify(ortb2RequestFactory).fetchAccountAndCreateAuctionContext(any(), any(), any(), anyLong(),
+                errorsCaptor.capture());
         assertThat(errorsCaptor.getValue()).contains("Amp request parameter consent_string or gdpr_consent have"
                 + " invalid format: consent-value");
     }
@@ -1267,7 +1301,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(fpdResolver.resolveBidRequestExt(any(), any()))
                 .willReturn(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"))).build()));
+                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
 
         givenBidRequest(
                 builder -> builder
@@ -1275,14 +1309,14 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         verify(fpdResolver).resolveBidRequestExt(any(), any());
         assertThat(request)
                 .extracting(BidRequest::getExt)
                 .containsOnly(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"))).build()));
+                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
     }
 
     @Test
@@ -1301,7 +1335,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         verify(fpdResolver).resolveBidRequestExt(any(), any());
@@ -1323,7 +1357,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -1340,7 +1374,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(result.getRegs()).isNull();
@@ -1356,7 +1390,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(result.getRegs())
@@ -1376,7 +1410,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(result.getUser())
@@ -1394,7 +1428,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -1417,7 +1451,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         final Map<String, String> expectedAmpData = new HashMap<>();
@@ -1449,7 +1483,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         final Map<String, String> expectedAmpData = new HashMap<>();
@@ -1464,23 +1498,74 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .containsOnly(expectedAmpData);
     }
 
+    @Test
+    public void shouldReturnModifiedBidRequestWhenRequestWasPopulatedWithImplicitParams() {
+        // given
+        givenBidRequest(
+                builder -> builder.ext(ExtRequest.empty()),
+                Imp.builder().build());
+
+        final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any()))
+                .willReturn(updatedBidRequest);
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getBidRequest()).isEqualTo(updatedBidRequest);
+    }
+
+    @Test
+    public void shouldReturnPopulatedPrivacyContextAndGetWhenPrivacyEnforcementReturnContext() {
+        // given
+        givenBidRequest(
+                builder -> builder.ext(ExtRequest.empty()),
+                Imp.builder().build());
+
+        final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").city("found").build();
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.of("1", "consent", Ccpa.EMPTY, 0),
+                TcfContext.builder().geoInfo(geoInfo).build());
+        given(privacyEnforcementService.contextFromBidRequest(any()))
+                .willReturn(Future.succeededFuture(privacyContext));
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getPrivacyContext()).isEqualTo(privacyContext);
+        assertThat(result.getGeoInfo()).isEqualTo(geoInfo);
+    }
+
     private void givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             Imp... imps) {
         final List<Imp> impList = imps.length > 0 ? asList(imps) : null;
 
-        final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder().imp(impList)).build();
+        final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(defaultBidRequest.toBuilder().imp(impList))
+                .build();
 
         given(storedRequestProcessor.processAmpRequest(any(), anyString()))
                 .willReturn(Future.succeededFuture(bidRequest));
 
-        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.toAuctionContext(any(), any(), eq(MetricName.amp), anyList(), anyLong(), any()))
+        final MetricName metricName = MetricName.amp;
+        given(ortb2RequestFactory.fetchAccountAndCreateAuctionContext(any(), any(), eq(metricName), anyLong(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         AuctionContext.builder()
                                 .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
                                 .build()));
+
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any())).willAnswer(
+                answerWithFirstArgument());
+        given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any(), any(), any()))
+                .willAnswer(answerWithFirstArgument());
+    }
+
+    private Answer<Object> answerWithFirstArgument() {
+        return invocationOnMock -> invocationOnMock.getArguments()[0];
     }
 
     private static ExtRequest givenRequestExt(ExtRequestTargeting extRequestTargeting) {
