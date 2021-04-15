@@ -34,7 +34,9 @@
                   "cacheId": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce"
                 }
               }
-            }
+            },
+            "origbidcpm": 10,
+            "origbidcur": "EUR"
           }
         }
       ],

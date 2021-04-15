@@ -44,8 +44,8 @@
     "ifa": "ifaId"
   },
   "site": {
-    "domain" : "example.com",
-    "page" : "http://www.example.com",
+    "domain": "example.com",
+    "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
     },
