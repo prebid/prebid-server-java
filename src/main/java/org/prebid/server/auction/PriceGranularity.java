@@ -39,7 +39,7 @@ public class PriceGranularity {
                 range(20, 0.5));
     }
 
-    static final PriceGranularity DEFAULT = STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.med);
+    public static final PriceGranularity DEFAULT = STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.med);
 
     private List<ExtGranularityRange> ranges;
     private BigDecimal rangesMax;
@@ -61,7 +61,7 @@ public class PriceGranularity {
     /**
      * Returns {@link PriceGranularity} by string representation if it is present in map, otherwise returns null.
      */
-    static PriceGranularity createFromString(String stringPriceGranularity) {
+    public static PriceGranularity createFromString(String stringPriceGranularity) {
         if (isValidStringPriceGranularityType(stringPriceGranularity)) {
             return STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.valueOf(stringPriceGranularity));
         } else {
