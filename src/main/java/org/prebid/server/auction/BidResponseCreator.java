@@ -99,6 +99,8 @@ public class BidResponseCreator {
 
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
+    private static final String ORIGINAL_BID_CPM = "origbidcpm";
+    private static final String ORIGINAL_BID_CURRENCY = "origbidcur";
     private static final String SKADN_PROPERTY = "skadn";
     private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
 
@@ -265,10 +267,10 @@ public class BidResponseCreator {
         final Set<BidInfo> winningBidInfos = targeting == null
                 ? null
                 : bidderResponseToTargetingBidInfos.values().stream()
-                        .flatMap(Collection::stream)
-                        .filter(TargetingBidInfo::isWinningBid)
-                        .map(TargetingBidInfo::getBidInfo)
-                        .collect(Collectors.toSet());
+                .flatMap(Collection::stream)
+                .filter(TargetingBidInfo::isWinningBid)
+                .map(TargetingBidInfo::getBidInfo)
+                .collect(Collectors.toSet());
 
         final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBidInfos : bidInfos;
 
@@ -362,12 +364,18 @@ public class BidResponseCreator {
                 .map(BidderSeatBid::getBids)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bidderBid -> toBidInfo(bidderBid.getBid(), bidderBid.getType(), imps, bidderResponse.getBidder(),
-                        bidIdToGeneratedBidId))
+                .map(bidderBid ->
+                        toBidInfo(bidderBid.getBid(),
+                                bidderBid.getBidCurrency(),
+                                bidderBid.getType(),
+                                imps,
+                                bidderResponse.getBidder(),
+                                bidIdToGeneratedBidId))
                 .collect(Collectors.toList());
     }
 
     private BidInfo toBidInfo(Bid bid,
+                              String bidCurrency,
                               BidType type,
                               List<Imp> imps,
                               String bidder,
@@ -375,6 +383,7 @@ public class BidResponseCreator {
         return BidInfo.builder()
                 .generatedBidId(bidIdToGeneratedBidId.get(bid.getId()))
                 .bid(bid)
+                .bidCurrency(bidCurrency)
                 .bidType(type)
                 .bidder(bidder)
                 .correspondingImp(correspondingImp(bid, imps))
@@ -930,7 +939,7 @@ public class BidResponseCreator {
                 .video(extBidPrebidVideo)
                 .build();
 
-        bid.setExt(createBidExt(bid.getExt(), extBidPrebid));
+        bid.setExt(createBidExt(bid.getExt(), extBidPrebid, bid.getPrice(), bidInfo.getBidCurrency()));
 
         final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
         bid.setExp(ttl);
@@ -1183,7 +1192,10 @@ public class BidResponseCreator {
     }
 
     // will be updated in https://github.com/prebid/prebid-server-java/pull/1126
-    private ObjectNode createBidExt(ObjectNode existingBidExt, ExtBidPrebid extBidPrebid) {
+    private ObjectNode createBidExt(ObjectNode existingBidExt,
+                                    ExtBidPrebid extBidPrebid,
+                                    BigDecimal originalBidPrice,
+                                    String originalBidCurrency) {
         JsonNode skadnObject = mapper.mapper().createObjectNode();
         if (existingBidExt != null && !existingBidExt.isEmpty()) {
             skadnObject = existingBidExt.get(SKADN_PROPERTY);
@@ -1193,6 +1205,10 @@ public class BidResponseCreator {
         final ObjectNode updatedBidExt = mapper.mapper().valueToTree(bidExt);
         if (skadnObject != null && !skadnObject.isEmpty()) {
             updatedBidExt.set(SKADN_PROPERTY, skadnObject);
+        }
+        updatedBidExt.put(ORIGINAL_BID_CPM, originalBidPrice);
+        if (StringUtils.isNotBlank(originalBidCurrency)) {
+            updatedBidExt.put(ORIGINAL_BID_CURRENCY, originalBidCurrency);
         }
 
         return updatedBidExt;

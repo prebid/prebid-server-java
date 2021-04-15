@@ -11,10 +11,10 @@
         "h": 480
       },
       "tagid": "testAdUnitId",
-      "ext" : {
-        "bidder" : {
-          "tagId" : "testTagId",
-          "adUnitId" : "testAdUnitId"
+      "ext": {
+        "bidder": {
+          "tagId": "testTagId",
+          "adUnitId": "testAdUnitId"
         }
       }
     }

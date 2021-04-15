@@ -115,7 +115,7 @@
         }
       ],
       "auctiontimestamp": 1000,
-      "events" : { },
+      "events": {},
       "channel": {
         "name": "web"
       }
