@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.hooks.HookCatalog;
 import org.prebid.server.hooks.execution.model.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.model.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;

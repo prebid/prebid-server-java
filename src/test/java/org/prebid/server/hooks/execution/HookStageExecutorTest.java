@@ -25,7 +25,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.hooks.HookCatalog;
 import org.prebid.server.hooks.execution.model.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.EntrypointPayloadImpl;

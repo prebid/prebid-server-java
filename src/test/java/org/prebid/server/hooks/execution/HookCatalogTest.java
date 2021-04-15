@@ -1,4 +1,4 @@
-package org.prebid.server.hooks;
+package org.prebid.server.hooks.execution;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.hooks.execution.HookCatalog;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;

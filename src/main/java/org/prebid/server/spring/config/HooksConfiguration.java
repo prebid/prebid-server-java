@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookStageExecutor;
-import org.prebid.server.hooks.HookCatalog;
+import org.prebid.server.hooks.execution.HookCatalog;
 import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.json.JacksonMapper;
 import org.springframework.boot.context.properties.ConfigurationProperties;

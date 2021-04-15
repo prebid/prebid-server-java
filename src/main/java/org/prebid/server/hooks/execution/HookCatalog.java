@@ -1,4 +1,4 @@
-package org.prebid.server.hooks;
+package org.prebid.server.hooks.execution;
 
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.Module;
