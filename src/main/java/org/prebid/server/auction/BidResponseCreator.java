@@ -267,10 +267,10 @@ public class BidResponseCreator {
         final Set<BidInfo> winningBidInfos = targeting == null
                 ? null
                 : bidderResponseToTargetingBidInfos.values().stream()
-                        .flatMap(Collection::stream)
-                        .filter(TargetingBidInfo::isWinningBid)
-                        .map(TargetingBidInfo::getBidInfo)
-                        .collect(Collectors.toSet());
+                .flatMap(Collection::stream)
+                .filter(TargetingBidInfo::isWinningBid)
+                .map(TargetingBidInfo::getBidInfo)
+                .collect(Collectors.toSet());
 
         final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBidInfos : bidInfos;
 
@@ -366,11 +366,11 @@ public class BidResponseCreator {
                 .flatMap(Collection::stream)
                 .map(bidderBid ->
                         toBidInfo(bidderBid.getBid(),
-                        bidderBid.getBidCurrency(),
-                        bidderBid.getType(),
-                        imps,
-                        bidderResponse.getBidder(),
-                        bidIdToGeneratedBidId))
+                                bidderBid.getBidCurrency(),
+                                bidderBid.getType(),
+                                imps,
+                                bidderResponse.getBidder(),
+                                bidIdToGeneratedBidId))
                 .collect(Collectors.toList());
     }
 
@@ -939,17 +939,7 @@ public class BidResponseCreator {
                 .video(extBidPrebidVideo)
                 .build();
 
-        bid.setExt(createBidExt(bid.getExt(), extBidPrebid));
-
-        final BigDecimal originalBidPrice = bid.getPrice();
-        if (Objects.nonNull(originalBidPrice)) {
-            bid.getExt().put(ORIGINAL_BID_CPM, originalBidPrice);
-        }
-
-        final String originalBidCurrency = bidInfo.getBidCurrency();
-        if (StringUtils.isNotBlank(originalBidCurrency)) {
-            bid.getExt().put(ORIGINAL_BID_CURRENCY, originalBidCurrency);
-        }
+        bid.setExt(createBidExt(bid.getExt(), extBidPrebid, bid.getPrice(), bidInfo.getBidCurrency()));
 
         final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
         bid.setExp(ttl);
@@ -1202,7 +1192,10 @@ public class BidResponseCreator {
     }
 
     // will be updated in https://github.com/prebid/prebid-server-java/pull/1126
-    private ObjectNode createBidExt(ObjectNode existingBidExt, ExtBidPrebid extBidPrebid) {
+    private ObjectNode createBidExt(ObjectNode existingBidExt,
+                                    ExtBidPrebid extBidPrebid,
+                                    BigDecimal originalBidPrice,
+                                    String originalBidCurrency) {
         JsonNode skadnObject = mapper.mapper().createObjectNode();
         if (existingBidExt != null && !existingBidExt.isEmpty()) {
             skadnObject = existingBidExt.get(SKADN_PROPERTY);
@@ -1212,6 +1205,10 @@ public class BidResponseCreator {
         final ObjectNode updatedBidExt = mapper.mapper().valueToTree(bidExt);
         if (skadnObject != null && !skadnObject.isEmpty()) {
             updatedBidExt.set(SKADN_PROPERTY, skadnObject);
+        }
+        updatedBidExt.put(ORIGINAL_BID_CPM, originalBidPrice);
+        if (StringUtils.isNotBlank(originalBidCurrency)) {
+            updatedBidExt.put(ORIGINAL_BID_CURRENCY, originalBidCurrency);
         }
 
         return updatedBidExt;
