@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.execution;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
@@ -7,17 +8,23 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.HookCatalog;
+import org.prebid.server.hooks.execution.model.AuctionInvocationContextImpl;
+import org.prebid.server.hooks.execution.model.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.EntrypointPayloadImpl;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.InvocationContextImpl;
+import org.prebid.server.hooks.execution.model.InvocationContextProvider;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.v1.InvocationContext;
+import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
@@ -29,6 +36,8 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.time.Clock;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 public class HookStageExecutor {
@@ -81,8 +90,7 @@ public class HookStageExecutor {
                 .withInitialPayload(EntrypointPayloadImpl.of(queryParams, headers, body))
                 .withHookProvider(hookId ->
                         hookCatalog.entrypointHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(timeout ->
-                        InvocationContextImpl.of(timeoutFactory.create(timeout), endpoint))
+                .withInvocationContextProvider(invocationContextProvider(endpoint))
                 .withHookExecutionContext(context)
                 .execute();
     }
@@ -92,7 +100,18 @@ public class HookStageExecutor {
             Account account,
             HookExecutionContext context) {
 
-        return Future.succeededFuture(HookStageExecutionResult.of(false, () -> bidRequest));
+        final Endpoint endpoint = context.getEndpoint();
+        final Stage stage = Stage.raw_auction_request;
+
+        return this.<AuctionRequestPayload, AuctionInvocationContext>stageExecutor()
+                .withStage(stage)
+                .withExecutionPlan(planFor(account, endpoint, stage))
+                .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
+                .withHookProvider(hookId ->
+                        hookCatalog.rawAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
+                .withHookExecutionContext(context)
+                .execute();
     }
 
     public Future<HookStageExecutionResult<BidderRequestPayload>> executeBidderRequestStage(
@@ -157,5 +176,38 @@ public class HookStageExecutor {
                 hooksAccountConfig != null ? hooksAccountConfig.getExecutionPlan() : null;
 
         return accountExecutionPlan != null ? accountExecutionPlan : executionPlan;
+    }
+
+    private InvocationContextProvider<InvocationContext> invocationContextProvider(Endpoint endpoint) {
+        return (timeout, hookId) -> InvocationContextImpl.of(createTimeout(timeout), endpoint);
+    }
+
+    private InvocationContextProvider<AuctionInvocationContext> auctionInvocationContextProvider(
+            Endpoint endpoint,
+            BidRequest bidRequest,
+            Account account) {
+
+        return (timeout, hookId) -> AuctionInvocationContextImpl.of(
+                createTimeout(timeout),
+                endpoint,
+                isDebugEnabled(bidRequest),
+                accountConfigFor(account, hookId));
+    }
+
+    private Timeout createTimeout(Long timeout) {
+        return timeoutFactory.create(timeout);
+    }
+
+    private static boolean isDebugEnabled(BidRequest bidRequest) {
+        // TODO: implement along with hook messages filtering
+        return false;
+    }
+
+    private static ObjectNode accountConfigFor(Account account, HookId hookId) {
+        final AccountHooksConfiguration accountHooksConfiguration = account.getHooks();
+        final Map<String, ObjectNode> modulesConfiguration =
+                accountHooksConfiguration != null ? accountHooksConfiguration.getModules() : Collections.emptyMap();
+
+        return modulesConfiguration != null ? modulesConfiguration.get(hookId.getModuleCode()) : null;
     }
 }

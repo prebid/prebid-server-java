@@ -1,5 +1,7 @@
 package org.prebid.server.hooks.execution;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -24,6 +26,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.HookCatalog;
+import org.prebid.server.hooks.execution.model.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.EntrypointPayloadImpl;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
@@ -43,12 +46,18 @@ import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
+import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.time.Clock;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -100,7 +109,7 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
-    public void shouldTolerateMissingExecutionPlan() {
+    public void shouldTolerateMissingDefaultExecutionPlan() {
         // given
         final HookStageExecutor executor = createExecutor(null);
 
@@ -119,6 +128,25 @@ public class HookStageExecutorTest extends VertxTest {
         assertThat(payload.queryParams()).isSameAs(queryParams);
         assertThat(payload.headers()).isSameAs(headers);
         assertThat(payload.body()).isSameAs(body);
+    }
+
+    @Test
+    public void shouldTolerateMissingDefaultAndAccountExecutionPlan() {
+        // given
+        final HookStageExecutor executor = createExecutor(null);
+
+        // when
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                bidRequest,
+                Account.empty("accountId"),
+                HookExecutionContext.of(Endpoint.openrtb2_auction));
+
+        // then
+        assertThat(future).isSucceeded();
+
+        final AuctionRequestPayload payload = future.result().getPayload();
+        assertThat(payload.bidRequest()).isSameAs(bidRequest);
     }
 
     @Test
@@ -956,6 +984,230 @@ public class HookStageExecutorTest extends VertxTest {
         async.awaitSuccess();
     }
 
+    @Test
+    public void shouldExecuteRawAuctionRequestHooksWhenNoExecutionPlanInAccount(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(Stage.raw_auction_request, execPlanOneGroupOneHook())))));
+
+        final RawAuctionRequestHookImpl hookImpl = spy(
+                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.noAction())));
+        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
+
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                bidRequest,
+                Account.empty("accountId"),
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isSameAs(bidRequest));
+
+            verify(hookImpl).call(any(), any());
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
+    public void shouldExecuteRawAuctionRequestHooksWhenAccountOverridesExecutionPlan(TestContext context) {
+        // given
+        final String defaultPlan = executionPlan(singletonMap(
+                Endpoint.openrtb2_auction,
+                EndpointExecutionPlan.of(singletonMap(
+                        Stage.raw_auction_request,
+                        StageExecutionPlan.of(singletonList(
+                                ExecutionGroup.of(
+                                        true,
+                                        200L,
+                                        singletonList(HookId.of("module-alpha", "hook-a")))))))));
+        final HookStageExecutor executor = createExecutor(defaultPlan);
+
+        final RawAuctionRequestHookImpl hookImpl = spy(
+                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.noAction())));
+        given(hookCatalog.rawAuctionRequestHookBy(eq("module-beta"), eq("hook-b"))).willReturn(hookImpl);
+
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final ExecutionPlan accountPlan = ExecutionPlan.of(singletonMap(
+                Endpoint.openrtb2_auction,
+                EndpointExecutionPlan.of(singletonMap(
+                        Stage.raw_auction_request,
+                        StageExecutionPlan.of(singletonList(
+                                ExecutionGroup.of(
+                                        true,
+                                        200L,
+                                        singletonList(HookId.of("module-beta", "hook-b")))))))));
+        final Account account = Account.builder()
+                .id("accountId")
+                .hooks(AccountHooksConfiguration.of(accountPlan, null))
+                .build();
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                bidRequest,
+                account,
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isSameAs(bidRequest));
+
+            verify(hookImpl).call(any(), any());
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
+    public void shouldExecuteRawAuctionRequestHooksHappyPath(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.raw_auction_request,
+                                execPlanTwoGroupsTwoHooksEach())))));
+
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().at(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-b",
+                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().id("id").build()))));
+
+        givenRawAuctionRequestHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().test(1).build()))));
+
+        givenRawAuctionRequestHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultImpl.succeeded(payload -> AuctionRequestPayloadImpl.of(
+                        payload.bidRequest().toBuilder().tmax(1000L).build()))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                BidRequest.builder().build(),
+                Account.empty("accountId"),
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
+                            .at(1)
+                            .id("id")
+                            .test(1)
+                            .tmax(1000L)
+                            .build()));
+
+            async.complete();
+        }));
+
+        async.awaitSuccess(150L);
+    }
+
+    @Test
+    public void shouldExecuteRawAuctionRequestHooksAndPassAuctionInvocationContext(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.raw_auction_request,
+                                execPlanTwoGroupsTwoHooksEach())))));
+
+        final RawAuctionRequestHookImpl hookImpl = spy(
+                RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
+        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
+        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-b"))).willReturn(hookImpl);
+        given(hookCatalog.rawAuctionRequestHookBy(eq("module-beta"), eq("hook-a"))).willReturn(hookImpl);
+        given(hookCatalog.rawAuctionRequestHookBy(eq("module-beta"), eq("hook-b"))).willReturn(hookImpl);
+
+        final Map<String, ObjectNode> accountModulesConfiguration = new HashMap<>();
+        final ObjectNode moduleAlphaConfiguration = mapper.createObjectNode();
+        final ObjectNode moduleBetaConfiguration = mapper.createObjectNode();
+        accountModulesConfiguration.put("module-alpha", moduleAlphaConfiguration);
+        accountModulesConfiguration.put("module-beta", moduleBetaConfiguration);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                BidRequest.builder().build(),
+                Account.builder()
+                        .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
+                        .build(),
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            final ArgumentCaptor<AuctionInvocationContext> invocationContextCaptor =
+                    ArgumentCaptor.forClass(AuctionInvocationContext.class);
+            verify(hookImpl, times(4)).call(any(), invocationContextCaptor.capture());
+            final List<AuctionInvocationContext> capturedContexts = invocationContextCaptor.getAllValues();
+
+            assertThat(capturedContexts.get(0)).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isEqualTo(Endpoint.openrtb2_auction);
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.debugEnabled()).isFalse();
+                assertThat(invocationContext.accountConfig()).isSameAs(moduleAlphaConfiguration);
+            });
+
+            assertThat(capturedContexts.get(1)).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isEqualTo(Endpoint.openrtb2_auction);
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.debugEnabled()).isFalse();
+                assertThat(invocationContext.accountConfig()).isSameAs(moduleBetaConfiguration);
+            });
+
+            assertThat(capturedContexts.get(2)).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isEqualTo(Endpoint.openrtb2_auction);
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.debugEnabled()).isFalse();
+                assertThat(invocationContext.accountConfig()).isSameAs(moduleBetaConfiguration);
+            });
+
+            assertThat(capturedContexts.get(3)).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isEqualTo(Endpoint.openrtb2_auction);
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.debugEnabled()).isFalse();
+                assertThat(invocationContext.accountConfig()).isSameAs(moduleAlphaConfiguration);
+            });
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
     private String executionPlan(Map<Endpoint, EndpointExecutionPlan> endpoints) {
         return jacksonMapper.encode(ExecutionPlan.of(endpoints));
     }
@@ -993,6 +1245,18 @@ public class HookStageExecutorTest extends VertxTest {
                 .willReturn(EntrypointHookImpl.of(delegate));
     }
 
+    private void givenRawAuctionRequestHook(
+            String moduleCode,
+            String hookImplCode,
+            BiFunction<
+                    AuctionRequestPayload,
+                    AuctionInvocationContext,
+                    Future<InvocationResult<AuctionRequestPayload>>> delegate) {
+
+        given(hookCatalog.rawAuctionRequestHookBy(eq(moduleCode), eq(hookImplCode)))
+                .willReturn(RawAuctionRequestHookImpl.of(delegate));
+    }
+
     private <PAYLOAD, CONTEXT> BiFunction<PAYLOAD, CONTEXT, Future<InvocationResult<PAYLOAD>>> delayedHook(
             InvocationResult<PAYLOAD> result,
             int delay) {
@@ -1025,6 +1289,30 @@ public class HookStageExecutorTest extends VertxTest {
         @Override
         public Future<InvocationResult<EntrypointPayload>> call(EntrypointPayload entrypointPayload,
                                                                 InvocationContext invocationContext) {
+
+            return delegate.apply(entrypointPayload, invocationContext);
+        }
+
+        @Override
+        public String code() {
+            return code;
+        }
+    }
+
+    @Value(staticConstructor = "of")
+    @NonFinal
+    private static class RawAuctionRequestHookImpl implements RawAuctionRequestHook {
+
+        String code = "hook-code";
+
+        BiFunction<
+                AuctionRequestPayload,
+                AuctionInvocationContext,
+                Future<InvocationResult<AuctionRequestPayload>>> delegate;
+
+        @Override
+        public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload entrypointPayload,
+                                                                    AuctionInvocationContext invocationContext) {
 
             return delegate.apply(entrypointPayload, invocationContext);
         }

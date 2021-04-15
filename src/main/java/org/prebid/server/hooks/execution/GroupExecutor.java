@@ -6,6 +6,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookId;
+import org.prebid.server.hooks.execution.model.InvocationContextProvider;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -23,7 +24,7 @@ public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private ExecutionGroup group;
     private PAYLOAD initialPayload;
     private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
-    private Function<Long, CONTEXT> invocationContextProvider;
+    private InvocationContextProvider<CONTEXT> invocationContextProvider;
 
     private GroupExecutor(Vertx vertx, Clock clock) {
         this.vertx = vertx;
@@ -53,7 +54,7 @@ public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     }
 
     public GroupExecutor<PAYLOAD, CONTEXT> withInvocationContextProvider(
-            Function<Long, CONTEXT> invocationContextProvider) {
+            InvocationContextProvider<CONTEXT> invocationContextProvider) {
 
         this.invocationContextProvider = invocationContextProvider;
         return this;
@@ -81,7 +82,7 @@ public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         if (!group.getSynchronous()) {
             final long startTime = clock.millis();
             final Future<InvocationResult<PAYLOAD>> invocationResult =
-                    executeHook(hook, group.getTimeout(), initialGroupResult);
+                    executeHook(hook, group.getTimeout(), initialGroupResult, hookId);
 
             return groupFuture.compose(groupResult ->
                     applyInvocationResult(
@@ -94,7 +95,7 @@ public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return groupFuture.compose(groupResult -> {
             final long startTime = clock.millis();
             return applyInvocationResult(
-                    executeHook(hook, hookTimeoutFromSyncGroup(group), groupResult),
+                    executeHook(hook, hookTimeoutFromSyncGroup(group), groupResult, hookId),
                     hookId,
                     startTime,
                     groupResult);
@@ -108,7 +109,8 @@ public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private Future<InvocationResult<PAYLOAD>> executeHook(
             Hook<PAYLOAD, CONTEXT> hook,
             Long timeout,
-            GroupResult<PAYLOAD> groupResult) {
+            GroupResult<PAYLOAD> groupResult,
+            HookId hookId) {
 
         if (hook == null) {
             // TODO: log error?
@@ -116,7 +118,7 @@ public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         }
 
         return executeWithTimeout(
-                () -> hook.call(groupResult.payload(), invocationContextProvider.apply(timeout)),
+                () -> hook.call(groupResult.payload(), invocationContextProvider.apply(timeout, hookId)),
                 timeout);
     }
 

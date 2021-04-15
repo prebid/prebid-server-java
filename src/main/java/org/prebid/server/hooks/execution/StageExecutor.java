@@ -6,6 +6,7 @@ import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.model.InvocationContextProvider;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.v1.Hook;
@@ -23,7 +24,7 @@ public class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private StageExecutionPlan executionPlan;
     private PAYLOAD initialPayload;
     private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
-    private Function<Long, CONTEXT> invocationContextProvider;
+    private InvocationContextProvider<CONTEXT> invocationContextProvider;
     private HookExecutionContext hookExecutionContext;
 
     private StageExecutor(Vertx vertx, Clock clock) {
@@ -59,7 +60,7 @@ public class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     }
 
     public StageExecutor<PAYLOAD, CONTEXT> withInvocationContextProvider(
-            Function<Long, CONTEXT> invocationContextProvider) {
+            InvocationContextProvider<CONTEXT> invocationContextProvider) {
 
         this.invocationContextProvider = invocationContextProvider;
         return this;
