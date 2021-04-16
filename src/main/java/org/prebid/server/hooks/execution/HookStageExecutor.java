@@ -105,14 +105,11 @@ public class HookStageExecutor {
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.raw_auction_request;
 
-        return this.<AuctionRequestPayload, AuctionInvocationContext>stageExecutor()
-                .withStage(stage)
-                .withExecutionPlan(planFor(account, endpoint, stage))
+        return this.<AuctionRequestPayload, AuctionInvocationContext>stageExecutor(stage, account, endpoint, context)
                 .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
                 .withHookProvider(hookId ->
                         hookCatalog.rawAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
-                .withHookExecutionContext(context)
                 .execute();
     }
 
@@ -127,14 +124,11 @@ public class HookStageExecutor {
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.bidder_request;
 
-        return this.<BidderRequestPayload, BidderInvocationContext>stageExecutor()
-                .withStage(stage)
-                .withExecutionPlan(planFor(account, endpoint, stage))
+        return this.<BidderRequestPayload, BidderInvocationContext>stageExecutor(stage, account, endpoint, context)
                 .withInitialPayload(BidderRequestPayloadImpl.of(bidRequest))
                 .withHookProvider(hookId ->
                         hookCatalog.bidderRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
-                .withHookExecutionContext(context)
                 .execute();
     }
 
@@ -147,19 +141,25 @@ public class HookStageExecutor {
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.auction_response;
 
-        return this.<AuctionResponsePayload, AuctionInvocationContext>stageExecutor()
-                .withStage(stage)
-                .withExecutionPlan(planFor(account, endpoint, stage))
+        return this.<AuctionResponsePayload, AuctionInvocationContext>stageExecutor(stage, account, endpoint, context)
                 .withInitialPayload(AuctionResponsePayloadImpl.of(bidResponse))
                 .withHookProvider(hookId ->
                         hookCatalog.auctionResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
-                .withHookExecutionContext(context)
                 .execute();
     }
 
     private <PAYLOAD, CONTEXT extends InvocationContext> StageExecutor<PAYLOAD, CONTEXT> stageExecutor() {
         return StageExecutor.create(vertx, clock);
+    }
+
+    private <PAYLOAD, CONTEXT extends InvocationContext> StageExecutor<PAYLOAD, CONTEXT> stageExecutor(
+            Stage stage, Account account, Endpoint endpoint, HookExecutionContext context) {
+
+        return this.<PAYLOAD, CONTEXT>stageExecutor()
+                .withStage(stage)
+                .withExecutionPlan(planFor(account, endpoint, stage))
+                .withHookExecutionContext(context);
     }
 
     private static ExecutionPlan parseExecutionPlan(String executionPlan, JacksonMapper mapper) {
