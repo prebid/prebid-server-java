@@ -1,8 +1,10 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.json.IntegerFlagDeserializer;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -18,6 +20,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.debug
      */
+    @JsonDeserialize(using = IntegerFlagDeserializer.class)
     Integer debug;
 
     /**

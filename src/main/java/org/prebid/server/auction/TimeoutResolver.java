@@ -24,7 +24,7 @@ public class TimeoutResolver {
     /**
      * Resolves timeout according to given in request and pre-configured default and max values.
      */
-    long resolve(Long requestTimeout) {
+    public long resolve(Long requestTimeout) {
         final long result;
 
         if (requestTimeout == null) {

@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.requestfactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
@@ -21,13 +21,21 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.PriceGranularity;
+import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -36,19 +44,17 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -59,12 +65,15 @@ public class VideoRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private VideoStoredRequestProcessor videoStoredRequestProcessor;
-
+    private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
-    private AuctionRequestFactory auctionRequestFactory;
+    private Ortb2ImplicitParametersResolver paramsResolver;
+    @Mock
+    private VideoStoredRequestProcessor videoStoredRequestProcessor;
+    @Mock
+    private PrivacyEnforcementService privacyEnforcementService;
 
-    private VideoRequestFactory factory;
+    private VideoRequestFactory target;
 
     @Mock
     private RoutingContext routingContext;
@@ -75,17 +84,25 @@ public class VideoRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(auctionRequestFactory.executeEntrypointHooks(any(), any(), any()))
+        given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
 
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
-        factory = new VideoRequestFactory(
+        final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
+                Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                TcfContext.empty());
+        given(privacyEnforcementService.contextFromBidRequest(any()))
+                .willReturn(Future.succeededFuture(defaultPrivacyContext));
+
+        target = new VideoRequestFactory(
                 Integer.MAX_VALUE,
                 false,
+                ortb2RequestFactory,
+                paramsResolver,
                 videoStoredRequestProcessor,
-                auctionRequestFactory,
+                privacyEnforcementService,
                 timeoutResolver,
                 jacksonMapper);
     }
@@ -96,7 +113,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.getBodyAsString()).willReturn(null);
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -112,16 +129,18 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(mapper.writeValueAsString(BidRequestVideo.builder().build()));
         given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.USER_AGENT_HEADER, "123"));
-        factory = new VideoRequestFactory(
+        target = new VideoRequestFactory(
                 Integer.MAX_VALUE,
                 true,
+                ortb2RequestFactory,
+                paramsResolver,
                 videoStoredRequestProcessor,
-                auctionRequestFactory,
+                privacyEnforcementService,
                 timeoutResolver,
                 jacksonMapper);
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -133,18 +152,20 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new VideoRequestFactory(
+        target = new VideoRequestFactory(
                 2,
                 true,
+                ortb2RequestFactory,
+                paramsResolver,
                 videoStoredRequestProcessor,
-                auctionRequestFactory,
+                privacyEnforcementService,
                 timeoutResolver,
                 jacksonMapper);
 
         given(routingContext.getBodyAsString()).willReturn("body");
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -159,7 +180,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.getBodyAsString()).willReturn("body");
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext, 0L);
+        final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -183,7 +204,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                         .add(HttpUtil.USER_AGENT_HEADER, "user-agent-456"))
                 .body(body)
                 .build()))
-                .when(auctionRequestFactory)
+                .when(ortb2RequestFactory)
                 .executeEntrypointHooks(any(), any(), any());
 
         final WithPodErrors<BidRequest> emptyMergeObject = WithPodErrors.of(null, null);
@@ -191,7 +212,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(emptyMergeObject));
 
         // when
-        factory.fromRequest(routingContext, 0L);
+        target.fromRequest(routingContext, 0L);
 
         // then
         verify(videoStoredRequestProcessor).processVideoRequest(any(), any(), any(), eq(BidRequestVideo.builder()
@@ -244,38 +265,27 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .ext(ExtRequest.of(ext))
                 .build();
 
-        final WithPodErrors<BidRequest> mergedBidRequest = WithPodErrors.of(
-                bidRequest, singletonList(PodError.of(1, 1, singletonList("TEST"))));
-
         final BidRequestVideo requestVideo = BidRequestVideo.builder().device(
                 Device.builder().ua("123").build()).build();
         given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
-        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(mergedBidRequest));
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
-        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
-                .willAnswer(invocation -> invocation.getArgument(0));
-        given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any(), any()))
-                .willReturn(Future.succeededFuture());
+
+        final List<PodError> podErrors = singletonList(PodError.of(1, 1, singletonList("TEST")));
+        givenBidRequest(bidRequest, podErrors);
 
         // when
-        final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
+        final Future<WithPodErrors<AuctionContext>> result = target.fromRequest(routingContext, 0L);
 
         // then
         verify(routingContext).getBodyAsString();
-        verify(videoStoredRequestProcessor).processVideoRequest(eq(""), isNull(), eq(emptySet()), eq(requestVideo));
-        verify(auctionRequestFactory).validateRequest(eq(bidRequest));
-        verify(auctionRequestFactory).fillImplicitParameters(eq(bidRequest), any(), same(timeoutResolver));
-        verify(auctionRequestFactory).toAuctionContext(
-                any(),
-                eq(bidRequest),
-                eq(MetricName.video),
-                eq(emptyList()),
-                eq(0L),
-                same(timeoutResolver),
-                argThat(context -> context.getEndpoint() == Endpoint.openrtb2_video));
+        verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
+        verify(ortb2RequestFactory).fetchAccountAndCreateAuctionContext(
+                any(), eq(bidRequest), eq(MetricName.video), eq(0L), any(), eq(new ArrayList<>()));
+        verify(ortb2RequestFactory).validateRequest(bidRequest);
+        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver));
+        verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(eq(bidRequest), any(), any());
 
-        assertThat(result.result().getPodErrors()).isEqualTo(mergedBidRequest.getPodErrors());
+        assertThat(result.result().getData().getBidRequest()).isEqualTo(bidRequest);
+        assertThat(result.result().getPodErrors()).isEqualTo(podErrors);
     }
 
     @Test
@@ -291,7 +301,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(emptyMergeObject));
 
         // when
-        factory.fromRequest(routingContext, 0L);
+        target.fromRequest(routingContext, 0L);
 
         // then
         verify(videoStoredRequestProcessor).processVideoRequest(any(), any(), any(), eq(BidRequestVideo.builder()
@@ -309,13 +319,34 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         // when
-        Future<WithPodErrors<AuctionContext>> future = factory.fromRequest(routingContext, 0L);
+        Future<WithPodErrors<AuctionContext>> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Device.UA and User-Agent Header is not presented");
+    }
+
+    private void givenBidRequest(BidRequest bidRequest, List<PodError> podErrors) {
+        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(WithPodErrors.of(bidRequest, podErrors)));
+        given(ortb2RequestFactory.fetchAccountAndCreateAuctionContext(any(), any(), any(), anyLong(), any(), any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture(
+                        AuctionContext.builder()
+                                .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
+                                .build()));
+
+        given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(paramsResolver.resolve(any(), any(), any()))
+                .willAnswer(answerWithFirstArgument());
+
+        given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any(), any(), any()))
+                .willAnswer(answerWithFirstArgument());
+    }
+
+    private Answer<Object> answerWithFirstArgument() {
+        return invocationOnMock -> invocationOnMock.getArguments()[0];
     }
 
     private static Future<HttpRequestWrapper> toHttpRequest(RoutingContext routingContext, String body) {

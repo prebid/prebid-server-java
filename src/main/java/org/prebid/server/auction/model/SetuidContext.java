@@ -26,5 +26,8 @@ public class SetuidContext {
 
     String cookieName;
 
+    @JsonIgnore
+    String syncType;
+
     PrivacyContext privacyContext;
 }

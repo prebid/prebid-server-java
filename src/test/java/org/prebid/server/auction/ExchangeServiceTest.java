@@ -150,8 +150,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private Usersyncer usersyncer;
-    @Mock
     private StoredResponseProcessor storedResponseProcessor;
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
@@ -190,7 +188,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
-        given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
+        given(bidderCatalog.usersyncerByName(anyString())).willReturn(Usersyncer.of("cookieFamily", null, null));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any()))
                 .willAnswer(inv ->
@@ -222,7 +220,6 @@ public class ExchangeServiceTest extends VertxTest {
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
 
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
-        given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));

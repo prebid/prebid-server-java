@@ -132,9 +132,10 @@ public class VideoStoredRequestProcessor {
     /**
      * Fetches ParsedStoredDataResult&lt;BidRequestVideo, Imp&gt; from stored request.
      */
-    Future<WithPodErrors<BidRequest>> processVideoRequest(String accountId, String storedBidRequestId,
-                                                          Set<String> podIds,
-                                                          BidRequestVideo receivedRequest) {
+    public Future<WithPodErrors<BidRequest>> processVideoRequest(String accountId,
+                                                                 String storedBidRequestId,
+                                                                 Set<String> podIds,
+                                                                 BidRequestVideo receivedRequest) {
         final Set<String> storedRequestIds = StringUtils.isNotBlank(storedBidRequestId)
                 ? Collections.singleton(storedBidRequestId)
                 : Collections.emptySet();
