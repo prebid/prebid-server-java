@@ -78,6 +78,7 @@ public class AuctionRequestFactory {
                         routingContext,
                         bidRequest,
                         requestTypeMetric(bidRequest),
+                        true,
                         startTime,
                         errors))
 
