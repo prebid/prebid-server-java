@@ -20,6 +20,7 @@ import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
@@ -139,14 +140,22 @@ public class HookStageExecutor {
 
     public Future<HookStageExecutionResult<AuctionResponsePayload>> executeAuctionResponseStage(
             BidResponse bidResponse,
+            BidRequest bidRequest,
+            Account account,
             HookExecutionContext context) {
 
-        return Future.succeededFuture(HookStageExecutionResult.of(false, new AuctionResponsePayload() {
-            @Override
-            public BidResponse bidResponse() {
-                return bidResponse;
-            }
-        }));
+        final Endpoint endpoint = context.getEndpoint();
+        final Stage stage = Stage.auction_response;
+
+        return this.<AuctionResponsePayload, AuctionInvocationContext>stageExecutor()
+                .withStage(stage)
+                .withExecutionPlan(planFor(account, endpoint, stage))
+                .withInitialPayload(AuctionResponsePayloadImpl.of(bidResponse))
+                .withHookProvider(hookId ->
+                        hookCatalog.auctionResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
+                .withHookExecutionContext(context)
+                .execute();
     }
 
     private <PAYLOAD, CONTEXT extends InvocationContext> StageExecutor<PAYLOAD, CONTEXT> stageExecutor() {

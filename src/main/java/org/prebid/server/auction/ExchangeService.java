@@ -1188,7 +1188,11 @@ public class ExchangeService {
     }
 
     private Future<BidResponse> invokeResponseHooks(AuctionContext auctionContext, BidResponse bidResponse) {
-        return hookStageExecutor.executeAuctionResponseStage(bidResponse, auctionContext.getHookExecutionContext())
+        return hookStageExecutor.executeAuctionResponseStage(
+                bidResponse,
+                auctionContext.getBidRequest(),
+                auctionContext.getAccount(),
+                auctionContext.getHookExecutionContext())
                 .map(stageResult -> stageResult.getPayload().bidResponse());
     }
 

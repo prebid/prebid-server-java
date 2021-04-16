@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * This object is the top-level bid response object (i.e., the unnamed outer
@@ -21,7 +19,7 @@ import java.util.Objects;
  * for not bidding, just a {@link BidResponse} object is returned with a reason
  * code in the {@code nbr} attribute.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class BidResponse {
 
@@ -62,18 +60,4 @@ public class BidResponse {
      * Placeholder for bidder-specific extensions to OpenRTB.
      */
     ObjectNode ext;
-
-    public static final Comparator<BidResponse> COMPARATOR = (left, right) -> {
-        if (Objects.isNull(left)
-                || left.getSeatbid().isEmpty()
-                || left.getSeatbid().get(0).getBid().isEmpty()
-                || Objects.isNull(right)) {
-            return -1;
-        }
-        if (right.getSeatbid().isEmpty() || right.getSeatbid().get(0).getBid().isEmpty()) {
-            return 1;
-        }
-        return left.getSeatbid().get(0).getBid().get(0).getPrice()
-                .compareTo(right.getSeatbid().get(0).getBid().get(0).getPrice());
-    };
 }
