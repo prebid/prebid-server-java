@@ -14,7 +14,7 @@ import org.prebid.server.hooks.v1.InvocationContext;
 import java.time.Clock;
 import java.util.function.Function;
 
-public class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
+class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
     private final Vertx vertx;
     private final Clock clock;
@@ -25,6 +25,7 @@ public class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
     private HookExecutionContext hookExecutionContext;
+    private boolean rejectAllowed;
 
     private StageExecutor(Vertx vertx, Clock clock) {
         this.vertx = vertx;
@@ -70,6 +71,11 @@ public class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return this;
     }
 
+    public StageExecutor<PAYLOAD, CONTEXT> withRejectAllowed(boolean rejectAllowed) {
+        this.rejectAllowed = rejectAllowed;
+        return this;
+    }
+
     public Future<HookStageExecutionResult<PAYLOAD>> execute() {
         Future<StageResult<PAYLOAD>> stageFuture = Future.succeededFuture(StageResult.of(initialPayload));
 
@@ -91,6 +97,7 @@ public class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
                 .withInitialPayload(initialPayload)
                 .withHookProvider(hookProvider)
                 .withInvocationContextProvider(invocationContextProvider)
+                .withRejectAllowed(rejectAllowed)
                 .execute();
     }
 

@@ -15,7 +15,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
+class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
     private final Vertx vertx;
     private final Clock clock;
@@ -24,6 +24,7 @@ public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private PAYLOAD initialPayload;
     private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
+    private boolean rejectAllowed;
 
     private GroupExecutor(Vertx vertx, Clock clock) {
         this.vertx = vertx;
@@ -59,8 +60,13 @@ public class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return this;
     }
 
+    public GroupExecutor<PAYLOAD, CONTEXT> withRejectAllowed(boolean rejectAllowed) {
+        this.rejectAllowed = rejectAllowed;
+        return this;
+    }
+
     public Future<GroupResult<PAYLOAD>> execute() {
-        final GroupResult<PAYLOAD> initialGroupResult = GroupResult.of(initialPayload);
+        final GroupResult<PAYLOAD> initialGroupResult = GroupResult.of(initialPayload, rejectAllowed);
         Future<GroupResult<PAYLOAD>> groupFuture = Future.succeededFuture(initialGroupResult);
 
         for (final HookId hookId : group.getHookSequence()) {

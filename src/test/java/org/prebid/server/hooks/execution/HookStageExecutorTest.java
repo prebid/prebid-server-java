@@ -1217,6 +1217,39 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
+    public void shouldExecuteRawAuctionRequestHooksWhenRequestIsRejected(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(Stage.raw_auction_request, execPlanOneGroupOneHook())))));
+
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultImpl.rejected("Request is no good")));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                BidRequest.builder().build(),
+                Account.empty("accountId"),
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            assertThat(result.isShouldReject()).isTrue();
+            assertThat(result.getPayload()).isNull();
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
     public void shouldExecuteBidderRequestHooksHappyPath(TestContext context) {
         // given
         final HookStageExecutor executor = createExecutor(
@@ -1312,6 +1345,39 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.accountConfig()).isNotNull();
                 assertThat(invocationContext.bidder()).isEqualTo("bidder1");
             });
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
+    public void shouldExecuteBidderRequestHooksWhenRequestIsRejected(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(Stage.bidder_request, execPlanOneGroupOneHook())))));
+
+        givenBidderRequestHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultImpl.rejected("Request is no good")));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
+                BidderRequest.of("bidder1", null, BidRequest.builder().build()),
+                Account.empty("accountId"),
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            assertThat(result.isShouldReject()).isTrue();
+            assertThat(result.getPayload()).isNull();
 
             async.complete();
         }));
@@ -1416,6 +1482,41 @@ public class HookStageExecutorTest extends VertxTest {
                 assertThat(invocationContext.timeout()).isNotNull();
                 assertThat(invocationContext.accountConfig()).isNotNull();
             });
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
+    public void shouldExecuteAuctionResponseHooksAndIgnoreRejection(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(Stage.auction_response, execPlanOneGroupOneHook())))));
+
+        givenAuctionResponseHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultImpl.rejected("Will not apply")));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
+                BidResponse.builder().build(),
+                BidRequest.builder().build(),
+                Account.empty("accountId"),
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            assertThat(result.isShouldReject()).isFalse();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidResponse()).isNotNull());
 
             async.complete();
         }));

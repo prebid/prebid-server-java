@@ -94,6 +94,7 @@ public class HookStageExecutor {
                         hookCatalog.entrypointHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
                 .withHookExecutionContext(context)
+                .withRejectAllowed(true)
                 .execute();
     }
 
@@ -110,6 +111,7 @@ public class HookStageExecutor {
                 .withHookProvider(hookId ->
                         hookCatalog.rawAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
+                .withRejectAllowed(true)
                 .execute();
     }
 
@@ -129,6 +131,7 @@ public class HookStageExecutor {
                 .withHookProvider(hookId ->
                         hookCatalog.bidderRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
+                .withRejectAllowed(true)
                 .execute();
     }
 
@@ -146,6 +149,7 @@ public class HookStageExecutor {
                 .withHookProvider(hookId ->
                         hookCatalog.auctionResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
+                .withRejectAllowed(false)
                 .execute();
     }
 

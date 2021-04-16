@@ -24,15 +24,18 @@ class GroupResult<T> {
 
     private T payload;
 
+    private final boolean rejectAllowed;
+
     private final List<HookExecutionOutcome> hookExecutionOutcomes = new ArrayList<>();
 
-    private GroupResult(T payload) {
+    private GroupResult(T payload, boolean rejectAllowed) {
         this.shouldReject = false;
         this.payload = payload;
+        this.rejectAllowed = rejectAllowed;
     }
 
-    public static <T> GroupResult<T> of(T payload) {
-        return new GroupResult<>(payload);
+    public static <T> GroupResult<T> of(T payload, boolean rejectAllowed) {
+        return new GroupResult<>(payload, rejectAllowed);
     }
 
     public GroupResult<T> applyInvocationResult(InvocationResult<T> invocationResult,
@@ -44,11 +47,10 @@ class GroupResult<T> {
         if (invocationResult.status() == InvocationStatus.success && invocationResult.action() != null) {
             switch (invocationResult.action()) {
                 case reject:
-                    shouldReject = true;
-                    payload = null;
+                    applyReject();
                     break;
                 case update:
-                    payload = applyPayloadUpdate(invocationResult.payloadUpdate());
+                    applyPayloadUpdate(invocationResult.payloadUpdate());
                     break;
                 case no_action:
                     break;
@@ -59,6 +61,16 @@ class GroupResult<T> {
         }
 
         return this;
+    }
+
+    private void applyReject() {
+        if (!rejectAllowed) {
+            // TODO: log error?
+            return;
+        }
+
+        shouldReject = true;
+        payload = null;
     }
 
     public GroupResult<T> applyFailure(Throwable throwable, HookId hookId, long executionTime) {
@@ -138,17 +150,16 @@ class GroupResult<T> {
         }
     }
 
-    private T applyPayloadUpdate(PayloadUpdate<T> payloadUpdate) {
+    private void applyPayloadUpdate(PayloadUpdate<T> payloadUpdate) {
         if (payloadUpdate == null) {
             // TODO: log error?
-            return payload;
+            return;
         }
 
         try {
-            return payloadUpdate.apply(payload);
+            payload = payloadUpdate.apply(payload);
         } catch (Exception e) {
             // TODO: log error?
-            return payload;
         }
     }
 }
