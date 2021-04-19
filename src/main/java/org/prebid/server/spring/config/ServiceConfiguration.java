@@ -209,6 +209,7 @@ public class ServiceConfiguration {
             RequestValidator requestValidator,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
+            StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -220,6 +221,7 @@ public class ServiceConfiguration {
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
+                storedRequestProcessor,
                 applicationSettings);
     }
 
