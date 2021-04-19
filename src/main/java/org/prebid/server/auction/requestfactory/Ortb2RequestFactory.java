@@ -159,8 +159,7 @@ public class Ortb2RequestFactory {
         return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
                 ? Future.succeededFuture(accountId)
                 : storedRequestProcessor.processStoredRequests(accountId, bidRequest)
-                        .map(this::accountIdFrom)
-                        .otherwise(StringUtils.EMPTY);
+                .map(this::accountIdFrom);
     }
 
     private String validateIfAccountBlacklisted(String accountId) {
@@ -181,8 +180,8 @@ public class Ortb2RequestFactory {
         return StringUtils.isBlank(accountId)
                 ? responseForEmptyAccount(routingContext)
                 : applicationSettings.getAccountById(accountId, timeout)
-                        .compose(this::ensureAccountActive,
-                                exception -> accountFallback(exception, accountId, routingContext));
+                .compose(this::ensureAccountActive,
+                        exception -> accountFallback(exception, accountId, routingContext));
     }
 
     /**
