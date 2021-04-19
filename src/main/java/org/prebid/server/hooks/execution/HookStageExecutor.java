@@ -8,6 +8,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
@@ -23,6 +24,7 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
@@ -30,6 +32,7 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -39,6 +42,7 @@ import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.time.Clock;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -130,6 +134,44 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderRequestPayloadImpl.of(bidRequest))
                 .withHookProvider(hookId ->
                         hookCatalog.bidderRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
+                .withRejectAllowed(true)
+                .execute();
+    }
+
+    public Future<HookStageExecutionResult<BidderResponsePayload>> executeRawBidderResponseStage(
+            List<BidderBid> bids,
+            String bidder,
+            BidRequest bidRequest,
+            Account account,
+            HookExecutionContext context) {
+
+        final Endpoint endpoint = context.getEndpoint();
+        final Stage stage = Stage.raw_bidder_response;
+
+        return this.<BidderResponsePayload, BidderInvocationContext>stageExecutor(stage, account, endpoint, context)
+                .withInitialPayload(BidderResponsePayloadImpl.of(bids))
+                .withHookProvider(hookId ->
+                        hookCatalog.rawBidderResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
+                .withRejectAllowed(true)
+                .execute();
+    }
+
+    public Future<HookStageExecutionResult<BidderResponsePayload>> executeProcessedBidderResponseStage(
+            List<BidderBid> bids,
+            String bidder,
+            BidRequest bidRequest,
+            Account account,
+            HookExecutionContext context) {
+
+        final Endpoint endpoint = context.getEndpoint();
+        final Stage stage = Stage.processed_bidder_response;
+
+        return this.<BidderResponsePayload, BidderInvocationContext>stageExecutor(stage, account, endpoint, context)
+                .withInitialPayload(BidderResponsePayloadImpl.of(bids))
+                .withHookProvider(hookId ->
+                        hookCatalog.processedBidderResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
                 .withRejectAllowed(true)
                 .execute();

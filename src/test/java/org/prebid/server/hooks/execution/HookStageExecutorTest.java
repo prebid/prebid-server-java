@@ -2,6 +2,7 @@ package org.prebid.server.hooks.execution;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -26,6 +27,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
@@ -43,6 +45,7 @@ import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
@@ -57,9 +60,13 @@ import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
+import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
+import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
@@ -69,6 +76,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -1353,6 +1361,270 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
+    public void shouldExecuteRawBidderResponseHooksHappyPath(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.raw_bidder_response,
+                                execPlanTwoGroupsTwoHooksEach())))));
+
+        givenRawBidderResponseHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                        payload.bids().stream()
+                                .map(bid -> BidderBid.of(
+                                        bid.getBid().toBuilder().id("bidId").build(),
+                                        bid.getType(),
+                                        bid.getBidCurrency()))
+                                .collect(Collectors.toList())))));
+
+        givenRawBidderResponseHook(
+                "module-alpha",
+                "hook-b",
+                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                        payload.bids().stream()
+                                .map(bid -> BidderBid.of(
+                                        bid.getBid().toBuilder().adid("adId").build(),
+                                        bid.getType(),
+                                        bid.getBidCurrency()))
+                                .collect(Collectors.toList())))));
+
+        givenRawBidderResponseHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                        payload.bids().stream()
+                                .map(bid -> BidderBid.of(
+                                        bid.getBid().toBuilder().cid("cid").build(),
+                                        bid.getType(),
+                                        bid.getBidCurrency()))
+                                .collect(Collectors.toList())))));
+
+        givenRawBidderResponseHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                        payload.bids().stream()
+                                .map(bid -> BidderBid.of(
+                                        bid.getBid().toBuilder().adm("adm").build(),
+                                        bid.getType(),
+                                        bid.getBidCurrency()))
+                                .collect(Collectors.toList())))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
+                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                "bidder1",
+                BidRequest.builder().build(),
+                Account.empty("accountId"),
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bids()).containsOnly(BidderBid.of(
+                            Bid.builder()
+                                    .id("bidId")
+                                    .adid("adId")
+                                    .cid("cid")
+                                    .adm("adm")
+                                    .build(),
+                            BidType.banner,
+                            "USD")));
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
+    public void shouldExecuteRawBidderResponseHooksAndPassBidderInvocationContext(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(Stage.raw_bidder_response, execPlanOneGroupOneHook())))));
+
+        final RawBidderResponseHookImpl hookImpl = spy(
+                RawBidderResponseHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
+        given(hookCatalog.rawBidderResponseHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
+                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                "bidder1",
+                BidRequest.builder().build(),
+                Account.builder()
+                        .hooks(AccountHooksConfiguration.of(
+                                null, singletonMap("module-alpha", mapper.createObjectNode())))
+                        .build(),
+                hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            final ArgumentCaptor<BidderInvocationContext> invocationContextCaptor =
+                    ArgumentCaptor.forClass(BidderInvocationContext.class);
+            verify(hookImpl).call(any(), invocationContextCaptor.capture());
+
+            assertThat(invocationContextCaptor.getValue()).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isNotNull();
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.accountConfig()).isNotNull();
+                assertThat(invocationContext.bidder()).isEqualTo("bidder1");
+            });
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
+    public void shouldExecuteProcessedBidderResponseHooksHappyPath(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.processed_bidder_response,
+                                execPlanTwoGroupsTwoHooksEach())))));
+
+        givenProcessedBidderResponseHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                        payload.bids().stream()
+                                .map(bid -> BidderBid.of(
+                                        bid.getBid().toBuilder().id("bidId").build(),
+                                        bid.getType(),
+                                        bid.getBidCurrency()))
+                                .collect(Collectors.toList())))));
+
+        givenProcessedBidderResponseHook(
+                "module-alpha",
+                "hook-b",
+                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                        payload.bids().stream()
+                                .map(bid -> BidderBid.of(
+                                        bid.getBid().toBuilder().adid("adId").build(),
+                                        bid.getType(),
+                                        bid.getBidCurrency()))
+                                .collect(Collectors.toList())))));
+
+        givenProcessedBidderResponseHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                        payload.bids().stream()
+                                .map(bid -> BidderBid.of(
+                                        bid.getBid().toBuilder().cid("cid").build(),
+                                        bid.getType(),
+                                        bid.getBidCurrency()))
+                                .collect(Collectors.toList())))));
+
+        givenProcessedBidderResponseHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultImpl.succeeded(payload -> BidderResponsePayloadImpl.of(
+                        payload.bids().stream()
+                                .map(bid -> BidderBid.of(
+                                        bid.getBid().toBuilder().adm("adm").build(),
+                                        bid.getType(),
+                                        bid.getBidCurrency()))
+                                .collect(Collectors.toList())))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<BidderResponsePayload>> future =
+                executor.executeProcessedBidderResponseStage(
+                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                        "bidder1",
+                        BidRequest.builder().build(),
+                        Account.empty("accountId"),
+                        hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bids()).containsOnly(BidderBid.of(
+                            Bid.builder()
+                                    .id("bidId")
+                                    .adid("adId")
+                                    .cid("cid")
+                                    .adm("adm")
+                                    .build(),
+                            BidType.banner,
+                            "USD")));
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
+    public void shouldExecuteProcessedBidderResponseHooksAndPassBidderInvocationContext(TestContext context) {
+        // given
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.processed_bidder_response,
+                                execPlanOneGroupOneHook())))));
+
+        final ProcessedBidderResponseHookImpl hookImpl = spy(
+                ProcessedBidderResponseHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
+        given(hookCatalog.processedBidderResponseHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final Future<HookStageExecutionResult<BidderResponsePayload>> future =
+                executor.executeProcessedBidderResponseStage(
+                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                        "bidder1",
+                        BidRequest.builder().build(),
+                        Account.builder()
+                                .hooks(AccountHooksConfiguration.of(
+                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                .build(),
+                        hookExecutionContext);
+
+        // then
+        final Async async = context.async();
+        future.setHandler(context.asyncAssertSuccess(result -> {
+            final ArgumentCaptor<BidderInvocationContext> invocationContextCaptor =
+                    ArgumentCaptor.forClass(BidderInvocationContext.class);
+            verify(hookImpl).call(any(), invocationContextCaptor.capture());
+
+            assertThat(invocationContextCaptor.getValue()).satisfies(invocationContext -> {
+                assertThat(invocationContext.endpoint()).isNotNull();
+                assertThat(invocationContext.timeout()).isNotNull();
+                assertThat(invocationContext.accountConfig()).isNotNull();
+                assertThat(invocationContext.bidder()).isEqualTo("bidder1");
+            });
+
+            async.complete();
+        }));
+
+        async.awaitSuccess();
+    }
+
+    @Test
     public void shouldExecuteBidderRequestHooksWhenRequestIsRejected(TestContext context) {
         // given
         final HookStageExecutor executor = createExecutor(
@@ -1585,6 +1857,30 @@ public class HookStageExecutorTest extends VertxTest {
                 .willReturn(BidderRequestHookImpl.of(delegate));
     }
 
+    private void givenRawBidderResponseHook(
+            String moduleCode,
+            String hookImplCode,
+            BiFunction<
+                    BidderResponsePayload,
+                    BidderInvocationContext,
+                    Future<InvocationResult<BidderResponsePayload>>> delegate) {
+
+        given(hookCatalog.rawBidderResponseHookBy(eq(moduleCode), eq(hookImplCode)))
+                .willReturn(RawBidderResponseHookImpl.of(delegate));
+    }
+
+    private void givenProcessedBidderResponseHook(
+            String moduleCode,
+            String hookImplCode,
+            BiFunction<
+                    BidderResponsePayload,
+                    BidderInvocationContext,
+                    Future<InvocationResult<BidderResponsePayload>>> delegate) {
+
+        given(hookCatalog.processedBidderResponseHookBy(eq(moduleCode), eq(hookImplCode)))
+                .willReturn(ProcessedBidderResponseHookImpl.of(delegate));
+    }
+
     private void givenAuctionResponseHook(
             String moduleCode,
             String hookImplCode,
@@ -1677,6 +1973,54 @@ public class HookStageExecutorTest extends VertxTest {
         @Override
         public Future<InvocationResult<BidderRequestPayload>> call(BidderRequestPayload payload,
                                                                    BidderInvocationContext invocationContext) {
+
+            return delegate.apply(payload, invocationContext);
+        }
+
+        @Override
+        public String code() {
+            return code;
+        }
+    }
+
+    @Value(staticConstructor = "of")
+    @NonFinal
+    private static class RawBidderResponseHookImpl implements RawBidderResponseHook {
+
+        String code = "hook-code";
+
+        BiFunction<
+                BidderResponsePayload,
+                BidderInvocationContext,
+                Future<InvocationResult<BidderResponsePayload>>> delegate;
+
+        @Override
+        public Future<InvocationResult<BidderResponsePayload>> call(BidderResponsePayload payload,
+                                                                    BidderInvocationContext invocationContext) {
+
+            return delegate.apply(payload, invocationContext);
+        }
+
+        @Override
+        public String code() {
+            return code;
+        }
+    }
+
+    @Value(staticConstructor = "of")
+    @NonFinal
+    private static class ProcessedBidderResponseHookImpl implements ProcessedBidderResponseHook {
+
+        String code = "hook-code";
+
+        BiFunction<
+                BidderResponsePayload,
+                BidderInvocationContext,
+                Future<InvocationResult<BidderResponsePayload>>> delegate;
+
+        @Override
+        public Future<InvocationResult<BidderResponsePayload>> call(BidderResponsePayload payload,
+                                                                    BidderInvocationContext invocationContext) {
 
             return delegate.apply(payload, invocationContext);
         }
