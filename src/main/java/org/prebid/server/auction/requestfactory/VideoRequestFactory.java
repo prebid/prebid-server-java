@@ -81,6 +81,7 @@ public class VideoRequestFactory {
                         routingContext,
                         bidRequestWithErrors.getData(),
                         MetricName.video,
+                        false,
                         startTime,
                         new ArrayList<>())
 

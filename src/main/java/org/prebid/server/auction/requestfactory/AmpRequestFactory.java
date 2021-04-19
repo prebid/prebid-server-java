@@ -120,6 +120,7 @@ public class AmpRequestFactory {
                         routingContext,
                         bidRequestWithErrors.getLeft(),
                         MetricName.amp,
+                        false,
                         startTime,
                         bidRequestWithErrors.getRight()))
 

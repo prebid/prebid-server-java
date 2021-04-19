@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
@@ -75,6 +76,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private TimeoutFactory timeoutFactory;
     @Mock
+    private StoredRequestProcessor storedRequestProcessor;
+    @Mock
     private ApplicationSettings applicationSettings;
 
     private Ortb2RequestFactory target;
@@ -105,6 +108,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
+                storedRequestProcessor,
                 applicationSettings);
     }
 
@@ -118,17 +122,18 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
+                storedRequestProcessor,
                 applicationSettings);
 
         // when
-        final Future<?> future = target.fetchAccountAndCreateAuctionContext(routingContext, defaultBidRequest, null,
-                2000, new ArrayList<>());
+        final Future<?> result = target.fetchAccountAndCreateAuctionContext(routingContext, defaultBidRequest, null,
+                false, 2000, new ArrayList<>());
 
         // then
         verify(applicationSettings, never()).getAccountById(any(), any());
 
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
                 .isInstanceOf(UnauthorizedAccountException.class)
                 .hasMessage("Unauthorized account id: ");
     }
@@ -143,6 +148,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
+                storedRequestProcessor,
                 applicationSettings);
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -156,14 +162,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final Future<?> future = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest, null,
-                2000, new ArrayList<>());
+        final Future<?> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest, null,
+                false, 2000, new ArrayList<>());
 
         // then
         verify(applicationSettings).getAccountById(eq(accountId), any());
 
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
                 .isInstanceOf(UnauthorizedAccountException.class)
                 .hasMessage("Unauthorized account id: absentId");
     }
@@ -185,13 +191,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build()));
 
         // when
-        final Future<AuctionContext> future = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                null,
-                2000, new ArrayList<>());
+        final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
+                null, false, 2000, new ArrayList<>());
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
                 .isInstanceOf(UnauthorizedAccountException.class)
                 .hasMessage("Account accountId is inactive");
     }
@@ -207,7 +212,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // when
         final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
                 null,
-                2000, new ArrayList<>());
+                false, 2000, new ArrayList<>());
 
         // then
         assertThat(result.failed()).isTrue();
@@ -235,7 +240,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                null, 2000, new ArrayList<>());
+                null, false, 2000, new ArrayList<>());
 
         // then
         verify(applicationSettings).getAccountById(eq(parentAccount), any());
@@ -258,7 +263,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                null, 2000, new ArrayList<>());
+                null, false, 2000, new ArrayList<>());
 
         // then
         verify(applicationSettings).getAccountById(eq(accountId), any());
@@ -283,7 +288,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                null, 2000, new ArrayList<>());
+                null, false, 2000, new ArrayList<>());
 
         // then
         verify(applicationSettings).getAccountById(eq(accountId), any());
@@ -308,7 +313,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                null, 2000, new ArrayList<>());
+                null, false, 2000, new ArrayList<>());
 
         // then
         verify(applicationSettings).getAccountById(eq("accountId"), any());
@@ -333,7 +338,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                null, 2000, new ArrayList<>());
+                null, false, 2000, new ArrayList<>());
 
         // then
         verify(applicationSettings).getAccountById(eq(parentAccount), any());
@@ -356,7 +361,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                null, 2000, new ArrayList<>());
+                null, false, 2000, new ArrayList<>());
 
         // then
         verify(applicationSettings).getAccountById(eq(accountId), any());
@@ -374,9 +379,115 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                null, 2000, new ArrayList<>());
+                null, false, 2000, new ArrayList<>());
 
         // then
+        verifyZeroInteractions(applicationSettings);
+
+        assertThat(result.result().getAccount()).isEqualTo(Account.empty(""));
+    }
+
+    @Test
+    public void shouldFetchAccountFromStoredIfStoredLookupIsTrueAndAccountIsNotFoundPreviously() {
+        // given
+        final BidRequest receivedBidRequest = BidRequest.builder().build();
+
+        final String accountId = "accountId";
+        final BidRequest mergedBidRequest = BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build())
+                .build();
+
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willReturn(Future.succeededFuture(mergedBidRequest));
+
+        final Account fetchedAccount = Account.builder().id(accountId).status(AccountStatus.active).build();
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(fetchedAccount));
+
+        // when
+        final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext,
+                receivedBidRequest, null, true, 2000, new ArrayList<>());
+
+        // then
+        verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
+        verify(applicationSettings).getAccountById(eq(accountId), any());
+
+        assertThat(result.result().getAccount()).isEqualTo(fetchedAccount);
+    }
+
+    @Test
+    public void shouldFetchAccountFromStoredAndReturnFailedFutureWhenAccountIdIsBlacklisted() {
+        // given
+        final BidRequest receivedBidRequest = BidRequest.builder().build();
+
+        final BidRequest mergedBidRequest = BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("bad_acc").build()).build())
+                .build();
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willReturn(Future.succeededFuture(mergedBidRequest));
+
+        // when
+        final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext,
+                receivedBidRequest, null, true, 2000, new ArrayList<>());
+
+        // then
+        verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
+        verifyZeroInteractions(applicationSettings);
+
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(BlacklistedAccountException.class)
+                .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
+                        + "server host.");
+    }
+
+    @Test
+    public void shouldFetchAccountFromStoredAndReturnFailedFutureIfValidIsEnforcedAndStoredLookupIsFailed() {
+        // given
+        target = new Ortb2RequestFactory(
+                true,
+                BLACKLISTED_ACCOUNTS,
+                uidsCookieService,
+                requestValidator,
+                timeoutResolver,
+                timeoutFactory,
+                storedRequestProcessor,
+                applicationSettings);
+
+        final BidRequest receivedBidRequest = BidRequest.builder().build();
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willReturn(Future.failedFuture(new RuntimeException("error")));
+
+        // when
+        final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext,
+                receivedBidRequest, null, true, 2000, new ArrayList<>());
+
+        // then
+        verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
+        verifyZeroInteractions(applicationSettings);
+
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(UnauthorizedAccountException.class)
+                .hasMessage("Unauthorized account id: ");
+    }
+
+    @Test
+    public void shouldFetchAccountFromStoredAndReturnEmptyAccountIfStoredLookupIsFailed() {
+        // given
+        final BidRequest receivedBidRequest = BidRequest.builder().build();
+        given(storedRequestProcessor.processStoredRequests(any(), any()))
+                .willReturn(Future.failedFuture(new RuntimeException("error")));
+
+        // when
+        final Future<AuctionContext> result = target.fetchAccountAndCreateAuctionContext(routingContext,
+                receivedBidRequest, null, true, 2000, new ArrayList<>());
+
+        // then
+        verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
         verifyZeroInteractions(applicationSettings);
 
         assertThat(result.result().getAccount()).isEqualTo(Account.empty(""));
@@ -415,8 +526,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> future = target.fetchAccountAndCreateAuctionContext(routingContext, bidRequest,
-                metricName,
-                startTime, errors);
+                metricName, false, startTime, errors);
 
         // then
         verify(timeoutResolver).resolve(tmax);
