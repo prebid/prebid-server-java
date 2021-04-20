@@ -18,6 +18,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,6 +46,9 @@ import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -105,6 +110,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
@@ -136,6 +142,8 @@ public class BidResponseCreatorTest extends VertxTest {
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
     private IdGenerator idGenerator;
+    @Mock
+    private HookStageExecutor hookStageExecutor;
 
     private WinningBidComparator winningBidComparator;
 
@@ -155,6 +163,12 @@ public class BidResponseCreatorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
         given(idGenerator.getType()).willReturn(IdGeneratorType.none);
 
+        given(hookStageExecutor.executeProcessedBidderResponseStage(any(), any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        BidderResponsePayloadImpl.of(
+                                invocation.<BidderResponse>getArgument(0).getSeatBid().getBids()))));
+
         winningBidComparator = new WinningBidComparator();
         clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC);
 
@@ -166,11 +180,73 @@ public class BidResponseCreatorTest extends VertxTest {
                 storedRequestProcessor,
                 winningBidComparator,
                 idGenerator,
+                hookStageExecutor,
                 0,
                 clock,
                 jacksonMapper);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
+    }
+
+    @Test
+    public void shouldSkipBidderWhenRejectedByProcessedBidderResponseHooks() {
+        // given
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
+                .when(hookStageExecutor).executeProcessedBidderResponseStage(any(), any(), any(), any());
+
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()));
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .impid(IMP_ID)
+                .price(BigDecimal.valueOf(5.67))
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, MULTI_BIDS, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .isEmpty();
+    }
+
+    @Test
+    public void shouldPassRequestModifiedByBidderRequestHooks() {
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                false,
+                BidderResponsePayloadImpl.of(singletonList(BidderBid.of(
+                        Bid.builder()
+                                .id("bidIdModifiedByHook")
+                                .impid(IMP_ID)
+                                .price(BigDecimal.valueOf(1.23))
+                                .build(),
+                        video,
+                        "EUR"))))))
+                .when(hookStageExecutor).executeProcessedBidderResponseStage(any(), any(), any(), any());
+
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()));
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .impid(IMP_ID)
+                .price(BigDecimal.valueOf(5.67))
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, MULTI_BIDS, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getId, Bid::getImpid, Bid::getPrice)
+                .containsOnly(tuple("bidIdModifiedByHook", IMP_ID, BigDecimal.valueOf(1.23)));
     }
 
     @Test
@@ -1055,6 +1131,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 storedRequestProcessor,
                 winningBidComparator,
                 idGenerator,
+                hookStageExecutor,
                 20,
                 clock,
                 jacksonMapper);
@@ -2335,5 +2412,12 @@ public class BidResponseCreatorTest extends VertxTest {
     @SafeVarargs
     private static <T> List<T> mutableList(T... values) {
         return Arrays.stream(values).collect(Collectors.toList());
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class BidderResponsePayloadImpl implements BidderResponsePayload {
+
+        List<BidderBid> bids;
     }
 }
