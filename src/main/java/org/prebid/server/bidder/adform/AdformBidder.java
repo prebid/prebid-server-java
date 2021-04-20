@@ -286,8 +286,6 @@ public class AdformBidder implements Bidder<Void> {
     private List<BidderBid> toBidderBid(List<AdformBid> adformBids, List<Imp> imps) {
         final List<BidderBid> bidderBids = new ArrayList<>();
 
-        final String currency = CollectionUtils.isNotEmpty(adformBids) ? adformBids.get(0).getWinCur() : null;
-
         for (int i = 0; i < adformBids.size(); i++) {
             final AdformBid adformBid = adformBids.get(i);
             final String adm = resolveAdm(adformBid);
@@ -307,7 +305,7 @@ public class AdformBidder implements Bidder<Void> {
                             .crid(adformBid.getWinCrid())
                             .build(),
                     bidType,
-                    currency));
+                    adformBid.getWinCur()));
         }
 
         return bidderBids;

@@ -31,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -257,6 +258,35 @@ public class AdformBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).containsOnly(BidderBid.of(
                 Bid.builder().id("id").impid("id").adm("admBanner").build(), BidType.banner, "currency"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidderBidsWithCurrencyFromEveryAdformResponse() throws JsonProcessingException {
+        // given
+        final AdformBid firstAdformResponse = AdformBid.builder().banner("admBanner")
+                .response("banner").winCur("EUR").build();
+        final AdformBid secondAdformResponse = AdformBid.builder().banner("admBanner")
+                .response("banner").winCur("USD").build();
+        final String adformBidResponse =
+                mapper.writeValueAsString(Arrays.asList(firstAdformResponse, secondAdformResponse));
+
+        final HttpCall<Void> httpCall = givenHttpCall(adformBidResponse);
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(Imp.builder().id("firstId").build(), Imp.builder().id("secondId").build()))
+                .build();
+
+        // when
+        final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2).containsExactly(
+                BidderBid.of(Bid.builder().id("firstId").impid("firstId").adm("admBanner").build(),
+                        BidType.banner,
+                        "EUR"),
+                BidderBid.of(Bid.builder().id("secondId").impid("secondId").adm("admBanner").build(),
+                        BidType.banner,
+                        "USD"));
     }
 
     @Test
