@@ -183,8 +183,9 @@ public class TcfDefinerService {
         final String consentString = privacy.getConsentString();
         final TCString consent = parseConsentString(consentString, requestLogInfo);
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
+        final boolean consentIsValid = isConsentValid(consent);
 
-        if (consentStringMeansInScope && isConsentValid(consent)) {
+        if (consentStringMeansInScope && consentIsValid) {
             return Future.succeededFuture(TcfContext.builder()
                     .gdpr(GDPR_ONE)
                     .consentString(consentString)
@@ -200,7 +201,7 @@ public class TcfDefinerService {
                     .gdpr(gdpr)
                     .consentString(consentString)
                     .consent(consent)
-                    .isConsentValid(isConsentValid(consent))
+                    .isConsentValid(consentIsValid)
                     .ipAddress(effectiveIpAddress)
                     .build());
         }
@@ -213,7 +214,7 @@ public class TcfDefinerService {
                     .gdpr(gdprFromGeo(inEea))
                     .consentString(consentString)
                     .consent(consent)
-                    .isConsentValid(isConsentValid(consent))
+                    .isConsentValid(consentIsValid)
                     .inEea(inEea)
                     .ipAddress(effectiveIpAddress)
                     .build());
