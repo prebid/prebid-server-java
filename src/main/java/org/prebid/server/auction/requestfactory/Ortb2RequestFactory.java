@@ -14,6 +14,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookieService;
@@ -55,6 +56,7 @@ public class Ortb2RequestFactory {
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
     private final TimeoutFactory timeoutFactory;
+    private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
     private final TimeoutResolver timeoutResolver;
 
@@ -64,6 +66,7 @@ public class Ortb2RequestFactory {
                                RequestValidator requestValidator,
                                TimeoutResolver timeoutResolver,
                                TimeoutFactory timeoutFactory,
+                               StoredRequestProcessor storedRequestProcessor,
                                ApplicationSettings applicationSettings) {
 
         this.enforceValidAccount = enforceValidAccount;
@@ -73,15 +76,17 @@ public class Ortb2RequestFactory {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
     }
 
     public Future<AuctionContext> fetchAccountAndCreateAuctionContext(RoutingContext routingContext,
                                                                       BidRequest bidRequest,
                                                                       MetricName requestTypeMetric,
+                                                                      boolean isLookupStoredRequest,
                                                                       long startTime,
                                                                       List<String> errors) {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
-        return accountFrom(bidRequest, timeout, routingContext)
+        return accountFrom(bidRequest, timeout, routingContext, isLookupStoredRequest)
                 .map(account -> AuctionContext.builder()
                         .routingContext(routingContext)
                         .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
@@ -135,25 +140,48 @@ public class Ortb2RequestFactory {
     }
 
     /**
+     * Make lookup for storedRequest if isLookupStoredRequest is true
+     * and account id is not found in original {@link BidRequest}.
+     * <p>
      * Returns {@link Account} fetched by {@link ApplicationSettings}.
      */
-    private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout, RoutingContext routingContext) {
+    private Future<Account> accountFrom(BidRequest bidRequest,
+                                        Timeout timeout,
+                                        RoutingContext routingContext,
+                                        boolean isLookupStoredRequest) {
+        return findAccountIdFrom(bidRequest, isLookupStoredRequest)
+                .map(this::validateIfAccountBlacklisted)
+                .compose(accountId -> fetchAccount(timeout, routingContext, accountId));
+    }
+
+    private Future<String> findAccountIdFrom(BidRequest bidRequest, boolean isLookupStoredRequest) {
         final String accountId = accountIdFrom(bidRequest);
-        final boolean isAccountIdBlank = StringUtils.isBlank(accountId);
+        return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
+                ? Future.succeededFuture(accountId)
+                : storedRequestProcessor.processStoredRequests(accountId, bidRequest)
+                .map(this::accountIdFrom);
+    }
 
+    private String validateIfAccountBlacklisted(String accountId) {
         if (CollectionUtils.isNotEmpty(blacklistedAccounts)
-                && !isAccountIdBlank
+                && StringUtils.isNotBlank(accountId)
                 && blacklistedAccounts.contains(accountId)) {
-            return Future.failedFuture(new BlacklistedAccountException(
-                    String.format("Prebid-server has blacklisted Account ID: %s, please "
-                            + "reach out to the prebid server host.", accountId)));
-        }
 
-        return isAccountIdBlank
+            throw new BlacklistedAccountException(
+                    String.format("Prebid-server has blacklisted Account ID: %s, please "
+                            + "reach out to the prebid server host.", accountId));
+        }
+        return accountId;
+    }
+
+    private Future<Account> fetchAccount(Timeout timeout,
+                                         RoutingContext routingContext,
+                                         String accountId) {
+        return StringUtils.isBlank(accountId)
                 ? responseForEmptyAccount(routingContext)
                 : applicationSettings.getAccountById(accountId, timeout)
-                        .compose(this::ensureAccountActive,
-                                exception -> accountFallback(exception, accountId, routingContext));
+                .compose(this::ensureAccountActive,
+                        exception -> accountFallback(exception, accountId, routingContext));
     }
 
     /**
