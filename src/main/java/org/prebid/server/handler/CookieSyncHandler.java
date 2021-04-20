@@ -13,6 +13,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
@@ -234,6 +235,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
         if (isGdprParamsNotConsistent(cookieSyncRequest)) {
             return new InvalidRequestException("gdpr_consent is required if gdpr is 1");
+        }
+
+        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
+        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+            return new InvalidRequestException("Consent string is invalid");
         }
 
         return null;
