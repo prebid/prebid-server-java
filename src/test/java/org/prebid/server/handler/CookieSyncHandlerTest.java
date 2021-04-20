@@ -241,6 +241,28 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithBadRequestStatusIfGdprConsentIsInvalid() {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.builder()
+                        .bidders(emptyList())
+                        .gdpr(1)
+                        .gdprConsent("invalid")
+                        .build()));
+
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(null,
+                        TcfContext.builder().gdpr("1").isConsentValid(false).build())));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
+    }
+
+    @Test
     public void shouldNotSendResponseIfClientClosedConnection() {
         // given
         given(routingContext.getBody()).willReturn(

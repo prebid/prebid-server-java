@@ -189,6 +189,7 @@ public class TcfDefinerService {
                     .gdpr(GDPR_ONE)
                     .consentString(consentString)
                     .consent(consent)
+                    .isConsentValid(true)
                     .ipAddress(effectiveIpAddress)
                     .build());
         }
@@ -199,6 +200,7 @@ public class TcfDefinerService {
                     .gdpr(gdpr)
                     .consentString(consentString)
                     .consent(consent)
+                    .isConsentValid(isConsentValid(consent))
                     .ipAddress(effectiveIpAddress)
                     .build());
         }
@@ -211,6 +213,7 @@ public class TcfDefinerService {
                     .gdpr(gdprFromGeo(inEea))
                     .consentString(consentString)
                     .consent(consent)
+                    .isConsentValid(isConsentValid(consent))
                     .inEea(inEea)
                     .ipAddress(effectiveIpAddress)
                     .build());
@@ -246,6 +249,7 @@ public class TcfDefinerService {
                 .gdpr(gdprFromGeo(inEea))
                 .consentString(consentString)
                 .consent(consent)
+                .isConsentValid(isConsentValid(consent))
                 .geoInfo(geoInfo)
                 .inEea(inEea)
                 .ipAddress(ipAddress)
@@ -279,6 +283,7 @@ public class TcfDefinerService {
                 .gdpr(gdprDefaultValue)
                 .consentString(consentString)
                 .consent(consent)
+                .isConsentValid(isConsentValid(consent))
                 .ipAddress(ipAddress)
                 .build();
     }
