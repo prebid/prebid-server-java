@@ -6,6 +6,8 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
@@ -15,6 +17,7 @@ import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -22,6 +25,7 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
+import java.util.List;
 import java.util.Objects;
 
 public class HookStageExecutor {
@@ -76,6 +80,20 @@ public class HookStageExecutor {
             @Override
             public BidRequest bidRequest() {
                 return bidderRequest.getBidRequest();
+            }
+        }));
+    }
+
+    public Future<HookStageExecutionResult<BidderResponsePayload>> executeProcessedBidderResponseStage(
+            BidderResponse bidderResponse,
+            BidRequest bidRequest,
+            Account account,
+            HookExecutionContext context) {
+
+        return Future.succeededFuture(HookStageExecutionResult.of(false, new BidderResponsePayload() {
+            @Override
+            public List<BidderBid> bids() {
+                return bidderResponse.getSeatBid().getBids();
             }
         }));
     }

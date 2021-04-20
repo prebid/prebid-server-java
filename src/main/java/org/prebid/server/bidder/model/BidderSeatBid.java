@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
@@ -14,8 +13,7 @@ import java.util.List;
  * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
  * back with type safety.
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class BidderSeatBid {
 
     /**
@@ -42,6 +40,10 @@ public class BidderSeatBid {
      * Error messages should help publishers understand what might account for "bad" bids.
      */
     List<BidderError> errors;
+
+    public BidderSeatBid with(List<BidderBid> bids) {
+        return BidderSeatBid.of(bids, this.getHttpCalls(), this.getErrors());
+    }
 
     public static BidderSeatBid empty() {
         return of(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
