@@ -60,6 +60,7 @@ import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -141,6 +142,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class ExchangeServiceTest extends VertxTest {
 
@@ -214,6 +216,11 @@ public class ExchangeServiceTest extends VertxTest {
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         BidderRequestPayloadImpl.of(invocation.<BidderRequest>getArgument(0).getBidRequest()))));
+        given(hookStageExecutor.executeRawBidderResponseStage(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        BidderResponsePayloadImpl.of(invocation.<BidderResponse>getArgument(0).getSeatBid()
+                                .getBids()))));
         given(hookStageExecutor.executeAuctionResponseStage(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
@@ -458,6 +465,60 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
         assertThat(capturedBidRequest).isEqualTo(BidRequest.builder().id("bidderRequestId").build());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldSkipBidderWhenRejectedByRawBidderResponseHooks() {
+        // given
+        final String bidder = "someBidder";
+        givenBidder(bidder, mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.ONE).build()))));
+
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
+                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<List<BidderResponse>> bidResponseCaptor = ArgumentCaptor.forClass(List.class);
+        verify(storedResponseProcessor).mergeWithBidderResponses(bidResponseCaptor.capture(), any(), any());
+
+        assertThat(bidResponseCaptor.getValue())
+                .extracting(BidderResponse::getSeatBid)
+                .containsOnly(BidderSeatBid.empty());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldPassRequestModifiedByRawBidderResponseHooks() {
+        // given
+        final String bidder = "someBidder";
+        givenBidder(bidder, mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().build()))));
+
+        final BidderBid hookChangedBid = BidderBid.of(Bid.builder().id("newId").build(), video, "USD");
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                false,
+                BidderResponsePayloadImpl.of(singletonList(hookChangedBid)))))
+                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<List<BidderResponse>> bidResponseCaptor = ArgumentCaptor.forClass(List.class);
+        verify(storedResponseProcessor).mergeWithBidderResponses(bidResponseCaptor.capture(), any(), any());
+
+        assertThat(bidResponseCaptor.getValue())
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .containsOnly(hookChangedBid);
     }
 
     @Test
@@ -2824,6 +2885,13 @@ public class ExchangeServiceTest extends VertxTest {
     private static class BidderRequestPayloadImpl implements BidderRequestPayload {
 
         BidRequest bidRequest;
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class BidderResponsePayloadImpl implements BidderResponsePayload {
+
+        List<BidderBid> bids;
     }
 
     @Accessors(fluent = true)

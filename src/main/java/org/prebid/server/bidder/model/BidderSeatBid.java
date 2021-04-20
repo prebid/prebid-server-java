@@ -43,6 +43,10 @@ public class BidderSeatBid {
      */
     List<BidderError> errors;
 
+    public BidderSeatBid with(List<BidderBid> bids) {
+        return BidderSeatBid.of(bids, this.getHttpCalls(), this.getErrors());
+    }
+
     public static BidderSeatBid empty() {
         return of(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
     }
