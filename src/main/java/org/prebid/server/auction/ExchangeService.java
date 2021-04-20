@@ -1065,8 +1065,8 @@ public class ExchangeService {
         final String adServerCurrency = bidRequest.getCur().get(0);
 
         for (final BidderBid bidderBid : bidderBids) {
-            final BidderBid updatedBidderBid = updateWithPriceChanges(bidderBid, requestImps, bidderResponse,
-                    bidRequest, adServerCurrency, errors);
+            final BidderBid updatedBidderBid = updateBidderBidWithBidPriceChanges(bidderBid, requestImps,
+                    bidderResponse, bidRequest, adServerCurrency, errors);
             if (updatedBidderBid != null) {
                 updatedBidderBids.add(updatedBidderBid);
             }
@@ -1075,12 +1075,12 @@ public class ExchangeService {
         return bidderResponse.with(BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors));
     }
 
-    private BidderBid updateWithPriceChanges(BidderBid bidderBid,
-                                             List<Imp> requestImps,
-                                             BidderResponse bidderResponse,
-                                             BidRequest bidRequest,
-                                             String adServerCurrency,
-                                             List<BidderError> errors) {
+    private BidderBid updateBidderBidWithBidPriceChanges(BidderBid bidderBid,
+                                                         List<Imp> requestImps,
+                                                         BidderResponse bidderResponse,
+                                                         BidRequest bidRequest,
+                                                         String adServerCurrency,
+                                                         List<BidderError> errors) {
         final Bid bid = bidderBid.getBid();
         final String bidCurrency = bidderBid.getBidCurrency();
         final BigDecimal price = bid.getPrice();
@@ -1103,7 +1103,7 @@ public class ExchangeService {
                 addPropertyToNode(updatedBidExt, ORIGINAL_BID_CPM, new DecimalNode(price));
             }
             // add origbidcur if conversion occurred
-            if (priceInAdServerCurrency.compareTo(price) != 0 && StringUtils.isNotBlank(bidCurrency)) { // conversion occurred
+            if (priceInAdServerCurrency.compareTo(price) != 0 && StringUtils.isNotBlank(bidCurrency)) {
                 addPropertyToNode(updatedBidExt, ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
             }
             if (!updatedBidExt.isEmpty()) {
