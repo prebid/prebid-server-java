@@ -366,8 +366,6 @@ public class BidResponseCreator {
                 .flatMap(Collection::stream)
                 .map(bidderBid ->
                         toBidInfo(bidderBid.getBid(),
-                                bidderBid.getBidCurrency(),
-                                bidderBid.getOrigbidcpm(),
                                 bidderBid.getType(),
                                 imps,
                                 bidderResponse.getBidder(),
@@ -376,8 +374,6 @@ public class BidResponseCreator {
     }
 
     private BidInfo toBidInfo(Bid bid,
-                              String bidCurrency,
-                              BigDecimal origbidcpm,
                               BidType type,
                               List<Imp> imps,
                               String bidder,
@@ -385,8 +381,6 @@ public class BidResponseCreator {
         return BidInfo.builder()
                 .generatedBidId(bidIdToGeneratedBidId.get(bid.getId()))
                 .bid(bid)
-                .origbidcpm(origbidcpm)
-                .bidCurrency(bidCurrency)
                 .bidType(type)
                 .bidder(bidder)
                 .correspondingImp(correspondingImp(bid, imps))
@@ -942,7 +936,7 @@ public class BidResponseCreator {
                 .video(extBidPrebidVideo)
                 .build();
 
-        bid.setExt(createBidExt(bid.getExt(), extBidPrebid, bidInfo.getOrigbidcpm(), bidInfo.getBidCurrency()));
+        bid.setExt(createBidExt(bid.getExt(), extBidPrebid));
 
         final Integer ttl = cacheInfo != null ? ObjectUtils.max(cacheInfo.getTtl(), cacheInfo.getVideoTtl()) : null;
         bid.setExp(ttl);
@@ -1195,25 +1189,35 @@ public class BidResponseCreator {
     }
 
     // will be updated in https://github.com/prebid/prebid-server-java/pull/1126
-    private ObjectNode createBidExt(ObjectNode existingBidExt,
-                                    ExtBidPrebid extBidPrebid,
-                                    BigDecimal originalBidPrice,
-                                    String originalBidCurrency) {
+    private ObjectNode createBidExt(ObjectNode existingBidExt, ExtBidPrebid extBidPrebid) {
         JsonNode skadnObject = mapper.mapper().createObjectNode();
+        JsonNode origBidPrice = null;
+        JsonNode origBidCur = null;
         if (existingBidExt != null && !existingBidExt.isEmpty()) {
-            skadnObject = existingBidExt.get(SKADN_PROPERTY);
-            existingBidExt.remove(SKADN_PROPERTY);
+            skadnObject = getAndRemoveProperty(SKADN_PROPERTY, existingBidExt);
+            origBidPrice = getAndRemoveProperty(ORIGINAL_BID_CPM, existingBidExt);
+            origBidCur = getAndRemoveProperty(ORIGINAL_BID_CURRENCY, existingBidExt);
         }
-        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, existingBidExt);
+        final ObjectNode extPrebidBidder = existingBidExt != null && !existingBidExt.isEmpty() ? existingBidExt : null;
+        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(extBidPrebid, extPrebidBidder);
         final ObjectNode updatedBidExt = mapper.mapper().valueToTree(bidExt);
         if (skadnObject != null && !skadnObject.isEmpty()) {
             updatedBidExt.set(SKADN_PROPERTY, skadnObject);
         }
-        updatedBidExt.put(ORIGINAL_BID_CPM, originalBidPrice);
-        if (StringUtils.isNotBlank(originalBidCurrency)) {
-            updatedBidExt.put(ORIGINAL_BID_CURRENCY, originalBidCurrency);
+        if (origBidPrice != null) {
+            updatedBidExt.set(ORIGINAL_BID_CPM, origBidPrice);
+        }
+        if (origBidCur != null) {
+            updatedBidExt.set(ORIGINAL_BID_CURRENCY, origBidCur);
         }
 
         return updatedBidExt;
+    }
+
+    private JsonNode getAndRemoveProperty(String propertyName, ObjectNode node) {
+        final JsonNode property = node.get(propertyName);
+        node.remove(propertyName);
+
+        return property;
     }
 }

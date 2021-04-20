@@ -57,7 +57,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.AdjustmentsMediaType;
+import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
@@ -2249,8 +2249,12 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
-        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1", BigDecimal.valueOf(2.0));
+        final ObjectNode expectedBidExt = mapper.createObjectNode();
+        expectedBidExt.put("origbidcpm", new BigDecimal("2.0"));
+        expectedBidExt.put("origbidcur", "CUR1");
+        final Bid expectedBid = Bid.builder().price(updatedPrice).ext(expectedBidExt).build();
+
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
         final BidderError expectedError =
                 BidderError.generic("Unable to convert bid currency CUR2 to desired ad server currency USD");
 
@@ -2290,8 +2294,11 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(argumentCaptor.getValue()).hasSize(2);
 
-        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD", BigDecimal.valueOf(2.0));
+        final ObjectNode expectedBidExt = mapper.createObjectNode();
+        expectedBidExt.put("origbidcpm", new BigDecimal("2.0"));
+        expectedBidExt.put("origbidcur", "USD");
+        final Bid expectedBid = Bid.builder().price(updatedPrice).ext(expectedBidExt).build();
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD");
         assertThat(argumentCaptor.getValue())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
@@ -2563,7 +2570,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(AdjustmentsMediaType.banner,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -2595,7 +2602,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(AdjustmentsMediaType.banner,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));

@@ -5,7 +5,7 @@
       "value": {
         "id": "21521324",
         "impid": "impId1",
-        "price": 12.43,
+        "price": 11.187,
         "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
         "crid": "crid1",
         "w": 300,
@@ -20,7 +20,8 @@
                 ]
               }
             ]
-          }
+          },
+          "origbidcpm":12.43
         },
         "wurl": "http://localhost:8080/event?t=win&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int="
       }
@@ -56,7 +57,7 @@
       "value": {
         "id": "880290288",
         "impid": "impId1",
-        "price": 8.43,
+        "price": 7.587,
         "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
         "crid": "crid1",
         "w": 300,
@@ -71,7 +72,8 @@
                 ]
               }
             ]
-          }
+          },
+          "origbidcpm":8.43
         },
         "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int="
       }

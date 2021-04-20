@@ -59,16 +59,6 @@
   },
   "ext": {
     "prebid": {
-      "bidadjustmentfactors": {
-        "mediatypes": {
-          "banner": {
-            "ttx": 0.7
-          },
-          "video-outstream": {
-            "ttx": 0.9
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

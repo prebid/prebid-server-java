@@ -2,7 +2,9 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.DecimalNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
@@ -43,7 +45,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
-import org.prebid.server.proto.openrtb.ext.request.AdjustmentsMediaType;
+import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -89,6 +91,8 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
+    private static final String ORIGINAL_BID_CPM = "origbidcpm";
+    private static final String ORIGINAL_BID_CURRENCY = "origbidcur";
     private static final String ALL_BIDDERS_CONFIG = "*";
     private static final Integer DEFAULT_MULTIBID_LIMIT_MIN = 1;
     private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
@@ -1061,78 +1065,105 @@ public class ExchangeService {
         final String adServerCurrency = bidRequest.getCur().get(0);
 
         for (final BidderBid bidderBid : bidderBids) {
-            final Bid bid = bidderBid.getBid();
-            final String bidCurrency = bidderBid.getBidCurrency();
-            final BigDecimal price = bid.getPrice();
-
-            final AdjustmentsMediaType mediaType =
-                    resolveImpMediaType(bid.getImpid(), requestImps, bidderBid.getType());
-
-            final BigDecimal priceAdjustmentFactor =
-                    bidAdjustmentForBidder(bidRequest, bidderResponse.getBidder(), mediaType);
-            try {
-                final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                        price, bidRequest, adServerCurrency, StringUtils.stripToNull(bidCurrency));
-
-                final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
-
-                if (adjustedPrice.compareTo(price) != 0) {
-                    bid.setPrice(adjustedPrice);
-                }
-                updatedBidderBids.add(bidderBid);
-            } catch (PreBidException e) {
-                errors.add(BidderError.generic(e.getMessage()));
+            final BidderBid updatedBidderBid = updateWithPriceChanges(bidderBid, requestImps, bidderResponse,
+                    bidRequest, adServerCurrency, errors);
+            if (updatedBidderBid != null) {
+                updatedBidderBids.add(updatedBidderBid);
             }
         }
 
         return bidderResponse.with(BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors));
     }
 
-    private static AdjustmentsMediaType resolveImpMediaType(String bidImpId, List<Imp> imps, BidType bidType) {
+    private BidderBid updateWithPriceChanges(BidderBid bidderBid,
+                                             List<Imp> requestImps,
+                                             BidderResponse bidderResponse,
+                                             BidRequest bidRequest,
+                                             String adServerCurrency,
+                                             List<BidderError> errors) {
+        final Bid bid = bidderBid.getBid();
+        final String bidCurrency = bidderBid.getBidCurrency();
+        final BigDecimal price = bid.getPrice();
+
+        final BidAdjustmentMediaType mediaType =
+                resolveBidAdjustmentMediaType(bid.getImpid(), requestImps, bidderBid.getType());
+
+        final BigDecimal priceAdjustmentFactor =
+                bidAdjustmentForBidder(bidderResponse.getBidder(), bidRequest, mediaType);
+        try {
+            final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
+                    price, bidRequest, adServerCurrency, StringUtils.stripToNull(bidCurrency));
+
+            final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
+            final ObjectNode bidExt = bid.getExt();
+            final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
+
+            if (adjustedPrice.compareTo(price) != 0) {
+                bid.setPrice(adjustedPrice);
+                addPropertyToNode(updatedBidExt, ORIGINAL_BID_CPM, new DecimalNode(price));
+            }
+            // add origbidcur if conversion occurred
+            if (priceInAdServerCurrency.compareTo(price) != 0 && StringUtils.isNotBlank(bidCurrency)) { // conversion occurred
+                addPropertyToNode(updatedBidExt, ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
+            }
+            if (!updatedBidExt.isEmpty()) {
+                bid.setExt(updatedBidExt);
+            }
+
+            return bidderBid;
+        } catch (PreBidException e) {
+            errors.add(BidderError.generic(e.getMessage()));
+        }
+        return null;
+    }
+
+    private static BidAdjustmentMediaType resolveBidAdjustmentMediaType(String bidImpId,
+                                                                        List<Imp> imps,
+                                                                        BidType bidType) {
         switch (bidType) {
             case banner:
-                return AdjustmentsMediaType.banner;
+                return BidAdjustmentMediaType.banner;
             case xNative:
-                return AdjustmentsMediaType.xNative;
+                return BidAdjustmentMediaType.xNative;
             case audio:
-                return AdjustmentsMediaType.audio;
+                return BidAdjustmentMediaType.audio;
             case video:
-                return resolveVideoMediaType(bidImpId, imps);
+                return resolveBidAdjustmentVideoMediaType(bidImpId, imps);
             default:
-                throw new IllegalArgumentException("BidType not present for bidderBid");
+                throw new PreBidException("BidType not present for bidderBid");
         }
     }
 
-    private static AdjustmentsMediaType resolveVideoMediaType(String bidImpId, List<Imp> imps) {
+    private static BidAdjustmentMediaType resolveBidAdjustmentVideoMediaType(String bidImpId, List<Imp> imps) {
         final Video bidImpVideo = imps.stream()
                 .filter(imp -> imp.getId().equals(bidImpId))
                 .map(Imp::getVideo)
                 .filter(Objects::nonNull)
                 .findFirst().orElse(null);
         if (bidImpVideo == null || Objects.equals(bidImpVideo.getPlacement(), 1)) {
-            return AdjustmentsMediaType.video;
+            return BidAdjustmentMediaType.video;
         }
 
-        return AdjustmentsMediaType.video_outstream;
+        return BidAdjustmentMediaType.video_outstream;
     }
 
-    private static BigDecimal bidAdjustmentForBidder(BidRequest bidRequest,
-                                                     String bidder,
-                                                     AdjustmentsMediaType mediaType) {
+    private static BigDecimal bidAdjustmentForBidder(String bidder,
+                                                     BidRequest bidRequest,
+                                                     BidAdjustmentMediaType mediaType) {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         final ExtRequestBidadjustmentfactors extBidadjustmentfactors = prebid != null
                 ? prebid.getBidadjustmentfactors()
                 : null;
 
         return extBidadjustmentfactors != null
-                ? resolveAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder)
+                ? resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder)
                 : null;
     }
 
-    private static BigDecimal resolveAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,
-                                                      AdjustmentsMediaType mediaType,
-                                                      String bidder) {
-        final Map<AdjustmentsMediaType, Map<String, BigDecimal>> mediatypes =
+    private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,
+                                                         BidAdjustmentMediaType mediaType,
+                                                         String bidder) {
+        final Map<BidAdjustmentMediaType, Map<String, BigDecimal>> mediatypes =
                 extBidadjustmentfactors.getMediatypes();
         final Map<String, BigDecimal> adjustmentsByMediatypes = mediatypes != null ? mediatypes.get(mediaType) : null;
         final BigDecimal adjustmentFactorByMediaType =
@@ -1147,6 +1178,10 @@ public class ExchangeService {
         return priceAdjustmentFactor != null && priceAdjustmentFactor.compareTo(BigDecimal.ONE) != 0
                 ? price.multiply(priceAdjustmentFactor)
                 : price;
+    }
+
+    private void addPropertyToNode(ObjectNode node, String propertyName, JsonNode propertyValue) {
+        node.set(propertyName, propertyValue);
     }
 
     private int responseTime(long startTime) {

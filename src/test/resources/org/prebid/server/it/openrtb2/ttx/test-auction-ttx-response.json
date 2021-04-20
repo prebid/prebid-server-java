@@ -6,7 +6,7 @@
         {
           "id": "bid001",
           "impid": "impId001",
-          "price": 0.875,
+          "price": 1.25,
           "adm": "adm001",
           "crid": "crid001",
           "w": 300,
@@ -20,8 +20,8 @@
                 "hb_bidder_ttx": "ttx",
                 "hb_cache_id": "ab634778-1ad8-4851-8f8d-b8588885ec78",
                 "hb_cache_id_ttx": "ab634778-1ad8-4851-8f8d-b8588885ec78",
-                "hb_pb_ttx": "0.80",
-                "hb_pb": "0.80",
+                "hb_pb_ttx": "1.20",
+                "hb_pb": "1.20",
                 "hb_size_ttx": "300x250",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x250",
@@ -34,8 +34,7 @@
                   "cacheId": "ab634778-1ad8-4851-8f8d-b8588885ec78"
                 }
               }
-            },
-            "origbidcpm": 1.25
+            }
           }
         }
       ],

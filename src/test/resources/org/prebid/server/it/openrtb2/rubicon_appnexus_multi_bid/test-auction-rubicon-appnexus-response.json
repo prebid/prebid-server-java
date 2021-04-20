@@ -6,7 +6,7 @@
         {
           "id": "21521324",
           "impid": "impId1",
-          "price": 12.43,
+          "price": 11.187,
           "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
           "crid": "crid1",
           "w": 300,
@@ -20,8 +20,8 @@
                 "hb_cache_id": "07a81993-a3f4-4582-89c1-44a6935b192b",
                 "hb_cache_path_rubicon": "{{ cache.path }}",
                 "hb_cache_host_rubicon": "{{ cache.host }}",
-                "hb_pb": "12.40",
-                "hb_pb_rubicon": "12.40",
+                "hb_pb": "11.10",
+                "hb_pb_rubicon": "11.10",
                 "hb_cache_id_rubicon": "07a81993-a3f4-4582-89c1-44a6935b192b",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_uuid": "e15f6dcb-7b3b-4c32-be95-9b9d6f8f9320",
@@ -47,7 +47,6 @@
                 "imp": "{{ event.url }}t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int="
               }
             },
-            "origbidcpm": 12.43,
             "bidder": {
               "rp": {
                 "targeting": [
@@ -59,13 +58,14 @@
                   }
                 ]
               }
-            }
+            },
+            "origbidcpm":12.43
           }
         },
         {
           "id": "880290288",
           "impid": "impId1",
-          "price": 8.43,
+          "price": 7.587,
           "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
           "crid": "crid1",
           "w": 300,
@@ -75,7 +75,7 @@
             "prebid": {
               "type": "video",
               "targeting": {
-                "hb_pb_rubN2": "8.40",
+                "hb_pb_rubN2": "7.50",
                 "hb_uuid_rubN2": "d4f001de-4cc9-4857-9fad-70feff5c0dbc",
                 "hb_cache_host_rubN2": "{{ cache.host }}",
                 "hb_bidder_rubN2": "rubN2",
@@ -99,7 +99,6 @@
                 "imp": "{{ event.url }}t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int="
               }
             },
-            "origbidcpm": 8.43,
             "bidder": {
               "rp": {
                 "targeting": [
@@ -111,7 +110,8 @@
                   }
                 ]
               }
-            }
+            },
+            "origbidcpm":8.43
           }
         }
       ],
@@ -160,8 +160,6 @@
                 "imp": "{{ event.url }}t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int="
               }
             },
-            "origbidcpm": 5.5,
-            "origbidcur": "USD",
             "bidder": {
               "appnexus": {
                 "brand_id": 1,
@@ -207,8 +205,6 @@
                 "imp": "{{ event.url }}t=imp&b=222214214214&a=5001&ts=1000&bidder=appnexus&f=i&int="
               }
             },
-            "origbidcpm": 2.0,
-            "origbidcur": "USD",
             "bidder": {
               "appnexus": {
                 "brand_id": 1,

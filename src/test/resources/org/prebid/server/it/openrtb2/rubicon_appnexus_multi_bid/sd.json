@@ -1,0 +1,184 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "21521324",
+          "impid": "impId1",
+          "price": 11.187,
+          "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb": "11.10",
+                "hb_pb_rubicon": "11.10",
+                "hb_size": "300x250",
+                "hb_bidder": "rubicon",
+                "hb_size_rubicon": "300x250",
+                "hb_bidder_rubicon": "rubicon"
+              },
+              "targetbiddercode": "rubicon",
+              "events": {
+                "win": "http://localhost:8080/event?t=win&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int=",
+                "imp": "http://localhost:8080/event?t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int="
+              }
+            },
+            "bidder": {
+              "rp": {
+                "targeting": [
+                  {
+                    "key": "rpfl_1001",
+                    "values": [
+                      "2_tier0100"
+                    ]
+                  }
+                ]
+              }
+            },
+            "origbidcpm": 12.43
+          }
+        },
+        {
+          "id": "880290288",
+          "impid": "impId1",
+          "price": 7.587,
+          "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb_rubN2": "7.50",
+                "hb_size_rubN2": "300x250",
+                "hb_bidder_rubN2": "rubN2"
+              },
+              "targetbiddercode": "rubN2",
+              "events": {
+                "win": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int=",
+                "imp": "http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int="
+              }
+            },
+            "bidder": {
+              "rp": {
+                "targeting": [
+                  {
+                    "key": "rpfl_1001",
+                    "values": [
+                      "2_tier0100"
+                    ]
+                  }
+                ]
+              }
+            },
+            "origbidcpm": 8.43
+          }
+        }
+      ],
+      "seat": "rubicon",
+      "group": 0
+    },
+    {
+      "bid": [
+        {
+          "id": "7706636740145184841",
+          "impid": "impId1",
+          "price": 5.5,
+          "adm": "some-test-ad2",
+          "adid": "29681110",
+          "adomain": [
+            "appnexus.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+          "cid": "958",
+          "crid": "29681110",
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb_appnexus": "5.50",
+                "hb_bidder_appnexus": "appnexus"
+              },
+              "targetbiddercode": "appnexus",
+              "events": {
+                "win": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int=",
+                "imp": "http://localhost:8080/event?t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int="
+              }
+            },
+            "bidder": {
+              "appnexus": {
+                "brand_id": 1,
+                "auction_id": 8189378542222915032,
+                "bidder_id": 2,
+                "bid_ad_type": 1,
+                "ranking_price": 0.0
+              }
+            }
+          }
+        },
+        {
+          "id": "222214214214",
+          "impid": "impId1",
+          "price": 2.0,
+          "adm": "some-test-ad1",
+          "adid": "69595837",
+          "adomain": [
+            "appnexus.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=69595837",
+          "cid": "958",
+          "crid": "69595837",
+          "cat": [
+            "IAB20-3"
+          ],
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "events": {
+                "win": "http://localhost:8080/event?t=win&b=222214214214&a=5001&ts=1000&bidder=appnexus&f=i&int=",
+                "imp": "http://localhost:8080/event?t=imp&b=222214214214&a=5001&ts=1000&bidder=appnexus&f=i&int="
+              }
+            },
+            "bidder": {
+              "appnexus": {
+                "brand_id": 1,
+                "brand_category_id": 1,
+                "auction_id": 5607483846416358664,
+                "bidder_id": 2,
+                "bid_ad_type": 1
+              }
+            }
+          }
+        }
+      ],
+      "seat": "appnexus",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "errors": {
+      "cache": [
+        {
+          "code": 999,
+          "message": "HTTP status code 500"
+        }
+      ]
+    },
+    "responsetimemillis": {
+      "cache": 22,
+      "appnexus": 71,
+      "rubicon": 193
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}

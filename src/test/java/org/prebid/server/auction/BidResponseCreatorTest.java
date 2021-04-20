@@ -243,10 +243,10 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false);
 
         // then
-        final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner, BigDecimal.valueOf(5.67));
-        final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder1", banner, BigDecimal.valueOf(7.19));
-        final BidInfo bidInfo3 = toBidInfo(bid3, imp1, "bidder2", banner, BigDecimal.valueOf(3.74));
-        final BidInfo bidInfo4 = toBidInfo(bid4, imp2, "bidder2", banner, BigDecimal.valueOf(6.74));
+        final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner);
+        final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder1", banner);
+        final BidInfo bidInfo3 = toBidInfo(bid3, imp1, "bidder2", banner);
+        final BidInfo bidInfo4 = toBidInfo(bid4, imp2, "bidder2", banner);
         ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bidInfo1, bidInfo2, bidInfo3, bidInfo4))),
@@ -305,8 +305,8 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false);
 
         // then
-        final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner, BigDecimal.valueOf(5.67));
-        final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder1", banner, BigDecimal.valueOf(7.19));
+        final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner);
+        final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder1", banner);
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bidInfo1, bidInfo2))),
                 same(auctionContext),
@@ -371,8 +371,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 eq(expectedEventContext));
 
         final Bid expectedUpdatedBid1 = bid1.toBuilder().adm(modifiedAdm).build();
-        final BidInfo bidInfo1 = toBidInfo(expectedUpdatedBid1, imp1, bidder1, video, BigDecimal.valueOf(5.67));
-        final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder2", banner, BigDecimal.valueOf(7.19));
+        final BidInfo bidInfo1 = toBidInfo(expectedUpdatedBid1, imp1, bidder1, video);
+        final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder2", banner);
         assertThat(bidInfoCaptor.getValue()).containsOnly(bidInfo1, bidInfo2);
     }
 
@@ -432,7 +432,7 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false);
 
         // then
-        final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner, BigDecimal.valueOf(0.05));
+        final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner);
         verify(cacheService).cacheBidsOpenrtb(
                 eq(singletonList(bidInfo1)),
                 same(auctionContext),
@@ -615,7 +615,7 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false).result();
 
         // then
-        final BidInfo expectedBidInfo = toBidInfo(bid, generatedBid, imp, bidder, banner, BigDecimal.ONE);
+        final BidInfo expectedBidInfo = toBidInfo(bid, generatedBid, imp, bidder, banner);
         verify(cacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
 
         verify(eventsService).createEvent(eq(generatedBid), anyString(), anyString(), anyLong(), anyString());
@@ -625,12 +625,15 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldSetExpectedResponseSeatBidAndBidFields() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()));
+        final ObjectNode bidExt = mapper.valueToTree(singletonMap("bidExt", 1));
+        bidExt.put("origbidcpm", BigDecimal.ONE);
+        bidExt.put("origbidcur", "USD");
         final Bid bid = Bid.builder()
                 .id("bidId")
                 .price(BigDecimal.ONE)
                 .adm(BID_ADM)
                 .impid(IMP_ID)
-                .ext(mapper.valueToTree(singletonMap("bidExt", 1)))
+                .ext(bidExt)
                 .build();
 
         final String bidder = "bidder1";
@@ -670,6 +673,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final Map<String, Object> bidExtProperties = new HashMap<>();
         bidExtProperties.put("skadn", singletonMap("skadnKey", "skadnValue"));
         bidExtProperties.put("anotherProp", "anotherPropValue");
+        bidExtProperties.put("origbidcur", "USD");
         final Bid bid = Bid.builder()
                 .id("bidId")
                 .price(BigDecimal.ONE)
@@ -690,7 +694,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final ObjectNode expectedBidExt = mapper.valueToTree(ExtPrebid.of(
                 ExtBidPrebid.builder().type(banner).build(),
                 singletonMap("anotherProp", "anotherPropValue")));
-        expectedBidExt.put("origbidcpm", BigDecimal.ONE);
         expectedBidExt.put("origbidcur", "USD");
         expectedBidExt.set("skadn", mapper.convertValue(singletonMap("skadnKey", "skadnValue"), JsonNode.class));
 
@@ -999,8 +1002,6 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         final ObjectNode expectedBidExt = mapper.valueToTree(
                 ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null));
-        expectedBidExt.put("origbidcpm", BigDecimal.ONE);
-        expectedBidExt.put("origbidcur", "USD");
 
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
@@ -1251,7 +1252,6 @@ public class BidResponseCreatorTest extends VertxTest {
         bidder1Bid4Targeting.put("hb_bidder_" + bidder1, bidder1);
         bidder1Bid4Targeting.put("hb_bidder", bidder1);
         final ObjectNode bidder1Bid4Ext = extWithTargeting(bidder1, bidder1Bid4Targeting);
-        bidder1Bid4Ext.put("origbidcpm", BigDecimal.valueOf(11.8));
         final Bid expectedBidder1Bid4 = bidder1Bid4.toBuilder().ext(bidder1Bid4Ext).build();
 
         final String bidderCodeForBidder1Bid2 = String.format("%s%s", codePrefix, 2);
@@ -1259,7 +1259,6 @@ public class BidResponseCreatorTest extends VertxTest {
         bidder1Bid2Targeting.put("hb_bidder_" + bidderCodeForBidder1Bid2, bidderCodeForBidder1Bid2);
         bidder1Bid2Targeting.put("hb_pb_" + bidderCodeForBidder1Bid2, "4.50");
         final ObjectNode bidder1Bid2Ext = extWithTargeting(bidderCodeForBidder1Bid2, bidder1Bid2Targeting);
-        bidder1Bid2Ext.put("origbidcpm", BigDecimal.valueOf(4.88));
         final Bid expectedBidder1Bid2 = bidder1Bid2.toBuilder().ext(bidder1Bid2Ext).build();
 
         final String bidderCodeForBidder1Bid1 = String.format("%s%s", codePrefix, 3);
@@ -1267,7 +1266,6 @@ public class BidResponseCreatorTest extends VertxTest {
         bidder1Bid1Targeting.put("hb_bidder_" + bidderCodeForBidder1Bid1, bidderCodeForBidder1Bid1);
         bidder1Bid1Targeting.put("hb_pb_" + bidderCodeForBidder1Bid1, "3.50");
         final ObjectNode bidder1Bid1Ext = extWithTargeting(bidderCodeForBidder1Bid1, bidder1Bid1Targeting);
-        bidder1Bid1Ext.put("origbidcpm", BigDecimal.valueOf(3.67));
         final Bid expectedBidder1Bid1 = bidder1Bid1.toBuilder().ext(bidder1Bid1Ext).build();
 
         final Map<String, String> bidder1Bid5Targeting = new HashMap<>();
@@ -1276,7 +1274,6 @@ public class BidResponseCreatorTest extends VertxTest {
         bidder1Bid5Targeting.put("hb_bidder_" + bidder1, bidder1);
         bidder1Bid5Targeting.put("hb_bidder", bidder1);
         final ObjectNode bidder1Bid5Ext = extWithTargeting(null, bidder1Bid5Targeting);
-        bidder1Bid5Ext.put("origbidcpm", BigDecimal.valueOf(1.08));
         final Bid expectedBidder1Bid5 = bidder1Bid5.toBuilder().ext(bidder1Bid5Ext).build();
 
         assertThat(result.getSeatbid())
@@ -1887,8 +1884,7 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false).result();
 
         // then
-        final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder2", banner, BigDecimal.ZERO)
-                .toBuilder().bidCurrency(null).build();
+        final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder2", banner);
         verify(cacheService).cacheBidsOpenrtb(eq(singletonList(bidInfo2)), any(), any(), any());
     }
 
@@ -2250,12 +2246,9 @@ public class BidResponseCreatorTest extends VertxTest {
     private static BidInfo toBidInfo(Bid bid,
                                      Imp correspondingImp,
                                      String bidder,
-                                     BidType bidType,
-                                     BigDecimal origBidCpm) {
+                                     BidType bidType) {
         return BidInfo.builder()
                 .bid(bid)
-                .bidCurrency("USD")
-                .origbidcpm(origBidCpm)
                 .correspondingImp(correspondingImp)
                 .bidder(bidder)
                 .bidType(bidType)
@@ -2266,13 +2259,10 @@ public class BidResponseCreatorTest extends VertxTest {
                                      String generatedBidId,
                                      Imp correspondingImp,
                                      String bidder,
-                                     BidType bidType,
-                                     BigDecimal origBidCpm) {
+                                     BidType bidType) {
         return BidInfo.builder()
                 .generatedBidId(generatedBidId)
                 .bid(bid)
-                .bidCurrency("USD")
-                .origbidcpm(origBidCpm)
                 .correspondingImp(correspondingImp)
                 .bidder(bidder)
                 .bidType(bidType)

@@ -17,7 +17,7 @@ public class ExtRequestBidadjustmentfactors {
 
     Map<String, BigDecimal> adjustments = new HashMap<>();
 
-    EnumMap<AdjustmentsMediaType, Map<String, BigDecimal>> mediatypes;
+    EnumMap<BidAdjustmentMediaType, Map<String, BigDecimal>> mediatypes;
 
     @JsonAnyGetter
     public Map<String, BigDecimal> getAdjustments() {
