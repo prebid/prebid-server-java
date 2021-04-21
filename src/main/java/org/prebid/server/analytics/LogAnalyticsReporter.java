@@ -56,6 +56,11 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
         return 0;
     }
 
+    @Override
+    public String adapter() {
+        return "*";
+    }
+
     @AllArgsConstructor
     @Value
     private static class LogEvent<T> {
