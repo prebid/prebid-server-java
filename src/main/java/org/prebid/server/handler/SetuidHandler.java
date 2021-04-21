@@ -163,6 +163,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
             return new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
         }
 
+        final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
+        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+            return new InvalidRequestException("Consent string is invalid");
+        }
+
         final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
             return new UnauthorizedUidsException("Sync is not allowed for this uids");
