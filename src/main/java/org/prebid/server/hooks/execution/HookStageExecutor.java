@@ -96,6 +96,20 @@ public class HookStageExecutor {
         }));
     }
 
+    public Future<HookStageExecutionResult<BidderResponsePayload>> executeProcessedBidderResponseStage(
+            BidderResponse bidderResponse,
+            BidRequest bidRequest,
+            Account account,
+            HookExecutionContext context) {
+
+        return Future.succeededFuture(HookStageExecutionResult.of(false, new BidderResponsePayload() {
+            @Override
+            public List<BidderBid> bids() {
+                return bidderResponse.getSeatBid().getBids();
+            }
+        }));
+    }
+
     public Future<HookStageExecutionResult<AuctionResponsePayload>> executeAuctionResponseStage(
             BidResponse bidResponse,
             HookExecutionContext context) {
