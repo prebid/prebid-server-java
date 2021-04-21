@@ -493,6 +493,7 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             WinningBidComparator winningBidComparator,
             IdGenerator bidIdGenerator,
+            HookStageExecutor hookStageExecutor,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
@@ -505,6 +506,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 winningBidComparator,
                 bidIdGenerator,
+                hookStageExecutor,
                 truncateAttrChars,
                 clock,
                 mapper);
