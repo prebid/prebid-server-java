@@ -103,14 +103,14 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 .toString();
     }
 
-    private Site modifySite(Site site, Integer networkId) {
+    private static Site modifySite(Site site, Integer networkId) {
         final Site.SiteBuilder siteBuilder = site != null ? site.toBuilder() : Site.builder();
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
 
         return siteBuilder.publisher(modifyPublisher(sitePublisher, networkId)).build();
     }
 
-    private Publisher modifyPublisher(Publisher publisher, Integer networkId) {
+    private static Publisher modifyPublisher(Publisher publisher, Integer networkId) {
         final Publisher.PublisherBuilder publisherBuilder = publisher != null
                 ? publisher.toBuilder()
                 : Publisher.builder();
