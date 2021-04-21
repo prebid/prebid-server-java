@@ -3,7 +3,6 @@
   "imp": [
     {
       "id": "impId001",
-      "tagid": "extTagId",
       "banner": {
         "format": [
           {
@@ -14,7 +13,7 @@
       },
       "ext": {
         "bidder": {
-          "TagID": "extTagId"
+          "key": "someKey"
         }
       }
     }

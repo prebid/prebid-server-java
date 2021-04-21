@@ -13,7 +13,7 @@
       },
       "ext": {
         "mobfoxpb": {
-          "TagID": "extTagId"
+          "key": "someKey"
         }
       }
     },
