@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -182,6 +183,25 @@ public class SmaatoBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getKeywords)
                 .containsOnly("keywords");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyRequestAppPublisherId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.app(App.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getPublisher)
+                .extracting(Publisher::getId)
+                .containsOnly("publisherId");
     }
 
     @Test
@@ -476,8 +496,12 @@ public class SmaatoBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpSmaato.of("publisherId", "adspaceId")))))
+                .banner(Banner.builder()
+                        .id("banner_id")
+                        .w(300)
+                        .h(500)
+                        .build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of("publisherId", "adspaceId")))))
                 .build();
     }
 
