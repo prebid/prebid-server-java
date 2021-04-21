@@ -18,8 +18,8 @@ adapters:
       supported-vendors:
       vendor-id: 410
     usersync:
-      url: https://sync.adtelligent.com/csync?t=p&ep=0&gdpr={{gdpr}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=adtelligent&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={uid}
+      url:
+      redirect-url:
       cookie-family-name: adtelligent
-      type: redirect
+      type: iframe
       support-cors: false
