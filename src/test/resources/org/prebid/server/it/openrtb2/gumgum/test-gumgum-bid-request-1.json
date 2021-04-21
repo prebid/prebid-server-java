@@ -82,7 +82,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "GUM-UID",
+    "buyeruid": "GUM-UID",
     "ext": {
       "consent": "consentValue"
     }

@@ -22,7 +22,8 @@
                 "hb_size_rubicon": "120x600",
                 "hb_bidder_rubicon": "rubicon"
               }
-            }
+            },
+            "origbidcpm": 4.26
           }
         },
         {
@@ -64,7 +65,8 @@
                   1
                 ]
               }
-            }
+            },
+            "origbidcpm": 3
           }
         }
       ],

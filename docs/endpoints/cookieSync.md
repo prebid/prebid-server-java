@@ -9,13 +9,23 @@ This endpoint is used during cookie syncs. For technical details, see the
 This returns a set of URLs to enable cookie syncs across bidders. (See Prebid.js documentation?) The request
 must supply a JSON object to define the list of bidders that may need to be synced.
 
-```
+```json
 {
     "bidders": ["appnexus", "rubicon"],
     "coopSync": true,
     "gdpr": 1,
     "gdpr_consent": "BONV8oqONXwgmADACHENAO7pqzAAppY",
-    "limit": 2
+    "limit": 2,
+    "filterSettings": {
+        "iframe": {
+            "bidders": ["rubicon"], // only this bidder is excluded from syncing iframe pixels, all other bidders are allowed
+            "filter": "exclude"
+        },
+       "image": {
+            "bidders": ["appnexus"], //only this bidder is allowed to sync image pixels
+            "filter": "include"
+       }
+    }
 }
 ```
 
@@ -30,6 +40,8 @@ must supply a JSON object to define the list of bidders that may need to be sync
 `limit` is optional. If present and greater than zero, it will limit the number of syncs returned to `limit`, dropping some syncs to
 get the count down to limit if more would otherwise have been returned. This is to facilitate clients not overloading a user with syncs
 the first time they are encountered.
+
+`filterSettings` is optional. It defines which bidders are allowed to use which usersync method. 
 
 If `gdpr` is  omitted, callers are still encouraged to send `gdpr_consent` if they have it.
 Depending on how the Prebid Server host company has configured their servers, they may or may not require it for cookie syncs.

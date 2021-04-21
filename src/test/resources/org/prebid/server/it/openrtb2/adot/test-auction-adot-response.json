@@ -35,6 +35,7 @@
                 }
               }
             },
+            "origbidcpm": 1.16346,
             "bidder": {
               "adot": {
                 "media_type": "banner"

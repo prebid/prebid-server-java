@@ -14,6 +14,8 @@ public class BidInfo {
 
     Bid bid;
 
+    String bidCurrency;
+
     Imp correspondingImp;
 
     String bidder;
