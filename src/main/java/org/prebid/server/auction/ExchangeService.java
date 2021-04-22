@@ -1052,7 +1052,6 @@ public class ExchangeService {
      */
     private BidderResponse applyBidPriceChanges(BidderResponse bidderResponse, BidRequest bidRequest) {
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
-        final List<Imp> requestImps = bidRequest.getImp();
 
         final List<BidderBid> bidderBids = seatBid.getBids();
         if (bidderBids.isEmpty()) {
@@ -1065,10 +1064,12 @@ public class ExchangeService {
         final String adServerCurrency = bidRequest.getCur().get(0);
 
         for (final BidderBid bidderBid : bidderBids) {
-            final BidderBid updatedBidderBid = updateBidderBidWithBidPriceChanges(bidderBid, requestImps,
-                    bidderResponse, bidRequest, adServerCurrency, errors);
-            if (updatedBidderBid != null) {
+            try {
+                final BidderBid updatedBidderBid =
+                        updateBidderBidWithBidPriceChanges(bidderBid, bidderResponse, bidRequest, adServerCurrency);
                 updatedBidderBids.add(updatedBidderBid);
+            } catch (PreBidException e) {
+                errors.add(BidderError.generic(e.getMessage()));
             }
         }
 
@@ -1076,45 +1077,36 @@ public class ExchangeService {
     }
 
     private BidderBid updateBidderBidWithBidPriceChanges(BidderBid bidderBid,
-                                                         List<Imp> requestImps,
                                                          BidderResponse bidderResponse,
                                                          BidRequest bidRequest,
-                                                         String adServerCurrency,
-                                                         List<BidderError> errors) {
+                                                         String adServerCurrency) {
         final Bid bid = bidderBid.getBid();
         final String bidCurrency = bidderBid.getBidCurrency();
         final BigDecimal price = bid.getPrice();
 
-        final BidAdjustmentMediaType mediaType =
-                resolveBidAdjustmentMediaType(bid.getImpid(), requestImps, bidderBid.getType());
+        final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
+                price, bidRequest, adServerCurrency, StringUtils.stripToNull(bidCurrency));
 
         final BigDecimal priceAdjustmentFactor =
-                bidAdjustmentForBidder(bidderResponse.getBidder(), bidRequest, mediaType);
-        try {
-            final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                    price, bidRequest, adServerCurrency, StringUtils.stripToNull(bidCurrency));
+                bidAdjustmentForBidder(bidderResponse.getBidder(), bidRequest, bidderBid);
+        final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
 
-            final BigDecimal adjustedPrice = adjustPrice(priceAdjustmentFactor, priceInAdServerCurrency);
-            final ObjectNode bidExt = bid.getExt();
-            final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
+        final ObjectNode bidExt = bid.getExt();
+        final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
 
-            if (adjustedPrice.compareTo(price) != 0) {
-                bid.setPrice(adjustedPrice);
-                addPropertyToNode(updatedBidExt, ORIGINAL_BID_CPM, new DecimalNode(price));
-            }
-            // add origbidcur if conversion occurred
-            if (priceInAdServerCurrency.compareTo(price) != 0 && StringUtils.isNotBlank(bidCurrency)) {
-                addPropertyToNode(updatedBidExt, ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
-            }
-            if (!updatedBidExt.isEmpty()) {
-                bid.setExt(updatedBidExt);
-            }
-
-            return bidderBid;
-        } catch (PreBidException e) {
-            errors.add(BidderError.generic(e.getMessage()));
+        if (adjustedPrice.compareTo(price) != 0) {
+            bid.setPrice(adjustedPrice);
+            addPropertyToNode(updatedBidExt, ORIGINAL_BID_CPM, new DecimalNode(price));
         }
-        return null;
+        // add origbidcur if conversion occurred
+        if (priceInAdServerCurrency.compareTo(price) != 0 && StringUtils.isNotBlank(bidCurrency)) {
+            addPropertyToNode(updatedBidExt, ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
+        }
+        if (!updatedBidExt.isEmpty()) {
+            bid.setExt(updatedBidExt);
+        }
+
+        return bidderBid;
     }
 
     private static BidAdjustmentMediaType resolveBidAdjustmentMediaType(String bidImpId,
@@ -1149,15 +1141,18 @@ public class ExchangeService {
 
     private static BigDecimal bidAdjustmentForBidder(String bidder,
                                                      BidRequest bidRequest,
-                                                     BidAdjustmentMediaType mediaType) {
+                                                     BidderBid bidderBid) {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         final ExtRequestBidadjustmentfactors extBidadjustmentfactors = prebid != null
                 ? prebid.getBidadjustmentfactors()
                 : null;
+        if (extBidadjustmentfactors == null) {
+            return null;
+        }
+        final BidAdjustmentMediaType mediaType =
+                resolveBidAdjustmentMediaType(bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
 
-        return extBidadjustmentfactors != null
-                ? resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder)
-                : null;
+        return resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder);
     }
 
     private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,

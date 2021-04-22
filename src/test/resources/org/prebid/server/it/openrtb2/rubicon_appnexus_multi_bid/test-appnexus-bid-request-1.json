@@ -77,13 +77,6 @@
   },
   "ext": {
     "prebid": {
-      "bidadjustmentfactors": {
-        "mediatypes": {
-          "video-outstream": {
-            "rubicon": 0.9
-          }
-        }
-      },
       "debug": 0,
       "currency": {
         "rates": {
