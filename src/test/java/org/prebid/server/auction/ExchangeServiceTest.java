@@ -528,7 +528,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        exchangeService.executeHooksAndHoldAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<List<BidderResponse>> bidResponseCaptor = ArgumentCaptor.forClass(List.class);
@@ -556,7 +556,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        exchangeService.executeHooksAndHoldAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<List<BidderResponse>> bidResponseCaptor = ArgumentCaptor.forClass(List.class);

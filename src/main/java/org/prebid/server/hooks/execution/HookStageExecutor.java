@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.execution;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
@@ -121,6 +120,23 @@ public class HookStageExecutor {
                 .execute();
     }
 
+    public Future<HookStageExecutionResult<AuctionRequestPayload>> executeProcessedAuctionRequestStage(
+            BidRequest bidRequest,
+            Account account,
+            HookExecutionContext context) {
+
+        final Endpoint endpoint = context.getEndpoint();
+        final Stage stage = Stage.processed_auction_request;
+
+        return this.<AuctionRequestPayload, AuctionInvocationContext>stageExecutor(stage, account, endpoint, context)
+                .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
+                .withHookProvider(hookId ->
+                        hookCatalog.processedAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
+                .withRejectAllowed(true)
+                .execute();
+    }
+
     public Future<HookStageExecutionResult<BidderRequestPayload>> executeBidderRequestStage(
             BidderRequest bidderRequest,
             Account account,
@@ -179,20 +195,6 @@ public class HookStageExecutor {
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
                 .withRejectAllowed(true)
                 .execute();
-    }
-
-    public Future<HookStageExecutionResult<BidderResponsePayload>> executeProcessedBidderResponseStage(
-            BidderResponse bidderResponse,
-            BidRequest bidRequest,
-            Account account,
-            HookExecutionContext context) {
-
-        return Future.succeededFuture(HookStageExecutionResult.of(false, new BidderResponsePayload() {
-            @Override
-            public List<BidderBid> bids() {
-                return bidderResponse.getSeatBid().getBids();
-            }
-        }));
     }
 
     public Future<HookStageExecutionResult<AuctionResponsePayload>> executeAuctionResponseStage(
