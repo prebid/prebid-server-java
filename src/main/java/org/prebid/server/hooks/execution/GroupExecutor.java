@@ -5,6 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
@@ -24,6 +25,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private PAYLOAD initialPayload;
     private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
     private InvocationContextProvider<CONTEXT> invocationContextProvider;
+    private HookExecutionContext hookExecutionContext;
     private boolean rejectAllowed;
 
     private GroupExecutor(Vertx vertx, Clock clock) {
@@ -57,6 +59,11 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
             InvocationContextProvider<CONTEXT> invocationContextProvider) {
 
         this.invocationContextProvider = invocationContextProvider;
+        return this;
+    }
+
+    public GroupExecutor<PAYLOAD, CONTEXT> withHookExecutionContext(HookExecutionContext hookExecutionContext) {
+        this.hookExecutionContext = hookExecutionContext;
         return this;
     }
 
@@ -123,7 +130,9 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         }
 
         return executeWithTimeout(
-                () -> hook.call(groupResult.payload(), invocationContextProvider.apply(timeout, hookId)),
+                () -> hook.call(
+                        groupResult.payload(),
+                        invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId))),
                 timeout);
     }
 
@@ -174,9 +183,20 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
             GroupResult<PAYLOAD> groupResult) {
 
         return invocationResult
-                .map(result -> groupResult.applyInvocationResult(result, hookId, executionTime(startTime)))
+                .map(result -> {
+                    saveModuleContext(hookId, result);
+                    return groupResult.applyInvocationResult(result, hookId, executionTime(startTime));
+                })
                 .otherwise(throwable -> groupResult.applyFailure(throwable, hookId, executionTime(startTime)))
                 .compose(this::propagateRejection);
+    }
+
+    private Object moduleContextFor(HookId hookId) {
+        return hookExecutionContext.getModuleContexts().get(hookId.getModuleCode());
+    }
+
+    private void saveModuleContext(HookId hookId, InvocationResult<PAYLOAD> result) {
+        hookExecutionContext.getModuleContexts().put(hookId.getModuleCode(), result.moduleContext());
     }
 
     private Future<GroupResult<PAYLOAD>> propagateRejection(GroupResult<PAYLOAD> groupResult) {

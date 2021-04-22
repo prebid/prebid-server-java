@@ -44,6 +44,7 @@ import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -999,12 +1000,16 @@ public class ExchangeService {
                                                              boolean debugEnabled,
                                                              BidderAliases aliases) {
 
-        return hookStageExecutor.executeBidderRequestStage(
-                bidderRequest,
-                auctionContext.getAccount(),
-                auctionContext.getHookExecutionContext())
+        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
+
+        return hookStageExecutor.executeBidderRequestStage(bidderRequest, account, hookExecutionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(
-                        stageResult, bidderRequest, timeout, debugEnabled, aliases));
+                        stageResult, bidderRequest, timeout, debugEnabled, aliases))
+                .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
+                        bidderResponse, bidRequest, account, hookExecutionContext)
+                        .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
     }
 
     private Future<BidderResponse> requestBidsOrRejectBidder(
@@ -1020,6 +1025,17 @@ public class ExchangeService {
                         timeout,
                         debugEnabled,
                         aliases);
+    }
+
+    private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
+                                                         BidderResponse bidderResponse) {
+
+        final List<BidderBid> bids = stageResult.isShouldReject()
+                ? Collections.emptyList()
+                : stageResult.getPayload().bids();
+
+        return bidderResponse
+                .with(bidderResponse.getSeatBid().with(bids));
     }
 
     /**
