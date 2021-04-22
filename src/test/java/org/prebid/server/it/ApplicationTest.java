@@ -389,8 +389,8 @@ public class ApplicationTest extends IntegrationTest {
                                         "http://localhost:8080/setuid?bidder=rubicon"
                                                 + "&gdpr=1&gdpr_consent=" + gdprConsent
                                                 + "&us_privacy=1YNN"
-                                                + "&uid=host-cookie-uid"
-                                                + "&f=i",
+                                                + "&f=i"
+                                                + "&uid=host-cookie-uid",
                                         "redirect", false))
                                 .build(),
                         BidderUsersyncStatus.builder()
@@ -400,6 +400,7 @@ public class ApplicationTest extends IntegrationTest {
                                         "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                                 + "%26us_privacy%3D1YNN"
+                                                + "%26f%3Di"
                                                 + "%26uid%3D%24UID",
                                         "redirect", false))
                                 .build(),
