@@ -125,7 +125,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(this::updateAppAndNoCookieAndImpsMetrics)
 
-                .compose(context -> exchangeService.holdAuction(context)
+                .compose(context -> exchangeService.executeHooksAndHoldAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
                 .map((Tuple2<BidResponse, AuctionContext> result) ->

@@ -3,6 +3,7 @@ package org.prebid.server.hooks.execution;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
+import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
@@ -30,6 +31,10 @@ public class HookCatalog {
 
     public RawAuctionRequestHook rawAuctionRequestHookBy(String moduleCode, String hookImplCode) {
         return getHookBy(moduleCode, hookImplCode, RawAuctionRequestHook.class);
+    }
+
+    public ProcessedAuctionRequestHook processedAuctionRequestHookBy(String moduleCode, String hookImplCode) {
+        return getHookBy(moduleCode, hookImplCode, ProcessedAuctionRequestHook.class);
     }
 
     public BidderRequestHook bidderRequestHookBy(String moduleCode, String hookImplCode) {

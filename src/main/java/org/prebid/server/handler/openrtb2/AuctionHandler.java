@@ -84,7 +84,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .map(context -> updateAppAndNoCookieAndImpsMetrics(context))
 
-                .compose(context -> exchangeService.holdAuction(context)
+                .compose(context -> exchangeService.executeHooksAndHoldAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
                 .map(result -> addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
