@@ -36,7 +36,6 @@
                 }
               }
             },
-            "origbidcpm": 3.5,
             "bidder": {
               "crtype": "banner"
             }

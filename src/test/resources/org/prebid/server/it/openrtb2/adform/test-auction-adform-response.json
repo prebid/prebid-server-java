@@ -35,8 +35,8 @@
                 }
               }
             },
-            "origbidcpm": 11.357,
-            "origbidcur": "USD"
+            "origbidcpm": 0.5,
+            "origbidcur" : "USD"
           }
         }
       ],

@@ -39,7 +39,6 @@
                 }
               }
             },
-            "origbidcpm": 3.33,
             "bidder": {
               "prebid": {
                 "type": "banner"

@@ -9,7 +9,11 @@
         "adm": "banner",
         "crid": "crid12",
         "w": 400,
-        "h": 300
+        "h": 300,
+        "ext" : {
+          "origbidcpm" : 0.5,
+          "origbidcur" : "USD"
+        }
       }
     }
   ]
