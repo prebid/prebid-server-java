@@ -248,7 +248,7 @@ public class HookStageExecutor {
     }
 
     private InvocationContextProvider<InvocationContext> invocationContextProvider(Endpoint endpoint) {
-        return (timeout, hookId) -> InvocationContextImpl.of(createTimeout(timeout), endpoint);
+        return (timeout, hookId, moduleContext) -> InvocationContextImpl.of(createTimeout(timeout), endpoint);
     }
 
     private InvocationContextProvider<AuctionInvocationContext> auctionInvocationContextProvider(
@@ -257,12 +257,12 @@ public class HookStageExecutor {
             Account account,
             HookExecutionContext hookExecutionContext) {
 
-        return (timeout, hookId) -> AuctionInvocationContextImpl.builder()
+        return (timeout, hookId, moduleContext) -> AuctionInvocationContextImpl.builder()
                 .timeout(createTimeout(timeout))
                 .endpoint(endpoint)
                 .debugEnabled(isDebugEnabled(bidRequest))
                 .accountConfig(accountConfigFor(account, hookId))
-                .moduleContext(moduleContextFor(hookId, hookExecutionContext))
+                .moduleContext(moduleContext)
                 .build();
     }
 
@@ -273,12 +273,12 @@ public class HookStageExecutor {
             String bidder,
             HookExecutionContext hookExecutionContext) {
 
-        return (timeout, hookId) -> BidderInvocationContextImpl.builder()
+        return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.builder()
                 .timeout(createTimeout(timeout))
                 .endpoint(endpoint)
                 .debugEnabled(isDebugEnabled(bidRequest))
                 .accountConfig(accountConfigFor(account, hookId))
-                .moduleContext(moduleContextFor(hookId, hookExecutionContext))
+                .moduleContext(moduleContext)
                 .bidder(bidder)
                 .build();
     }
@@ -298,9 +298,5 @@ public class HookStageExecutor {
                 accountHooksConfiguration != null ? accountHooksConfiguration.getModules() : Collections.emptyMap();
 
         return modulesConfiguration != null ? modulesConfiguration.get(hookId.getModuleCode()) : null;
-    }
-
-    private static Object moduleContextFor(HookId hookId, HookExecutionContext hookExecutionContext) {
-        return hookExecutionContext.getModuleContexts().get(hookId.getModuleCode());
     }
 }

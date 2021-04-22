@@ -130,7 +130,9 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         }
 
         return executeWithTimeout(
-                () -> hook.call(groupResult.payload(), invocationContextProvider.apply(timeout, hookId)),
+                () -> hook.call(
+                        groupResult.payload(),
+                        invocationContextProvider.apply(timeout, hookId, moduleContextFor(hookId))),
                 timeout);
     }
 
@@ -187,6 +189,10 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
                 })
                 .otherwise(throwable -> groupResult.applyFailure(throwable, hookId, executionTime(startTime)))
                 .compose(this::propagateRejection);
+    }
+
+    private Object moduleContextFor(HookId hookId) {
+        return hookExecutionContext.getModuleContexts().get(hookId.getModuleCode());
     }
 
     private void saveModuleContext(HookId hookId, InvocationResult<PAYLOAD> result) {
