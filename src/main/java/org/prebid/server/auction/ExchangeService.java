@@ -39,8 +39,10 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -980,9 +982,14 @@ public class ExchangeService {
                                                              boolean debugEnabled,
                                                              BidderAliases aliases) {
 
-        return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext.getHookExecutionContext())
+        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
+        return hookStageExecutor.executeBidderRequestStage(bidderRequest, hookExecutionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(
-                        stageResult, bidderRequest, timeout, debugEnabled, aliases));
+                        stageResult, bidderRequest, timeout, debugEnabled, aliases))
+
+                .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(bidderResponse,
+                        hookExecutionContext)
+                        .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
     }
 
     private Future<BidderResponse> requestBidsOrRejectBidder(
@@ -995,10 +1002,21 @@ public class ExchangeService {
         return hookStageResult.isShouldReject()
                 ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
                 : requestBids(
-                bidderRequest.with(hookStageResult.getPayload().bidRequest()),
-                timeout,
-                debugEnabled,
-                aliases);
+                        bidderRequest.with(hookStageResult.getPayload().bidRequest()),
+                        timeout,
+                        debugEnabled,
+                        aliases);
+    }
+
+    private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
+                                                         BidderResponse bidderResponse) {
+
+        final List<BidderBid> bids = stageResult.isShouldReject()
+                ? Collections.emptyList()
+                : stageResult.getPayload().bids();
+
+        return bidderResponse
+                .with(bidderResponse.getSeatBid().with(bids));
     }
 
     /**
