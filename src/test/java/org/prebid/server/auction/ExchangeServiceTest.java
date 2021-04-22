@@ -24,8 +24,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import lombok.Value;
-import lombok.experimental.Accessors;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -58,9 +56,9 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
-import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
-import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
+import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
+import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -212,16 +210,16 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(schainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
-        given(hookStageExecutor.executeBidderRequestStage(any(), any()))
+        given(hookStageExecutor.executeBidderRequestStage(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         BidderRequestPayloadImpl.of(invocation.<BidderRequest>getArgument(0).getBidRequest()))));
-        given(hookStageExecutor.executeRawBidderResponseStage(any(), any()))
+        given(hookStageExecutor.executeRawBidderResponseStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         BidderResponsePayloadImpl.of(invocation.<BidderResponse>getArgument(0).getSeatBid()
                                 .getBids()))));
-        given(hookStageExecutor.executeAuctionResponseStage(any(), any()))
+        given(hookStageExecutor.executeAuctionResponseStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
@@ -436,7 +434,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldSkipBidderWhenRejectedByBidderRequestHooks() {
         // given
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
-                .when(hookStageExecutor).executeBidderRequestStage(any(), any());
+                .when(hookStageExecutor).executeBidderRequestStage(any(), any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
 
@@ -455,7 +453,7 @@ public class ExchangeServiceTest extends VertxTest {
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                 false,
                 BidderRequestPayloadImpl.of(BidRequest.builder().id("bidderRequestId").build()))))
-                .when(hookStageExecutor).executeBidderRequestStage(any(), any());
+                .when(hookStageExecutor).executeBidderRequestStage(any(), any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
 
@@ -476,7 +474,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.ONE).build()))));
 
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
-                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any());
+                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any(), any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
 
@@ -504,7 +502,7 @@ public class ExchangeServiceTest extends VertxTest {
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                 false,
                 BidderResponsePayloadImpl.of(singletonList(hookChangedBid)))))
-                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any());
+                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any(), any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
 
@@ -2697,7 +2695,7 @@ public class ExchangeServiceTest extends VertxTest {
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                 false,
                 AuctionResponsePayloadImpl.of(BidResponse.builder().id("bidResponseId").build()))))
-                .when(hookStageExecutor).executeAuctionResponseStage(any(), any());
+                .when(hookStageExecutor).executeAuctionResponseStage(any(), any(), any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
 
@@ -2878,26 +2876,5 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(User::getExt)
                 .flatExtracting(ExtUser::getEids)
                 .isEqualTo(expectedExtUserEids);
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class BidderRequestPayloadImpl implements BidderRequestPayload {
-
-        BidRequest bidRequest;
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class BidderResponsePayloadImpl implements BidderResponsePayload {
-
-        List<BidderBid> bids;
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class AuctionResponsePayloadImpl implements AuctionResponsePayload {
-
-        BidResponse bidResponse;
     }
 }

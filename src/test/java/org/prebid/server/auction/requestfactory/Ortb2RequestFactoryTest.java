@@ -12,8 +12,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import lombok.Value;
-import lombok.experimental.Accessors;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,8 +36,8 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestWrapper;
@@ -663,23 +661,5 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class EntrypointPayloadImpl implements EntrypointPayload {
-
-        MultiMap queryParams;
-
-        MultiMap headers;
-
-        String body;
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class AuctionRequestPayloadImpl implements AuctionRequestPayload {
-
-        BidRequest bidRequest;
     }
 }

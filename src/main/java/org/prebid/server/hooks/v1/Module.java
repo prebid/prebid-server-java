@@ -18,5 +18,5 @@ public interface Module {
     /**
      * Collection of hooks available through the module.
      */
-    Collection<? extends Hook> hooks();
+    Collection<? extends Hook<?, ?>> hooks();
 }

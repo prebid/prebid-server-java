@@ -983,12 +983,14 @@ public class ExchangeService {
                                                              BidderAliases aliases) {
 
         final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
-        return hookStageExecutor.executeBidderRequestStage(bidderRequest, hookExecutionContext)
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
+
+        return hookStageExecutor.executeBidderRequestStage(bidderRequest, account, hookExecutionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, timeout, debugEnabled, aliases))
-
-                .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(bidderResponse,
-                        hookExecutionContext)
+                .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
+                        bidderResponse, bidRequest, account, hookExecutionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
     }
 
@@ -1002,10 +1004,10 @@ public class ExchangeService {
         return hookStageResult.isShouldReject()
                 ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
                 : requestBids(
-                        bidderRequest.with(hookStageResult.getPayload().bidRequest()),
-                        timeout,
-                        debugEnabled,
-                        aliases);
+                bidderRequest.with(hookStageResult.getPayload().bidRequest()),
+                timeout,
+                debugEnabled,
+                aliases);
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
@@ -1204,7 +1206,11 @@ public class ExchangeService {
     }
 
     private Future<BidResponse> invokeResponseHooks(AuctionContext auctionContext, BidResponse bidResponse) {
-        return hookStageExecutor.executeAuctionResponseStage(bidResponse, auctionContext.getHookExecutionContext())
+        return hookStageExecutor.executeAuctionResponseStage(
+                bidResponse,
+                auctionContext.getBidRequest(),
+                auctionContext.getAccount(),
+                auctionContext.getHookExecutionContext())
                 .map(stageResult -> stageResult.getPayload().bidResponse());
     }
 
