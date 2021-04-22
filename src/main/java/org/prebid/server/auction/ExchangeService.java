@@ -1094,14 +1094,12 @@ public class ExchangeService {
         final ObjectNode bidExt = bid.getExt();
         final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
 
+        updateExtWithOrigPriceValues(updatedBidExt, price, bidCurrency);
+
         if (adjustedPrice.compareTo(price) != 0) {
             bid.setPrice(adjustedPrice);
-            addPropertyToNode(updatedBidExt, ORIGINAL_BID_CPM, new DecimalNode(price));
         }
-        // add origbidcur if conversion occurred
-        if (priceInAdServerCurrency.compareTo(price) != 0 && StringUtils.isNotBlank(bidCurrency)) {
-            addPropertyToNode(updatedBidExt, ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
-        }
+
         if (!updatedBidExt.isEmpty()) {
             bid.setExt(updatedBidExt);
         }
@@ -1112,6 +1110,7 @@ public class ExchangeService {
     private static BidAdjustmentMediaType resolveBidAdjustmentMediaType(String bidImpId,
                                                                         List<Imp> imps,
                                                                         BidType bidType) {
+
         switch (bidType) {
             case banner:
                 return BidAdjustmentMediaType.banner;
@@ -1131,12 +1130,17 @@ public class ExchangeService {
                 .filter(imp -> imp.getId().equals(bidImpId))
                 .map(Imp::getVideo)
                 .filter(Objects::nonNull)
-                .findFirst().orElse(null);
-        if (bidImpVideo == null || Objects.equals(bidImpVideo.getPlacement(), 1)) {
-            return BidAdjustmentMediaType.video;
+                .findFirst()
+                .orElse(null);
+
+        if (bidImpVideo == null) {
+            return null;
         }
 
-        return BidAdjustmentMediaType.video_outstream;
+        final Integer placement = bidImpVideo.getPlacement();
+        return placement == null || Objects.equals(placement, 1)
+                ? BidAdjustmentMediaType.video
+                : BidAdjustmentMediaType.video_outstream;
     }
 
     private static BigDecimal bidAdjustmentForBidder(String bidder,
@@ -1175,7 +1179,14 @@ public class ExchangeService {
                 : price;
     }
 
-    private void addPropertyToNode(ObjectNode node, String propertyName, JsonNode propertyValue) {
+    private static void updateExtWithOrigPriceValues(ObjectNode updatedBidExt, BigDecimal price, String bidCurrency) {
+        addPropertyToNode(updatedBidExt, ORIGINAL_BID_CPM, new DecimalNode(price));
+        if (StringUtils.isNotBlank(bidCurrency)) {
+            addPropertyToNode(updatedBidExt, ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
+        }
+    }
+
+    private static void addPropertyToNode(ObjectNode node, String propertyName, JsonNode propertyValue) {
         node.set(propertyName, propertyValue);
     }
 

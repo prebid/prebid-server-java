@@ -20,6 +20,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -137,6 +138,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class ExchangeServiceTest extends VertxTest {
 
@@ -2560,6 +2562,72 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getPrice)
                 .containsExactly(BigDecimal.valueOf(4.936));
+    }
+
+    @Test
+    public void shouldReturnBidsWithAdjustedPricesWithVideoInstreamMediaTypeIfVideoPlacementEqualsOne() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("bidder", bidder, givenSeatBid(singletonList(
+                BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
+
+        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
+                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
+                        impBuilder.id("123").video(Video.builder().placement(1).build()))),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(emptyMap())
+                        .bidadjustmentfactors(givenAdjustments)
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final List<BidderResponse> capturedBidResponses = captureBidResponses();
+        assertThat(capturedBidResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(BigDecimal.valueOf(6.912));
+    }
+
+    @Test
+    public void shouldReturnBidsWithAdjustedPricesWithVideoInstreamMediaTypeIfVideoPlacementIsMissing() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("bidder", bidder, givenSeatBid(singletonList(
+                BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
+
+        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
+                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
+                        impBuilder.id("123").video(Video.builder().build()))),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(emptyMap())
+                        .bidadjustmentfactors(givenAdjustments)
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final List<BidderResponse> capturedBidResponses = captureBidResponses();
+        assertThat(capturedBidResponses)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(BigDecimal.valueOf(6.912));
     }
 
     @Test

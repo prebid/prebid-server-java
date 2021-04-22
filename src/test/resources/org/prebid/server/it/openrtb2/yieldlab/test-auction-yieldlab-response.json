@@ -51,32 +51,80 @@
   "ext": {
     "debug": {
       "httpcalls": {
-        "yieldlab": [
-          {
-            "uri": "{{ yieldlab.exchange_uri }}/12345?content=json&pvid=true&ts=200000&t=key1%3Dvalue1%26key2%3Dvalue2&ids=YL-UID&yl_rtb_ifa=ifaId&yl_rtb_devicetype=4&yl_rtb_connectiontype=6&lat=51.49949&lon=-0.128953&gdpr=0&consent=consentValue",
-            "responsebody": "[{\"id\":12345,\"price\":201,\"advertiser\":\"yieldlab\",\"adsize\":\"400x300\",\"pid\":1234,\"did\":5678,\"pvid\":\"40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5\"}]",
-            "status": 200
-          }
-        ],
         "cache": [
           {
-            "uri": "{{ cache.endpoint }}",
             "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"12345\",\"impid\":\"impId001\",\"price\":2.29,\"adm\":\"<script src=\\\"https://ad.yieldlab.net/d/12345/123456789/400x300?ts=200000&id=abc&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=YL-UID&gdpr=0&consent=consentValue\\\"></script>\",\"crid\":\"12345123435\",\"dealid\":\"1234\",\"w\":400,\"h\":300,\"ext\":{\"origbidcpm\":2.01,\"origbidcur\":\"EUR\"}}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"ca2a4dd3-f974-4eff-be5c-986bf4e083ce\"}]}",
-            "status": 200
+            "status": 200,
+            "uri": "{{ cache.endpoint }}"
+          }
+        ],
+        "yieldlab": [
+          {
+            "responsebody": "[{\"id\":12345,\"price\":201,\"advertiser\":\"yieldlab\",\"adsize\":\"400x300\",\"pid\":1234,\"did\":5678,\"pvid\":\"40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5\"}]",
+            "status": 200,
+            "uri": "{{ yieldlab.exchange_uri }}/12345?content=json&pvid=true&ts=200000&t=key1%3Dvalue1%26key2%3Dvalue2&ids=YL-UID&yl_rtb_ifa=ifaId&yl_rtb_devicetype=4&yl_rtb_connectiontype=6&lat=51.49949&lon=-0.128953&gdpr=0&consent=consentValue"
           }
         ]
       },
       "resolvedrequest": {
+        "at": 1,
+        "cur": [
+          "USD"
+        ],
+        "device": {
+          "connectiontype": 6,
+          "devicetype": 4,
+          "dnt": 2,
+          "geo": {
+            "lat": 51.49949,
+            "lon": -0.128953
+          },
+          "h": 1098,
+          "ifa": "ifaId",
+          "ip": "193.168.244.1",
+          "language": "en",
+          "pxratio": 4.2,
+          "ua": "userAgent",
+          "w": 814
+        },
+        "ext": {
+          "prebid": {
+            "auctiontimestamp": 1000,
+            "channel": {
+              "name": "web"
+            },
+            "cache": {
+              "bids": {
+              },
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            },
+            "debug": 1,
+            "targeting": {
+              "includebidderkeys": true,
+              "includewinners": true,
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "increment": 0.1,
+                    "max": 20
+                  }
+                ]
+              }
+            }
+          }
+        },
         "id": "tid",
         "imp": [
           {
-            "id": "impId001",
             "banner": {
               "format": [
                 {
-                  "w": 300,
-                  "h": 250
+                  "h": 250,
+                  "w": 300
                 }
               ]
             },
@@ -84,91 +132,44 @@
               "prebid": {
                 "bidder": {
                   "yieldlab": {
-                    "adslotId": "12345",
-                    "supplyId": "123456789",
                     "adSize": "400x300",
+                    "adslotId": "12345",
+                    "extId": "abc",
+                    "supplyId": "123456789",
                     "targeting": {
                       "key1": "value1",
                       "key2": "value2"
-                    },
-                    "extId": "abc"
+                    }
                   }
                 }
               }
-            }
+            },
+            "id": "impId001"
           }
         ],
-        "site": {
-          "id": "siteId",
-          "page": "http://localhost:9090/gdpr.html",
-          "publisher": {
-            "id": "publisherId"
-          },
-          "ext": {
-            "amp": 0
-          }
-        },
-        "device": {
-          "ua": "userAgent",
-          "geo": {
-            "lat": 51.49949,
-            "lon": -0.128953
-          },
-          "dnt": 2,
-          "ip": "193.168.244.1",
-          "devicetype": 4,
-          "h": 1098,
-          "w": 814,
-          "pxratio": 4.2,
-          "language": "en",
-          "connectiontype": 6,
-          "ifa": "ifaId"
-        },
-        "user": {
-          "ext": {
-            "consent": "consentValue"
-          }
-        },
-        "at": 1,
-        "tmax": 5000,
-        "cur": [
-          "USD"
-        ],
-        "source": {
-          "fd": 1,
-          "tid": "tid"
-        },
         "regs": {
           "ext": {
             "gdpr": 0
           }
         },
-        "ext": {
-          "prebid": {
-            "debug": 1,
-            "targeting": {
-              "pricegranularity": {
-                "precision": 2,
-                "ranges": [
-                  {
-                    "max": 20,
-                    "increment": 0.1
-                  }
-                ]
-              },
-              "includewinners": true,
-              "includebidderkeys": true
-            },
-            "cache": {
-              "bids": {},
-              "vastxml": {
-                "ttlseconds": 120
-              }
-            },
-            "auctiontimestamp": 1000,
-            "channel": {
-              "name": "web"
-            }
+        "site": {
+          "ext": {
+            "amp": 0
+          },
+          "id": "siteId",
+          "page": "http://localhost:9090/gdpr.html",
+          "publisher": {
+            "id": "publisherId"
+          }
+        },
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "tmax": 5000,
+        "user": {
+          "ext": {
+            "consent": "consentValue"
           }
         }
       }
@@ -177,9 +178,9 @@
       "yieldlab": "{{ yieldlab.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
     },
-    "tmaxrequest": 5000,
     "prebid": {
       "auctiontimestamp": 1000
-    }
+    },
+    "tmaxrequest": 5000
   }
 }

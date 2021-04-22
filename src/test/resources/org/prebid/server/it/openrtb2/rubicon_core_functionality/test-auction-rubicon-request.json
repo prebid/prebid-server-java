@@ -27,7 +27,7 @@
     "prebid": {
       "bidadjustmentfactors": {
         "mediatypes": {
-          "video-outstream": {
+          "video": {
             "rubicon": 0.9
           }
         }
