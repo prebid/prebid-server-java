@@ -114,7 +114,7 @@ public class HookStageExecutor {
                 .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
                 .withHookProvider(hookId ->
                         hookCatalog.rawAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account, context))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
                 .withRejectAllowed(true)
                 .execute();
     }
@@ -134,8 +134,7 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderRequestPayloadImpl.of(bidRequest))
                 .withHookProvider(hookId ->
                         hookCatalog.bidderRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(
-                        bidderInvocationContextProvider(endpoint, bidRequest, account, bidder, context))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
                 .withRejectAllowed(true)
                 .execute();
     }
@@ -154,8 +153,7 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
                 .withHookProvider(hookId ->
                         hookCatalog.rawBidderResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(
-                        bidderInvocationContextProvider(endpoint, bidRequest, account, bidder, context))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
                 .withRejectAllowed(true)
                 .execute();
     }
@@ -174,8 +172,7 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
                 .withHookProvider(hookId ->
                         hookCatalog.processedBidderResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(
-                        bidderInvocationContextProvider(endpoint, bidRequest, account, bidder, context))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
                 .withRejectAllowed(true)
                 .execute();
     }
@@ -193,7 +190,7 @@ public class HookStageExecutor {
                 .withInitialPayload(AuctionResponsePayloadImpl.of(bidResponse))
                 .withHookProvider(hookId ->
                         hookCatalog.auctionResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account, context))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
                 .withRejectAllowed(false)
                 .execute();
     }
@@ -248,39 +245,45 @@ public class HookStageExecutor {
     }
 
     private InvocationContextProvider<InvocationContext> invocationContextProvider(Endpoint endpoint) {
-        return (timeout, hookId, moduleContext) -> InvocationContextImpl.of(createTimeout(timeout), endpoint);
+        return (timeout, hookId, moduleContext) -> invocationContext(endpoint, timeout);
     }
 
     private InvocationContextProvider<AuctionInvocationContext> auctionInvocationContextProvider(
             Endpoint endpoint,
             BidRequest bidRequest,
-            Account account,
-            HookExecutionContext hookExecutionContext) {
+            Account account) {
 
-        return (timeout, hookId, moduleContext) -> AuctionInvocationContextImpl.builder()
-                .timeout(createTimeout(timeout))
-                .endpoint(endpoint)
-                .debugEnabled(isDebugEnabled(bidRequest))
-                .accountConfig(accountConfigFor(account, hookId))
-                .moduleContext(moduleContext)
-                .build();
+        return (timeout, hookId, moduleContext) -> auctionInvocationContext(
+                endpoint, timeout, bidRequest, account, hookId, moduleContext);
     }
 
     private InvocationContextProvider<BidderInvocationContext> bidderInvocationContextProvider(
             Endpoint endpoint,
             BidRequest bidRequest,
             Account account,
-            String bidder,
-            HookExecutionContext hookExecutionContext) {
+            String bidder) {
 
-        return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.builder()
-                .timeout(createTimeout(timeout))
-                .endpoint(endpoint)
-                .debugEnabled(isDebugEnabled(bidRequest))
-                .accountConfig(accountConfigFor(account, hookId))
-                .moduleContext(moduleContext)
-                .bidder(bidder)
-                .build();
+        return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.of(
+                auctionInvocationContext(endpoint, timeout, bidRequest, account, hookId, moduleContext),
+                bidder);
+    }
+
+    private InvocationContextImpl invocationContext(Endpoint endpoint, Long timeout) {
+        return InvocationContextImpl.of(createTimeout(timeout), endpoint);
+    }
+
+    private AuctionInvocationContextImpl auctionInvocationContext(Endpoint endpoint,
+                                                                  Long timeout,
+                                                                  BidRequest bidRequest,
+                                                                  Account account,
+                                                                  HookId hookId,
+                                                                  Object moduleContext) {
+
+        return AuctionInvocationContextImpl.of(
+                invocationContext(endpoint, timeout),
+                isDebugEnabled(bidRequest),
+                accountConfigFor(account, hookId),
+                moduleContext);
     }
 
     private Timeout createTimeout(Long timeout) {
