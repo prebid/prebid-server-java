@@ -8,6 +8,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -140,11 +141,13 @@ public class HookStageExecutor {
     }
 
     public Future<HookStageExecutionResult<BidderResponsePayload>> executeRawBidderResponseStage(
-            List<BidderBid> bids,
-            String bidder,
+            BidderResponse bidderResponse,
             BidRequest bidRequest,
             Account account,
             HookExecutionContext context) {
+
+        final List<BidderBid> bids = bidderResponse.getSeatBid().getBids();
+        final String bidder = bidderResponse.getBidder();
 
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.raw_bidder_response;
@@ -175,6 +178,20 @@ public class HookStageExecutor {
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
                 .withRejectAllowed(true)
                 .execute();
+    }
+
+    public Future<HookStageExecutionResult<BidderResponsePayload>> executeProcessedBidderResponseStage(
+            BidderResponse bidderResponse,
+            BidRequest bidRequest,
+            Account account,
+            HookExecutionContext context) {
+
+        return Future.succeededFuture(HookStageExecutionResult.of(false, new BidderResponsePayload() {
+            @Override
+            public List<BidderBid> bids() {
+                return bidderResponse.getSeatBid().getBids();
+            }
+        }));
     }
 
     public Future<HookStageExecutionResult<AuctionResponsePayload>> executeAuctionResponseStage(

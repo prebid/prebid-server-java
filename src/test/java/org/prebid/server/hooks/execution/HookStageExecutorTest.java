@@ -28,7 +28,9 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
@@ -1508,8 +1510,13 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
-                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                "bidder1",
+                BidderResponse.of(
+                        "bidder1",
+                        BidderSeatBid.of(
+                                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                                emptyList(),
+                                emptyList()),
+                        0),
                 BidRequest.builder().build(),
                 Account.empty("accountId"),
                 hookExecutionContext);
@@ -1551,8 +1558,13 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
-                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                "bidder1",
+                BidderResponse.of(
+                        "bidder1",
+                        BidderSeatBid.of(
+                                singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                                emptyList(),
+                                emptyList()),
+                        0),
                 BidRequest.builder().build(),
                 Account.builder()
                         .hooks(AccountHooksConfiguration.of(

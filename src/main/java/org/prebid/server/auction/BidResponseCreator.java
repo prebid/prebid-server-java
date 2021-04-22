@@ -16,6 +16,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -43,6 +44,9 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
@@ -108,6 +112,7 @@ public class BidResponseCreator {
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
     private final IdGenerator bidIdGenerator;
+    private final HookStageExecutor hookStageExecutor;
     private final int truncateAttrChars;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -124,6 +129,7 @@ public class BidResponseCreator {
                               StoredRequestProcessor storedRequestProcessor,
                               WinningBidComparator winningBidComparator,
                               IdGenerator bidIdGenerator,
+                              HookStageExecutor hookStageExecutor,
                               int truncateAttrChars,
                               Clock clock,
                               JacksonMapper mapper) {
@@ -135,6 +141,7 @@ public class BidResponseCreator {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.winningBidComparator = Objects.requireNonNull(winningBidComparator);
         this.bidIdGenerator = Objects.requireNonNull(bidIdGenerator);
+        this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.truncateAttrChars = validateTruncateAttrChars(truncateAttrChars);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -185,14 +192,15 @@ public class BidResponseCreator {
                     .build());
         }
 
-        return cacheBidsAndCreateResponse(
-                bidderResponses,
-                auctionContext,
-                cacheInfo,
-                bidderToMultiBids,
-                bidIdToGeneratedBidId,
-                eventsContext,
-                debugEnabled);
+        return invokeProcessedBidderResponseHooks(bidderResponses, auctionContext)
+                .compose(updatedBidderResponses -> cacheBidsAndCreateResponse(
+                        updatedBidderResponses,
+                        auctionContext,
+                        cacheInfo,
+                        bidderToMultiBids,
+                        bidIdToGeneratedBidId,
+                        eventsContext,
+                        debugEnabled));
     }
 
     private void updateBidAdmInBidderResponses(List<BidderResponse> bidderResponses,
@@ -241,6 +249,32 @@ public class BidResponseCreator {
                 .allMatch(CollectionUtils::isEmpty);
     }
 
+    private Future<List<BidderResponse>> invokeProcessedBidderResponseHooks(List<BidderResponse> bidderResponses,
+                                                                            AuctionContext auctionContext) {
+
+        return CompositeFuture.join(bidderResponses.stream()
+                .map(bidderResponse -> hookStageExecutor.executeProcessedBidderResponseStage(
+                        bidderResponse,
+                        auctionContext.getBidRequest(),
+                        auctionContext.getAccount(),
+                        auctionContext.getHookExecutionContext())
+                        .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
+                .collect(Collectors.toList()))
+                .map(CompositeFuture::list);
+    }
+
+    private static BidderResponse rejectBidderResponseOrProceed(
+            HookStageExecutionResult<BidderResponsePayload> stageResult,
+            BidderResponse bidderResponse) {
+
+        final List<BidderBid> bids =
+                stageResult.isShouldReject() ? Collections.emptyList() : stageResult.getPayload().bids();
+
+        return bidderResponse
+                .with(bidderResponse.getSeatBid()
+                        .with(bids));
+    }
+
     private Future<BidResponse> cacheBidsAndCreateResponse(List<BidderResponse> bidderResponses,
                                                            AuctionContext auctionContext,
                                                            BidRequestCacheInfo cacheInfo,
@@ -265,10 +299,10 @@ public class BidResponseCreator {
         final Set<BidInfo> winningBidInfos = targeting == null
                 ? null
                 : bidderResponseToTargetingBidInfos.values().stream()
-                        .flatMap(Collection::stream)
-                        .filter(TargetingBidInfo::isWinningBid)
-                        .map(TargetingBidInfo::getBidInfo)
-                        .collect(Collectors.toSet());
+                .flatMap(Collection::stream)
+                .filter(TargetingBidInfo::isWinningBid)
+                .map(TargetingBidInfo::getBidInfo)
+                .collect(Collectors.toSet());
 
         final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBidInfos : bidInfos;
 
