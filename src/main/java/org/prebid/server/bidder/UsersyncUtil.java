@@ -20,19 +20,15 @@ public class UsersyncUtil {
      * usersync url can be appended with UID on the exchange side without parsing query string.
      */
     public static String enrichUsersyncUrlWithFormat(String url, String type) {
-        final String result;
-
-        if (StringUtils.isNotEmpty(url) && StringUtils.isNotEmpty(type)) {
-            final String formatValue = resolveFormatValueByType(type);
-
-            result = hasTwoOrMoreParameters(url)
-                    ? insertFormatParameter(url, formatValue)
-                    : appendFormatParameter(url, formatValue);
-        } else {
-            result = url;
+        if (StringUtils.isAnyEmpty(url, type)) {
+            return url;
         }
 
-        return result;
+        final String formatValue = resolveFormatValueByType(type);
+
+        return hasTwoOrMoreParameters(url)
+                ? insertFormatParameter(url, formatValue)
+                : appendFormatParameter(url, formatValue);
     }
 
     private static String resolveFormatValueByType(String type) {
@@ -59,9 +55,7 @@ public class UsersyncUtil {
     }
 
     private static String appendFormatParameter(String url, String formatValue) {
-        String result;
         final String separator = url.indexOf('?') != -1 ? "&" : "?";
-        result = url + separator + FORMAT_PARAMETER + "=" + formatValue;
-        return result;
+        return url + separator + FORMAT_PARAMETER + "=" + formatValue;
     }
 }
