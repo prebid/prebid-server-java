@@ -12,7 +12,9 @@
         ]
       },
       "ext": {
-        "bidder": {}
+        "bidder": {
+          "publisherId": "publisherId"
+        }
       }
     }
   ],
