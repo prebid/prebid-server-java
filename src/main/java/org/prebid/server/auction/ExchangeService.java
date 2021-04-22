@@ -1094,14 +1094,12 @@ public class ExchangeService {
         final ObjectNode bidExt = bid.getExt();
         final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
 
+        updateExtWithOrigPriceValues(updatedBidExt, price, bidCurrency);
+
         if (adjustedPrice.compareTo(price) != 0) {
             bid.setPrice(adjustedPrice);
-            addPropertyToNode(updatedBidExt, ORIGINAL_BID_CPM, new DecimalNode(price));
         }
-        // add origbidcur if conversion occurred
-        if (priceInAdServerCurrency.compareTo(price) != 0 && StringUtils.isNotBlank(bidCurrency)) {
-            addPropertyToNode(updatedBidExt, ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
-        }
+
         if (!updatedBidExt.isEmpty()) {
             bid.setExt(updatedBidExt);
         }
@@ -1175,7 +1173,14 @@ public class ExchangeService {
                 : price;
     }
 
-    private void addPropertyToNode(ObjectNode node, String propertyName, JsonNode propertyValue) {
+    private static void updateExtWithOrigPriceValues(ObjectNode updatedBidExt, BigDecimal price, String bidCurrency) {
+        addPropertyToNode(updatedBidExt, ORIGINAL_BID_CPM, new DecimalNode(price));
+        if (StringUtils.isNotBlank(bidCurrency)) {
+            addPropertyToNode(updatedBidExt, ORIGINAL_BID_CURRENCY, new TextNode(bidCurrency));
+        }
+    }
+
+    private static void addPropertyToNode(ObjectNode node, String propertyName, JsonNode propertyValue) {
         node.set(propertyName, propertyValue);
     }
 

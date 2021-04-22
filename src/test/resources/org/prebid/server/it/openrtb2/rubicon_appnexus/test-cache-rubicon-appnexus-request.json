@@ -10,6 +10,9 @@
         "crid": "crid2",
         "w": 300,
         "h": 600,
+        "ext": {
+          "origbidcpm": 4.26
+        },
         "wurl": "http://localhost:8080/event?t=win&b=466223845&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
       }
     },
@@ -39,7 +42,9 @@
             "bidder_id": 2,
             "bid_ad_type": 0,
             "ranking_price": 0.0
-          }
+          },
+          "origbidcpm": 5,
+          "origbidcur": "USD"
         }
       }
     },
@@ -67,7 +72,9 @@
             "bidder_id": 2,
             "bid_ad_type": 0,
             "ranking_price": 0.0
-          }
+          },
+          "origbidcpm": 5.5,
+          "origbidcur": "USD"
         }
       }
     },
@@ -92,7 +99,8 @@
                 ]
               }
             ]
-          }
+          },
+          "origbidcpm": 8.43
         }
       }
     },
@@ -120,7 +128,9 @@
             "auction_id": 5607483846416358664,
             "bidder_id": 2,
             "bid_ad_type": 3
-          }
+          },
+          "origbidcpm": 1,
+          "origbidcur": "USD"
         },
         "wurl": "http://localhost:8080/event?t=win&b=928185755156387460&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
       }
@@ -132,6 +142,10 @@
         "impid": "impStoredAuctionResponse",
         "crid": "crid1",
         "price": 0.9,
+        "ext": {
+          "origbidcpm": 0.9,
+          "origbidcur": "USD"
+        },
         "wurl": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&ts=1000&bidder=appnexus&f=i&int=dmbjs"
       }
     },
@@ -142,6 +156,10 @@
         "impid": "impStoredAuctionResponse",
         "crid": "crid1",
         "price": 0.8,
+        "ext": {
+          "origbidcpm": 0.8,
+          "origbidcur": "USD"
+        },
         "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&ts=1000&bidder=rubicon&f=i&int=dmbjs"
       }
     },

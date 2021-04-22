@@ -10,7 +10,11 @@
         "crid": "Dummy_supership.jp",
         "dealid": "test-deal-id",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 46.6,
+          "origbidcur": "USD"
+        }
       }
     }
   ]

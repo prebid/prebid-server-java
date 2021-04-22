@@ -12,7 +12,9 @@
         "w": 728,
         "h": 90,
         "ext": {
-          "adType": "leaderboard"
+          "adType": "leaderboard",
+          "origbidcpm": 1,
+          "origbidcur": "USD"
         }
       }
     }
