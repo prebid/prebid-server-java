@@ -88,7 +88,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
         return stageFuture
                 .recover(StageExecutor::restoreResultFromRejection)
-                .map(stageResult -> toHookStageExecutionResult(stageResult, stage, hookExecutionContext));
+                .map(this::toHookStageExecutionResult);
     }
 
     private Future<GroupResult<PAYLOAD>> executeGroup(ExecutionGroup group, PAYLOAD initialPayload) {
@@ -97,6 +97,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
                 .withInitialPayload(initialPayload)
                 .withHookProvider(hookProvider)
                 .withInvocationContextProvider(invocationContextProvider)
+                .withHookExecutionContext(hookExecutionContext)
                 .withRejectAllowed(rejectAllowed)
                 .execute();
     }
@@ -116,11 +117,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         return Future.failedFuture(throwable);
     }
 
-    private static <PAYLOAD> HookStageExecutionResult<PAYLOAD> toHookStageExecutionResult(
-            StageResult<PAYLOAD> stageResult,
-            Stage stage,
-            HookExecutionContext hookExecutionContext) {
-
+    private HookStageExecutionResult<PAYLOAD> toHookStageExecutionResult(StageResult<PAYLOAD> stageResult) {
         hookExecutionContext.getStageOutcomes().put(stage, stageResult.toStageExecutionOutcome());
 
         return stageResult.shouldReject()

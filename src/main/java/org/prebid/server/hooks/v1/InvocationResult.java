@@ -17,4 +17,6 @@ public interface InvocationResult<PAYLOAD> {
     List<String> warnings();
 
     List<String> debugMessages();
+
+    Object moduleContext();
 }
