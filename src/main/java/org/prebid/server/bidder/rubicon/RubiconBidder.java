@@ -331,16 +331,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                            ExtImpRubicon extRubicon,
                                            BidRequest bidRequest,
                                            String impLanguage) {
-
-        final Site site = bidRequest.getSite();
-        final App app = bidRequest.getApp();
-
         return bidRequest.toBuilder()
                 .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, bidRequest)))
                 .user(makeUser(bidRequest.getUser(), extRubicon))
                 .device(makeDevice(bidRequest.getDevice()))
-                .site(makeSite(site, impLanguage, extRubicon))
-                .app(makeApp(app, extRubicon))
+                .site(makeSite(bidRequest.getSite(), impLanguage, extRubicon))
+                .app(makeApp(bidRequest.getApp(), extRubicon))
                 .source(makeSource(bidRequest.getSource(), extRubicon.getPchain()))
                 .cur(null) // suppress currencies
                 .ext(null) // suppress ext
@@ -397,7 +393,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
         final ExtRequest extRequest = bidRequest.getExt();
-
         builder.metric(makeMetrics(imp))
                 .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app, extRequest)));
 
@@ -415,9 +410,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private BigDecimal resolveBidFloor(BigDecimal bidfloor, String bidfloorcur, BidRequest bidRequest) {
-        return bidfloor != null && bidfloorcur != null
+        return bidfloor != null
                 ? currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, XAPI_CURRENCY)
-                : bidfloor;
+                : null;
     }
 
     private List<Metric> makeMetrics(Imp imp) {
