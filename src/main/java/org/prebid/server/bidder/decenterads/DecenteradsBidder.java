@@ -47,8 +47,8 @@ public class DecenteradsBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final JsonNode resolvedImpExt = resolveImpExt(imp.getExt());
-                final Imp updatedImp = updateImp(imp, resolvedImpExt);
+                final ObjectNode decenteradsImpExt = parseAndValidateImpExt(imp.getExt());
+                final Imp updatedImp = updateImp(imp, decenteradsImpExt);
 
                 validRequests.add(createRequest(request, updatedImp));
             } catch (PreBidException e) {
@@ -59,16 +59,16 @@ public class DecenteradsBidder implements Bidder<BidRequest> {
         return Result.of(validRequests, errors);
     }
 
-    private static JsonNode resolveImpExt(ObjectNode impExt) {
-        final JsonNode newImExt = impExt.get("bidder");
-        if (newImExt.isEmpty()) {
+    private static ObjectNode parseAndValidateImpExt(ObjectNode impExt) {
+        final JsonNode ext = impExt.get("bidder");
+        if (ext.isEmpty() || !ext.isObject()) {
             throw new PreBidException("bidder parameters required");
         }
-        return newImExt;
+        return (ObjectNode) ext;
     }
 
-    private static Imp updateImp(Imp imp, JsonNode newExt) {
-        return imp.toBuilder().ext(newExt.deepCopy()).build();
+    private static Imp updateImp(Imp imp, ObjectNode impExt) {
+        return imp.toBuilder().ext(impExt).build();
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request, Imp requestImp) {
