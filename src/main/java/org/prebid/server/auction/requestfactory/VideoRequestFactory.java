@@ -103,6 +103,9 @@ public class VideoRequestFactory {
                                 auctionContext.getAccount(),
                                 auctionContext.getPrivacyContext())))
 
+                .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with))
+
                 .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
     }
 

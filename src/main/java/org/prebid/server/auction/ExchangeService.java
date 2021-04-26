@@ -37,12 +37,10 @@ import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
-import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
@@ -151,27 +149,11 @@ public class ExchangeService {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    public Future<BidResponse> executeHooksAndHoldAuction(AuctionContext context) {
-        final BidRequest bidRequest = context.getBidRequest();
-        final Account account = context.getAccount();
-        final HookExecutionContext hookExecutionContext = context.getHookExecutionContext();
-
-        return hookStageExecutor.executeProcessedAuctionRequestStage(bidRequest, account, hookExecutionContext)
-                .compose(stageResult -> rejectOrProceedAuction(stageResult, context));
-    }
-
-    private Future<BidResponse> rejectOrProceedAuction(HookStageExecutionResult<AuctionRequestPayload> stageResult,
-                                                       AuctionContext context) {
-        return stageResult.isShouldReject()
-                ? Future.failedFuture(new RejectedRequestException(context.getHookExecutionContext()))
-                : holdAuction(context.with(stageResult.getPayload().bidRequest()));
-    }
-
     /**
      * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
      * response containing returned bids and additional information in extensions.
      */
-    private Future<BidResponse> holdAuction(AuctionContext context) {
+    public Future<BidResponse> holdAuction(AuctionContext context) {
         final UidsCookie uidsCookie = context.getUidsCookie();
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
@@ -1021,7 +1003,8 @@ public class ExchangeService {
 
         return hookStageResult.isShouldReject()
                 ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
-                : requestBids(bidderRequest.with(hookStageResult.getPayload().bidRequest()),
+                : requestBids(
+                        bidderRequest.with(hookStageResult.getPayload().bidRequest()),
                         timeout,
                         debugEnabled,
                         aliases);

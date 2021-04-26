@@ -96,8 +96,7 @@ public class VideoHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        given(exchangeService.executeHooksAndHoldAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+        given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
         videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService,
                 analyticsReporterDelegator, metrics, clock, jacksonMapper);
@@ -109,7 +108,7 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
-        given(exchangeService.executeHooksAndHoldAuction(any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
         // when
@@ -125,7 +124,7 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
-        given(exchangeService.executeHooksAndHoldAuction(any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
         final Instant now = Instant.now();
@@ -173,7 +172,7 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
-        given(exchangeService.executeHooksAndHoldAuction(any()))
+        given(exchangeService.holdAuction(any()))
                 .willThrow(new RuntimeException("Unexpected exception"));
 
         // when
@@ -205,7 +204,7 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
-        given(exchangeService.executeHooksAndHoldAuction(any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
         given(videoResponseFactory.toVideoResponse(any(), any(), any()))
@@ -215,7 +214,7 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler.handle(routingContext);
 
         // then
-        verify(exchangeService).executeHooksAndHoldAuction(any());
+        verify(exchangeService).holdAuction(any());
         verify(videoResponseFactory).toVideoResponse(any(), any(), any());
 
         assertThat(httpResponse.headers()).hasSize(1)
@@ -226,7 +225,7 @@ public class VideoHandlerTest extends VertxTest {
 
     private AuctionContext captureAuctionContext() {
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
-        verify(exchangeService).executeHooksAndHoldAuction(captor.capture());
+        verify(exchangeService).holdAuction(captor.capture());
         return captor.getValue();
     }
 

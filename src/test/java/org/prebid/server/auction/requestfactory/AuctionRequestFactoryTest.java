@@ -118,7 +118,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
-        given(ortb2RequestFactory.executeRawAuctionRequestHooks(any(), any()))
+        given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
 
@@ -134,6 +134,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any(), any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
+                .willAnswer(invocation -> Future.succeededFuture(
+                        ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -264,7 +267,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build();
         doAnswer(invocation -> Future.succeededFuture(modifiedBidRequest))
                 .when(ortb2RequestFactory)
-                .executeRawAuctionRequestHooks(any(), any());
+                .executeRawAuctionRequestHooks(any());
 
         // when
         target.fromRequest(routingContext, 0L);
@@ -285,7 +288,48 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         doAnswer(invocation -> Future.failedFuture(new RejectedRequestException(null)))
                 .when(ortb2RequestFactory)
-                .executeRawAuctionRequestHooks(any(), any());
+                .executeRawAuctionRequestHooks(any());
+
+        // when
+        final Future<?> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RejectedRequestException.class);
+    }
+
+    @Test
+    public void shouldUseBidRequestModifiedByProcessedAuctionRequestHooks() {
+        // given
+        givenValidBidRequest(BidRequest.builder()
+                .site(Site.builder().domain("example.com").build())
+                .build());
+
+        final BidRequest modifiedBidRequest = BidRequest.builder()
+                .app(App.builder().bundle("org.company.application").build())
+                .build();
+        doAnswer(invocation -> Future.succeededFuture(modifiedBidRequest))
+                .when(ortb2RequestFactory)
+                .executeProcessedAuctionRequestHooks(any());
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+
+        // then
+
+        final BidRequest resultBidRequest = result.result().getBidRequest();
+        assertThat(resultBidRequest.getSite()).isNull();
+        assertThat(resultBidRequest.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectRequest() {
+        // given
+        givenValidBidRequest(defaultBidRequest);
+
+        doAnswer(invocation -> Future.failedFuture(new RejectedRequestException(null)))
+                .when(ortb2RequestFactory)
+                .executeProcessedAuctionRequestHooks(any());
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
