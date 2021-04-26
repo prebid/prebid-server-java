@@ -7,14 +7,13 @@
         "w": 320,
         "h": 250
       },
-      "displaymanager" : "di_prebid",
-      "displaymanagerver" : "2.0.0",
-      "tagid" : "possibleTagId",
+      "displaymanager": "di_prebid",
+      "displaymanagerver": "2.0.0",
+      "tagid": "possibleTagId",
       "ext": {
-        "key1" : "value1",
-        "key2" : "value2"
+        "key1": "value1",
+        "key2": "value2"
       }
-
     }
   ],
   "site": {
