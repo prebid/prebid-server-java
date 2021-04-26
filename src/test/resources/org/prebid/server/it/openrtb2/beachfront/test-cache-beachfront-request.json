@@ -9,7 +9,11 @@
         "adm": "<div id=\"44861168\"><script>!function(){console.log\"Hello, ad.\";}();</script></div>",
         "crid": "crid_3",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 2.942807912826538,
+          "origbidcur": "USD"
+        }
       }
     }
   ]
