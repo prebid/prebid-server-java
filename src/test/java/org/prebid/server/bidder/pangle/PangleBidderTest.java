@@ -299,7 +299,7 @@ public class PangleBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .containsExactly(
-                        BidderError.badServerResponse("the bid request object is nil"));
+                        BidderError.badServerResponse("the bid request object is not present"));
     }
 
     @Test

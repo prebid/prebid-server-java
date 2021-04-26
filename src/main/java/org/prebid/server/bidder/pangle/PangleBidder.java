@@ -74,22 +74,21 @@ public class PangleBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Integer resolveAdType(Imp imp, WrappedImpExtBidder extBidder) {
-
+    private static int resolveAdType(Imp imp, WrappedImpExtBidder extBidder) {
         if (imp.getVideo() != null) {
             final ExtImpPrebid extPrebid = extBidder != null ? extBidder.getPrebid() : null;
             final Integer isRewardedInventory = extPrebid != null ? extPrebid.getIsRewardedInventory() : null;
-            if (isEqualIntegers(isRewardedInventory, 1)) {
+            if (Objects.equals(isRewardedInventory, 1)) {
                 return 7;
             }
 
-            if (isEqualIntegers(imp.getInstl(), 1)) {
+            if (Objects.equals(imp.getInstl(), 1)) {
                 return 8;
             }
         }
 
         if (imp.getBanner() != null) {
-            if (isEqualIntegers(imp.getInstl(), 1)) {
+            if (Objects.equals(imp.getInstl(), 1)) {
                 return 2;
             } else {
                 return 1;
@@ -99,17 +98,10 @@ public class PangleBidder implements Bidder<BidRequest> {
             return 5;
         }
 
-        return -1;
-    }
-
-    private static boolean isEqualIntegers(Integer firstNum, Integer secondNum) {
-        return firstNum != null && firstNum.equals(secondNum);
+        throw new PreBidException("not a supported adtype");
     }
 
     private Imp modifyImp(Imp imp, Integer adType, WrappedImpExtBidder extBidder) {
-        if (adType == -1) {
-            throw new PreBidException("not a supported adtype");
-        }
         final WrappedImpExtBidder updatedImpExt = extBidder.toBuilder().adType(adType).build();
         return imp.toBuilder()
                 .ext(mapper.mapper().convertValue(updatedImpExt, ObjectNode.class))
@@ -196,7 +188,7 @@ public class PangleBidder implements Bidder<BidRequest> {
 
     private Integer getAdTypeFromBidExt(Bid bid) {
         if (bid == null) {
-            throw new PreBidException("the bid request object is nil");
+            throw new PreBidException("the bid request object is not present");
         }
         final PangleBidExt bidExt;
         try {
