@@ -384,8 +384,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder builder = imp.toBuilder();
 
         final String bidfloorcur = imp.getBidfloorcur();
-        final boolean isNotUSDCurrency = bidfloorcur != null && !bidfloorcur.equals(XAPI_CURRENCY);
-        if (isNotUSDCurrency) {
+        if (isNotXAPICurrency(bidfloorcur)) {
             builder.bidfloor(resolveBidFloor(imp.getBidfloor(), bidfloorcur, bidRequest))
                     .bidfloorcur(XAPI_CURRENCY);
         }
@@ -407,6 +406,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         return builder.build();
+    }
+
+    private static boolean isNotXAPICurrency(String currency) {
+        return currency != null && !currency.equals(XAPI_CURRENCY);
     }
 
     private BigDecimal resolveBidFloor(BigDecimal bidfloor, String bidfloorcur, BidRequest bidRequest) {
