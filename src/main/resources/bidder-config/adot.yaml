@@ -6,7 +6,7 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: false
     deprecated-names:
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: admin@we-are-adot.com"
       app-media-types:

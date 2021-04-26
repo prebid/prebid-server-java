@@ -7,9 +7,9 @@
         "w": 320,
         "h": 250
       },
-      "displaymanager" : "di_prebid",
-      "displaymanagerver" : "2.0.0",
-      "tagid" : "possibleTagId",
+      "displaymanager": "di_prebid",
+      "displaymanagerver": "2.0.0",
+      "tagid": "possibleTagId",
       "ext": {
         "deepintent": {
           "tagId": "possibleTagId"
