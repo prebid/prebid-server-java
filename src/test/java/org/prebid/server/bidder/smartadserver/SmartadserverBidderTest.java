@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -79,6 +81,33 @@ public class SmartadserverBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue().get(0).getUri())
                 .isEqualTo("https://test.endpoint.com/path/api/bid?testParam=testVal&callerId=5");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateSiteObjectIfPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(Function.identity())))
+                .site(Site.builder()
+                        .domain("www.foo.com")
+                        .publisher(Publisher.builder().domain("foo.com").build())
+                        .build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartadserverBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Site expectedSite = Site.builder()
+                .domain("www.foo.com")
+                .publisher(Publisher.builder().domain("foo.com").id("4").build())
+                .build();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .containsExactly(expectedSite);
     }
 
     @Test

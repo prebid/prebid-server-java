@@ -16,7 +16,7 @@
           "adUnitId": "testAdUnitId"
         }
       },
-      "tagid" : "testAdUnitId"
+      "tagid": "testAdUnitId"
     }
   ],
   "device": {

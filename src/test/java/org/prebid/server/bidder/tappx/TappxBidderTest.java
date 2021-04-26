@@ -114,7 +114,30 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://host/endpoint?tappxkey=tappxkey&v=1.1&type_cnn=prebid";
+        final String expectedUri = "https://host/endpoint?tappxkey=tappxkey&v=1.2&type_cnn=prebid";
+        assertThat(result.getValue()).hasSize(1)
+                .allSatisfy(httpRequest -> {
+                    assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
+                    assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyUrl() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTappx.of("endpoint.host", "tappxkey", "endpoint", BigDecimal.ONE))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = tappxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final String expectedUri = "https://endpoint.host?tappxkey=tappxkey&v=1.2&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);

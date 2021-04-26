@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -159,7 +160,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         final ExtImpPrebid prebidImpExt = impExt.getPrebid();
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(openxImpExt.getUnit())
-                .bidfloor(openxImpExt.getCustomFloor())
+                .bidfloor(ObjectUtils.defaultIfNull(imp.getBidfloor(), openxImpExt.getCustomFloor()))
                 .ext(makeImpExt(openxImpExt.getCustomParams()));
 
         if (resolveImpType(imp) == OpenxImpType.video

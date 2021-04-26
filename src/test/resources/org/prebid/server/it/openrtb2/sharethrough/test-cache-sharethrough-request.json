@@ -11,7 +11,11 @@
         "cid": "cmpKey",
         "crid": "creaKey",
         "w": 50,
-        "h": 50
+        "h": 50,
+        "ext": {
+          "origbidcpm": 10,
+          "origbidcur": "USD"
+        }
       }
     }
   ]
