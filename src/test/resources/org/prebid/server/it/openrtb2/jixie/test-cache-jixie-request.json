@@ -13,8 +13,7 @@
         "w": 300,
         "h": 250,
         "ext": {
-          "origbidcpm" : 3.33,
-          "origbidcur" : "USD"
+          "origbidcpm" : 3.33
         }
       }
     }

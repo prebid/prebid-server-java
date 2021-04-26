@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
  */
 public class JixieBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_CURRENCY = "USD";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -62,8 +61,8 @@ public class JixieBidder implements Bidder<BidRequest> {
         }
         if (site != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
-
         }
+
         return headers;
     }
 
@@ -85,23 +84,18 @@ public class JixieBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-        final String responseCur = bidResponse.getCur();
-        final String bidCur = StringUtils.isNotBlank(responseCur) ? responseCur : DEFAULT_CURRENCY;
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getAdm()), bidCur))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getAdm()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
     private static BidType getBidType(String adm) {
-
-        if (StringUtils.containsAny(adm, "<?xml", "<vast")) {
-            return BidType.video;
-        }
-        return BidType.banner;
+        return StringUtils.containsAny(adm, "<?xml", "<vast")
+                ? BidType.video
+                : BidType.banner;
     }
 }

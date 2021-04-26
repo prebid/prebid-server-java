@@ -74,6 +74,32 @@ public class JixieBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
+        // given
+        final Imp firstImp = givenImp(identity());
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ua("someUa").ip("someIp").build())
+                .site(Site.builder().page("somePage").build())
+                .imp(singletonList(firstImp))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = jixieBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .flatExtracting(res -> res.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "someUa"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"),
+                        tuple(HttpUtil.REFERER_HEADER.toString(), "somePage"));
+    }
+
+    @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
@@ -154,32 +180,6 @@ public class JixieBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
-        // given
-        final Imp firstImp = givenImp(identity());
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder().ua("someUa").ip("someIp").build())
-                .site(Site.builder().page("somePage").build())
-                .imp(singletonList(firstImp))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = jixieBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue())
-                .flatExtracting(res -> res.getHeaders().entries())
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsExactlyInAnyOrder(
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "someUa"),
-                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"),
-                        tuple(HttpUtil.REFERER_HEADER.toString(), "somePage"));
-    }
-
-    @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -193,27 +193,6 @@ public class JixieBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().build(), banner, "EUR"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnUSDCurrencyIfCurrencyNotPresent() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(identity()),
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder().build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = jixieBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().build(), banner, "USD"));
     }
 
     private static BidRequest givenBidRequest(
