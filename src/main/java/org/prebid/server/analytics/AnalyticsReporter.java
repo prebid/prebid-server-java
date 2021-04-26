@@ -19,7 +19,7 @@ public interface AnalyticsReporter {
     int vendorId();
 
     /**
-     * Method for defining adapter which is related to analytics reporter.
+     * Method for defining name of the related to this analytic adapter.
      */
-    String adapter();
+    String name();
 }

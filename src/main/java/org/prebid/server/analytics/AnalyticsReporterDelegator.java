@@ -15,6 +15,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAnalytic;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,14 +29,14 @@ import java.util.stream.Collectors;
 public class AnalyticsReporterDelegator {
 
     private static final Logger logger = LoggerFactory.getLogger(AnalyticsReporterDelegator.class);
-    private static final String RELATED_TO_ALL_ADAPTERS = "*";
+    private static final Set<String> ADAPTERS_PERMITTED_FOR_FULL_DATA = new HashSet<>(Arrays.asList("logAnalytics"));
 
     private final List<AnalyticsReporter> delegates;
     private final Vertx vertx;
     private final PrivacyEnforcementService privacyEnforcementService;
 
     private final Set<Integer> reporterVendorIds;
-    private final Set<String> reporterAdapters;
+    private final Set<String> reporterNames;
 
     public AnalyticsReporterDelegator(List<AnalyticsReporter> delegates,
                                       Vertx vertx,
@@ -44,7 +46,7 @@ public class AnalyticsReporterDelegator {
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
 
         reporterVendorIds = delegates.stream().map(AnalyticsReporter::vendorId).collect(Collectors.toSet());
-        reporterAdapters = delegates.stream().map(AnalyticsReporter::adapter).collect(Collectors.toSet());
+        reporterNames = delegates.stream().map(AnalyticsReporter::name).collect(Collectors.toSet());
     }
 
     public <T> void processEvent(T event) {
@@ -66,7 +68,7 @@ public class AnalyticsReporterDelegator {
                     privacyEnforcementMapResult.result();
             validateEvent(event);
             for (AnalyticsReporter analyticsReporter : delegates) {
-                final T preparedEvent = prepareEvent(event, analyticsReporter.adapter());
+                final T preparedEvent = prepareEvent(event, analyticsReporter.name());
                 final int reporterVendorId = analyticsReporter.vendorId();
                 // resultForVendorIds is guaranteed returning for each provided value except null,
                 // but to be sure lets use getOrDefault
@@ -97,7 +99,7 @@ public class AnalyticsReporterDelegator {
         final List<ExtRequestPrebidAnalytic> analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
         final List<String> unknownAnalyticsAdapters = CollectionUtils.emptyIfNull(analytics).stream()
                 .map(ExtRequestPrebidAnalytic::getAdapter)
-                .filter(s -> !reporterAdapters.contains(s))
+                .filter(s -> !reporterNames.contains(s))
                 .collect(Collectors.toList());
 
         if (CollectionUtils.isNotEmpty(unknownAnalyticsAdapters)) {
@@ -107,7 +109,7 @@ public class AnalyticsReporterDelegator {
     }
 
     private <T> T prepareEvent(T event, String delegatorAdapter) {
-        if (!RELATED_TO_ALL_ADAPTERS.equals(delegatorAdapter) && event instanceof AuctionEvent) {
+        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(delegatorAdapter) && event instanceof AuctionEvent) {
             final AuctionEvent auctionEvent = (AuctionEvent) event;
             final AuctionContext updatedAuctionContext =
                     updateAuctionContextForDelegator(auctionEvent.getAuctionContext(), delegatorAdapter);

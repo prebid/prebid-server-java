@@ -60,11 +60,11 @@ public class AnalyticsReporterDelegatorTest {
     public void setUp() {
         firstReporter = mock(AnalyticsReporter.class);
         given(firstReporter.vendorId()).willReturn(FIRST_REPORTER_ID);
-        given(firstReporter.adapter()).willReturn("*");
+        given(firstReporter.name()).willReturn("logAnalytics");
 
         secondReporter = mock(AnalyticsReporter.class);
         given(secondReporter.vendorId()).willReturn(SECOND_REPORTER_ID);
-        given(secondReporter.adapter()).willReturn("adapter");
+        given(secondReporter.name()).willReturn("adapter");
 
         target = new AnalyticsReporterDelegator(asList(firstReporter, secondReporter), vertx,
                 privacyEnforcementService);

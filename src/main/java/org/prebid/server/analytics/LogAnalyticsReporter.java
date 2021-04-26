@@ -57,8 +57,8 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     }
 
     @Override
-    public String adapter() {
-        return "*";
+    public String name() {
+        return "logAnalytics";
     }
 
     @AllArgsConstructor
