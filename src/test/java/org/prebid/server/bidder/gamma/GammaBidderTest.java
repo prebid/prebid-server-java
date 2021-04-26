@@ -261,56 +261,56 @@ public class GammaBidderTest extends VertxTest {
         assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, video, "USD"));
     }
 
-    // @Test
-    // public void makeBidsShouldSetAdmFromVastXmlAndNurlFromVastUrlAndVideoType() throws JsonProcessingException {
-    //     // given
-    //     final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
-    //     final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
-    //
-    //     final String adm = "ADM";
-    //     final String nurl = "NURL";
-    //     final Bid bid = Bid.builder().id("impId").build();
-    //     final GammaBid gammaBid = GammaBid.of(bid, adm, nurl);
-    //     final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
-    //             GammaBidResponse.builder()
-    //                     .id("impId")
-    //                     .cur("USD")
-    //                     .seatbid(singletonList(GammaSeatBid.builder()
-    //                             .bid(singletonList(gammaBid))
-    //                             .build()))
-    //                     .build()));
-    //
-    //     // when
-    //     final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
-    //
-    //     // then
-    //     assertThat(result.getErrors()).isEmpty();
-    //
-    //     final Bid expectedBid = Bid.builder().id("impId").adm(adm).nurl(nurl).build();
-    //     assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, video, "USD"));
-    // }
+    @Test
+    public void makeBidsShouldSetAdmFromVastXmlAndNurlFromVastUrlAndVideoType() throws JsonProcessingException {
+        // given
+        final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
-    // @Test
-    // public void makeBidsShouldReturnErrorWhenNoVastXmlAndVideoType() throws JsonProcessingException {
-    //     // given
-    //     final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
-    //     final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
-    //
-    //     final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
-    //             BidResponse.builder()
-    //                     .id("impId")
-    //                     .seatbid(singletonList(SeatBid.builder()
-    //                             .bid(singletonList(Bid.builder().build()))
-    //                             .build()))
-    //                     .build()));
-    //
-    //     // when
-    //     final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
-    //
-    //     // then
-    //     assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
-    //             "Missing Ad Markup. Run with request.debug = 1 for more info"));
-    // }
+        final String adm = "ADM";
+        final String nurl = "NURL";
+        final Bid bid = Bid.builder().id("impId").build();
+        final GammaBid gammaBid = GammaBid.builder().bid(bid).vastXml(adm).vastUrl(nurl).build();
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+                GammaBidResponse.builder()
+                        .id("impId")
+                        .cur("USD")
+                        .seatbid(singletonList(GammaSeatBid.builder()
+                                .bid(singletonList(gammaBid))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final Bid expectedBid = Bid.builder().id("impId").adm(adm).nurl(nurl).build();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenNoVastXmlAndVideoType() throws JsonProcessingException {
+        // given
+        final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .id("impId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
+                "Missing Ad Markup. Run with request.debug = 1 for more info"));
+    }
 
     @Test
     public void makeBidsShouldReturnErrorWhenNoAdmAndNotVideoType() throws JsonProcessingException {
