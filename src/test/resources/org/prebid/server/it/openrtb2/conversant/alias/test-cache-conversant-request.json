@@ -9,7 +9,10 @@
         "adm": "adm4",
         "crid": "crid4",
         "w": 300,
-        "h": 600
+        "h": 600,
+        "ext": {
+          "origbidcpm": 5
+        }
       }
     }
   ]

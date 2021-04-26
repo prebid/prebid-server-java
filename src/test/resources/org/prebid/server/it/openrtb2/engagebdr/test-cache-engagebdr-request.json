@@ -15,7 +15,11 @@
         "cid": "campaign1",
         "crid": "abcde-12345",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 9.81,
+          "origbidcur": "USD"
+        }
       }
     },
     {
@@ -33,7 +37,11 @@
         "cid": "campaign1",
         "crid": "abcde-12345",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 9.81,
+          "origbidcur": "USD"
+        }
       }
     },
     {

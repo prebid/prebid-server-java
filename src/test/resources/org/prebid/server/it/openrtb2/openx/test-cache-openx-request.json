@@ -9,7 +9,11 @@
         "adm": "adm003",
         "crid": "crid00",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 5.78,
+          "origbidcur": "USD"
+        }
       }
     },
     {
@@ -21,7 +25,11 @@
         "adm": "adm001",
         "crid": "crid00",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 5.78,
+          "origbidcur": "USD"
+        }
       }
     },
     {
@@ -33,7 +41,11 @@
         "adm": "adm002",
         "crid": "crid00",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 5.78,
+          "origbidcur": "USD"
+        }
       }
     },
     {
@@ -45,7 +57,11 @@
         "adm": "adm00",
         "crid": "crid00",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 5.78,
+          "origbidcur": "USD"
+        }
       }
     },
     {
