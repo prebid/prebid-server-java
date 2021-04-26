@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request.adyoulike;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -11,8 +10,7 @@ import lombok.Value;
 @Value
 public class ExtImpAdyoulike {
 
-    @JsonProperty("placement")
-    String placementId;
+    String placement;
 
     String campaign;
 

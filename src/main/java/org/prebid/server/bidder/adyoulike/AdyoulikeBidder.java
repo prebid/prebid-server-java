@@ -57,7 +57,7 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
             try {
                 final ExtImpAdyoulike impExt = parseImpExt(imp);
 
-                modifiedImps.add(imp.toBuilder().tagid(impExt.getPlacementId()).build());
+                modifiedImps.add(imp.toBuilder().tagid(impExt.getPlacement()).build());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
