@@ -11,7 +11,11 @@
         "cid": "cid001",
         "crid": "crid001",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 1.3,
+          "origbidcur": "USD"
+        }
       }
     }
   ]

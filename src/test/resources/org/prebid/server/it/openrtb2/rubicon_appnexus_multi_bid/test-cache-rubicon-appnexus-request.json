@@ -20,7 +20,8 @@
                 ]
               }
             ]
-          }
+          },
+          "origbidcpm": 12.43
         },
         "wurl": "http://localhost:8080/event?t=win&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int="
       }
@@ -46,7 +47,9 @@
             "bidder_id": 2,
             "bid_ad_type": 1,
             "ranking_price": 0.0
-          }
+          },
+          "origbidcpm": 5.5,
+          "origbidcur": "USD"
         },
         "wurl": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int="
       }
@@ -71,7 +74,8 @@
                 ]
               }
             ]
-          }
+          },
+          "origbidcpm": 8.43
         },
         "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int="
       }
@@ -100,7 +104,9 @@
             "auction_id": 5607483846416358664,
             "bidder_id": 2,
             "bid_ad_type": 1
-          }
+          },
+          "origbidcpm": 2,
+          "origbidcur": "USD"
         },
         "wurl": "http://localhost:8080/event?t=win&b=222214214214&a=5001&ts=1000&bidder=appnexus&f=i&int="
       }

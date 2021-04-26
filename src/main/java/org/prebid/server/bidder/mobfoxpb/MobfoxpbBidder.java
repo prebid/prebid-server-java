@@ -8,6 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -34,6 +35,13 @@ import java.util.stream.Collectors;
  */
 public class MobfoxpbBidder implements Bidder<BidRequest> {
 
+    private static final String ROUTE_RTB = "rtb";
+    private static final String METHOD_RTB = "req";
+    private static final String ROUTE_NATIVE = "o";
+    private static final String METHOD_NATIVE = "ortb";
+    private static final String URL_KEY_MACROS = "__key__";
+    private static final String URL_ROUTE_MACROS = "__route__";
+    private static final String URL_METHOD_MACROS = "__method__";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -48,16 +56,15 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        BidRequest outgoingRequest;
+        final BidRequest outgoingRequest;
+        final String uri;
         try {
             final Imp firstImp = bidRequest.getImp().get(0);
             final ExtImpMobfoxpb impExt = parseImpExt(firstImp);
-            final Imp modifiedImp = firstImp.toBuilder()
-                    .tagid(impExt.getTagId())
-                    .build();
 
+            uri = buildUri(impExt.getKey());
             outgoingRequest = bidRequest.toBuilder()
-                    .imp(Collections.singletonList(modifiedImp))
+                    .imp(Collections.singletonList(firstImp))
                     .build();
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -65,7 +72,7 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(endpointUrl)
+                .uri(uri)
                 .body(mapper.encode(outgoingRequest))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
@@ -73,11 +80,32 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpMobfoxpb parseImpExt(Imp imp) {
+        final ExtImpMobfoxpb extImpMobfoxpb;
         try {
-            return mapper.mapper().convertValue(imp.getExt(), MOBFOXPB_EXT_TYPE_REFERENCE).getBidder();
+            extImpMobfoxpb = mapper.mapper().convertValue(imp.getExt(), MOBFOXPB_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
         }
+        if (StringUtils.isEmpty(extImpMobfoxpb.getKey()) && StringUtils.isEmpty(extImpMobfoxpb.getTagId())) {
+            throw new PreBidException("Invalid or non existing key and tagId, atleast one should be present");
+        }
+        return extImpMobfoxpb;
+    }
+
+    private String buildUri(String key) {
+        final String route;
+        final String method;
+        String uri = endpointUrl;
+        if (StringUtils.isNotEmpty(key)) {
+            route = ROUTE_RTB;
+            method = METHOD_RTB;
+            uri = uri.replace(URL_KEY_MACROS, key);
+        } else {
+            route = ROUTE_NATIVE;
+            method = METHOD_NATIVE;
+        }
+
+        return uri.replace(URL_ROUTE_MACROS, route).replace(URL_METHOD_MACROS, method);
     }
 
     @Override
@@ -132,6 +160,6 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        throw new PreBidException(String.format("Failed to find impression \"%s\"", impId));
     }
 }

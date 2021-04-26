@@ -10,7 +10,8 @@
         "cid": "test_cid",
         "crid": "test_banner_crid",
         "ext": {
-          "format": "BANNER"
+          "format": "BANNER",
+          "origbidcpm": 0.01
         }
       }
     }

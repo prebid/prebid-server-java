@@ -10,7 +10,11 @@
         "crid": "12345123435",
         "dealid": "1234",
         "w": 400,
-        "h": 300
+        "h": 300,
+        "ext": {
+          "origbidcpm": 2.01,
+          "origbidcur": "EUR"
+        }
       }
     }
   ]
