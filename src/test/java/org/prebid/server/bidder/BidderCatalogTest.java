@@ -19,21 +19,17 @@ public class BidderCatalogTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private Usersyncer usersyncer;
-    @Mock
     private Bidder bidder;
 
-    private BidderDeps bidderDeps;
     private BidderCatalog bidderCatalog;
 
     @Test
     public void isValidNameShouldReturnTrueForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.builder()
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
-                .aliases(emptyList())
-                .build();
+                .build()));
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -52,11 +48,10 @@ public class BidderCatalogTest {
     @Test
     public void isDeprecatedNameShouldReturnTrueForDeprecatedBidder() {
         // given
-        bidderDeps = BidderDeps.builder()
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(singletonList("deprecated"))
-                .aliases(emptyList())
-                .build();
+                .build()));
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -75,11 +70,10 @@ public class BidderCatalogTest {
     @Test
     public void errorForDeprecatedNameShouldReturnErrorForDeprecatedBidder() {
         // given
-        bidderDeps = BidderDeps.builder()
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(singletonList("deprecated"))
-                .aliases(emptyList())
-                .build();
+                .build()));
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -88,68 +82,26 @@ public class BidderCatalogTest {
     }
 
     @Test
-    public void aliasesShouldReturnConfiguredAliases() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(singletonList("alias"))
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.aliases()).containsOnly("alias");
-    }
-
-    @Test
-    public void isAliasShouldReturnTrueForBidderAlias() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(singletonList("alias"))
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.isAlias("alias")).isTrue();
-    }
-
-    @Test
-    public void isAliasShouldReturnFalseForUnknownBidderAlias() {
-        // given
-        bidderCatalog = new BidderCatalog(emptyList());
-
-        // when and then
-        assertThat(bidderCatalog.isAlias("alias")).isFalse();
-    }
-
-    @Test
-    public void nameByAliasShouldReturnBidderName() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(singletonList("alias"))
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.nameByAlias("alias")).isEqualTo(BIDDER);
-    }
-
-    @Test
     public void metaInfoByNameShouldReturnMetaInfoForKnownBidder() {
         // given
-        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
-                singletonList("banner"), singletonList("video"), null, 99, true, true, false);
+        final BidderInfo bidderInfo = BidderInfo.create(
+                true,
+                null,
+                "test@email.com",
+                singletonList("banner"),
+                singletonList("video"),
+                null,
+                99,
+                true,
+                true,
+                false);
 
-        bidderDeps = BidderDeps.builder()
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
-                .aliases(emptyList())
                 .bidderInfo(bidderInfo)
-                .build();
+                .build()));
+
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -168,12 +120,12 @@ public class BidderCatalogTest {
     @Test
     public void usersyncerByNameShouldReturnUsersyncerForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.builder()
+        final Usersyncer usersyncer = Usersyncer.of(null, null, null);
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
-                .aliases(emptyList())
                 .usersyncer(usersyncer)
-                .build();
+                .build()));
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -192,12 +144,11 @@ public class BidderCatalogTest {
     @Test
     public void bidderByNameShouldReturnBidderForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.builder()
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
-                .aliases(emptyList())
                 .bidder(bidder)
-                .build();
+                .build()));
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -207,17 +158,24 @@ public class BidderCatalogTest {
     @Test
     public void nameByVendorIdShouldReturnBidderNameForVendorId() {
         // given
-        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
-                singletonList("banner"), singletonList("video"), null, 99, true, true, false);
+        final BidderInfo bidderInfo = BidderInfo.create(
+                true,
+                null,
+                "test@email.com",
+                singletonList("banner"),
+                singletonList("video"),
+                null,
+                99,
+                true,
+                true,
+                false);
 
-        bidderDeps = BidderDeps.builder()
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
-                .aliases(emptyList())
                 .bidder(bidder)
                 .bidderInfo(bidderInfo)
-                .build();
-
+                .build()));
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then

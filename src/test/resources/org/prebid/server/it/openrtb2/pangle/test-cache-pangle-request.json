@@ -11,6 +11,7 @@
         "w": 300,
         "h": 250,
         "ext": {
+          "origbidcpm" : 1.25,
           "pangle": {
             "adtype": 1
           }

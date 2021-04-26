@@ -24,4 +24,22 @@ public class UsersyncConfigurationProperties {
 
     @NotNull
     Boolean supportCors;
+
+    SecondaryConfigurationProperties secondary;
+
+    @Validated
+    @Data
+    @NoArgsConstructor
+    public static class SecondaryConfigurationProperties {
+
+        String url;
+
+        String redirectUrl;
+
+        @NotBlank
+        String type;
+
+        @NotNull
+        Boolean supportCors;
+    }
 }

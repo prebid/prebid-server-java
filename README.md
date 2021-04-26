@@ -22,6 +22,8 @@ For more information, see:
 - [Getting started with Prebid Server](https://docs.prebid.org/prebid-server/overview/prebid-server-overview.html)
 - [Current Bidders](https://docs.prebid.org/dev-docs/pbs-bidders.html)
 
+Please consider [registering your Prebid Server](https://docs.prebid.org/prebid-server/hosting/pbs-hosting.html#optional-registration) to get on the mailing list for updates, etc.
+
 # Getting Started
 
 The server makes the following assumptions:

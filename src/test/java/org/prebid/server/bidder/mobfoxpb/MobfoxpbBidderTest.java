@@ -23,9 +23,11 @@ import org.prebid.server.proto.openrtb.ext.request.mobfoxpb.ExtImpMobfoxpb;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -34,7 +36,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class MobfoxpbBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com?c=__route__&m=__method__&key=__key__";
 
     private MobfoxpbBidder mobfoxpbBidder;
 
@@ -51,69 +53,90 @@ public class MobfoxpbBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = mobfoxpbBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+        });
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpTagId() {
+    public void makeHttpRequestsShouldReturnErrorIfImpExtDoesNotContainRequiredAttributes() {
         // given
-        final String extTagId = "extTagId";
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMobfoxpb.of(extTagId))))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMobfoxpb.of("", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = mobfoxpbBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(
+                        BidderError.badInput("Invalid or non existing key and tagId, atleast one should be present"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetKeyRtbRouteAndMethodToUrlIfKeyParamIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = mobfoxpbBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getTagid)
-                .containsExactly(extTagId);
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com?c=rtb&m=req&key=key");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetNativeRouteAndMethodToUrlIfKeyParamIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMobfoxpb.of("tagId", null))))
+        );
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = mobfoxpbBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com?c=o&m=ortb&key=__key__");
     }
 
     @Test
     public void makeHttpRequestsShouldSendOnlyOneImp() {
         // given
-        final String extTagId = "extTagId";
-        final Imp firstImp = Imp.builder()
-                .tagid("tag")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMobfoxpb.of(extTagId))))
-                .build();
-        final List<Imp> imps = Arrays.asList(firstImp, Imp.builder().build(), Imp.builder().build());
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(imps)
-                .build();
+        final Imp firstImp = givenImp(impBuilder -> impBuilder.id("firstImpId"));
+        final List<Imp> imps = Arrays.asList(firstImp, givenImp(identity()), givenImp(identity()));
+        final BidRequest bidRequest =
+                BidRequest.builder()
+                        .imp(imps)
+                        .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = mobfoxpbBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Imp expectedImp = Imp.builder()
-                .tagid(extTagId)
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMobfoxpb.of(extTagId))))
-                .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(expectedImp);
+                .extracting(Imp::getId)
+                .containsExactly("firstImpId");
     }
 
     @Test
@@ -125,9 +148,38 @@ public class MobfoxpbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = mobfoxpbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+        });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = mobfoxpbBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = mobfoxpbBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -135,9 +187,7 @@ public class MobfoxpbBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -153,9 +203,7 @@ public class MobfoxpbBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -171,9 +219,7 @@ public class MobfoxpbBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBidIfNativeIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -189,17 +235,35 @@ public class MobfoxpbBidderTest extends VertxTest {
     public void makeBidsShouldReturnResponseWithErrorWhenIdIsNotFound() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
+                givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("no"))));
 
         // when
         final Result<List<BidderBid>> result = mobfoxpbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput("Failed to find impression no"));
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput("Failed to find impression \"no\""));
         assertThat(result.getValue()).isEmpty();
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .id("123")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMobfoxpb.of("tagId", "key")))))
+                .build();
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
@@ -216,5 +280,4 @@ public class MobfoxpbBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
     }
-
 }

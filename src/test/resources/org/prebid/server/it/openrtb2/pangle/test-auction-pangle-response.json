@@ -39,7 +39,8 @@
               "pangle": {
                 "adtype": 1
               }
-            }
+            },
+            "origbidcpm" : 1.25
           }
         }
       ],
