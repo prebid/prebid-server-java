@@ -96,14 +96,13 @@ public class OutbrainBidder implements Bidder<BidRequest> {
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, List<Imp> imps, ExtImpOutbrain extImpOutbrain) {
         final BidRequest.BidRequestBuilder bidRequestBuilder = bidRequest.toBuilder();
-        final ExtImpOutbrainPublisher extImpPublisher = extImpOutbrain.getPublisher();
-        final Publisher publisher = createPublisher(extImpPublisher);
+        final Publisher publisher = createPublisher(extImpOutbrain.getPublisher());
 
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
-        if (bidRequest.getSite() != null) {
+        if (site != null) {
             bidRequestBuilder.site(updateSite(site, publisher));
-        } else if (bidRequest.getApp() != null) {
+        } else if (app != null) {
             bidRequestBuilder.app(updateApp(app, publisher));
         }
 
