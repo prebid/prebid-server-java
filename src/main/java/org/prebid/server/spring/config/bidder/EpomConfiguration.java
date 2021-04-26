@@ -4,9 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.epom.EpomBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,14 +41,11 @@ public class EpomConfiguration {
     }
 
     @Bean
-    BidderDeps onetagBidderDeps() {
-        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
-
+    BidderDeps epomBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new EpomBidder(configProperties.getEndpoint(), mapper))
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new EpomBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

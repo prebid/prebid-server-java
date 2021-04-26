@@ -167,6 +167,8 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermission5);
     }
 
+    // GVL Purpose part
+
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowed() {
         // given
@@ -192,6 +194,58 @@ public class FullEnforcePurposeStrategyTest {
     }
 
     @Test
+    public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowedAndRequireConsent() {
+        // given
+        final VendorV2 vendorGvl = VendorV2.builder()
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .build();
+
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
+
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
+
+        given(purposesConsent.contains(anyInt())).willReturn(true);
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+                vendorPermissionWithGvls, emptyList(), false);
+
+        // then
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+
+        verify(purposesConsent).contains(PURPOSE.code());
+    }
+
+    @Test
+    public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAllowedAndRequireLI() {
+        // given
+        final VendorV2 vendorGvl = VendorV2.builder()
+                .purposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .build();
+
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
+
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+
+        given(purposesConsent.contains(anyInt())).willReturn(true);
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+                vendorPermissionWithGvls, emptyList(), false);
+
+        // then
+        assertThat(result).isEmpty();
+
+        verifyZeroInteractions(purposesConsent);
+    }
+
+    @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeLIAllowed() {
         // given
         final VendorV2 vendorGvl = VendorV2.builder()
@@ -212,6 +266,7 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
+        verify(purposesConsent).contains(PURPOSE.code());
         verifyZeroInteractions(purposesLI);
     }
 
@@ -267,6 +322,8 @@ public class FullEnforcePurposeStrategyTest {
         verifyZeroInteractions(purposesLI);
     }
 
+    // GVL Legitimate interest Purpose part
+
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeLI() {
         // given
@@ -289,6 +346,59 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE.code());
+    }
+
+    @Test
+    public void shouldAllowWhenInGvlPurposeLIAndPurposeLIAndRequireLI() {
+        // given
+        final VendorV2 vendorGvl = VendorV2.builder()
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .build();
+
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
+
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+
+        given(purposesLI.contains(anyInt())).willReturn(true);
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+                vendorPermissionWithGvls, emptyList(), false);
+
+        // then
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+
+        verify(purposesLI).contains(PURPOSE.code());
+    }
+
+    @Test
+    public void shouldEmptyWhenInGvlPurposeLIAndPurposeLIAndRequireConsent() {
+        // given
+        final VendorV2 vendorGvl = VendorV2.builder()
+                .legIntPurposes(EnumSet.of(PURPOSE))
+                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .build();
+
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
+
+        RestrictionType requireConsent = RestrictionType.REQUIRE_CONSENT;
+        setRestriction(requireConsent);
+
+        given(purposesLI.contains(anyInt())).willReturn(true);
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+                vendorPermissionWithGvls, emptyList(), false);
+
+        // then
+        assertThat(result).isEmpty();
+
+        verifyZeroInteractions(purposesLI);
     }
 
     @Test
@@ -346,7 +456,7 @@ public class FullEnforcePurposeStrategyTest {
 
     // Flexible GVL Purpose part
 
-    // Restriction type is REQUIRE_CONSENT
+    // Restriction type is REQUIRE_CONSENT part
 
     @Test
     public void shouldAllowWhenInGvlPurposeAndPurposeConsentAllowedAndFlexibleAndRequireConsent() {
@@ -360,7 +470,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
@@ -386,7 +496,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
@@ -414,9 +524,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
@@ -441,9 +550,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
@@ -470,7 +578,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
@@ -497,7 +605,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
@@ -510,7 +618,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
     }
 
-    // Restriction tipe is REQUIRE_LEGITIMATE_INTEREST
+    // Restriction type is REQUIRE_LEGITIMATE_INTEREST part
 
     @Test
     public void shouldEmptyWhenInGvlPurposeAndPurposeConsentAllowedAndFlexibleAndRequireLI() {
@@ -524,9 +632,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
         // when
@@ -551,9 +658,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
@@ -580,7 +686,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
 
@@ -606,7 +712,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
@@ -634,9 +740,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
@@ -663,9 +768,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
@@ -682,7 +786,7 @@ public class FullEnforcePurposeStrategyTest {
 
     // Flexible GVL Purpose Legitimate interest part
 
-    // Restriction type is REQUIRE_CONSENT
+    // Restriction type is REQUIRE_CONSENT part
 
     @Test
     public void shouldAllowWhenInGvlPurposeLIAndPurposeConsentAllowedAndFlexibleAndRequireConsent() {
@@ -696,7 +800,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
@@ -722,7 +826,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
@@ -750,9 +854,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
@@ -777,9 +880,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
@@ -806,9 +908,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
@@ -835,9 +936,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_CONSENT);
+        setRestriction(RestrictionType.REQUIRE_CONSENT);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
@@ -852,7 +952,7 @@ public class FullEnforcePurposeStrategyTest {
         verifyZeroInteractions(purposesLI);
     }
 
-    // Restriction type is REQUIRE_LEGITIMATE_INTEREST
+    // Restriction type is REQUIRE_LEGITIMATE_INTEREST part
 
     @Test
     public void shouldEmptyWhenInGvlPurposeLIAndPurposeConsentAllowedAndFlexibleAndRequireLI() {
@@ -866,9 +966,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(anyInt())).willReturn(true);
 
         // when
@@ -893,9 +992,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
@@ -922,7 +1020,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
 
@@ -948,7 +1046,7 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
@@ -976,9 +1074,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
@@ -1005,9 +1102,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission, vendorGvl);
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
-        given(publisherRestriction.getRestrictionType()).willReturn(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
+        setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
-        given(vendorIds.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
@@ -1038,5 +1134,10 @@ public class FullEnforcePurposeStrategyTest {
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
+    }
+
+    private void setRestriction(RestrictionType requireConsent) {
+        given(publisherRestriction.getRestrictionType()).willReturn(requireConsent);
+        given(vendorIds.contains(anyInt())).willReturn(true);
     }
 }

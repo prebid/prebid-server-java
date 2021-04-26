@@ -11,7 +11,8 @@
         "w": 300,
         "h": 600,
         "ext": {
-          "BidType": 1
+          "BidType": 1,
+          "origbidcpm": 4
         }
       }
     },
@@ -24,7 +25,10 @@
         "adm": "adm9",
         "crid": "crid9",
         "w": 300,
-        "h": 600
+        "h": 600,
+        "ext": {
+          "origbidcpm": 4.75
+        }
       }
     },
     {

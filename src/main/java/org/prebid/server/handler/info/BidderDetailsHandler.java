@@ -1,7 +1,7 @@
 package org.prebid.server.handler.info;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
@@ -31,14 +31,13 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     public BidderDetailsHandler(BidderCatalog bidderCatalog, JacksonMapper mapper) {
         validateAliases(Objects.requireNonNull(bidderCatalog));
         this.mapper = Objects.requireNonNull(mapper);
-        bidderInfos = createBidderInfos(bidderCatalog);
+        this.bidderInfos = createBidderInfos(bidderCatalog);
     }
 
     private static void validateAliases(BidderCatalog bidderCatalog) {
-        if (bidderCatalog.aliases().contains(ALL_PARAM_VALUE)) {
-            throw new IllegalArgumentException(
-                    String.format("The '%s' bidder has '%s' alias configured which is unacceptable.",
-                            bidderCatalog.nameByAlias(ALL_PARAM_VALUE), ALL_PARAM_VALUE));
+        if (bidderCatalog.names().contains(ALL_PARAM_VALUE)) {
+            throw new IllegalArgumentException(String.format(
+                    "There is '%s' bidder or alias configured which is unacceptable.", ALL_PARAM_VALUE));
         }
     }
 
@@ -51,14 +50,10 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
                 .filter(bidderCatalog::isActive)
                 .collect(Collectors.toMap(Function.identity(), name -> bidderNode(bidderCatalog, name)));
 
-        final Map<String, ObjectNode> aliasToInfo = bidderCatalog.aliases().stream()
-                .filter(alias -> bidderCatalog.isActive(bidderCatalog.nameByAlias(alias)))
-                .collect(Collectors.toMap(Function.identity(), alias -> aliasNode(bidderCatalog, alias)));
-
         final Map<String, ObjectNode> allToInfos = Collections.singletonMap(
-                ALL_PARAM_VALUE, allInfos(nameToInfo, aliasToInfo));
+                ALL_PARAM_VALUE, allInfos(nameToInfo));
 
-        return Stream.of(nameToInfo, aliasToInfo, allToInfos)
+        return Stream.of(nameToInfo, allToInfos)
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, map -> mapper.encode(map.getValue())));
     }
@@ -72,24 +67,10 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     }
 
     /**
-     * Returns alias info as {@link ObjectNode}.
+     * Returns a {@link Map} of all bidder's infos sorted by name as {@link ObjectNode}.
      */
-    private ObjectNode aliasNode(BidderCatalog bidderCatalog, String alias) {
-        final String name = bidderCatalog.nameByAlias(alias);
-
-        final ObjectNode node = bidderNode(bidderCatalog, name);
-        node.set("aliasOf", new TextNode(name));
-        return node;
-    }
-
-    /**
-     * Returns a {@link Map} of all bidder's infos sorted by name (and alias) as {@link ObjectNode}.
-     */
-    private ObjectNode allInfos(Map<String, ObjectNode> nameToInfo, Map<String, ObjectNode> aliasToInfo) {
-        final Map<String, ObjectNode> result = new TreeMap<>();
-        result.putAll(nameToInfo);
-        result.putAll(aliasToInfo);
-        return mapper.mapper().valueToTree(result);
+    private ObjectNode allInfos(Map<String, ObjectNode> nameToInfo) {
+        return mapper.mapper().valueToTree(new TreeMap<>(nameToInfo));
     }
 
     @Override
@@ -107,15 +88,18 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         }
     }
 
-    @Value
+    @Value(staticConstructor = "of")
     private static class BidderInfoResponseModel {
 
         BidderInfo.MaintainerInfo maintainer;
 
         BidderInfo.CapabilitiesInfo capabilities;
 
+        @JsonProperty("aliasOf")
+        String aliasOf;
+
         static BidderInfoResponseModel from(BidderInfo bidderInfo) {
-            return new BidderInfoResponseModel(bidderInfo.getMaintainer(), bidderInfo.getCapabilities());
+            return of(bidderInfo.getMaintainer(), bidderInfo.getCapabilities(), bidderInfo.getAliasOf());
         }
     }
 }
