@@ -35,7 +35,9 @@
                   "cacheId": "9a5d11a7-de5a-4ce4-8e89-d37f18a10045"
                 }
               }
-            }
+            },
+            "origbidcpm": 2.942808,
+            "origbidcur": "USD"
           }
         }
       ],
@@ -45,116 +47,6 @@
   ],
   "cur": "USD",
   "ext": {
-    "debug": {
-      "httpcalls": {
-        "beintoo": [
-          {
-            "uri": "{{ beintoo.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"uuid\",\"banner\":{\"format\":[],\"w\":300,\"h\":250},\"tagid\":\"25251\",\"secure\":0}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"Android Chrome/60\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"BT-UID\",\"ext\":{\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"debug\":1,\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"auctiontimestamp\":1000,\"channel\":{\"name\":\"web\"}}}}",
-            "responsebody": "{\"id\":\"some_test_auction\",\"seatbid\":[{\"seat\":\"12356\",\"bid\":[{\"id\":\"uuid\",\"adm\":\"<div id=\\\"123456789_ad\\\"><script>!function(){console.log\\\"Hello, world.\\\";}();</script></div>\",\"impid\":\"uuid\",\"ttl\":300,\"crid\":\"94395500\",\"w\":300,\"price\":2.942808,\"adid\":\"94395500\",\"h\":250}]}],\"cur\":\"USD\"}",
-            "status": 200
-          }
-        ],
-        "cache": [
-          {
-            "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"uuid\",\"impid\":\"uuid\",\"price\":2.942808,\"adm\":\"<div id=\\\"123456789_ad\\\"><script>!function(){console.log\\\"Hello, world.\\\";}();</script></div>\",\"adid\":\"94395500\",\"crid\":\"94395500\",\"w\":300,\"h\":250}}]}",
-            "responsebody": "{\"responses\":[{\"uuid\":\"9a5d11a7-de5a-4ce4-8e89-d37f18a10045\"}]}",
-            "status": 200
-          }
-        ]
-      },
-      "resolvedrequest": {
-        "id": "tid",
-        "imp": [
-          {
-            "id": "uuid",
-            "banner": {
-              "format": [
-                {
-                  "w": 300,
-                  "h": 250
-                }
-              ]
-            },
-            "ext": {
-              "prebid": {
-                "bidder": {
-                  "beintoo": {
-                    "tagid": "25251"
-                  }
-                }
-              }
-            }
-          }
-        ],
-        "site": {
-          "domain": "example.com",
-          "page": "http://www.example.com",
-          "publisher": {
-            "id": "publisherId"
-          },
-          "ext": {
-            "amp": 0
-          }
-        },
-        "device": {
-          "ua": "Android Chrome/60",
-          "dnt": 2,
-          "ip": "193.168.244.1",
-          "pxratio": 4.2,
-          "language": "en",
-          "ifa": "ifaId"
-        },
-        "user": {
-          "ext": {
-            "consent": "consentValue"
-          }
-        },
-        "at": 1,
-        "tmax": 5000,
-        "cur": [
-          "USD"
-        ],
-        "source": {
-          "fd": 1,
-          "tid": "tid"
-        },
-        "regs": {
-          "ext": {
-            "gdpr": 0
-          }
-        },
-        "ext": {
-          "prebid": {
-            "debug": 1,
-            "targeting": {
-              "pricegranularity": {
-                "precision": 2,
-                "ranges": [
-                  {
-                    "max": 20,
-                    "increment": 0.1
-                  }
-                ]
-              },
-              "includewinners": true,
-              "includebidderkeys": true
-            },
-            "cache": {
-              "bids": {},
-              "vastxml": {
-                "ttlseconds": 120
-              }
-            },
-            "auctiontimestamp": 1000,
-            "channel": {
-              "name": "web"
-            }
-          }
-        }
-      }
-    },
     "responsetimemillis": {
       "cache": "{{ cache.response_time_ms }}",
       "beintoo": "{{ beintoo.response_time_ms }}"

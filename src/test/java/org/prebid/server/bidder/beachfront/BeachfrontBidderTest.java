@@ -272,6 +272,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .adapterName("BF_PREBID_S2S")
                         .ip("192.168.255.255")
                         .requestId("153")
+                        .real204(true)
                         .build());
     }
 

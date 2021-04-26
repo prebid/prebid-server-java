@@ -171,6 +171,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 .adapterName(BEACHFRONT_NAME)
                 .adapterVersion(BEACHFRONT_VERSION)
                 .requestId(bidRequest.getId())
+                .real204(true)
                 .slots(slots);
 
         final User user = bidRequest.getUser();

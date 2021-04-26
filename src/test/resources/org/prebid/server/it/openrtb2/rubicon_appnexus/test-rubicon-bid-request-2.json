@@ -31,7 +31,8 @@
             "mint": "",
             "mint_version": ""
           }
-        }
+        },
+        "maxbids": 1
       }
     }
   ],

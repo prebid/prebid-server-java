@@ -52,7 +52,8 @@
                   "cacheId": "ce120de7-25d0-4384-8983-8a9462149c8c"
                 }
               }
-            }
+            },
+            "origbidcpm": 0.5
           }
         }
       ],
@@ -67,7 +68,7 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"api\":1,\"w\":1024,\"h\":576,\"ext\":{\"avocet\":{\"duration\":30}}}},{\"type\":\"xml\",\"value\":\"some-test-ad\",\"expiry\":120}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"api\":1,\"w\":1024,\"h\":576,\"ext\":{\"avocet\":{\"duration\":30},\"origbidcpm\":0.5}}},{\"type\":\"xml\",\"value\":\"some-test-ad\",\"expiry\":120}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"78f9a6dd-d08c-4b80-ba0f-0159b9add9bf\"},{\"uuid\":\"ce120de7-25d0-4384-8983-8a9462149c8c\"}]}",
             "status": 200
           }
