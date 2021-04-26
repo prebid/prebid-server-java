@@ -1096,15 +1096,16 @@ public class ExchangeService {
 
         updateExtWithOrigPriceValues(updatedBidExt, price, bidCurrency);
 
+        final Bid.BidBuilder bidBuilder = bid.toBuilder();
         if (adjustedPrice.compareTo(price) != 0) {
-            bid.setPrice(adjustedPrice);
+            bidBuilder.price(adjustedPrice);
         }
 
         if (!updatedBidExt.isEmpty()) {
-            bid.setExt(updatedBidExt);
+            bidBuilder.ext(updatedBidExt);
         }
 
-        return bidderBid;
+        return bidderBid.with(bidBuilder.build());
     }
 
     private static BidAdjustmentMediaType resolveBidAdjustmentMediaType(String bidImpId,

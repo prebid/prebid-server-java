@@ -444,14 +444,17 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final String iabCategory = iabCategory(appnexus.getBrandCategoryId());
+
+        List<String> cat = bid.getCat();
         if (iabCategory != null) {
-            bid.setCat(Collections.singletonList(iabCategory));
+            cat = Collections.singletonList(iabCategory);
         } else if (CollectionUtils.isNotEmpty(bid.getCat())) {
             //create empty categories array to force bid to be rejected
-            bid.setCat(Collections.emptyList());
+            cat = Collections.emptyList();
         }
 
-        return BidderBid.of(bid, bidType(appnexus.getBidAdType()), currency);
+        final Bid modifiedBid = bid.toBuilder().cat(cat).build();
+        return BidderBid.of(modifiedBid, bidType(appnexus.getBidAdType()), currency);
     }
 
     private static String iabCategory(Integer brandId) {
