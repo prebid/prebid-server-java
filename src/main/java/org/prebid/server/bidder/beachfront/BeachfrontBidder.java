@@ -171,6 +171,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 .adapterName(BEACHFRONT_NAME)
                 .adapterVersion(BEACHFRONT_VERSION)
                 .requestId(bidRequest.getId())
+                .real204(true)
                 .slots(slots);
 
         final User user = bidRequest.getUser();
@@ -309,7 +310,7 @@ public class BeachfrontBidder implements Bidder<Void> {
 
             if (videoResponseType != null && videoResponseType.equals(NURL_VIDEO_TYPE)) {
                 requestBuilder.isPrebid(true);
-                responseType = videoResponseType;
+                responseType = NURL_VIDEO_TYPE;
             } else {
                 responseType = ADM_VIDEO_TYPE;
             }

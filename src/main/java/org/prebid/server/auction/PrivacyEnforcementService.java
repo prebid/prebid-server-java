@@ -84,8 +84,12 @@ public class PrivacyEnforcementService {
         this.lmtEnforce = lmtEnforce;
     }
 
-    Future<PrivacyContext> contextFromBidRequest(
-            BidRequest bidRequest, Account account, MetricName requestType, Timeout timeout, List<String> errors) {
+    public Future<PrivacyContext> contextFromBidRequest(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final List<String> errors = auctionContext.getPrebidErrors();
+        final Account account = auctionContext.getAccount();
+        final MetricName requestType = auctionContext.getRequestTypeMetric();
+        final Timeout timeout = auctionContext.getTimeout();
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
@@ -307,7 +311,8 @@ public class PrivacyEnforcementService {
             TcfContext tcfContext, Set<String> bidders, BidderAliases aliases, Account account) {
 
         return tcfDefinerService.resultForBidderNames(
-                Collections.unmodifiableSet(bidders), VendorIdResolver.of(aliases), tcfContext, account.getGdpr())
+                Collections.unmodifiableSet(bidders), VendorIdResolver.of(aliases, bidderCatalog), tcfContext,
+                account.getGdpr())
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 

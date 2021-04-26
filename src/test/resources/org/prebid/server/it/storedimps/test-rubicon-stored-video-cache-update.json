@@ -13,7 +13,9 @@
     "skipafter": 0,
     "skipmin": 0,
     "startdelay": 0,
-    "playbackmethod": [1]
+    "playbackmethod": [
+      1
+    ]
   },
   "ext": {
     "rubicon": {

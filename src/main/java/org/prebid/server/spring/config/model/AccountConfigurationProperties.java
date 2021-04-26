@@ -5,6 +5,8 @@ import lombok.NoArgsConstructor;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountStatus;
 
@@ -32,7 +34,11 @@ public class AccountConfigurationProperties {
 
     private String analyticsConfig;
 
+    private String bidValidations;
+
     private AccountStatus status;
+
+    private String cookieSync;
 
     public Account toAccount(JacksonMapper mapper) {
         return Account.builder()
@@ -46,7 +52,9 @@ public class AccountConfigurationProperties {
                 .truncateTargetAttr(getTruncateTargetAttr())
                 .defaultIntegration(getDefaultIntegration())
                 .analyticsConfig(toModel(mapper, getAnalyticsConfig(), AccountAnalyticsConfig.class))
+                .bidValidations(toModel(mapper, getBidValidations(), AccountBidValidationConfig.class))
                 .status(getStatus())
+                .cookieSync(toModel(mapper, getCookieSync(), AccountCookieSyncConfig.class))
                 .build();
     }
 

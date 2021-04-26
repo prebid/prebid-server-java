@@ -271,6 +271,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .adapterVersion("0.9.2")
                         .adapterName("BF_PREBID_S2S")
                         .requestId("153")
+                        .real204(true)
                         .build());
     }
 
