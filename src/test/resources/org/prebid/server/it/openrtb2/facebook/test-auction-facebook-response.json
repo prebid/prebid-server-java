@@ -35,7 +35,8 @@
                   "cacheId": "446d71ac-0337-4871-9fda-4552323a269b"
                 }
               }
-            }
+            },
+            "origbidcpm": 10.0
           }
         },
         {
@@ -70,7 +71,8 @@
                   "cacheId": "3d90394a-0301-4faf-b0e8-5d26a88f6ef0"
                 }
               }
-            }
+            },
+            "origbidcpm": 9.0
           }
         },
         {
@@ -112,7 +114,8 @@
                   "cacheId": "6d7addba-3984-4a69-b84f-6f1daa02b407"
                 }
               }
-            }
+            },
+            "origbidcpm": 15.0
           }
         }
       ],

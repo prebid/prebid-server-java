@@ -8,7 +8,10 @@
         "price": 0.01,
         "id": "testid",
         "impid": "testimpid",
-        "cid": "8048"
+        "cid": "8048",
+        "ext": {
+          "origbidcpm": 0.01
+        }
       }
     }
   ]

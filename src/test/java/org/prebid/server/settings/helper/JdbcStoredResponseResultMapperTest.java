@@ -37,7 +37,7 @@ public class JdbcStoredResponseResultMapperTest {
         final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(resultSet, emptySet());
 
         // then
-        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getIdToStoredResponses()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("No stored responses found");
     }
@@ -51,7 +51,7 @@ public class JdbcStoredResponseResultMapperTest {
         final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(resultSet, emptySet());
 
         // then
-        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getIdToStoredResponses()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Result set column number is less than expected");
     }
@@ -66,7 +66,7 @@ public class JdbcStoredResponseResultMapperTest {
                 .map(resultSet, new HashSet<>(asList("id1", "id2")));
 
         // then
-        assertThat(result.getStoredSeatBid()).hasSize(1)
+        assertThat(result.getIdToStoredResponses()).hasSize(1)
                 .containsOnly(new AbstractMap.SimpleEntry<>("id1", "data"));
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("No stored response found for id: id2");
@@ -81,7 +81,7 @@ public class JdbcStoredResponseResultMapperTest {
         final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(resultSet, singleton("id"));
 
         // then
-        assertThat(result.getStoredSeatBid()).isEmpty();
+        assertThat(result.getIdToStoredResponses()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("No stored responses were found for ids: id");
     }
@@ -98,7 +98,7 @@ public class JdbcStoredResponseResultMapperTest {
                 new HashSet<>(asList("id1", "id2")));
 
         // then
-        assertThat(result.getStoredSeatBid()).hasSize(2)
+        assertThat(result.getIdToStoredResponses()).hasSize(2)
                 .contains(new AbstractMap.SimpleEntry<>("id1", "data1"), new AbstractMap.SimpleEntry<>("id2", "data2"));
         assertThat(result.getErrors()).isEmpty();
     }

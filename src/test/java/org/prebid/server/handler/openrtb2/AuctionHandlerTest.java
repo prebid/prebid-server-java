@@ -22,7 +22,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.AuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
@@ -311,7 +311,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
                         .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
-                                null, null, null, null, null)))
+                                null, null, null, null, null, null)))
                         .build()));
 
         // when

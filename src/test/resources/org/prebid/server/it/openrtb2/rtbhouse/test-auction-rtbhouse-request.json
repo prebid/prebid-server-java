@@ -1,8 +1,5 @@
 {
   "id": "test-request-id",
-  "site": {
-    "page": "https://good.site/url"
-  },
   "imp": [
     {
       "id": "test-imp-id",
@@ -15,7 +12,9 @@
         ]
       },
       "ext": {
-        "rtbhouse": {}
+        "rtbhouse": {
+          "publisherId": "publisherId"
+        }
       }
     }
   ],
@@ -26,6 +25,7 @@
     "ifa": "ifaId"
   },
   "site": {
+    "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
     }

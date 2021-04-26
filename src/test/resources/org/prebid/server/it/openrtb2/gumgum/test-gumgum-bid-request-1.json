@@ -33,13 +33,16 @@
       },
       "ext": {
         "bidder": {
-          "zone": "second_zone"
+          "pubId": 737
         }
       }
     },
     {
       "id": "impId003",
       "video": {
+        "ext": {
+          "irisid": "iris_6f9285823a48bne5"
+        },
         "mimes": [
           "video/mp4"
         ],
@@ -57,7 +60,8 @@
       },
       "ext": {
         "bidder": {
-          "zone": "third_zone"
+          "zone": "third_zone",
+          "irisid": "iris_6f9285823a48bne5"
         }
       }
     }
@@ -67,7 +71,7 @@
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "737"
     },
     "ext": {
       "amp": 0
@@ -82,7 +86,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "GUM-UID",
+    "buyeruid": "GUM-UID",
     "ext": {
       "consent": "consentValue"
     }
