@@ -60,31 +60,20 @@ public class UnicornBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<Imp> requestImps = request.getImp();
         final List<Imp> modifiedImps;
         final Source source;
         final Integer firstImpAccountId;
         try {
             validateRegs(request.getRegs());
-            final List<Imp> requestImps = request.getImp();
-            modifiedImps = modifyImps(request.getImp());
+            modifiedImps = modifyImps(requestImps);
             source = updateSource(request.getSource());
             firstImpAccountId = parseImpExtBidder(requestImps.get(0)).getAccountId();
-
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-        ExtRequest modifiedExtRequest = modifyExtRequest(request.getExt(), firstImpAccountId);
+        final ExtRequest modifiedExtRequest = modifyExtRequest(request.getExt(), firstImpAccountId);
         return Result.withValue(createRequest(request, modifiedImps, source, modifiedExtRequest));
-    }
-
-    private ExtRequest modifyExtRequest(ExtRequest extRequest, Integer accountId) {
-        final ExtRequest modifiedRequest = extRequest != null
-                ? ExtRequest.of(extRequest.getPrebid())
-                : ExtRequest.of(null);
-        final int resolvedAccountId = accountId == null ? 0 : accountId;
-        modifiedRequest.addProperty("accountId", new IntNode(resolvedAccountId));
-
-        return modifiedRequest;
     }
 
     private void validateRegs(Regs regs) {
@@ -118,7 +107,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
                         .bidder(extImpBidder.toBuilder().placementId(resolvedPlacementId).build())
                         .build();
                 impBuilder
-                        .tagid(getStoredRequestImpId(imp))
+                        .tagid(resolvedPlacementId)
                         .ext(mapper.mapper().convertValue(updatedExt, ObjectNode.class));
             } else {
                 impBuilder
@@ -179,6 +168,16 @@ public class UnicornBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private ExtRequest modifyExtRequest(ExtRequest extRequest, Integer accountId) {
+        final ExtRequest modifiedRequest = extRequest != null
+                ? ExtRequest.of(extRequest.getPrebid())
+                : ExtRequest.of(null);
+        final int resolvedAccountId = accountId == null ? 0 : accountId;
+        modifiedRequest.addProperty("accountId", new IntNode(resolvedAccountId));
+
+        return modifiedRequest;
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request,
