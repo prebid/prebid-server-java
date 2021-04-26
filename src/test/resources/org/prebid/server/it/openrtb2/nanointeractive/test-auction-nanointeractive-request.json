@@ -16,7 +16,9 @@
       "ext": {
         "nanointeractive": {
           "pid": "58bfec94eb0a1916fa380163",
-          "nq": ["search query"],
+          "nq": [
+            "search query"
+          ],
           "category": "Automotive",
           "subId": "a23",
           "ref": "https://nanointeractive.com"
@@ -38,7 +40,9 @@
       "ext": {
         "nanointeractive": {
           "pid": "58bfec94eb0a1916fa380163",
-          "nq": ["search query"],
+          "nq": [
+            "search query"
+          ],
           "category": "Automotive",
           "subId": "a23",
           "ref": "https://nanointeractive.com"

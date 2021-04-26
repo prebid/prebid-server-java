@@ -76,8 +76,8 @@
         }
       },
       "auctiontimestamp": 1000,
-      "channel" : {
-        "name" : "web"
+      "channel": {
+        "name": "web"
       }
     }
   }

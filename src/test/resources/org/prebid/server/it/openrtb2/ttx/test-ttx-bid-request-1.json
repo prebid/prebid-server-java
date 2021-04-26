@@ -59,9 +59,6 @@
   },
   "ext": {
     "prebid": {
-      "bidadjustmentfactors": {
-        "33across": 0.7
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

@@ -54,29 +54,26 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         given(httpRequest.getParam(anyString())).willReturn("bidderName1");
 
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidderName1", "bidderName2")));
-        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
+        given(bidderCatalog.names()).willReturn(new HashSet<>(
+                asList("bidderName1", "bidderName2", "bidderAlias1", "bidderAlias2")));
         given(bidderCatalog.isActive("bidderName1")).willReturn(true);
         given(bidderCatalog.isActive("bidderName2")).willReturn(false);
-
-        given(bidderCatalog.aliases()).willReturn(new HashSet<>(asList("bidderAlias1", "bidderAlias2")));
-        given(bidderCatalog.nameByAlias("bidderAlias1")).willReturn("bidderName1");
-        given(bidderCatalog.nameByAlias("bidderAlias2")).willReturn("bidderName2");
+        given(bidderCatalog.isActive("bidderAlias1")).willReturn(true);
+        given(bidderCatalog.isActive("bidderAlias2")).willReturn(false);
+        given(bidderCatalog.bidderInfoByName(eq("bidderName1"))).willReturn(givenBidderInfo());
+        given(bidderCatalog.bidderInfoByName(eq("bidderAlias1"))).willReturn(givenBidderInfo("bidderName1"));
 
         handler = new BidderDetailsHandler(bidderCatalog, jacksonMapper);
     }
 
     @Test
-    public void creationShouldFailIfAllAliasIsConfigured() {
-        given(bidderCatalog.aliases()).willReturn(singleton("all"));
+    public void creationShouldFailIfAllNameIsConfigured() {
+        given(bidderCatalog.names()).willReturn(singleton("all"));
         assertThatIllegalArgumentException().isThrownBy(() -> new BidderDetailsHandler(bidderCatalog, jacksonMapper));
     }
 
     @Test
     public void shouldRespondWithExpectedHeaders() {
-        // given
-        handler = new BidderDetailsHandler(bidderCatalog, jacksonMapper);
-
         // when
         handler.handle(routingContext);
 
@@ -164,8 +161,21 @@ public class BidderDetailsHandlerTest extends VertxTest {
                         + "{\"app\":{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}}"));
     }
 
+    private static BidderInfo givenBidderInfo(String aliasOf) {
+        return BidderInfo.create(
+                true,
+                aliasOf,
+                "test@email.org",
+                singletonList("mediaType1"),
+                singletonList("mediaType2"),
+                null,
+                0,
+                true,
+                true,
+                false);
+    }
+
     private static BidderInfo givenBidderInfo() {
-        return BidderInfo.create(true, "test@email.org", singletonList("mediaType1"),
-                singletonList("mediaType2"), null, 0, true, true, false);
+        return givenBidderInfo(null);
     }
 }

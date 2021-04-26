@@ -15,7 +15,8 @@
         "ext": {
           "prebid": {
             "type": "banner"
-          }
+          },
+          "origbidcpm": 3.33
         }
       }
     }

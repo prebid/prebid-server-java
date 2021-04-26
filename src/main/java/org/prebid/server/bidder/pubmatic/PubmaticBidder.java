@@ -202,6 +202,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final String pubId = extImpPubmatics.stream()
                 .map(ExtImpPubmatic::getPublisherId)
                 .filter(Objects::nonNull)
+                .map(String::trim)
                 .findFirst().orElse(null);
 
         if (bidRequest.getSite() != null) {
