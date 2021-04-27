@@ -54,9 +54,9 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static final String NURL_VIDEO_TYPE = "nurl";
     private static final String ADM_VIDEO_TYPE = "adm";
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.9.1";
+    private static final String BEACHFRONT_VERSION = "0.9.2";
     private static final String NURL_VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
-    private static final String TEST_IP = "192.168.255.255";
+    private static final String FAKE_IP = "255.255.255.255";
 
     private static final BigDecimal MIN_BID_FLOOR = BigDecimal.valueOf(0.01);
     private static final int DEFAULT_VIDEO_WIDTH = 300;
@@ -236,7 +236,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     }
 
     private static BigDecimal checkBidFloor(BigDecimal bidFloor) {
-        return bidFloor.compareTo(MIN_BID_FLOOR) > 0 ? bidFloor : BigDecimal.ZERO;
+        return bidFloor != null && bidFloor.compareTo(MIN_BID_FLOOR) > 0 ? bidFloor : BigDecimal.ZERO;
     }
 
     /**
@@ -273,7 +273,7 @@ public class BeachfrontBidder implements Bidder<Void> {
      */
     private static void populateDeviceFields(BeachfrontBannerRequest.BeachfrontBannerRequestBuilder builder,
                                              Device device) {
-        builder.ip(getIP(device.getIp()));
+        builder.ip(device.getIp());
         builder.deviceModel(device.getModel());
         builder.deviceOs(device.getOs());
         if (device.getDnt() != null) {
@@ -282,10 +282,6 @@ public class BeachfrontBidder implements Bidder<Void> {
         if (StringUtils.isNotEmpty(device.getUa())) {
             builder.ua(device.getUa());
         }
-    }
-
-    private static String getIP(String ip) {
-        return StringUtils.isBlank(ip) || ip.equals("::1") || ip.equals("127.0.0.1") ? TEST_IP : ip;
     }
 
     private static int getSecure(String page) {
@@ -308,14 +304,18 @@ public class BeachfrontBidder implements Bidder<Void> {
             }
 
             final String videoResponseType = extImpBeachfront.getVideoResponseType();
-            final String responseType = StringUtils.isBlank(videoResponseType) ? ADM_VIDEO_TYPE : videoResponseType;
             final BeachfrontVideoRequest.BeachfrontVideoRequestBuilder requestBuilder = BeachfrontVideoRequest.builder()
-                    .appId(appId)
-                    .videoResponseType(responseType);
+                    .appId(appId);
+            final String responseType;
 
-            if (responseType.equals(NURL_VIDEO_TYPE)) {
+            if (videoResponseType != null && videoResponseType.equals(NURL_VIDEO_TYPE)) {
                 requestBuilder.isPrebid(true);
+                responseType = NURL_VIDEO_TYPE;
+            } else {
+                responseType = ADM_VIDEO_TYPE;
             }
+
+            requestBuilder.videoResponseType(responseType);
 
             final BidRequest.BidRequestBuilder bidRequestBuilder = bidRequest.toBuilder();
             int secure = 0;
@@ -326,6 +326,20 @@ public class BeachfrontBidder implements Bidder<Void> {
                 secure = getSecure(site.getPage());
             }
 
+            final Device device = bidRequest.getDevice();
+            if (device != null) {
+                final Device.DeviceBuilder deviceBuilder = device.toBuilder();
+                final Integer devicetype = device.getDevicetype();
+                if (devicetype == null || devicetype == 0) {
+                    deviceBuilder.devicetype(bidRequest.getSite() != null ? 2 : 1);
+                }
+                if (StringUtils.isBlank(device.getIp()) && responseType.equals(ADM_VIDEO_TYPE)) {
+                    deviceBuilder.ip(FAKE_IP);
+                }
+
+                bidRequestBuilder.device(deviceBuilder.build());
+            }
+
             final App app = bidRequest.getApp();
             if (app != null && StringUtils.isBlank(app.getDomain()) && StringUtils.isNotBlank(app.getBundle())) {
                 final String trimmedBundle = StringUtils.removeStart(app.getBundle(), "_");
@@ -334,19 +348,6 @@ public class BeachfrontBidder implements Bidder<Void> {
                 if (split.length > 1) {
                     bidRequestBuilder.app(app.toBuilder().domain(String.format("%s.%s", split[1], split[0])).build());
                 }
-            }
-
-            final Device device = bidRequest.getDevice();
-            if (device != null) {
-                final Device.DeviceBuilder deviceBuilder = device.toBuilder();
-                final Integer devicetype = device.getDevicetype();
-                if (devicetype == null || devicetype == 0) {
-                    deviceBuilder.devicetype(bidRequest.getSite() != null ? 2 : 1);
-                }
-                if (StringUtils.isNotBlank(device.getIp())) {
-                    deviceBuilder.ip(getIP(device.getIp()));
-                }
-                bidRequestBuilder.device(deviceBuilder.build());
             }
 
             final Imp.ImpBuilder impBuilder = imp.toBuilder()
@@ -421,7 +422,8 @@ public class BeachfrontBidder implements Bidder<Void> {
                     responseBody,
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, BeachfrontResponseSlot.class));
         } catch (IOException ex) {
-            throw new PreBidException(ex.getMessage());
+            throw new PreBidException("server response failed to unmarshal "
+                    + "as valid rtb. Run with request.debug = 1 for more info");
         }
     }
 
