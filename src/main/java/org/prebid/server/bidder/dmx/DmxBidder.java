@@ -210,10 +210,12 @@ public class DmxBidder implements Bidder<BidRequest> {
     }
 
     private static Banner resolveBanner(Banner banner) {
-        Integer width = banner == null ? null : banner.getW();
-        Integer height = banner == null ? null : banner.getH();
-        if ((height == null || width == null) && banner != null && CollectionUtils.isNotEmpty(banner.getFormat())) {
-            final Format firstFormat = banner.getFormat().get(0);
+        final Integer width = banner == null ? null : banner.getW();
+        final Integer height = banner == null ? null : banner.getH();
+        final List<Format> format = banner != null ? banner.getFormat() : null;
+
+        if ((height == null || width == null) && CollectionUtils.isNotEmpty(format)) {
+            final Format firstFormat = format.get(0);
             if (firstFormat != null) {
                 return banner.toBuilder()
                         .w(firstFormat.getW())
@@ -226,7 +228,7 @@ public class DmxBidder implements Bidder<BidRequest> {
 
     private static Video resolveVideo(Video video) {
         return video == null
-                ? video
+                ? null
                 : video.toBuilder()
                 .protocols(resolveVideoProtocols(video.getProtocols()))
                 .build();
@@ -243,20 +245,20 @@ public class DmxBidder implements Bidder<BidRequest> {
         return site == null
                 ? null
                 : site.toBuilder()
-                        .publisher(modifyPublisher(site.getPublisher(), updatedPublisherId, false))
-                        .build();
+                .publisher(modifyPublisher(site.getPublisher(), updatedPublisherId, false))
+                .build();
     }
 
     private App modifyApp(App app, Device device, String updatedPublisherId) {
         return app == null
                 ? null
                 : app.toBuilder()
-                        .id(StringUtils.isNotBlank(app.getId()) ? app.getId() : device.getIfa())
-                        .publisher(modifyPublisher(app.getPublisher(), updatedPublisherId, true))
-                        .build();
+                .id(StringUtils.isNotBlank(app.getId()) ? app.getId() : device.getIfa())
+                .publisher(modifyPublisher(app.getPublisher(), updatedPublisherId, true))
+                .build();
     }
 
-    private Publisher modifyPublisher(Publisher publisher, String updatedPublisherId, boolean extOnEmptyPublisher) {
+    private Publisher modifyPublisher(Publisher publisher, String updatedPublisherId, boolean setExtOnEmptyPublisher) {
 
         final DmxPublisherExtId dmxPublisherExtId = DmxPublisherExtId.of(updatedPublisherId);
         final ObjectNode encodedPublisherExt = mapper.mapper().valueToTree(dmxPublisherExtId);
@@ -266,11 +268,11 @@ public class DmxBidder implements Bidder<BidRequest> {
         if (publisher == null) {
             return Publisher.builder()
                     .id(updatedPublisherId)
-                    .ext(extOnEmptyPublisher ? extPublisher : null)
+                    .ext(setExtOnEmptyPublisher ? extPublisher : null)
                     .build();
         } else {
             return publisher.toBuilder()
-                    .id(ObjectUtils.firstNonNull(publisher.getId(), updatedPublisherId))
+                    .id(ObjectUtils.defaultIfNull(publisher.getId(), updatedPublisherId))
                     .ext(extPublisher)
                     .build();
         }
