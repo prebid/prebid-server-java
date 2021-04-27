@@ -9,6 +9,18 @@ accounts:
   - id: 2763
   - id: 5001
     eventsEnabled: true
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              raw-auction-request:
+                groups:
+                  - synchronous: true
+                    timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: raw-auction-request
 domains:
   - rubiconproject.com
   - www.rubiconproject.com
