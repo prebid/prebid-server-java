@@ -1,0 +1,23 @@
+adapters:
+  jixie:
+    enabled: false
+    endpoint: https://hb.jixie.io/v2/hbsvrpost
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: contact@jixie.io
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://id.jixie.io/api/sync?pid=&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+      redirect-url: /setuid?bidder=jixie&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%%JXUID%%
+      cookie-family-name: jixie
+      type: redirect
+      support-cors: false
