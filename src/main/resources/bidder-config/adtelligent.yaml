@@ -6,7 +6,17 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases: {}
+    aliases:
+      mediafuse:
+        enabled: false
+        endpoint: http://ghb.hbmp.mediafuse.com/pbs/ortb
+        meta-info:
+          maintainer-email: support@mediafuse.com
+          vendor-id: 411
+        usersync:
+          url:
+          redirect-url:
+          cookie-family-name: mediafuse
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:
