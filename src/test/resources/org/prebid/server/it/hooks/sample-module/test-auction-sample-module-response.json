@@ -87,6 +87,12 @@
             "channel": {
               "name": "web"
             }
+          },
+          "sample-it-module": {
+            "update": [
+              "raw-auction-request"
+            ],
+            "raw-auction-request-trace": "I've been here"
           }
         }
       }

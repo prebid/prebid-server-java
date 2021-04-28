@@ -56,6 +56,11 @@
     "prebid": {
       "debug": 1,
       "auctiontimestamp": 1000
+    },
+    "sample-it-module": {
+      "update": [
+        "raw-auction-request"
+      ]
     }
   }
 }

@@ -211,8 +211,8 @@ public class Ortb2RequestFactory {
         return isAccountIdBlank
                 ? responseForEmptyAccount(httpRequest)
                 : applicationSettings.getAccountById(accountId, timeout)
-                        .compose(this::ensureAccountActive,
-                                exception -> accountFallback(exception, accountId, httpRequest));
+                .compose(this::ensureAccountActive,
+                        exception -> accountFallback(exception, accountId, httpRequest));
     }
 
     /**
@@ -302,7 +302,12 @@ public class Ortb2RequestFactory {
 
             prebidExtBuilder.integration(accountDefaultIntegration);
 
-            return ExtRequest.of(prebidExtBuilder.build());
+            final ExtRequest updatedExt = ExtRequest.of(prebidExtBuilder.build());
+            if (ext != null) {
+                updatedExt.addProperties(ext.getProperties());
+            }
+
+            return updatedExt;
         }
 
         return null;

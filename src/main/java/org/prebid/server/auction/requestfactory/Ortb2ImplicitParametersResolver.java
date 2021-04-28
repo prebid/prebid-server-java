@@ -493,7 +493,7 @@ public class Ortb2ImplicitParametersResolver {
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
 
-            return ExtRequest.of(prebidBuilder
+            final ExtRequest updatedExt = ExtRequest.of(prebidBuilder
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
                     .cache(ObjectUtils.defaultIfNull(updatedCache,
@@ -501,6 +501,9 @@ public class Ortb2ImplicitParametersResolver {
                     .channel(ObjectUtils.defaultIfNull(updatedChannel,
                             getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
                     .build());
+            updatedExt.addProperties(ext.getProperties());
+
+            return updatedExt;
         }
 
         return null;
