@@ -97,7 +97,8 @@ public class AdheseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyIncomingRequestAndSetExpectedHttpRequestUri() throws JsonProcessingException {
+    public void makeHttpRequestsShouldModifyIncomingRequestAndSetExpectedHttpRequestUri()
+            throws JsonProcessingException {
         // given
         Map<String, List<String>> targets = new HashMap<>();
         targets.put("ci", asList("gent", "brussels"));
