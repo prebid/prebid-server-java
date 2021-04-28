@@ -49,6 +49,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -245,7 +246,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder()
-                        .bidders(emptyList())
+                        .bidders(Collections.singletonList(RUBICON))
                         .gdpr(1)
                         .gdprConsent("invalid")
                         .build()));
@@ -258,6 +259,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
+        verify(metrics).updateUserSyncTcfInvalidMetric(RUBICON);
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
     }

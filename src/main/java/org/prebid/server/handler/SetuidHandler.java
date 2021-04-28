@@ -137,8 +137,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
                                            RoutingContext routingContext) {
         if (setuidContextResult.succeeded()) {
             final SetuidContext setuidContext = setuidContextResult.result();
+            final String bidder = setuidContext.getCookieName();
             final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
-            final Exception exception = validateSetuidContext(setuidContext);
+            final Exception exception = validateSetuidContext(setuidContext, bidder);
             if (exception != null) {
                 handleErrors(exception, routingContext, tcfContext);
                 return;
@@ -152,7 +153,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
     }
 
-    private Exception validateSetuidContext(SetuidContext setuidContext) {
+    private Exception validateSetuidContext(SetuidContext setuidContext, String bidder) {
         final String cookieName = setuidContext.getCookieName();
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
         if (isCookieNameBlank || !cookieNameToSyncType.containsKey(cookieName)) {
@@ -162,6 +163,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+            metrics.updateUserSyncTcfInvalidMetric(bidder);
             return new InvalidRequestException("Consent string is invalid");
         }
 

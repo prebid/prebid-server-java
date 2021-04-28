@@ -35,6 +35,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
@@ -65,6 +66,7 @@ import java.util.stream.Collectors;
 public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
+    private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
 
     private static final Map<CharSequence, AsciiString> JSON_HEADERS_MAP = Collections.singletonMap(
             HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
@@ -227,7 +229,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
     }
 
-    private static Exception validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
+    private Exception validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
             return new UnauthorizedUidsException("Sync is not allowed for this uids");
@@ -240,6 +242,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+            final List<String> requestBidders = cookieSyncContext.getCookieSyncRequest().getBidders();
+            if (CollectionUtils.isNotEmpty(requestBidders)) {
+                requestBidders.forEach(metrics::updateUserSyncTcfInvalidMetric);
+            }
             return new InvalidRequestException("Consent string is invalid");
         }
 
@@ -640,8 +646,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             metrics.updateUserSyncBadRequestMetric();
             status = HttpResponseStatus.BAD_REQUEST.code();
             body = String.format("Invalid request format: %s", message);
-            logger.info(message, error);
-
+            BAD_REQUEST_LOGGER.info(message, 100);
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED.code();
