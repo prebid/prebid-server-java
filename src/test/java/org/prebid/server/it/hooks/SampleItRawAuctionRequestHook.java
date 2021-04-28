@@ -13,9 +13,6 @@ public class SampleItRawAuctionRequestHook implements RawAuctionRequestHook {
     public Future<InvocationResult<AuctionRequestPayload>> call(
             AuctionRequestPayload auctionRequestPayload, AuctionInvocationContext invocationContext) {
 
-        System.out.println(
-                "Sample raw-auction hook has been called with " + invocationContext.endpoint() + " endpoint");
-
         return Future.succeededFuture(InvocationResultImpl.noAction());
     }
 

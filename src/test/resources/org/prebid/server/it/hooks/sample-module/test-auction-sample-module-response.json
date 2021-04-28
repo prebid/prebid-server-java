@@ -1,0 +1,102 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "880290288",
+          "impid": "impId1",
+          "price": 8.43,
+          "adm": "<Impression><![CDATA[]]></Impression>",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "rubicon",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId1",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                },
+                {
+                  "w": 300,
+                  "h": 600
+                }
+              ]
+            },
+            "ext": {
+              "prebid": {
+                "bidder": {
+                  "rubicon": {
+                    "accountId": 2001,
+                    "siteId": 3001,
+                    "zoneId": 4001
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "5001"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "ip": "222.111.222.111",
+          "language": "fr"
+        },
+        "user": {
+          "ext": {
+            "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
+          }
+        },
+        "at": 1,
+        "tmax": 5000,
+        "cur": [
+          "USD"
+        ],
+        "ext": {
+          "prebid": {
+            "debug": 1,
+            "auctiontimestamp": 1000,
+            "channel": {
+              "name": "web"
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "rubicon": "{{ rubicon.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}
