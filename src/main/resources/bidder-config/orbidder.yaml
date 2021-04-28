@@ -12,7 +12,6 @@ adapters:
       app-media-types:
         - banner
       site-media-types:
-        - banner
       supported-vendors:
       vendor-id: 559
     usersync:
