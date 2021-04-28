@@ -135,12 +135,12 @@ public class AdheseBidderTest extends VertxTest {
                                 AdheseRequestBody.Slot.builder()
                                         .slotname("_adhese_prebid_demo_-leaderboard")
                                         .build()))
-                        .parameters(new TreeMap<>(Map.of(
-                                "ag", Arrays.asList("55"),
-                                "ci", Arrays.asList("gent", "brussels"),
-                                "tl", Arrays.asList("all"),
-                                "xt", Arrays.asList("dummy"),
-                                "xz", Arrays.asList("dum-my"))))
+                        .parameters(new TreeMap<>() {{
+                                put("ag", Arrays.asList("55"));
+                                put("ci", Arrays.asList("gent", "brussels"));
+                                put("tl", Arrays.asList("all"));
+                                put("xt", Arrays.asList("dummy"));
+                                put("xz", Arrays.asList("dum-my")); }})
                         .build()));
     }
 
@@ -172,7 +172,7 @@ public class AdheseBidderTest extends VertxTest {
                                         AdheseRequestBody.Slot.builder()
                                                 .slotname("_adhese_prebid_demo_-leaderboard")
                                                 .build()))
-                                .parameters(new TreeMap<>(Map.of(
+                                .parameters(new TreeMap<>(Collections.singletonMap(
                                         "xz", Arrays.asList("ifaValue"))))
                                 .build()));
     }
@@ -205,7 +205,7 @@ public class AdheseBidderTest extends VertxTest {
                                         AdheseRequestBody.Slot.builder()
                                                 .slotname("_adhese_prebid_demo_-leaderboard")
                                                 .build()))
-                                .parameters(new TreeMap<>(Map.of(
+                                .parameters(new TreeMap<>(Collections.singletonMap(
                                         "xf", Arrays.asList("pageValue"))))
                                 .build()));
     }
@@ -242,7 +242,7 @@ public class AdheseBidderTest extends VertxTest {
                                         AdheseRequestBody.Slot.builder()
                                                 .slotname("_adhese_prebid_demo_-leaderboard")
                                                 .build()))
-                                .parameters(new TreeMap<>(Map.of(
+                                .parameters(new TreeMap<>(Collections.singletonMap(
                                         "xt", Arrays.asList("dummy"))))
                                 .build()));
     }
