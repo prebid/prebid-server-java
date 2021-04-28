@@ -254,7 +254,8 @@ public class BidResponseCreator {
 
         return CompositeFuture.join(bidderResponses.stream()
                 .map(bidderResponse -> hookStageExecutor.executeProcessedBidderResponseStage(
-                        bidderResponse,
+                        bidderResponse.getSeatBid().getBids(),
+                        bidderResponse.getBidder(),
                         auctionContext.getBidRequest(),
                         auctionContext.getAccount(),
                         auctionContext.getHookExecutionContext())
@@ -299,10 +300,10 @@ public class BidResponseCreator {
         final Set<BidInfo> winningBidInfos = targeting == null
                 ? null
                 : bidderResponseToTargetingBidInfos.values().stream()
-                .flatMap(Collection::stream)
-                .filter(TargetingBidInfo::isWinningBid)
-                .map(TargetingBidInfo::getBidInfo)
-                .collect(Collectors.toSet());
+                        .flatMap(Collection::stream)
+                        .filter(TargetingBidInfo::isWinningBid)
+                        .map(TargetingBidInfo::getBidInfo)
+                        .collect(Collectors.toSet());
 
         final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBidInfos : bidInfos;
 

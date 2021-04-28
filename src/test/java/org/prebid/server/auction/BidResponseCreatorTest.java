@@ -163,11 +163,10 @@ public class BidResponseCreatorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
         given(idGenerator.getType()).willReturn(IdGeneratorType.none);
 
-        given(hookStageExecutor.executeProcessedBidderResponseStage(any(), any(), any(), any()))
+        given(hookStageExecutor.executeProcessedBidderResponseStage(any(), any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
-                        BidderResponsePayloadImpl.of(
-                                invocation.<BidderResponse>getArgument(0).getSeatBid().getBids()))));
+                        BidderResponsePayloadImpl.of(invocation.getArgument(0)))));
 
         winningBidComparator = new WinningBidComparator();
         clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC);
@@ -192,7 +191,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldSkipBidderWhenRejectedByProcessedBidderResponseHooks() {
         // given
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
-                .when(hookStageExecutor).executeProcessedBidderResponseStage(any(), any(), any(), any());
+                .when(hookStageExecutor).executeProcessedBidderResponseStage(any(), any(), any(), any(), any());
 
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()));
 
@@ -226,7 +225,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 .build(),
                         video,
                         "EUR"))))))
-                .when(hookStageExecutor).executeProcessedBidderResponseStage(any(), any(), any(), any());
+                .when(hookStageExecutor).executeProcessedBidderResponseStage(any(), any(), any(), any(), any());
 
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()));
 

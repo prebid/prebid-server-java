@@ -137,7 +137,10 @@ public class AmpRequestFactory {
                         ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(
                                 auctionContext.getBidRequest(),
                                 auctionContext.getAccount(),
-                                auctionContext.getPrivacyContext())));
+                                auctionContext.getPrivacyContext())))
+
+                .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with));
     }
 
     /**
