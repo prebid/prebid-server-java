@@ -212,9 +212,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final CookieSyncContext cookieSyncContext = cookieSyncContextResult.result();
 
             final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-            final Exception validationException = validateCookieSyncContext(cookieSyncContext);
-            if (validationException != null) {
-                handleErrors(validationException, routingContext, tcfContext);
+            try {
+                validateCookieSyncContext(cookieSyncContext);
+            } catch (InvalidRequestException | UnauthorizedUidsException ex) {
+                handleErrors(ex, routingContext, tcfContext);
                 return;
             }
 
@@ -224,20 +225,19 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                             biddersToSync(cookieSyncContext),
                             cookieSyncContext));
         } else {
-            final Throwable error = cookieSyncContextResult.cause();
-            handleErrors(error, routingContext, null);
+            handleErrors(cookieSyncContextResult.cause(), routingContext, null);
         }
     }
 
-    private Exception validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
+    private void validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
-            return new UnauthorizedUidsException("Sync is not allowed for this uids");
+            throw new UnauthorizedUidsException("Sync is not allowed for this uids");
         }
 
         final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
         if (isGdprParamsNotConsistent(cookieSyncRequest)) {
-            return new InvalidRequestException("gdpr_consent is required if gdpr is 1");
+            throw new InvalidRequestException("gdpr_consent is required if gdpr is 1");
         }
 
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
@@ -246,10 +246,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             if (CollectionUtils.isNotEmpty(requestBidders)) {
                 requestBidders.forEach(metrics::updateUserSyncTcfInvalidMetric);
             }
-            return new InvalidRequestException("Consent string is invalid");
+            throw new InvalidRequestException("Consent string is invalid");
         }
-
-        return null;
     }
 
     private static boolean isGdprParamsNotConsistent(CookieSyncRequest request) {
@@ -646,7 +644,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             metrics.updateUserSyncBadRequestMetric();
             status = HttpResponseStatus.BAD_REQUEST.code();
             body = String.format("Invalid request format: %s", message);
-            BAD_REQUEST_LOGGER.info(message, 100);
+            BAD_REQUEST_LOGGER.info(message, 0.01);
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED.code();

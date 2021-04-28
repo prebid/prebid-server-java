@@ -139,9 +139,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
             final SetuidContext setuidContext = setuidContextResult.result();
             final String bidder = setuidContext.getCookieName();
             final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
-            final Exception exception = validateSetuidContext(setuidContext, bidder);
-            if (exception != null) {
-                handleErrors(exception, routingContext, tcfContext);
+
+            try {
+                validateSetuidContext(setuidContext, bidder);
+            } catch (InvalidRequestException | UnauthorizedUidsException ex) {
+                handleErrors(ex, routingContext, tcfContext);
                 return;
             }
 
@@ -153,26 +155,24 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
     }
 
-    private Exception validateSetuidContext(SetuidContext setuidContext, String bidder) {
+    private void validateSetuidContext(SetuidContext setuidContext, String bidder) {
         final String cookieName = setuidContext.getCookieName();
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
         if (isCookieNameBlank || !cookieNameToSyncType.containsKey(cookieName)) {
             final String cookieNameError = isCookieNameBlank ? "required" : "invalid";
-            return new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
+            throw new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
         }
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
             metrics.updateUserSyncTcfInvalidMetric(bidder);
-            return new InvalidRequestException("Consent string is invalid");
+            throw new InvalidRequestException("Consent string is invalid");
         }
 
         final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
-            return new UnauthorizedUidsException("Sync is not allowed for this uids");
+            throw new UnauthorizedUidsException("Sync is not allowed for this uids");
         }
-
-        return null;
     }
 
     /**
