@@ -135,7 +135,7 @@ public class AdheseBidderTest extends VertxTest {
                                 AdheseRequestBody.Slot.builder()
                                         .slotname("_adhese_prebid_demo_-leaderboard")
                                         .build()))
-                        .parameters(new TreeMap<>() {{
+                        .parameters(new TreeMap<String, List<String>>() {{
                                 put("ag", Arrays.asList("55"));
                                 put("ci", Arrays.asList("gent", "brussels"));
                                 put("tl", Arrays.asList("all"));
