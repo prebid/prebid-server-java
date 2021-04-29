@@ -10,6 +10,7 @@ import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.bidder.BidderCatalog;
@@ -94,14 +95,11 @@ public class PrivacyEnforcementService {
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
         final Device device = bidRequest.getDevice();
-        final String ipAddress = device != null ? device.getIp() : null;
 
         final Geo geo = device != null ? device.getGeo() : null;
         final String country = geo != null ? geo.getCountry() : null;
 
-        final String effectiveIpAddress = isCoppaMaskingRequired(privacy) || isLmtEnabled(device)
-                ? ipAddressHelper.maskIpv4(ipAddress)
-                : ipAddress;
+        final String effectiveIpAddress = resolveIpAddress(device, privacy);
 
         final AccountGdprConfig accountGdpr = account.getGdpr();
         final String accountId = account.getId();
@@ -110,6 +108,17 @@ public class PrivacyEnforcementService {
         return tcfDefinerService.resolveTcfContext(
                 privacy, country, effectiveIpAddress, accountGdpr, requestType, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
+    }
+
+    private String resolveIpAddress(Device device, Privacy privacy) {
+        final String ipV4Address = device != null ? device.getIp() : null;
+        final boolean shouldBeMasked = isCoppaMaskingRequired(privacy) || isLmtEnabled(device);
+        if (StringUtils.isNotBlank(ipV4Address)) {
+            return shouldBeMasked ? ipAddressHelper.maskIpv4(ipV4Address) : ipV4Address;
+        } else {
+            final String ipV6Address = device != null ? device.getIpv6() : null;
+            return shouldBeMasked ? ipAddressHelper.anonymizeIpv6(ipV6Address) : ipV6Address;
+        }
     }
 
     public Future<PrivacyContext> contextFromSetuidRequest(

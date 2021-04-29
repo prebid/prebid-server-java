@@ -243,6 +243,54 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
+    public void contextFromBidRequestShouldCallResolveTcfContextWithIpv6AnonymizedWhenIpNotPresentAndLmtIsOne() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder()
+                        .lmt(1)
+                        .ipv6("ipv6")
+                        .build())
+                .build();
+        given(ipAddressHelper.anonymizeIpv6(any())).willReturn("ip-masked");
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfContext.builder().build()));
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(Account.empty("account"))
+                .prebidErrors(new ArrayList<>())
+                .build();
+
+        // when
+        privacyEnforcementService.contextFromBidRequest(auctionContext);
+
+        // then
+        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ip-masked"), any(), any(), any(), any());
+    }
+
+    @Test
+    public void contextFromBidRequestShouldCallResolveTcfContextWithIpv6WhenIpv4NotPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder()
+                        .ipv6("ipv6")
+                        .build())
+                .build();
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfContext.builder().build()));
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(Account.empty("account"))
+                .prebidErrors(new ArrayList<>())
+                .build();
+
+        // when
+        privacyEnforcementService.contextFromBidRequest(auctionContext);
+
+        // then
+        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ipv6"), any(), any(), any(), any());
+    }
+
+    @Test
     public void contextFromSetuidRequestShouldReturnContext() {
         // given
         final HttpServerRequest request = mock(HttpServerRequest.class);
