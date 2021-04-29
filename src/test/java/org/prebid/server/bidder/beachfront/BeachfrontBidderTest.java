@@ -268,9 +268,8 @@ public class BeachfrontBidderTest extends VertxTest {
                         .deviceOs("nokia")
                         .isMobile(1)
                         .user(User.builder().id("userId").buyeruid("buid").build())
-                        .adapterVersion("0.9.1")
+                        .adapterVersion("0.9.2")
                         .adapterName("BF_PREBID_S2S")
-                        .ip("192.168.255.255")
                         .requestId("153")
                         .real204(true)
                         .build());
@@ -281,7 +280,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().bundle("prefix_test1.test2.test3_suffix").build())
-                .device(Device.builder().ip("127.0.0.1").build())
+                .device(Device.builder().build())
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                                 mapper.valueToTree(ExtImpBeachfront.of("appId2", null, BigDecimal.TEN, "nurl")))))),
@@ -294,10 +293,6 @@ public class BeachfrontBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final BidRequest.BidRequestBuilder expectedRequestBuilder = BidRequest.builder()
-                .device(Device.builder().ip("192.168.255.255").devicetype(1).build())
-                .cur(singletonList("USD"));
-
         final Imp.ImpBuilder expectedImpBuilder = Imp.builder()
                 .video(Video.builder().w(300).h(250).build())
                 .secure(0);
@@ -308,23 +303,48 @@ public class BeachfrontBidderTest extends VertxTest {
                                 .isPrebid(true)
                                 .appId("appId2")
                                 .videoResponseType("nurl")
-                                .request(expectedRequestBuilder
+                                .request(BidRequest.builder()
+                                        .device(Device.builder().devicetype(1).build())
                                         .app(App.builder().bundle("prefix_test1.test2.test3_suffix")
                                                 .domain("test2.prefix_test1").build())
                                         .imp(singletonList(expectedImpBuilder.id("123")
                                                 .bidfloor(BigDecimal.TEN).build()))
+                                        .cur(singletonList("USD"))
                                         .build())
                                 .build(),
                         BeachfrontVideoRequest.builder()
                                 .appId("appId")
                                 .videoResponseType("adm")
-                                .request(expectedRequestBuilder
+                                .request(BidRequest.builder()
+                                        .device(Device.builder().ip("255.255.255.255").devicetype(1).build())
                                         .app(App.builder().bundle("prefix_test1.test2.test3_suffix")
                                                 .domain("test2.prefix_test1").build())
                                         .imp(singletonList(expectedImpBuilder.id("234")
                                                 .bidfloor(BigDecimal.ONE).build()))
+                                        .cur(singletonList("USD"))
                                         .build())
                                 .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateAdmRequestForEveryUnknownResponseType() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                mapper.valueToTree(ExtImpBeachfront.of("appId2", null, null, "unknownType"))))))
+                ))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
+                .extracting(BeachfrontVideoRequest::getVideoResponseType)
+                .containsExactly("adm");
     }
 
     @Test
@@ -351,7 +371,9 @@ public class BeachfrontBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage())
+                .isEqualTo("server response failed to unmarshal as valid rtb. "
+                        + "Run with request.debug = 1 for more info");
     }
 
     @Test
