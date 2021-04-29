@@ -32,6 +32,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -1598,6 +1599,47 @@ public class AmpRequestFactoryTest extends VertxTest {
                 any());
     }
 
+    @Test
+    public void shouldUseBidRequestModifiedByProcessedAuctionRequestHooks() {
+        // given
+        givenBidRequest(
+                builder -> builder.site(Site.builder().domain("example.com").build()).ext(ExtRequest.empty()),
+                Imp.builder().build());
+
+        final BidRequest modifiedBidRequest = BidRequest.builder()
+                .app(App.builder().bundle("org.company.application").build())
+                .build();
+        doAnswer(invocation -> Future.succeededFuture(modifiedBidRequest))
+                .when(ortb2RequestFactory)
+                .executeProcessedAuctionRequestHooks(any());
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+
+        // then
+
+        final BidRequest resultBidRequest = result.result().getBidRequest();
+        assertThat(resultBidRequest.getSite()).isNull();
+        assertThat(resultBidRequest.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectRequest() {
+        // given
+        givenBidRequest(builder -> builder.ext(ExtRequest.empty()), Imp.builder().build());
+
+        doAnswer(invocation -> Future.failedFuture(new RejectedRequestException(null)))
+                .when(ortb2RequestFactory)
+                .executeProcessedAuctionRequestHooks(any());
+
+        // when
+        final Future<?> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RejectedRequestException.class);
+    }
+
     private void givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             Imp... imps) {
@@ -1623,6 +1665,10 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any(), any(), any()))
                 .willAnswer(answerWithFirstArgument());
+        given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
+                .willAnswer(invocation -> Future.succeededFuture(
+                        ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
+
     }
 
     private Answer<Object> answerWithFirstArgument() {

@@ -88,8 +88,7 @@ public class AuctionRequestFactory {
                                 hookExecutionContext,
                                 errors)))
 
-                .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext,
-                        hookExecutionContext)
+                .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> updateBidRequest(auctionContext)
@@ -102,7 +101,10 @@ public class AuctionRequestFactory {
                         ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(
                                 auctionContext.getBidRequest(),
                                 auctionContext.getAccount(),
-                                auctionContext.getPrivacyContext())));
+                                auctionContext.getPrivacyContext())))
+
+                .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with));
     }
 
     private String extractAndValidateBody(RoutingContext context) {

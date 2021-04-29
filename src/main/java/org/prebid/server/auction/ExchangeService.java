@@ -1004,10 +1004,10 @@ public class ExchangeService {
         return hookStageResult.isShouldReject()
                 ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
                 : requestBids(
-                bidderRequest.with(hookStageResult.getPayload().bidRequest()),
-                timeout,
-                debugEnabled,
-                aliases);
+                        bidderRequest.with(hookStageResult.getPayload().bidRequest()),
+                        timeout,
+                        debugEnabled,
+                        aliases);
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,

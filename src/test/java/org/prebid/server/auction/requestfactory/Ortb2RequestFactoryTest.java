@@ -12,7 +12,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,8 +59,8 @@ import java.util.List;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -129,6 +128,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                 invocation.getArgument(2)))));
 
         given(hookStageExecutor.executeRawAuctionRequestStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false,
+                        AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
+
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
@@ -628,10 +632,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().site(Site.builder().build()).build())
+                .hookExecutionContext(hookExecutionContext)
                 .build();
 
         // when
-        final Future<BidRequest> result = target.executeRawAuctionRequestHooks(auctionContext, hookExecutionContext);
+        final Future<BidRequest> result = target.executeRawAuctionRequestHooks(auctionContext);
 
         // then
         assertThat(result.result()).isEqualTo(modifiedBidRequest);
@@ -643,16 +648,58 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(hookStageExecutor.executeRawAuctionRequestStage(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
 
-        final AuctionContext auctionContext = AuctionContext.builder().build();
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
-        final Future<BidRequest> result = target.executeRawAuctionRequestHooks(auctionContext, hookExecutionContext);
+        final Future<BidRequest> result = target.executeRawAuctionRequestHooks(auctionContext);
 
         // then
-        Assertions.assertThat(result.failed()).isTrue();
-        Assertions.assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
-        Assertions.assertThat(((RejectedRequestException) result.cause()).getHookExecutionContext())
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
+        assertThat(((RejectedRequestException) result.cause()).getHookExecutionContext())
                 .isEqualTo(HookExecutionContext.of(Endpoint.openrtb2_auction));
+    }
+
+    @Test
+    public void shouldUseBidRequestModifiedByProcessedAuctionRequestHooks() {
+        // given
+        final BidRequest modifiedBidRequest = BidRequest.builder()
+                .app(App.builder().bundle("org.company.application").build())
+                .build();
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
+                        false, AuctionRequestPayloadImpl.of(modifiedBidRequest))));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().site(Site.builder().build()).build())
+                .hookExecutionContext(hookExecutionContext)
+                .build();
+
+        // when
+        final Future<BidRequest> result = target.executeProcessedAuctionRequestHooks(auctionContext);
+
+        // then
+        assertThat(result.result()).isEqualTo(modifiedBidRequest);
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectRequest() {
+        // given
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
+
+        // when
+        final Future<BidRequest> result = target.executeProcessedAuctionRequestHooks(auctionContext);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
     }
 
     private static String bidRequestToString(BidRequest bidRequest) {
