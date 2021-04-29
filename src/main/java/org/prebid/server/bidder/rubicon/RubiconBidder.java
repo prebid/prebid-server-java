@@ -930,7 +930,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return extUserEidUidExt == null || !STYPE_TO_REMOVE.contains(extUserEidUidExt.getStype())
                 ? extUserEidUid
                 : ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
-                ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
+                        ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
@@ -1092,10 +1092,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .content(makeSiteContent(null, impLanguage))
                 .build()
                 : site.toBuilder()
-                .publisher(makePublisher(rubiconImpExt))
-                .content(makeSiteContent(site.getContent(), impLanguage))
-                .ext(makeSiteExt(site, rubiconImpExt))
-                .build();
+                        .publisher(makePublisher(rubiconImpExt))
+                        .content(makeSiteContent(site.getContent(), impLanguage))
+                        .ext(makeSiteExt(site, rubiconImpExt))
+                        .build();
     }
 
     private static Content makeSiteContent(Content siteContent, String impLanguage) {
@@ -1181,23 +1181,27 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Bid updateBid(Bid bid, Imp imp, Float cmpOverrideFromRequest, BidResponse bidResponse) {
+        String bidId = bid.getId();
         if (generateBidId) {
             // Since Rubicon XAPI returns openrtb_response.seatbid.bid.id not unique enough
             // generate new value for it
-            bid.setId(UUID.randomUUID().toString());
+            bidId = UUID.randomUUID().toString();
         } else if (Objects.equals(bid.getId(), "0")) {
             // Since Rubicon XAPI returns only one bid per response
             // copy bidResponse.bidid to openrtb_response.seatbid.bid.id
-            bid.setId(bidResponse.getBidid());
+            bidId = bidResponse.getBidid();
         }
 
         // Unconditionally set price if coming from CPM override
         final Float cpmOverride = ObjectUtils.defaultIfNull(cpmOverrideFromImp(imp), cmpOverrideFromRequest);
-        if (cpmOverride != null) {
-            bid.setPrice(new BigDecimal(String.valueOf(cpmOverride)));
-        }
+        final BigDecimal bidPrice = cpmOverride != null
+                ? new BigDecimal(String.valueOf(cpmOverride))
+                : bid.getPrice();
 
-        return bid;
+        return bid.toBuilder()
+                .id(bidId)
+                .price(bidPrice)
+                .build();
     }
 
     private Float cmpOverrideFromRequest(BidRequest bidRequest) {

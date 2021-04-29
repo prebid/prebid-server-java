@@ -41,4 +41,8 @@ public class BidderSeatBid {
      * Error messages should help publishers understand what might account for "bad" bids.
      */
     List<BidderError> errors;
+
+    public BidderSeatBid with(List<BidderBid> bids) {
+        return BidderSeatBid.of(bids, this.httpCalls, this.errors);
+    }
 }
