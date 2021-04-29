@@ -44,7 +44,8 @@ public class SampleItProcessedBidderResponseHook implements ProcessedBidderRespo
                 .map(bidderBid -> BidderBid.of(
                         bidderBid.getBid().toBuilder()
                                 .adm(bidderBid.getBid().getAdm()
-                                        + "<Impression><![CDATA[I've been here]]></Impression>")
+                                        + "<Impression><![CDATA[Processed bidder response hook have been here]]>"
+                                        + "</Impression>")
                                 .build(),
                         bidderBid.getType(),
                         bidderBid.getBidCurrency()))
