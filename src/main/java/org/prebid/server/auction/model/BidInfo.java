@@ -15,6 +15,7 @@ public class BidInfo {
 
     Bid bid;
 
+    // Can be null
     Imp correspondingImp;
 
     String bidCurrency;
