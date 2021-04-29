@@ -13,7 +13,8 @@ public class SampleItModule implements Module {
         return Arrays.asList(
                 new SampleItEntrypointHook(),
                 new SampleItRawAuctionRequestHook(),
-                new SampleItProcessedAuctionRequestHook());
+                new SampleItProcessedAuctionRequestHook(),
+                new SampleItBidderRequestHook());
     }
 
     @Override

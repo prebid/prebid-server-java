@@ -5,7 +5,7 @@
       "bid": [
         {
           "id": "880290288",
-          "impid": "impId1",
+          "impid": "sample-it-module-impId1-rubicon",
           "price": 8.43,
           "adm": "<Impression><![CDATA[]]></Impression>",
           "crid": "crid1",
