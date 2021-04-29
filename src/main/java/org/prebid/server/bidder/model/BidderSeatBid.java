@@ -8,7 +8,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import java.util.List;
 
 /**
- * Seatid returned by a {@link Bidder}.
+ * Seatbid returned by a {@link Bidder}.
  * <p>
  * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
  * back with type safety.

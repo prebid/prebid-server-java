@@ -15,13 +15,18 @@ public class BidInfo {
 
     Bid bid;
 
+    // Can be null
     Imp correspondingImp;
+
+    String bidCurrency;
 
     String bidder;
 
     BidType bidType;
 
     CacheInfo cacheInfo;
+
+    TargetingInfo targetingInfo;
 
     public String getBidId() {
         return generatedBidId != null ? generatedBidId : bid.getId();
