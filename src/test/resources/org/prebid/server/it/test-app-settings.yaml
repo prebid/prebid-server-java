@@ -42,6 +42,13 @@ accounts:
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: raw-bidder-response
+              processed-bidder-response:
+                groups:
+                  - synchronous: true
+                    timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: processed-bidder-response
 domains:
   - rubiconproject.com
   - www.rubiconproject.com

@@ -15,7 +15,8 @@ public class SampleItModule implements Module {
                 new SampleItRawAuctionRequestHook(),
                 new SampleItProcessedAuctionRequestHook(),
                 new SampleItBidderRequestHook(),
-                new SampleItRawBidderResponseHook());
+                new SampleItRawBidderResponseHook(),
+                new SampleItProcessedBidderResponseHook());
     }
 
     @Override
