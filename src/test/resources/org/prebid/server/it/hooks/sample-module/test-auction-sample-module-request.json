@@ -59,7 +59,8 @@
     },
     "sample-it-module": {
       "update": [
-        "raw-auction-request"
+        "raw-auction-request",
+        "processed-auction-request"
       ]
     }
   }

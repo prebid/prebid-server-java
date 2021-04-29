@@ -90,9 +90,11 @@
           },
           "sample-it-module": {
             "update": [
-              "raw-auction-request"
+              "raw-auction-request",
+              "processed-auction-request"
             ],
-            "raw-auction-request-trace": "I've been here"
+            "raw-auction-request-trace": "I've been here",
+            "processed-auction-request-trace": "I've been here"
           }
         }
       }

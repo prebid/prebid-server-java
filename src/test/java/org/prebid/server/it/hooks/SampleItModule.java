@@ -12,7 +12,8 @@ public class SampleItModule implements Module {
     public Collection<? extends Hook<?, ?>> hooks() {
         return Arrays.asList(
                 new SampleItEntrypointHook(),
-                new SampleItRawAuctionRequestHook());
+                new SampleItRawAuctionRequestHook(),
+                new SampleItProcessedAuctionRequestHook());
     }
 
     @Override
