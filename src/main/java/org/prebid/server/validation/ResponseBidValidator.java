@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 public class ResponseBidValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(ResponseBidValidator.class);
-    private static final ConditionalLogger UNRELATED_BID_LOGGER = new ConditionalLogger("unrelated_bid", logger);
+    private static final ConditionalLogger UNRELATED_BID_LOGGER = new ConditionalLogger("not_matched_bid", logger);
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
     private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
@@ -54,21 +54,22 @@ public class ResponseBidValidator {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public ValidationResult validate(
-            BidderBid bidderBid, String bidder, AuctionContext auctionContext, BidderAliases aliases) {
+    public ValidationResult validate(BidderBid bidderBid,
+                                     String bidder,
+                                     AuctionContext auctionContext,
+                                     BidderAliases aliases) {
 
+        final Bid bid = bidderBid.getBid();
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
         final List<String> warnings = new ArrayList<>();
 
         try {
-            final Bid bid = bidderBid.getBid();
-            final BidRequest bidRequest = auctionContext.getBidRequest();
-            final Account account = auctionContext.getAccount();
-
             validateCommonFields(bid);
             validateTypeSpecific(bidderBid);
             validateCurrency(bidderBid.getBidCurrency());
 
-            final Imp correspondingImp = findCorrespondingImp(bidRequest, bid);
+            final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
                 warnings.addAll(validateBannerFields(bidderBid, bidder, account, correspondingImp, aliases));
             }
@@ -82,7 +83,7 @@ public class ResponseBidValidator {
 
     private static void validateCommonFields(Bid bid) throws ValidationException {
         if (bid == null) {
-            throw new ValidationException("Empty bid object submitted.");
+            throw new ValidationException("Empty bid object submitted");
         }
 
         final String bidId = bid.getId();
@@ -115,18 +116,19 @@ public class ResponseBidValidator {
     private static void validateTypeSpecific(BidderBid bidderBid) throws ValidationException {
         final Bid bid = bidderBid.getBid();
         final boolean isVastSpecificAbsent = bid.getAdm() == null && bid.getNurl() == null;
+
         if (Objects.equals(bidderBid.getType(), BidType.video) && isVastSpecificAbsent) {
             throw new ValidationException("Bid \"%s\" with video type missing adm and nurl", bid.getId());
         }
     }
 
-    private static void validateCurrency(String currency) {
+    private static void validateCurrency(String currency) throws ValidationException {
         try {
             if (StringUtils.isNotBlank(currency)) {
                 Currency.getInstance(currency);
             }
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(String.format("BidResponse currency is not valid: %s", currency), e);
+            throw new ValidationException("BidResponse currency \"%s\" is not valid", currency);
         }
     }
 
@@ -210,20 +212,20 @@ public class ResponseBidValidator {
         return Collections.emptyList();
     }
 
-    private static Imp findCorrespondingImp(BidRequest bidRequest, Bid bid) throws ValidationException {
+    private static Imp findCorrespondingImp(Bid bid, BidRequest bidRequest) throws ValidationException {
         return bidRequest.getImp().stream()
-                .filter(curImp -> Objects.equals(curImp.getId(), bid.getImpid()))
+                .filter(imp -> Objects.equals(imp.getId(), bid.getImpid()))
                 .findFirst()
                 .orElseThrow(() -> exceptionAndLogOnePercent(
                         String.format("Bid \"%s\" has no corresponding imp in request", bid.getId())));
     }
 
     private static ValidationException exceptionAndLogOnePercent(String message) {
-        UNRELATED_BID_LOGGER.warn(message, 100);
+        UNRELATED_BID_LOGGER.warn(message, 0.01);
         return new ValidationException(message);
     }
 
-    public static boolean isImpSecure(Imp imp) {
+    private static boolean isImpSecure(Imp imp) {
         return Objects.equals(imp.getSecure(), 1);
     }
 
@@ -238,7 +240,6 @@ public class ResponseBidValidator {
                                                                    Consumer<MetricName> metricsRecorder,
                                                                    String message,
                                                                    Object... args) throws ValidationException {
-
         switch (enforcement) {
             case enforce:
                 metricsRecorder.accept(MetricName.err);
