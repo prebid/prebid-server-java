@@ -1129,15 +1129,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer siteExtAmp = extSite != null ? extSite.getAmp() : null;
         final Content siteContent = site != null ? site.getContent() : null;
         final List<Data> siteContentData = siteContent != null ? siteContent.getData() : null;
-        final ObjectNode target = existingRubiconSiteExtRpTarget(extSite);
+        ObjectNode target = null;
 
         if (CollectionUtils.isNotEmpty(siteContentData)) {
+            target = existingRubiconSiteExtRpTarget(extSite);
             enrichWithIabAttribute(target, siteContentData, 1, 2);
         }
 
         return mapper.fillExtension(
                 ExtSite.of(siteExtAmp, null),
-                RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId(), !target.isEmpty() ? target : null)));
+                RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId(),
+                        target != null && !target.isEmpty() ? target : null)));
     }
 
     private ObjectNode existingRubiconSiteExtRpTarget(ExtSite siteExt) {
