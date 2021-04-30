@@ -10,7 +10,6 @@ import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class SampleItProcessedBidderResponseHook implements ProcessedBidderResponseHook {
@@ -33,13 +32,6 @@ public class SampleItProcessedBidderResponseHook implements ProcessedBidderRespo
     }
 
     private List<BidderBid> updateBids(List<BidderBid> originalBids) {
-        final boolean shouldUpdate =
-                !originalBids.isEmpty()
-                        && Objects.equals(originalBids.get(0).getBid().getImpid(), "sample-it-module-impId1");
-        if (!shouldUpdate) {
-            return originalBids;
-        }
-
         return originalBids.stream()
                 .map(bidderBid -> BidderBid.of(
                         bidderBid.getBid().toBuilder()

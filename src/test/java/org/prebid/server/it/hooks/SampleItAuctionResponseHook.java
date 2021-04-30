@@ -9,7 +9,6 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
 
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class SampleItAuctionResponseHook implements AuctionResponseHook {
@@ -34,16 +33,6 @@ public class SampleItAuctionResponseHook implements AuctionResponseHook {
     }
 
     private BidResponse updateBidResponse(BidResponse originalBidResponse) {
-        final boolean shouldUpdate =
-                !originalBidResponse.getSeatbid().isEmpty()
-                        && !originalBidResponse.getSeatbid().get(0).getBid().isEmpty()
-                        && Objects.equals(
-                        originalBidResponse.getSeatbid().get(0).getBid().get(0).getImpid(),
-                        "sample-it-module-impId1");
-        if (!shouldUpdate) {
-            return originalBidResponse;
-        }
-
         return originalBidResponse.toBuilder()
                 .seatbid(originalBidResponse.getSeatbid().stream()
                         .map(seatBid -> seatBid.toBuilder()

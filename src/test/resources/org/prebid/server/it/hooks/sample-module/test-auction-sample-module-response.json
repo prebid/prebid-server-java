@@ -5,7 +5,7 @@
       "bid": [
         {
           "id": "880290288",
-          "impid": "sample-it-module-impId1",
+          "impid": "impId1",
           "price": 8.43,
           "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[Processed bidder response hook have been here]]></Impression><Impression><![CDATA[Auction response hook have been here too]]></Impression>",
           "crid": "crid1",
@@ -29,7 +29,7 @@
         "id": "tid",
         "imp": [
           {
-            "id": "sample-it-module-impId1",
+            "id": "impId1",
             "banner": {
               "format": [
                 {
@@ -59,7 +59,7 @@
           "domain": "example.com",
           "page": "http://www.example.com",
           "publisher": {
-            "id": "5001"
+            "id": "6001"
           },
           "ext": {
             "amp": 0
@@ -89,10 +89,6 @@
             }
           },
           "sample-it-module": {
-            "update": [
-              "raw-auction-request",
-              "processed-auction-request"
-            ],
             "raw-auction-request-trace": "I've been here",
             "processed-auction-request-trace": "I've been here"
           }

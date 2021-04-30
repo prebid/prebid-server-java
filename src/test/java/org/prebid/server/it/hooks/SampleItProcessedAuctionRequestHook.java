@@ -1,5 +1,6 @@
 package org.prebid.server.it.hooks;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
@@ -9,9 +10,16 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
 public class SampleItProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
+
+    private final JacksonMapper mapper;
+
+    public SampleItProcessedAuctionRequestHook(JacksonMapper mapper) {
+        this.mapper = mapper;
+    }
 
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(
@@ -33,24 +41,26 @@ public class SampleItProcessedAuctionRequestHook implements ProcessedAuctionRequ
     }
 
     private BidRequest updateBidRequest(BidRequest originalBidRequest) {
-        final boolean shouldUpdate = SampleItModuleUtil.shouldHookUpdateBidRequest(originalBidRequest, code());
-        if (!shouldUpdate) {
-            return originalBidRequest;
-        }
-
         final ExtRequest originalExt = originalBidRequest.getExt();
 
-        final ObjectNode updatedModuleExt = originalExt
-                .getProperty(SampleItModuleUtil.MODULE_EXT)
-                .<ObjectNode>deepCopy()
-                .put(code() + "-trace", "I've been here");
+        final JsonNode moduleExt = originalExt != null ? originalExt.getProperty(SampleItModule.MODULE_EXT) : null;
+        final ObjectNode updatedModuleExt =
+                moduleExt != null ? moduleExt.deepCopy() : mapper.mapper().createObjectNode();
+        updatedModuleExt.put(code() + "-trace", "I've been here");
 
-        final ExtRequest updatedExt = ExtRequest.of(originalExt.getPrebid());
-        updatedExt.addProperties(originalExt.getProperties());
-        updatedExt.addProperty(SampleItModuleUtil.MODULE_EXT, updatedModuleExt);
+        final ExtRequest updatedExt = copyExt(originalExt);
+        updatedExt.addProperty(SampleItModule.MODULE_EXT, updatedModuleExt);
 
         return originalBidRequest.toBuilder()
                 .ext(updatedExt)
                 .build();
+    }
+
+    private ExtRequest copyExt(ExtRequest originalExt) {
+        final ExtRequest updatedExt = originalExt != null ? ExtRequest.of(originalExt.getPrebid()) : ExtRequest.empty();
+        if (originalExt != null) {
+            updatedExt.addProperties(originalExt.getProperties());
+        }
+        return updatedExt;
     }
 }

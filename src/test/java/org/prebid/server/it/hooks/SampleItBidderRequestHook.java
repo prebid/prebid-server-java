@@ -11,7 +11,6 @@ import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class SampleItBidderRequestHook implements BidderRequestHook {
@@ -37,13 +36,6 @@ public class SampleItBidderRequestHook implements BidderRequestHook {
 
     private BidRequest updateBidRequest(
             BidRequest originalBidRequest, BidderInvocationContext bidderInvocationContext) {
-
-        final boolean shouldUpdate =
-                Objects.equals(originalBidRequest.getImp().get(0).getId(), "sample-it-module-impId1")
-                        && Objects.equals(bidderInvocationContext.bidder(), "rubicon");
-        if (!shouldUpdate) {
-            return originalBidRequest;
-        }
 
         final List<Imp> updatedImps = originalBidRequest.getImp().stream()
                 .map(imp -> imp.toBuilder().id(imp.getId() + "-rubicon").build())

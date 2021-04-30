@@ -2,7 +2,7 @@
   "id": "tid",
   "imp": [
     {
-      "id": "sample-it-module-impId1",
+      "id": "impId1",
       "banner": {
         "format": [
           {
@@ -34,7 +34,7 @@
   "site": {
     "page": "http://www.example.com",
     "publisher": {
-      "id": "5001"
+      "id": "6001"
     }
   },
   "at": 1,
@@ -56,12 +56,6 @@
     "prebid": {
       "debug": 1,
       "auctiontimestamp": 1000
-    },
-    "sample-it-module": {
-      "update": [
-        "raw-auction-request",
-        "processed-auction-request"
-      ]
     }
   }
 }
