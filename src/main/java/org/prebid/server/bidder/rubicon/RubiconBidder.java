@@ -930,7 +930,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return extUserEidUidExt == null || !STYPE_TO_REMOVE.contains(extUserEidUidExt.getStype())
                 ? extUserEidUid
                 : ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
-                        ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
+                ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
@@ -1004,7 +1004,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (user != null) {
             mergeFirstPartyDataFromUser(user.getExt(), result);
 
-            enrichWithIabAttribute(result, user.getData());
+            enrichWithIabAttribute(result, user.getData(), 3);
         }
 
         return result.size() > 0 ? result : null;
@@ -1039,10 +1039,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void enrichWithIabAttribute(ObjectNode target, List<Data> data) {
+    private void enrichWithIabAttribute(ObjectNode target, List<Data> data, int... segtaxValues) {
         final List<String> iabValue = CollectionUtils.emptyIfNull(data).stream()
                 .filter(Objects::nonNull)
-                .filter(dataRecord -> containsIabTaxonomyName(dataRecord.getExt()))
+                .filter(dataRecord -> containsSegtaxValue(dataRecord.getExt(), segtaxValues))
                 .map(Data::getSegment)
                 .filter(Objects::nonNull)
                 .flatMap(segments -> segments.stream()
@@ -1056,10 +1056,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private boolean containsIabTaxonomyName(ObjectNode ext) {
-        final JsonNode taxonomyName = ext != null ? ext.get("taxonomyname") : null;
-        return taxonomyName != null && taxonomyName.isTextual()
-                && StringUtils.containsIgnoreCase(taxonomyName.textValue(), "iab");
+    private boolean containsSegtaxValue(ObjectNode ext, int... segtaxValues) {
+        final Set<Integer> matchingValues = Arrays.stream(segtaxValues).boxed().collect(Collectors.toSet());
+        final JsonNode taxonomyName = ext != null ? ext.get("segtax") : null;
+
+        return taxonomyName != null && taxonomyName.isInt() && matchingValues.contains(taxonomyName.intValue());
     }
 
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
@@ -1092,10 +1093,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .content(makeSiteContent(null, impLanguage))
                 .build()
                 : site.toBuilder()
-                        .publisher(makePublisher(rubiconImpExt))
-                        .content(makeSiteContent(site.getContent(), impLanguage))
-                        .ext(makeSiteExt(site, rubiconImpExt))
-                        .build();
+                .publisher(makePublisher(rubiconImpExt))
+                .content(makeSiteContent(site.getContent(), impLanguage))
+                .ext(makeSiteExt(site, rubiconImpExt))
+                .build();
     }
 
     private static Content makeSiteContent(Content siteContent, String impLanguage) {
@@ -1126,10 +1127,27 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private ExtSite makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
         final ExtSite extSite = site != null ? site.getExt() : null;
         final Integer siteExtAmp = extSite != null ? extSite.getAmp() : null;
+        final Content siteContent = site != null ? site.getContent() : null;
+        final List<Data> siteContentData = siteContent != null ? siteContent.getData() : null;
+        final ObjectNode target = existingRubiconSiteExtRpTarget(extSite);
+
+        if (CollectionUtils.isNotEmpty(siteContentData)) {
+            enrichWithIabAttribute(target, siteContentData, 1, 2);
+        }
 
         return mapper.fillExtension(
                 ExtSite.of(siteExtAmp, null),
-                RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId())));
+                RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId(), !target.isEmpty() ? target : null)));
+    }
+
+    private ObjectNode existingRubiconSiteExtRpTarget(ExtSite siteExt) {
+        final RubiconSiteExt siteRubiconExt = siteExt != null
+                ? mapper.mapper().convertValue(siteExt, RubiconSiteExt.class)
+                : null;
+        final RubiconSiteExtRp rubiconSiteExtRp = siteRubiconExt != null ? siteRubiconExt.getRp() : null;
+        final JsonNode target = rubiconSiteExtRp != null ? rubiconSiteExtRp.getTarget() : null;
+
+        return target != null && target.isObject() ? (ObjectNode) target : mapper.mapper().createObjectNode();
     }
 
     private App makeApp(App app, ExtImpRubicon rubiconImpExt) {
@@ -1141,7 +1159,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private ExtApp makeAppExt(ExtImpRubicon rubiconImpExt) {
         return mapper.fillExtension(ExtApp.of(null, null),
-                RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId())));
+                RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId(), null)));
     }
 
     private static Source makeSource(Source source, String pchain) {
