@@ -5,10 +5,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -35,6 +38,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -51,6 +55,7 @@ public class DmxBidder implements Bidder<BidRequest> {
     private static final int SECURE = 1;
     private static final String IMP = "</Impression><Impression><![CDATA[%s]]></Impression>";
     private static final String SEARCH = "</Impression>";
+    private static final List<Integer> VIDEO_PROTOCOLS = Arrays.asList(2, 3, 5, 6, 7, 8);
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -63,7 +68,7 @@ public class DmxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         try {
-            validateUserAndApp(request.getApp(), request.getUser());
+            validateRequest(request);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -102,7 +107,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(validImps)
                 .site(modifySite(request.getSite(), updatedPublisherId))
-                .app(modifyApp(request.getApp(), updatedPublisherId))
+                .app(modifyApp(request.getApp(), request.getDevice(), updatedPublisherId))
                 .build();
 
         final String urlParameter = StringUtils.isNotBlank(updatedSellerId)
@@ -119,6 +124,37 @@ public class DmxBidder implements Bidder<BidRequest> {
                         .payload(outgoingRequest)
                         .build()),
                 errors);
+    }
+
+    private static void validateRequest(BidRequest bidRequest) {
+        final User user = bidRequest.getUser();
+        final App app = bidRequest.getApp();
+
+        if (user == null && app == null) {
+            throw new PreBidException("No user id or app id found. Could not send request to DMX.");
+        }
+
+        if (app != null) {
+            if (StringUtils.isNotBlank(app.getId())) {
+                return;
+            } else if (StringUtils.isNotBlank(bidRequest.getDevice().getIfa())) {
+                return;
+            }
+        }
+
+        if (user != null) {
+            if (StringUtils.isNotBlank(user.getId())) {
+                return;
+            }
+
+            final ExtUser userExt = user.getExt();
+            // Notice that digitrust is absent to keep prebid convention
+            if (userExt != null && CollectionUtils.isNotEmpty(userExt.getEids())) {
+                return;
+            }
+        }
+
+        throw new PreBidException("This request contained no identifier");
     }
 
     private ExtImpDmx parseImpExt(Imp imp) {
@@ -157,60 +193,72 @@ public class DmxBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        BigDecimal bidFloor = imp.getBidfloor();
-        final BigDecimal extBidFloor = extImp.getBidFloor();
-        if (extBidFloor != null && extBidFloor.compareTo(BigDecimal.ZERO) > 0) {
-            bidFloor = extBidFloor;
-        }
-
         return imp.toBuilder()
                 .tagid(tagId)
                 .secure(StringUtils.isAllBlank(extTagId, dmxId) ? imp.getSecure() : SECURE)
-                .bidfloor(bidFloor)
+                .bidfloor(resolveBidFloor(extImp, imp.getBidfloor()))
+                .banner(resolveBanner(imp.getBanner()))
+                .video(resolveVideo(imp.getVideo()))
                 .build();
     }
 
-    private static void validateUserAndApp(App app, User user) {
-        if (user == null && app == null) {
-            throw new PreBidException("No user id or app id found. Could not send request to DMX.");
-        }
+    private static BigDecimal resolveBidFloor(ExtImpDmx extImp, BigDecimal bidFloor) {
+        final BigDecimal extBidFloor = extImp.getBidFloor();
+        return extBidFloor != null && extBidFloor.compareTo(BigDecimal.ZERO) > 0
+                ? extBidFloor
+                : bidFloor;
+    }
 
-        if (app != null && StringUtils.isNotBlank(app.getId())) {
-            return;
-        }
+    private static Banner resolveBanner(Banner banner) {
+        final Integer width = banner == null ? null : banner.getW();
+        final Integer height = banner == null ? null : banner.getH();
+        final List<Format> format = banner != null ? banner.getFormat() : null;
 
-        if (user != null) {
-            if (StringUtils.isNotBlank(user.getId())) {
-                return;
+        if ((height == null || width == null) && CollectionUtils.isNotEmpty(format)) {
+            final Format firstFormat = format.get(0);
+            if (firstFormat != null) {
+                return banner.toBuilder()
+                        .w(firstFormat.getW())
+                        .h(firstFormat.getH())
+                        .build();
             }
-
-            final ExtUser userExt = user.getExt();
-            // Notice that digitrust is absent to keep prebid convention
-            if (userExt != null && CollectionUtils.isNotEmpty(userExt.getEids())) {
-                return;
-            }
         }
+        return banner;
+    }
 
-        throw new PreBidException("This request contained no identifier");
+    private static Video resolveVideo(Video video) {
+        return video == null
+                ? null
+                : video.toBuilder()
+                .protocols(resolveVideoProtocols(video.getProtocols()))
+                .build();
+
+    }
+
+    private static List<Integer> resolveVideoProtocols(List<Integer> videoProtocols) {
+        return CollectionUtils.isNotEmpty(videoProtocols)
+                ? videoProtocols
+                : VIDEO_PROTOCOLS;
     }
 
     private Site modifySite(Site site, String updatedPublisherId) {
         return site == null
                 ? null
                 : site.toBuilder()
-                        .publisher(modifyPublisher(site.getPublisher(), updatedPublisherId, false))
-                        .build();
+                .publisher(modifyPublisher(site.getPublisher(), updatedPublisherId, false))
+                .build();
     }
 
-    private App modifyApp(App app, String updatedPublisherId) {
+    private App modifyApp(App app, Device device, String updatedPublisherId) {
         return app == null
                 ? null
                 : app.toBuilder()
-                        .publisher(modifyPublisher(app.getPublisher(), updatedPublisherId, true))
-                        .build();
+                .id(StringUtils.isNotBlank(app.getId()) ? app.getId() : device.getIfa())
+                .publisher(modifyPublisher(app.getPublisher(), updatedPublisherId, true))
+                .build();
     }
 
-    private Publisher modifyPublisher(Publisher publisher, String updatedPublisherId, boolean extOnEmptyPublisher) {
+    private Publisher modifyPublisher(Publisher publisher, String updatedPublisherId, boolean setExtOnEmptyPublisher) {
 
         final DmxPublisherExtId dmxPublisherExtId = DmxPublisherExtId.of(updatedPublisherId);
         final ObjectNode encodedPublisherExt = mapper.mapper().valueToTree(dmxPublisherExtId);
@@ -220,11 +268,11 @@ public class DmxBidder implements Bidder<BidRequest> {
         if (publisher == null) {
             return Publisher.builder()
                     .id(updatedPublisherId)
-                    .ext(extOnEmptyPublisher ? extPublisher : null)
+                    .ext(setExtOnEmptyPublisher ? extPublisher : null)
                     .build();
         } else {
             return publisher.toBuilder()
-                    .id(ObjectUtils.firstNonNull(publisher.getId(), updatedPublisherId))
+                    .id(ObjectUtils.defaultIfNull(publisher.getId(), updatedPublisherId))
                     .ext(extPublisher)
                     .build();
         }

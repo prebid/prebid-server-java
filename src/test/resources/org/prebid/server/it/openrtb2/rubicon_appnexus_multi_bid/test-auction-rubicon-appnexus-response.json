@@ -47,6 +47,7 @@
                 "imp": "{{ event.url }}t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int="
               }
             },
+            "origbidcpm": 12.43,
             "bidder": {
               "rp": {
                 "targeting": [
@@ -98,6 +99,7 @@
                 "imp": "{{ event.url }}t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int="
               }
             },
+            "origbidcpm": 8.43,
             "bidder": {
               "rp": {
                 "targeting": [
@@ -158,6 +160,8 @@
                 "imp": "{{ event.url }}t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int="
               }
             },
+            "origbidcpm": 5.5,
+            "origbidcur": "USD",
             "bidder": {
               "appnexus": {
                 "brand_id": 1,
@@ -203,6 +207,8 @@
                 "imp": "{{ event.url }}t=imp&b=222214214214&a=5001&ts=1000&bidder=appnexus&f=i&int="
               }
             },
+            "origbidcpm": 2.0,
+            "origbidcur": "USD",
             "bidder": {
               "appnexus": {
                 "brand_id": 1,

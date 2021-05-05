@@ -35,7 +35,9 @@
                   "cacheId": "9a5d11a7-de5a-4ce4-8e89-d37f18a10045"
                 }
               }
-            }
+            },
+            "origbidcpm": 2.942808,
+            "origbidcur": "USD"
           }
         }
       ],
@@ -58,7 +60,7 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"uuid\",\"impid\":\"uuid\",\"price\":2.942808,\"adm\":\"<div id=\\\"123456789_ad\\\"><script>!function(){console.log\\\"Hello, world.\\\";}();</script></div>\",\"adid\":\"94395500\",\"crid\":\"94395500\",\"w\":300,\"h\":250}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"uuid\",\"impid\":\"uuid\",\"price\":2.942808,\"adm\":\"<div id=\\\"123456789_ad\\\"><script>!function(){console.log\\\"Hello, world.\\\";}();</script></div>\",\"adid\":\"94395500\",\"crid\":\"94395500\",\"w\":300,\"h\":250,\"ext\":{\"origbidcpm\":2.942808,\"origbidcur\":\"USD\"}}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"9a5d11a7-de5a-4ce4-8e89-d37f18a10045\"}]}",
             "status": 200
           }

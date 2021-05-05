@@ -141,9 +141,9 @@ public class EplanningBidder implements Bidder<Void> {
         final ExtImpEplanning extImpEplanning;
         try {
             extImpEplanning = mapper.mapper().convertValue(imp.getExt(), EPLANNING_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format(
-                    "Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(), ex.getMessage()));
+                    "Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(), e.getMessage()));
         }
 
         if (extImpEplanning == null) {

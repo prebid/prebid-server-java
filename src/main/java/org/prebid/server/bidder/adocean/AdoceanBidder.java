@@ -307,8 +307,8 @@ public class AdoceanBidder implements Bidder<Void> {
             return mapper.mapper().readValue(
                     responseBody,
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, AdoceanResponseAdUnit.class));
-        } catch (IOException ex) {
-            throw new PreBidException(ex.getMessage());
+        } catch (IOException e) {
+            throw new PreBidException(e.getMessage());
         }
     }
 }

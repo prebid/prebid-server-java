@@ -61,11 +61,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 final ExtImpSmartadserver extImpSmartadserver = parseImpExt(imp);
                 final BidRequest updatedRequest = request.toBuilder()
                         .imp(Collections.singletonList(imp))
-                        .site(Site.builder()
-                                .publisher(Publisher.builder()
-                                        .id(String.valueOf(extImpSmartadserver.getNetworkId()))
-                                        .build())
-                                .build())
+                        .site(modifySite(request.getSite(), extImpSmartadserver.getNetworkId()))
                         .build();
                 result.add(createSingleRequest(updatedRequest));
             } catch (PreBidException e) {
@@ -105,6 +101,21 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 .setPath(String.format("%s/api/bid", StringUtils.removeEnd(uri.getPath(), "/")))
                 .addParameter("callerId", "5")
                 .toString();
+    }
+
+    private static Site modifySite(Site site, Integer networkId) {
+        final Site.SiteBuilder siteBuilder = site != null ? site.toBuilder() : Site.builder();
+        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+
+        return siteBuilder.publisher(modifyPublisher(sitePublisher, networkId)).build();
+    }
+
+    private static Publisher modifyPublisher(Publisher publisher, Integer networkId) {
+        final Publisher.PublisherBuilder publisherBuilder = publisher != null
+                ? publisher.toBuilder()
+                : Publisher.builder();
+
+        return publisherBuilder.id(String.valueOf(networkId)).build();
     }
 
     @Override

@@ -18,6 +18,8 @@ public class TcfContext {
 
     TCString consent;
 
+    Boolean isConsentValid;
+
     GeoInfo geoInfo;
 
     Boolean inEea;

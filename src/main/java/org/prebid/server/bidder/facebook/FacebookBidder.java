@@ -317,10 +317,12 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 throw new PreBidException(String.format("bid %s missing 'bid_id' in 'adm'", bid.getId()));
             }
 
-            bid.setAdid(bidId);
-            bid.setCrid(bidId);
+            final Bid modifiedBid = bid.toBuilder()
+                    .adid(bidId)
+                    .crid(bidId)
+                    .build();
 
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
+            return BidderBid.of(modifiedBid, resolveBidType(modifiedBid.getImpid(), imps), currency);
 
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));

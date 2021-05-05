@@ -110,17 +110,12 @@
       },
       "multibid": [
         {
-          "bidder": "rubicon",
-          "maxbids": 2,
-          "targetbiddercodeprefix": "rubN"
-        },
-        {
           "bidder": "appnexus",
           "maxbids": 2
         }
       ],
       "auctiontimestamp": 1000,
-      "events" : { },
+      "events": {},
       "channel": {
         "name": "web"
       }

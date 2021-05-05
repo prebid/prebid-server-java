@@ -125,7 +125,17 @@ public class Metrics extends UpdatableMetrics {
         incCounter(MetricName.imps_requested, numImps);
     }
 
-    public void updateImpTypesMetrics(Map<String, Long> countPerMediaType) {
+    public void updateImpTypesMetrics(List<Imp> imps) {
+
+        final Map<String, Long> mediaTypeToCount = imps.stream()
+                .map(Metrics::getPresentMediaTypes)
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        updateImpTypesMetrics(mediaTypeToCount);
+    }
+
+    void updateImpTypesMetrics(Map<String, Long> countPerMediaType) {
         for (Map.Entry<String, Long> mediaTypeCount : countPerMediaType.entrySet()) {
             switch (mediaTypeCount.getKey()) {
                 case "banner":
@@ -145,16 +155,6 @@ public class Metrics extends UpdatableMetrics {
                     break;
             }
         }
-    }
-
-    public void updateImpTypesMetrics(List<Imp> imps) {
-
-        final Map<String, Long> mediaTypeToCount = imps.stream()
-                .map(Metrics::getPresentMediaTypes)
-                .flatMap(Collection::stream)
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-
-        updateImpTypesMetrics(mediaTypeToCount);
     }
 
     private static List<String> getPresentMediaTypes(Imp imp) {
