@@ -61,6 +61,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -139,6 +140,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PPUID_STYPE = "ppuid";
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
+    private static final String XAPI_CURRENCY = "USD";
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
             DMP_STYPE));
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
@@ -150,6 +152,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final Set<String> supportedVendors;
     private final boolean generateBidId;
+    private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
     private final MultiMap headers;
@@ -159,11 +162,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          String xapiPassword,
                          List<String> supportedVendors,
                          boolean generateBidId,
+                         CurrencyConversionService currencyConversionService,
                          JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.supportedVendors = new HashSet<>(supportedVendors);
         this.generateBidId = generateBidId;
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
 
         this.headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
@@ -189,7 +194,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 final Imp imp = impToExt.getKey();
                 final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = impToExt.getValue();
                 final BidRequest singleRequest = createSingleRequest(
-                        imp, ext.getPrebid(), ext.getBidder(), bidRequest, impLanguage);
+                        imp, ext.getPrebid(), ext.getBidder(), bidRequest, impLanguage, errors);
                 final String body = mapper.encode(singleRequest);
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -228,11 +233,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         final RubiconTargetingExtRp rp = rubiconTargetingExt.getRp();
-        final List<RubiconTargeting> targeting = rp != null ? rp.getTargeting() : null;
-        return targeting != null
-                ? targeting.stream()
-                .filter(rubiconTargeting -> !CollectionUtils.isEmpty(rubiconTargeting.getValues()))
-                .collect(Collectors.toMap(RubiconTargeting::getKey, t -> t.getValues().get(0)))
+        final List<RubiconTargeting> targetings = rp != null ? rp.getTargeting() : null;
+        return targetings != null
+                ? targetings.stream()
+                .filter(targeting -> !CollectionUtils.isEmpty(targeting.getValues()))
+                .collect(Collectors.toMap(RubiconTargeting::getKey, targeting -> targeting.getValues().get(0)))
                 : Collections.emptyMap();
     }
 
@@ -322,21 +327,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest createSingleRequest(Imp imp,
-                                           ExtImpPrebid extPrebid,
-                                           ExtImpRubicon extRubicon,
+                                           ExtImpPrebid extImpPrebid,
+                                           ExtImpRubicon extImpRubicon,
                                            BidRequest bidRequest,
-                                           String impLanguage) {
-
-        final Site site = bidRequest.getSite();
-        final App app = bidRequest.getApp();
+                                           String impLanguage,
+                                           List<BidderError> errors) {
 
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app, bidRequest.getExt())))
-                .user(makeUser(bidRequest.getUser(), extRubicon))
+                .imp(Collections.singletonList(makeImp(imp, extImpPrebid, extImpRubicon, bidRequest, errors)))
+                .user(makeUser(bidRequest.getUser(), extImpRubicon))
                 .device(makeDevice(bidRequest.getDevice()))
-                .site(makeSite(site, impLanguage, extRubicon))
-                .app(makeApp(app, extRubicon))
-                .source(makeSource(bidRequest.getSource(), extRubicon.getPchain()))
+                .site(makeSite(bidRequest.getSite(), impLanguage, extImpRubicon))
+                .app(makeApp(bidRequest.getApp(), extImpRubicon))
+                .source(makeSource(bidRequest.getSource(), extImpRubicon.getPchain()))
                 .cur(null) // suppress currencies
                 .ext(null) // suppress ext
                 .build();
@@ -380,21 +383,33 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Imp makeImp(Imp imp,
-                        ExtImpPrebid extPrebid,
-                        ExtImpRubicon extRubicon,
-                        Site site, App app,
-                        ExtRequest extRequest) {
+                        ExtImpPrebid extImpPrebid,
+                        ExtImpRubicon extImpRubicon,
+                        BidRequest bidRequest,
+                        List<BidderError> errors) {
+
+        final App app = bidRequest.getApp();
+        final Site site = bidRequest.getSite();
+        final ExtRequest extRequest = bidRequest.getExt();
+
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
-                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app, extRequest)));
+                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extImpRubicon, site, app, extRequest)));
+
+        final BigDecimal resolvedBidFloor = resolveBidFloor(imp, bidRequest, errors);
+        if (resolvedBidFloor != null) {
+            builder
+                    .bidfloorcur(XAPI_CURRENCY)
+                    .bidfloor(resolvedBidFloor);
+        }
 
         if (isVideo(imp)) {
             builder
                     .banner(null)
-                    .video(makeVideo(imp, extRubicon.getVideo(), extPrebid, referer(site)));
+                    .video(makeVideo(imp, extImpRubicon.getVideo(), extImpPrebid, referer(site)));
         } else {
             builder
-                    .banner(makeBanner(imp, overriddenSizes(extRubicon)))
+                    .banner(makeBanner(imp, overriddenSizes(extImpRubicon)))
                     .video(null);
         }
 
@@ -422,6 +437,60 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private boolean isMetricSupported(Metric metric) {
         return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
+    }
+
+    private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
+        final BigDecimal resolvedBidFloorPrice = resolveBidFloorPrice(imp);
+        if (resolvedBidFloorPrice == null) {
+            return null;
+        }
+
+        final String resolvedBidFloorCurrency = resolveBidFloorCurrency(imp, bidRequest, errors);
+        return ObjectUtils.notEqual(resolvedBidFloorCurrency, XAPI_CURRENCY)
+                ? convertBidFloorCurrency(resolvedBidFloorPrice, resolvedBidFloorCurrency, imp, bidRequest)
+                : null;
+    }
+
+    private static BigDecimal resolveBidFloorPrice(Imp imp) {
+        final BigDecimal bidFloor = imp.getBidfloor();
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : null;
+    }
+
+    private static String resolveBidFloorCurrency(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
+        final String bidFloorCurrency = imp.getBidfloorcur();
+        if (StringUtils.isBlank(bidFloorCurrency)) {
+            if (isDebugEnabled(bidRequest)) {
+                errors.add(BidderError.badInput(String.format("Imp `%s` floor provided with no currency, assuming %s",
+                        imp.getId(), XAPI_CURRENCY)));
+            }
+            return XAPI_CURRENCY;
+        }
+        return bidFloorCurrency;
+    }
+
+    /**
+     * Determines debug flag from {@link BidRequest} or {@link ExtRequest}.
+     */
+    private static boolean isDebugEnabled(BidRequest bidRequest) {
+        if (Objects.equals(bidRequest.getTest(), 1)) {
+            return true;
+        }
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
+    }
+
+    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor,
+                                               String bidFloorCurrency,
+                                               Imp imp,
+                                               BidRequest bidRequest) {
+        try {
+            return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCurrency, XAPI_CURRENCY);
+        } catch (PreBidException e) {
+            throw new PreBidException(String.format(
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s` with a reason: %s",
+                    bidFloorCurrency, XAPI_CURRENCY, imp.getId(), e.getMessage()));
+        }
     }
 
     private RubiconImpExt makeImpExt(Imp imp,
@@ -930,7 +999,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return extUserEidUidExt == null || !STYPE_TO_REMOVE.contains(extUserEidUidExt.getStype())
                 ? extUserEidUid
                 : ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
-                        ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
+                ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
@@ -1092,10 +1161,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .content(makeSiteContent(null, impLanguage))
                 .build()
                 : site.toBuilder()
-                        .publisher(makePublisher(rubiconImpExt))
-                        .content(makeSiteContent(site.getContent(), impLanguage))
-                        .ext(makeSiteExt(site, rubiconImpExt))
-                        .build();
+                .publisher(makePublisher(rubiconImpExt))
+                .content(makeSiteContent(site.getContent(), impLanguage))
+                .ext(makeSiteExt(site, rubiconImpExt))
+                .build();
     }
 
     private static Content makeSiteContent(Content siteContent, String impLanguage) {
