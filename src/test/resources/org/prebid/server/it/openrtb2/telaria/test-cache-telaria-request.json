@@ -11,7 +11,8 @@
         "exp": 120,
         "crid": "test_video_crid",
         "ext": {
-          "format": "VIDEO"
+          "format": "VIDEO",
+          "origbidcpm": 0.01
         }
       },
       "expiry": 120

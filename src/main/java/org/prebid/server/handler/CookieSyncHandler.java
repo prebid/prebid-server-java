@@ -13,6 +13,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
@@ -22,6 +23,7 @@ import org.prebid.server.auction.model.CookieSyncContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncInfoAssembler;
 import org.prebid.server.bidder.UsersyncMethodChooser;
+import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -69,10 +71,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
+    private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
+
+    // Probably this should be moved to config since hardcoding of "uid" param is not ideal
     private static final String HOST_BIDDER_USERSYNC_URL_TEMPLATE =
-            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s&f=%s";
-    private static final String SETUID_RESPONSE_FORMAT_BLANK = "b";
-    private static final String SETUID_RESPONSE_FORMAT_IMAGE = "i";
+            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s";
 
     private final String externalUrl;
     private final long defaultTimeout;
@@ -234,6 +237,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
         if (isGdprParamsNotConsistent(cookieSyncRequest)) {
             return new InvalidRequestException("gdpr_consent is required if gdpr is 1");
+        }
+
+        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
+        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+            return new InvalidRequestException("Consent string is invalid");
         }
 
         return null;
@@ -457,7 +465,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void updateCookieSyncTcfMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
         for (String bidder : syncBidders) {
             if (rejectedBidders.contains(bidder)) {
-                metrics.updateCookieSyncTcfBlockedMetric(bidder);
+                metrics.updateCookieSyncTcfBlockedMetric(
+                        bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER);
             } else {
                 metrics.updateCookieSyncGenMetric(bidder);
             }
@@ -580,22 +589,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                            Usersyncer.UsersyncMethod usersyncMethod,
                                            String hostCookieUid) {
 
-        return String.format(
+        final String url = String.format(
                 HOST_BIDDER_USERSYNC_URL_TEMPLATE,
                 externalUrl,
                 cookieFamilyName,
-                HttpUtil.encodeUrl(hostCookieUid),
-                setuidResponseFormatFrom(usersyncMethod));
-    }
+                HttpUtil.encodeUrl(hostCookieUid));
 
-    private static String setuidResponseFormatFrom(Usersyncer.UsersyncMethod usersyncMethod) {
-        switch (usersyncMethod.getType()) {
-            case Usersyncer.UsersyncMethod.REDIRECT_TYPE:
-                return SETUID_RESPONSE_FORMAT_IMAGE;
-            case Usersyncer.UsersyncMethod.IFRAME_TYPE:
-            default:
-                return SETUID_RESPONSE_FORMAT_BLANK;
-        }
+        return UsersyncUtil.enrichUsersyncUrlWithFormat(url, usersyncMethod.getType());
     }
 
     private void updateCookieSyncMatchMetrics(Collection<String> syncBidders,

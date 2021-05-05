@@ -232,10 +232,11 @@ public class TcfDefinerServiceTest {
         assertThat(result.result()).extracting(
                 TcfContext::getGdpr,
                 TcfContext::getConsentString,
+                TcfContext::getIsConsentValid,
                 TcfContext::getGeoInfo,
                 TcfContext::getInEea,
                 TcfContext::getIpAddress)
-                .containsExactly("1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null, null);
+                .containsExactly("1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", true, null, null, null);
         assertThat(result.result().getConsent()).isNotNull();
 
         verifyZeroInteractions(geoLocationService);
@@ -364,6 +365,37 @@ public class TcfDefinerServiceTest {
                 .containsExactly("0", null, null, null, null);
 
         verifyZeroInteractions(geoLocationService);
+    }
+
+    @Test
+    public void resolveTcfContextShouldReturnTcfContextWithConsentValidAsTrue() {
+        // when
+        final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
+                Privacy.of("1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null), null, null, MetricName.setuid, null,
+                null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result()).extracting(
+                TcfContext::getGdpr,
+                TcfContext::getConsentString,
+                TcfContext::getIsConsentValid)
+                .containsExactly("1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", true);
+    }
+
+    @Test
+    public void resolveTcfContextShouldReturnTcfContextWithConsentValidAsFalse() {
+        // when
+        final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
+                Privacy.of("1", "invalid", null, null), null, null, MetricName.setuid, null, null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result()).extracting(
+                TcfContext::getGdpr,
+                TcfContext::getConsentString,
+                TcfContext::getIsConsentValid)
+                .containsExactly("1", "invalid", false);
     }
 
     @Test

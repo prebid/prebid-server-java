@@ -62,7 +62,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class Ortb2RequestFactoryTest extends VertxTest {
 
-    private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
+    private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("321");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -206,7 +206,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder()
-                        .publisher(Publisher.builder().id("bad_acc").build()).build())
+                        .publisher(Publisher.builder().id("321").build()).build())
                 .build();
 
         // when
@@ -218,7 +218,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
                 .isInstanceOf(BlacklistedAccountException.class)
-                .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
+                .hasMessage("Prebid-server has blacklisted Account ID: 321, please reach out to the prebid "
                         + "server host.");
     }
 
@@ -424,7 +424,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest mergedBidRequest = BidRequest.builder()
                 .site(Site.builder()
-                        .publisher(Publisher.builder().id("bad_acc").build()).build())
+                        .publisher(Publisher.builder().id("321").build()).build())
                 .build();
         given(storedRequestProcessor.processStoredRequests(any(), any()))
                 .willReturn(Future.succeededFuture(mergedBidRequest));
@@ -440,7 +440,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
                 .isInstanceOf(BlacklistedAccountException.class)
-                .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
+                .hasMessage("Prebid-server has blacklisted Account ID: 321, please reach out to the prebid "
                         + "server host.");
     }
 
@@ -470,9 +470,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         verifyZeroInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
-        assertThat(result.cause())
-                .isInstanceOf(UnauthorizedAccountException.class)
-                .hasMessage("Unauthorized account id: ");
+        assertThat(result.cause()).hasMessage("error");
     }
 
     @Test
@@ -490,13 +488,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
         verifyZeroInteractions(applicationSettings);
 
-        assertThat(result.result().getAccount()).isEqualTo(Account.empty(""));
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).hasMessage("error");
     }
 
     @Test
     public void shouldReturnExpectedAuctionContext() {
         // given
-        final String accountId = "accountId";
+        final String accountId = "123";
         final long tmax = 1000L;
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder()

@@ -16,7 +16,7 @@ adapters:
       supported-vendors:
       vendor-id: 724
     usersync:
-      url: https://ads.betweendigital.com/match?bidder_id=pbs&gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&callback_url=
+      url: https://ads.betweendigital.com/match?bidder_id=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback_url=
       redirect-url: /setuid?bidder=between&gdpr=0&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}&uid=${USER_ID}
       cookie-family-name: between
       type: redirect

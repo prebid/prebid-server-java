@@ -17,6 +17,7 @@ import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -45,13 +46,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private static final String BIDDER_PARAM = "bidder";
     private static final String UID_PARAM = "uid";
-    private static final String FORMAT_PARAM = "f";
-    private static final String IMG_FORMAT_PARAM = "i";
-    private static final String BLANK_FORMAT_PARAM = "b";
     private static final String PIXEL_FILE_PATH = "static/tracking-pixel.png";
     private static final String ACCOUNT_PARAM = "account";
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS = 451;
-    private static final String REDIRECT = "redirect";
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
@@ -163,6 +160,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
             return new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
         }
 
+        final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
+        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+            return new InvalidRequestException("Consent string is invalid");
+        }
+
         final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
             return new UnauthorizedUidsException("Sync is not allowed for this uids");
@@ -249,8 +251,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         final int status = HttpResponseStatus.OK.code();
 
-        // Send pixel file to response if "format=img"
-        final String format = routingContext.request().getParam(FORMAT_PARAM);
+        final String format = routingContext.request().getParam(UsersyncUtil.FORMAT_PARAMETER);
         if (shouldRespondWithPixel(format, setuidContext.getSyncType())) {
             routingContext.response().sendFile(PIXEL_FILE_PATH);
         } else {
@@ -267,8 +268,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private boolean shouldRespondWithPixel(String format, String syncType) {
-        return StringUtils.equals(format, IMG_FORMAT_PARAM)
-                || !StringUtils.equals(format, BLANK_FORMAT_PARAM) && StringUtils.equals(syncType, REDIRECT);
+        return StringUtils.equals(format, UsersyncUtil.IMG_FORMAT)
+                || (!StringUtils.equals(format, UsersyncUtil.BLANK_FORMAT)
+                && StringUtils.equals(syncType, Usersyncer.UsersyncMethod.REDIRECT_TYPE));
     }
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {

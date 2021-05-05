@@ -69,8 +69,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         final String firstImpExtPublisher;
         try {
             firstImpExtPublisher = getAndValidateImpExt(request.getImp().get(0));
-        } catch (PreBidException ex) {
-            return Result.withError(BidderError.badInput(ex.getMessage()));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final BidRequest updateBidRequest = updateBidRequest(request, firstImpExtPublisher, errors);

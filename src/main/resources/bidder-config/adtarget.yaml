@@ -18,8 +18,8 @@ adapters:
       supported-vendors:
       vendor-id: 779
     usersync:
-      url: https://sync.console.adtarget.com.tr/csync?t=p&ep=0&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=adtarget&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={uid}
+      url:
+      redirect-url:
       cookie-family-name: adtarget
-      type: redirect
+      type: iframe
       support-cors: false

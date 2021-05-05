@@ -91,8 +91,8 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             try {
                 validateImpression(imp);
                 extImpAdtelligent = getExtImpAdtelligent(imp);
-            } catch (PreBidException ex) {
-                errors.add(BidderError.badInput(ex.getMessage()));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
             final Imp updatedImp = updateImp(imp, extImpAdtelligent);
