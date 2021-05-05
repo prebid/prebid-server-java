@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Arrays;
 
-public enum Purpose {
+public enum PurposeCode {
 
     ONE(1),
     TWO(2),
@@ -22,7 +22,7 @@ public enum Purpose {
     @JsonValue
     private final int code;
 
-    Purpose(int code) {
+    PurposeCode(int code) {
         this.code = code;
     }
 
@@ -31,7 +31,7 @@ public enum Purpose {
     }
 
     @JsonCreator
-    public static Purpose valueOf(int code) {
+    public static PurposeCode valueOf(int code) {
         return Arrays.stream(values())
                 .filter(purpose -> purpose.code == code)
                 .findFirst()

@@ -81,8 +81,8 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             try {
                 validateImpression(imp);
                 extImpAdtarget = parseImpAdtarget(imp);
-            } catch (PreBidException ex) {
-                errors.add(BidderError.badInput(ex.getMessage()));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
             final Imp updatedImp = updateImp(imp, extImpAdtarget);

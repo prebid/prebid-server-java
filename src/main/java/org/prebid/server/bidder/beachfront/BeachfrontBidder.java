@@ -389,11 +389,11 @@ public class BeachfrontBidder implements Bidder<Void> {
         final String bodyString = httpCall.getResponse().getBody();
         try {
             return processVideoResponse(bodyString, httpCall.getRequest());
-        } catch (DecodeException e) {
+        } catch (DecodeException ignored) {
             try {
                 return processBannerResponse(bodyString);
-            } catch (PreBidException ex) {
-                return Result.withError(BidderError.badServerResponse(ex.getMessage()));
+            } catch (PreBidException e) {
+                return Result.withError(BidderError.badServerResponse(e.getMessage()));
             }
         }
     }
