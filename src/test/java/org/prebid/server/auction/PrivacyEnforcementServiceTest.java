@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import org.junit.Before;
 import org.junit.Rule;
@@ -20,6 +19,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
@@ -94,6 +94,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Mock
     private TcfDefinerService tcfDefinerService;
     @Mock
+    private ImplicitParametersExtractor implicitParametersExtractor;
+    @Mock
     private IpAddressHelper ipAddressHelper;
     @Mock
     private Metrics metrics;
@@ -119,7 +121,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         privacyExtractor = new PrivacyExtractor();
 
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, false, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, false, false);
     }
 
     @Test
@@ -293,10 +296,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void contextFromSetuidRequestShouldReturnContext() {
         // given
-        final HttpServerRequest request = mock(HttpServerRequest.class);
-        given(request.getParam("gdpr")).willReturn("1");
-        given(request.getParam("gdpr_consent")).willReturn("consent");
-        given(request.headers()).willReturn(MultiMap.caseInsensitiveMultiMap().add("X-Forwarded-For", "ip"));
+        final HttpServerRequest httpRequest = mock(HttpServerRequest.class);
+        given(httpRequest.getParam("gdpr")).willReturn("1");
+        given(httpRequest.getParam("gdpr_consent")).willReturn("consent");
+
+        given(implicitParametersExtractor.ipFrom(httpRequest)).willReturn(singletonList("ip"));
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
 
         final TcfContext tcfContext = TcfContext.builder()
                 .gdpr("1")
@@ -310,7 +315,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromSetuidRequest(
-                request, Account.empty(accountId), null);
+                httpRequest, Account.empty(accountId), null);
 
         // then
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.EMPTY, 0);
@@ -324,9 +329,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void contextFromCookieSyncRequestShouldReturnContext() {
         // given
-        final HttpServerRequest httpServerRequest = mock(HttpServerRequest.class);
-        given(httpServerRequest.headers())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("X-Forwarded-For", "ip"));
+        final HttpServerRequest httpRequest = mock(HttpServerRequest.class);
+        given(implicitParametersExtractor.ipFrom(httpRequest)).willReturn(singletonList("ip"));
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
 
         final CookieSyncRequest cookieSyncRequest = CookieSyncRequest.builder()
                 .gdpr(1)
@@ -346,7 +351,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromCookieSyncRequest(
-                cookieSyncRequest, httpServerRequest, Account.empty(accountId), null);
+                cookieSyncRequest, httpRequest, Account.empty(accountId), null);
 
         // then
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
@@ -393,7 +398,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaWhenUsPolicyIsValidAndCoppaIsZero() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, true, false);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -530,7 +536,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForTcfWhenTcfServiceAllowAllAndDeviceLmtIsOneAndLmtIsEnforced() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, false, true);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1160,7 +1167,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaAndTcfWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, true, false);
 
         final String bidder1Name = "bidder1Name";
         final String bidder2Name = "bidder2Name";
@@ -1230,7 +1238,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldNotMaskForCcpaWhenCatchAllWildcardIsPresentInNosaleList() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, true, false);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1284,7 +1293,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrueInConfigurationAndFalseInAccount() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, true, false);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder().enforceCcpa(false).build();
@@ -1297,7 +1307,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrue() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, true, false);
 
         final Ccpa ccpa = Ccpa.of("1YNY");
         final Account account = Account.builder().build();
@@ -1310,7 +1321,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnTrueWhenEnforcedPropertyIsTrueAndCcpaReturnsTrue() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, true, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, true, false);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder().build();
