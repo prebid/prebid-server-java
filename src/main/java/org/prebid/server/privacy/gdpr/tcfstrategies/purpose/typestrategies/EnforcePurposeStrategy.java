@@ -4,7 +4,7 @@ import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -12,13 +12,13 @@ import java.util.stream.Collectors;
 public abstract class EnforcePurposeStrategy {
 
     public abstract Collection<VendorPermission> allowedByTypeStrategy(
-            Purpose purpose,
+            PurposeCode purpose,
             TCString vendorConsent,
             Collection<VendorPermissionWithGvl> vendorsForPurpose,
             Collection<VendorPermissionWithGvl> excludedVendors,
             boolean isEnforceVendors);
 
-    protected boolean isAllowedBySimpleConsentOrLegitimateInterest(Purpose purpose,
+    protected boolean isAllowedBySimpleConsentOrLegitimateInterest(PurposeCode purpose,
                                                                    Integer vendorId,
                                                                    boolean isEnforceVendor,
                                                                    TCString tcString) {
@@ -28,7 +28,7 @@ public abstract class EnforcePurposeStrategy {
 
     }
 
-    protected boolean isAllowedBySimpleConsent(Purpose purpose,
+    protected boolean isAllowedBySimpleConsent(PurposeCode purpose,
                                                Integer vendorId,
                                                boolean isEnforceVendor,
                                                TCString tcString) {
@@ -39,7 +39,7 @@ public abstract class EnforcePurposeStrategy {
         return isAllowedByConsents(purpose, vendorId, isEnforceVendor, purposesConsent, vendorConsent);
     }
 
-    protected boolean isAllowedByLegitimateInterest(Purpose purpose,
+    protected boolean isAllowedByLegitimateInterest(PurposeCode purpose,
                                                     Integer vendorId,
                                                     boolean isEnforceVendor,
                                                     TCString tcString) {
@@ -50,7 +50,7 @@ public abstract class EnforcePurposeStrategy {
         return isAllowedByConsents(purpose, vendorId, isEnforceVendor, purposesConsent, vendorConsent);
     }
 
-    private boolean isAllowedByConsents(Purpose purpose,
+    private boolean isAllowedByConsents(PurposeCode purpose,
                                         Integer vendorId,
                                         boolean isEnforceVendors,
                                         IntIterable purposesConsent,
