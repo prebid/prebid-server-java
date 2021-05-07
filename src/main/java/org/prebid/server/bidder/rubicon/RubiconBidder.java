@@ -1280,8 +1280,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Float cpmOverrideFromImp(Imp imp) {
-        final ExtImpRubiconDebug debug = parseRubiconExt(imp).getBidder().getDebug();
-
+        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> extPrebid = imp != null ? parseRubiconExt(imp) : null;
+        final ExtImpRubicon bidder = extPrebid != null ? extPrebid.getBidder() : null;
+        final ExtImpRubiconDebug debug = bidder != null ? bidder.getDebug() : null;
         return debug != null ? debug.getCpmoverride() : null;
     }
 

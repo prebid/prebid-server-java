@@ -493,10 +493,6 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private static String getCrId(String nurl) {
         final String[] split = nurl.split(":");
-
-        if (split.length > 1) {
-            return split[2]; //Index out of bound???...
-        }
-        return null;
+        return split.length > 2 ? split[2] : null;
     }
 }
