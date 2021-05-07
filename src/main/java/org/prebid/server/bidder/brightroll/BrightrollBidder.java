@@ -261,10 +261,10 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        final List<SeatBid> seatBids = bidResponse != null ? bidResponse.getSeatbid() : null;
-        return CollectionUtils.isEmpty(seatBids)
-                ? Result.empty()
-                : Result.withValues(createBiddersBids(seatBids, imps, bidResponse.getCur()));
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
+        }
+        return Result.withValues(createBiddersBids(bidResponse.getSeatbid(), imps, bidResponse.getCur()));
     }
 
     /**
