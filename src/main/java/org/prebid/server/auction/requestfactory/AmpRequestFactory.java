@@ -643,7 +643,12 @@ public class AmpRequestFactory {
                 prebidBuilder.amp(ExtRequestPrebidAmp.of(updatedAmpData));
             }
 
-            result = ExtRequest.of(prebidBuilder.build());
+            final ExtRequest updatedExt = ExtRequest.of(prebidBuilder.build());
+            if (requestExt != null) {
+                updatedExt.addProperties(requestExt.getProperties());
+            }
+
+            result = updatedExt;
         } else {
             result = bidRequest.getExt();
         }
