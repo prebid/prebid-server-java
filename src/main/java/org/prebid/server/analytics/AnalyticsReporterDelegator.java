@@ -1,5 +1,6 @@
 package org.prebid.server.analytics;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
@@ -13,15 +14,18 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAnalytic;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Class dispatches event processing to all enabled reporters.
@@ -68,14 +72,14 @@ public class AnalyticsReporterDelegator {
                     privacyEnforcementMapResult.result();
             validateEvent(event);
             for (AnalyticsReporter analyticsReporter : delegates) {
-                final T preparedEvent = prepareEvent(event, analyticsReporter.name());
+                prepareEvent(event, analyticsReporter.name());
                 final int reporterVendorId = analyticsReporter.vendorId();
                 // resultForVendorIds is guaranteed returning for each provided value except null,
                 // but to be sure lets use getOrDefault
                 final PrivacyEnforcementAction reporterPrivacyAction = privacyEnforcementActionMap
                         .getOrDefault(reporterVendorId, PrivacyEnforcementAction.restrictAll());
                 if (!reporterPrivacyAction.isBlockAnalyticsReport()) {
-                    vertx.runOnContext(ignored -> analyticsReporter.processEvent(preparedEvent));
+                    vertx.runOnContext(ignored -> analyticsReporter.processEvent(event));
                 }
             }
 
@@ -96,52 +100,47 @@ public class AnalyticsReporterDelegator {
     private void validateExtPrebidAnalytics(AuctionEvent auctionEvent) {
         final ExtRequest requestExt = auctionEvent.getAuctionContext().getBidRequest().getExt();
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
-        final List<ExtRequestPrebidAnalytic> analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
-        final List<String> unknownAnalyticsAdapters = CollectionUtils.emptyIfNull(analytics).stream()
-                .map(ExtRequestPrebidAnalytic::getAdapter)
-                .filter(s -> !reporterNames.contains(s))
-                .collect(Collectors.toList());
+        final ObjectNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
+        final Iterator<String> analyticsFieldNames = analytics != null && !analytics.isEmpty()
+                ? analytics.fieldNames() : null;
 
-        if (CollectionUtils.isNotEmpty(unknownAnalyticsAdapters)) {
-            logger.warn(
-                    String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s", unknownAnalyticsAdapters));
+        if (analyticsFieldNames != null) {
+            final List<String> unknownAdapterNames = StreamSupport.stream(
+                    Spliterators.spliteratorUnknownSize(analyticsFieldNames, Spliterator.ORDERED), false)
+                    .filter(adapter -> !reporterNames.contains(adapter))
+                    .collect(Collectors.toList());
+            if (CollectionUtils.isNotEmpty(unknownAdapterNames)) {
+                logger.warn(
+                        String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s", analyticsFieldNames));
+            }
         }
     }
 
-    private <T> T prepareEvent(T event, String delegatorAdapter) {
+    private static <T> void prepareEvent(T event, String delegatorAdapter) {
         if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(delegatorAdapter) && event instanceof AuctionEvent) {
             final AuctionEvent auctionEvent = (AuctionEvent) event;
-            final AuctionContext updatedAuctionContext =
-                    updateAuctionContextForDelegator(auctionEvent.getAuctionContext(), delegatorAdapter);
-
-            return updatedAuctionContext != null
-                    ? (T) auctionEvent.toBuilder().auctionContext(updatedAuctionContext).build()
-                    : event;
+            updateAuctionContextForDelegator(auctionEvent.getAuctionContext(), delegatorAdapter);
         }
-        return event;
     }
 
-    private AuctionContext updateAuctionContextForDelegator(AuctionContext context, String delegatorAdapter) {
-        final BidRequest updatedBidRequest = updateBidRequest(context.getBidRequest(), delegatorAdapter);
-
-        return updatedBidRequest != null ? context.toBuilder()
-                .bidRequest(updateBidRequest(context.getBidRequest(), delegatorAdapter))
-                .build() : null;
+    private static void updateAuctionContextForDelegator(AuctionContext context, String delegatorAdapter) {
+        updateBidRequest(context.getBidRequest(), delegatorAdapter);
     }
 
-    private BidRequest updateBidRequest(BidRequest bidRequest, String adapterName) {
+    private static void updateBidRequest(BidRequest bidRequest, String adapterName) {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
-        final List<ExtRequestPrebidAnalytic> analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
+        final ObjectNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
+        if (analytics != null && !analytics.isEmpty()) {
+            prepareAnalytics(analytics, adapterName);
+        }
+    }
 
-        final List<ExtRequestPrebidAnalytic> adapterRelatedEntrys = CollectionUtils.emptyIfNull(analytics).stream()
-                .filter(analytic -> Objects.equals(adapterName, analytic.getAdapter()))
-                .collect(Collectors.toList());
-
-        return analytics != null && !adapterRelatedEntrys.equals(analytics) ? bidRequest.toBuilder()
-                .ext(ExtRequest.of(extPrebid.toBuilder()
-                        .analytics(adapterRelatedEntrys)
-                        .build()))
-                .build() : null;
+    private static void prepareAnalytics(ObjectNode analytics, String adapterName) {
+        analytics.fieldNames().forEachRemaining(fieldName -> {
+            if (!Objects.equals(adapterName, fieldName)) {
+                analytics.remove(fieldName);
+            }
+        });
     }
 }

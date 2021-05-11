@@ -1,5 +1,9 @@
 package org.prebid.server.analytics;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -20,9 +24,7 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAnalytic;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -94,12 +96,12 @@ public class AnalyticsReporterDelegatorTest {
 
         given(privacyEnforcementService.resultForVendorIds(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
-
+        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
+        analyticsNode.set("adapter", new TextNode("someValue"));
+        analyticsNode.set("anotherAdapter", new IntNode(2));
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .analytics(Arrays.asList(
-                                ExtRequestPrebidAnalytic.of("adapter"),
-                                ExtRequestPrebidAnalytic.of("anotherAdapter")))
+                        .analytics(analyticsNode)
                         .build())).build();
         final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
                 .auctionContext(AuctionContext.builder()
@@ -116,18 +118,17 @@ public class AnalyticsReporterDelegatorTest {
                 .extracting("bidRequest")
                 .extracting("ext")
                 .extracting("prebid")
-                .flatExtracting("analytics")
-                .hasSize(2)
-                .containsExactlyInAnyOrder(ExtRequestPrebidAnalytic.of("adapter"),
-                        ExtRequestPrebidAnalytic.of("anotherAdapter"));
+                .extracting("analytics")
+                .containsExactly(analyticsNode);
+        final ObjectNode expectedAnalytics = new ObjectMapper().createObjectNode();
+        expectedAnalytics.set("adapter", new TextNode("someValue"));
         assertThat(captureAuctionEvent(secondReporter))
                 .extracting(AuctionEvent::getAuctionContext)
                 .extracting("bidRequest")
                 .extracting("ext")
                 .extracting("prebid")
-                .flatExtracting("analytics")
-                .hasSize(1)
-                .containsExactly(ExtRequestPrebidAnalytic.of("adapter"));
+                .extracting("analytics")
+                .containsExactly(expectedAnalytics);
     }
 
     @Test
