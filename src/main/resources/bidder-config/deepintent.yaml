@@ -17,7 +17,7 @@ adapters:
       vendor-id: 541
     usersync:
       url: https://match.deepintent.com/usersync/136?id=unk&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
-      redirect-url: /setuid?bidder=deepintent&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[UID]
+      redirect-url: /setuid?bidder=deepintent&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${DI_USER_ID}
       cookie-family-name: deepintent
       type: iframe
       support-cors: false
