@@ -109,15 +109,16 @@ public class TappxBidder implements Bidder<BidRequest> {
             throw new PreBidException("Tappx tappxkey undefined");
         }
 
-        return buildUrl(endpointUrl, host, endpoint, tappxkey, test);
+        return buildUrl(host, endpoint, tappxkey, test);
     }
 
-    private static String buildUrl(String endpointUrl, String host, String endpoint, String tappxkey, Integer test) {
+    private String buildUrl(String host, String endpoint, String tappxkey, Integer test) {
         try {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl + host);
 
-            if (!host.contains(endpoint)) {
-                uriBuilder.setPath(endpoint);
+            if (!StringUtils.containsIgnoreCase(host, endpoint)) {
+                String path = buildUrlPath(uriBuilder.getPath(), endpoint);
+                uriBuilder.setPath(path);
             }
 
             uriBuilder.addParameter("tappxkey", tappxkey);
@@ -132,6 +133,12 @@ public class TappxBidder implements Bidder<BidRequest> {
         } catch (URISyntaxException e) {
             throw new PreBidException(String.format("Failed to build endpoint URL: %s", e.getMessage()));
         }
+    }
+
+    private static String buildUrlPath(String path, String endpoint) {
+        String strippedPath = StringUtils.stripEnd(path, "/");
+        String strippedEndpoint = StringUtils.stripStart(endpoint, "/");
+        return strippedPath + "/" + strippedEndpoint;
     }
 
     /**
