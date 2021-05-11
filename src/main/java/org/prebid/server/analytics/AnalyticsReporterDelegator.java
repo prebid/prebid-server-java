@@ -72,14 +72,14 @@ public class AnalyticsReporterDelegator {
                     privacyEnforcementMapResult.result();
             validateEvent(event);
             for (AnalyticsReporter analyticsReporter : delegates) {
-                prepareEvent(event, analyticsReporter.name());
+                final T updatedEvent = updateEvent(event, analyticsReporter.name());
                 final int reporterVendorId = analyticsReporter.vendorId();
                 // resultForVendorIds is guaranteed returning for each provided value except null,
                 // but to be sure lets use getOrDefault
                 final PrivacyEnforcementAction reporterPrivacyAction = privacyEnforcementActionMap
                         .getOrDefault(reporterVendorId, PrivacyEnforcementAction.restrictAll());
                 if (!reporterPrivacyAction.isBlockAnalyticsReport()) {
-                    vertx.runOnContext(ignored -> analyticsReporter.processEvent(event));
+                    vertx.runOnContext(ignored -> analyticsReporter.processEvent(updatedEvent));
                 }
             }
 
@@ -116,31 +116,53 @@ public class AnalyticsReporterDelegator {
         }
     }
 
-    private static <T> void prepareEvent(T event, String delegatorAdapter) {
+    private static <T> T updateEvent(T event, String delegatorAdapter) {
         if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(delegatorAdapter) && event instanceof AuctionEvent) {
             final AuctionEvent auctionEvent = (AuctionEvent) event;
-            updateAuctionContextForDelegator(auctionEvent.getAuctionContext(), delegatorAdapter);
+            final AuctionContext updatedAuctionContext =
+                    updateAuctionContextForDelegator(auctionEvent.getAuctionContext(), delegatorAdapter);
+            return updatedAuctionContext != null
+                    ? (T) auctionEvent.toBuilder().auctionContext(updatedAuctionContext).build()
+                    : event;
         }
+
+        return event;
     }
 
-    private static void updateAuctionContextForDelegator(AuctionContext context, String delegatorAdapter) {
-        updateBidRequest(context.getBidRequest(), delegatorAdapter);
+    private static AuctionContext updateAuctionContextForDelegator(AuctionContext context, String delegatorAdapter) {
+        final BidRequest updatedBidRequest = updateBidRequest(context.getBidRequest(), delegatorAdapter);
+
+        return updatedBidRequest != null ? context.toBuilder().bidRequest(updatedBidRequest).build() : null;
     }
 
-    private static void updateBidRequest(BidRequest bidRequest, String adapterName) {
+    private static BidRequest updateBidRequest(BidRequest bidRequest, String adapterName) {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
         final ObjectNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
+        ObjectNode preparedAnalytics = null;
         if (analytics != null && !analytics.isEmpty()) {
-            prepareAnalytics(analytics, adapterName);
+            preparedAnalytics = prepareAnalytics(analytics, adapterName);
         }
+        final ExtRequest updatedExtRequest = preparedAnalytics != null ? ExtRequest.of(extPrebid.toBuilder()
+                .analytics(preparedAnalytics)
+                .build()) : null;
+
+        if (updatedExtRequest != null) {
+            updatedExtRequest.addProperties(requestExt.getProperties());
+            return bidRequest.toBuilder().ext(updatedExtRequest).build();
+        }
+
+        return null;
     }
 
-    private static void prepareAnalytics(ObjectNode analytics, String adapterName) {
-        analytics.fieldNames().forEachRemaining(fieldName -> {
+    private static ObjectNode prepareAnalytics(ObjectNode analytics, String adapterName) {
+        final ObjectNode analyticsNodeCopy = analytics.deepCopy();
+        analyticsNodeCopy.fieldNames().forEachRemaining(fieldName -> {
             if (!Objects.equals(adapterName, fieldName)) {
-                analytics.remove(fieldName);
+                analyticsNodeCopy.remove(fieldName);
             }
         });
+
+        return !analyticsNodeCopy.isEmpty() ? analyticsNodeCopy : null;
     }
 }
