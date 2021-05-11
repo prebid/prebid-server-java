@@ -58,6 +58,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class Ortb2ImplicitParametersResolverTest extends VertxTest {
@@ -227,6 +228,23 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build());
         assertThat(result.getDevice())
                 .isEqualTo(Device.builder().ipv6("2001:0db8:85a3:0000::").ua("UnitTest").build());
+    }
+
+    @Test
+    public void shouldNotImplicitlyResolveIpIfIpv6IsPassed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334").build())
+                .build();
+
+        given(ipAddressHelper.toIpAddress(eq("2001:0db8:85a3:0000:0000:8a2e:0370:7334")))
+                .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.v6));
+
+        // when
+        target.resolve(bidRequest, routingContext, timeoutResolver);
+
+        // then
+        verify(paramsExtractor, never()).ipFrom(any());
     }
 
     @Test
