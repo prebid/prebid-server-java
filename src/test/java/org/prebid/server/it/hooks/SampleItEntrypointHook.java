@@ -16,6 +16,15 @@ public class SampleItEntrypointHook implements EntrypointHook {
     public Future<InvocationResult<EntrypointPayload>> call(
             EntrypointPayload entrypointPayload, InvocationContext invocationContext) {
 
+        final boolean rejectFlag = Boolean.parseBoolean(entrypointPayload.queryParams().get("sample-it-module-reject"));
+        if (rejectFlag) {
+            return Future.succeededFuture(InvocationResultImpl.rejected("Rejected by sample entrypoint hook"));
+        }
+
+        return maybeUpdate(entrypointPayload);
+    }
+
+    private Future<InvocationResult<EntrypointPayload>> maybeUpdate(EntrypointPayload entrypointPayload) {
         final String updateSelector = entrypointPayload.queryParams().get("sample-it-module-update");
 
         final MultiMap updatedHeaders = StringUtils.contains(updateSelector, "headers")
