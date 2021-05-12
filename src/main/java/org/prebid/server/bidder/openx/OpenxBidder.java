@@ -10,7 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -32,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -160,7 +160,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         final ExtImpPrebid prebidImpExt = impExt.getPrebid();
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(openxImpExt.getUnit())
-                .bidfloor(ObjectUtils.defaultIfNull(imp.getBidfloor(), openxImpExt.getCustomFloor()))
+                .bidfloor(resolveBidFloor(imp.getBidfloor(), openxImpExt.getCustomFloor()))
                 .ext(makeImpExt(openxImpExt.getCustomParams()));
 
         if (resolveImpType(imp) == OpenxImpType.video
@@ -171,6 +171,16 @@ public class OpenxBidder implements Bidder<BidRequest> {
                     .build());
         }
         return impBuilder.build();
+    }
+
+    private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal customFloor) {
+        return !bidFloorIsValid(impBidFloor) && bidFloorIsValid(customFloor)
+                ? customFloor
+                : impBidFloor;
+    }
+
+    private static boolean bidFloorIsValid(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private ExtRequest makeReqExt(Imp imp) {
