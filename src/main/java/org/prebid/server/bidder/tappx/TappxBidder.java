@@ -109,7 +109,7 @@ public class TappxBidder implements Bidder<BidRequest> {
 
     private String buildUrl(String host, String endpoint, String tappxkey, Integer test) {
         try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl + host);
+            final URIBuilder uriBuilder = new URIBuilder(resolveHost(host));
 
             if (!StringUtils.containsIgnoreCase(host, endpoint)) {
                 final String path = buildUrlPath(uriBuilder.getPath(), endpoint);
@@ -128,6 +128,12 @@ public class TappxBidder implements Bidder<BidRequest> {
         } catch (URISyntaxException e) {
             throw new PreBidException(String.format("Failed to build endpoint URL: %s", e.getMessage()));
         }
+    }
+
+    private String resolveHost(String host) {
+        return StringUtils.startsWithAny(host.toLowerCase(), "http://", "https://")
+                ? host
+                : endpointUrl + host;
     }
 
     private static String buildUrlPath(String path, String endpoint) {
