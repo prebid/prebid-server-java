@@ -209,11 +209,11 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReplaceDefaultParametersWithExtPrebidBiddersBidder() {
         // given
-        final ExtRequest prebidExt = ExtRequest.of(ExtRequestPrebid.builder()
+        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
                 .integration("test")
                 .build());
 
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(prebidExt),
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(extRequest),
                 builder -> builder.banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
                         .build()), identity());
 
@@ -434,8 +434,7 @@ public class RubiconBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBanner).doesNotContainNull()
                 .containsOnly(Banner.builder()
-                        .format(singletonList(
-                                Format.builder().w(616).h(360).build()))
+                        .format(singletonList(Format.builder().w(616).h(360).build()))
                         .ext(mapper.valueToTree(RubiconBannerExt.of(RubiconBannerExtRp.of(101, null, "text/html"))))
                         .build());
     }
@@ -2174,7 +2173,7 @@ public class RubiconBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldMergeImpExtContextSearchAndSiteSearchAndCopyToRubiconImpExtRpTarget()
-            throws IOException {
+            throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.site(Site.builder().search("site search").build()),
@@ -2440,13 +2439,13 @@ public class RubiconBidderTest extends VertxTest {
                         Metric.builder().type("unsupported").value(0.5f).vendor("comscore").build(),
                         Metric.builder().type("viewability").value(0.6f).vendor("seller-declared").build(),
                         Metric.builder().type("unsupported").value(0.7f).vendor("somebody").build());
+
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
-                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null,
-                        null,
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null, null,
                         RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com"), 1));
     }
 
@@ -2490,6 +2489,21 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldTolerateMismatchedBidImpId() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.id("impId")),
+                givenBidResponse(bidBuilder -> bidBuilder.price(ONE).impid("mismatched_impId")));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -2507,8 +2521,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfRequestImpHasNoVideo() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                givenBidResponse(ONE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(ONE));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
@@ -2804,11 +2817,13 @@ public class RubiconBidderTest extends VertxTest {
 
     @Test
     public void extractTargetingShouldReturnEmptyMapForEmptyExtension() {
+        // when and then
         assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
     }
 
     @Test
     public void extractTargetingShouldReturnEmptyMapForInvalidExtension() {
+        // when and then
         assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode().put("rp", 1))).isEmpty();
         assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode().putObject("rp").put("targeting", 1)))
                 .isEmpty();
@@ -2816,11 +2831,13 @@ public class RubiconBidderTest extends VertxTest {
 
     @Test
     public void extractTargetingShouldReturnEmptyMapForNullRp() {
+        // when and then
         assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode().putObject("rp"))).isEmpty();
     }
 
     @Test
     public void extractTargetingShouldReturnEmptyMapForNullTargeting() {
+        // when and then
         assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode().putObject("rp").putObject("targeting")))
                 .isEmpty();
     }
@@ -2881,15 +2898,22 @@ public class RubiconBidderTest extends VertxTest {
                 null);
     }
 
-    private static String givenBidResponse(BigDecimal price) throws JsonProcessingException {
+    private static String givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer)
+            throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .price(price)
-                                .build()))
+                        .bid(singletonList(givenBid(bidCustomizer)))
                         .build()))
                 .build());
+    }
+
+    private static String givenBidResponse(BigDecimal price) throws JsonProcessingException {
+        return givenBidResponse(bidBuilder -> bidBuilder.price(price));
+    }
+
+    private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(Bid.builder()).build();
     }
 
     @AllArgsConstructor(staticName = "of")

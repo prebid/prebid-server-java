@@ -224,7 +224,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType(bid, impIdToBidType), bidCurrency))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, impIdToBidType), bidCurrency))
                 .collect(Collectors.toList());
     }
 
@@ -233,7 +233,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toMap(Imp::getId, imp -> imp.getBanner() != null ? BidType.banner : BidType.video));
     }
 
-    private static BidType bidType(Bid bid, Map<String, BidType> impIdToBidType) {
+    private static BidType getBidType(Bid bid, Map<String, BidType> impIdToBidType) {
         return impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
     }
 }

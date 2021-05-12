@@ -49,11 +49,6 @@ public class TappxBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    /**
-     * Makes the HTTP requests which should be made to fetch bids.
-     * <p>
-     * Creates POST http request with all parameters in url and headers with encoded request in body.
-     */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ExtImpTappx extImpTappx;
