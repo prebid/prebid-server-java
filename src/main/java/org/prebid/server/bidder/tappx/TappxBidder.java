@@ -117,7 +117,7 @@ public class TappxBidder implements Bidder<BidRequest> {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl + host);
 
             if (!StringUtils.containsIgnoreCase(host, endpoint)) {
-                String path = buildUrlPath(uriBuilder.getPath(), endpoint);
+                final String path = buildUrlPath(uriBuilder.getPath(), endpoint);
                 uriBuilder.setPath(path);
             }
 
@@ -126,8 +126,8 @@ public class TappxBidder implements Bidder<BidRequest> {
             uriBuilder.addParameter("type_cnn", TYPE_CNN);
 
             if (test != null && test == 0) {
-                int t = (int) System.nanoTime();
-                uriBuilder.addParameter("ts", String.valueOf(t));
+                final String ts = String.valueOf(System.nanoTime());
+                uriBuilder.addParameter("ts", ts);
             }
             return uriBuilder.build().toString();
         } catch (URISyntaxException e) {
@@ -136,8 +136,8 @@ public class TappxBidder implements Bidder<BidRequest> {
     }
 
     private static String buildUrlPath(String path, String endpoint) {
-        String strippedPath = StringUtils.stripEnd(path, "/");
-        String strippedEndpoint = StringUtils.stripStart(endpoint, "/");
+        final String strippedPath = StringUtils.stripEnd(path, "/");
+        final String strippedEndpoint = StringUtils.stripStart(endpoint, "/");
         return strippedPath + "/" + strippedEndpoint;
     }
 
