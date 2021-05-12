@@ -13,14 +13,15 @@ import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
@@ -167,6 +168,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN.code();
                 body = message;
+            } else if (exception instanceof RejectedRequestException) {
+                metricRequestStatus = MetricName.ok;
+                errorMessages = Collections.emptyList();
+
+                status = HttpResponseStatus.OK.code();
+                routingContext.response()
+                        .headers()
+                        .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+                body = mapper.encode(rejectedResponse());
             } else {
                 metricRequestStatus = MetricName.err;
                 logger.error("Critical error while running the auction", exception);
@@ -209,5 +219,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable throwable, MetricName requestType) {
         logger.warn("Failed to send auction response: {0}", throwable.getMessage());
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+    }
+
+    private static BidResponse rejectedResponse() {
+        return BidResponse.builder()
+                .seatbid(Collections.emptyList())
+                .build();
     }
 }

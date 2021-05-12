@@ -22,18 +22,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
+import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
@@ -337,6 +338,15 @@ public class AmpHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN.code();
                 body = message;
+            } else if (exception instanceof RejectedRequestException) {
+                metricRequestStatus = MetricName.ok;
+                errorMessages = Collections.emptyList();
+
+                status = HttpResponseStatus.OK.code();
+                routingContext.response()
+                        .headers()
+                        .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+                body = mapper.encode(rejectedResponse());
             } else {
                 final String message = exception.getMessage();
 
@@ -392,5 +402,9 @@ public class AmpHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable exception) {
         logger.warn("Failed to send amp response: {0}", exception.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+    }
+
+    private static AmpResponse rejectedResponse() {
+        return AmpResponse.of(Collections.emptyMap(), null, null);
     }
 }
