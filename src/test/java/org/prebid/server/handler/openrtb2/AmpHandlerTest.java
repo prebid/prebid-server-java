@@ -26,16 +26,17 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -263,6 +264,21 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
         verify(httpResponse).end(eq("Account id is not provided"));
+    }
+
+    @Test
+    public void shouldRespondWithEmptyResponseIfRequestIsRejected() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new RejectedRequestException(null)));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(200));
+        verify(httpResponse).end(eq("{\"targeting\":{}}"));
     }
 
     @Test
@@ -544,6 +560,19 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.badinput));
+    }
+
+    @Test
+    public void shouldIncrementOkAmpRequestMetricIfRequestIsRejected() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new RejectedRequestException(null)));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.ok));
     }
 
     @Test
