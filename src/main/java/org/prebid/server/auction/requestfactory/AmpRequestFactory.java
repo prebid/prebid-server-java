@@ -120,15 +120,19 @@ public class AmpRequestFactory {
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_amp);
 
         final String body = routingContext.getBodyAsString();
+
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest)
-                        .compose(bidRequestWithErrors -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
+                        .map(bidRequestWithErrors -> ortb2RequestFactory.createAuctionContext(
                                 httpRequest,
                                 bidRequestWithErrors.getLeft(),
                                 MetricName.amp,
                                 startTime,
                                 hookExecutionContext,
                                 bidRequestWithErrors.getRight())))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))

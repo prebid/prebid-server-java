@@ -85,8 +85,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AmpRequestFactoryTest extends VertxTest {
 
-    private static final String ACCOUNT_ID = "acc_id";
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -1324,8 +1322,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<List<String>> errorsCaptor = ArgumentCaptor.forClass(
                 List.class);
-        verify(ortb2RequestFactory).fetchAccountAndCreateAuctionContext(any(), any(), any(), anyLong(), any(),
-                errorsCaptor.capture());
+        verify(ortb2RequestFactory).createAuctionContext(any(), any(), any(), anyLong(), any(), errorsCaptor.capture());
         assertThat(errorsCaptor.getValue()).contains("Amp request parameter consent_string or gdpr_consent have"
                 + " invalid format: consent-value");
     }
@@ -1590,7 +1587,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(ortb2RequestFactory).fetchAccountAndCreateAuctionContext(
+        verify(ortb2RequestFactory).createAuctionContext(
                 any(),
                 any(),
                 any(),
@@ -1652,12 +1649,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(bidRequest));
 
         final MetricName metricName = MetricName.amp;
-        given(ortb2RequestFactory.fetchAccountAndCreateAuctionContext(any(), any(), eq(metricName), anyLong(), any(),
-                any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(
-                        AuctionContext.builder()
-                                .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
-                                .build()));
+        given(ortb2RequestFactory.createAuctionContext(any(), any(), eq(metricName), anyLong(), any(), any()))
+                .willAnswer(invocationOnMock -> AuctionContext.builder()
+                        .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
+                        .build());
+        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any())).willAnswer(
                 answerWithFirstArgument());

@@ -84,15 +84,18 @@ public class VideoRequestFactory {
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest)
-                        .compose(bidRequestWithErrors -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
+                        .map(bidRequestWithErrors -> populatePodErrors(
+                                bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
+                        .map(bidRequestWithErrors -> ortb2RequestFactory.createAuctionContext(
                                 httpRequest,
                                 bidRequestWithErrors.getData(),
                                 MetricName.video,
                                 startTime,
                                 hookExecutionContext,
-                                new ArrayList<>())
-                                .map(auctionContext -> populatePodErrors(bidRequestWithErrors.getPodErrors(), podErrors,
-                                        auctionContext))))
+                                new ArrayList<>())))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))
@@ -222,7 +225,7 @@ public class VideoRequestFactory {
         return Collections.emptySet();
     }
 
-    private AuctionContext populatePodErrors(List<PodError> from, List<PodError> to, AuctionContext returnObject) {
+    private static <T> T populatePodErrors(List<PodError> from, List<PodError> to, T returnObject) {
         to.addAll(from);
         return returnObject;
     }

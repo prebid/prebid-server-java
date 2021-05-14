@@ -44,6 +44,12 @@ public class AuctionContext {
 
     HookExecutionContext hookExecutionContext;
 
+    boolean debugEnabled;
+
+    public AuctionContext with(Account account) {
+        return this.toBuilder().account(account).build();
+    }
+
     public AuctionContext with(BidRequest bidRequest) {
         return this.toBuilder().bidRequest(bidRequest).build();
     }

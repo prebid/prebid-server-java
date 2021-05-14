@@ -80,13 +80,16 @@ public class AuctionRequestFactory {
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
                 .compose(httpRequestWrapper -> parseBidRequest(httpRequestWrapper, errors)
-                        .compose(bidRequest -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
+                        .map(bidRequest -> ortb2RequestFactory.createAuctionContext(
                                 httpRequestWrapper,
                                 bidRequest,
                                 requestTypeMetric(bidRequest),
                                 startTime,
                                 hookExecutionContext,
                                 errors)))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))

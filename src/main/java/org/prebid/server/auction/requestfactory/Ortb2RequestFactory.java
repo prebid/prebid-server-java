@@ -84,25 +84,47 @@ public class Ortb2RequestFactory {
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
     }
 
-    public Future<AuctionContext> fetchAccountAndCreateAuctionContext(HttpRequestWrapper httpRequest,
-                                                                      BidRequest bidRequest,
-                                                                      MetricName requestTypeMetric,
-                                                                      long startTime,
-                                                                      HookExecutionContext hookExecutionContext,
-                                                                      List<String> errors) {
-        final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
-        return accountFrom(bidRequest, timeout, httpRequest)
-                .map(account -> AuctionContext.builder()
-                        .httpRequest(httpRequest)
-                        .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
-                        .bidRequest(bidRequest)
-                        .requestTypeMetric(requestTypeMetric)
-                        .timeout(timeout)
-                        .account(account)
-                        .hookExecutionContext(hookExecutionContext)
-                        .prebidErrors(errors)
-                        .debugWarnings(new ArrayList<>())
-                        .build());
+    public AuctionContext createAuctionContext(HttpRequestWrapper httpRequest,
+                                               BidRequest bidRequest,
+                                               MetricName requestTypeMetric,
+                                               long startTime,
+                                               HookExecutionContext hookExecutionContext,
+                                               List<String> errors) {
+
+        return AuctionContext.builder()
+                .httpRequest(httpRequest)
+                .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
+                .bidRequest(bidRequest)
+                .requestTypeMetric(requestTypeMetric)
+                .timeout(timeout(bidRequest, startTime))
+                .prebidErrors(errors)
+                .debugWarnings(new ArrayList<>())
+                .hookExecutionContext(hookExecutionContext)
+                .debugEnabled(debugEnabled(bidRequest))
+                .build();
+    }
+
+    public Future<Account> fetchAccount(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Timeout timeout = auctionContext.getTimeout();
+        final HttpRequestWrapper httpRequest = auctionContext.getHttpRequest();
+
+        final String accountId = accountIdFrom(bidRequest);
+        final boolean isAccountIdBlank = StringUtils.isBlank(accountId);
+
+        if (CollectionUtils.isNotEmpty(blacklistedAccounts)
+                && !isAccountIdBlank
+                && blacklistedAccounts.contains(accountId)) {
+            return Future.failedFuture(new BlacklistedAccountException(
+                    String.format("Prebid-server has blacklisted Account ID: %s, please "
+                            + "reach out to the prebid server host.", accountId)));
+        }
+
+        return isAccountIdBlank
+                ? responseForEmptyAccount(httpRequest)
+                : applicationSettings.getAccountById(accountId, timeout)
+                .compose(this::ensureAccountActive,
+                        exception -> accountFallback(exception, accountId, httpRequest));
     }
 
     /**
@@ -154,7 +176,7 @@ public class Ortb2RequestFactory {
         final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
 
         return hookStageExecutor.executeRawAuctionRequestStage(bidRequest, account, hookExecutionContext)
-                .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
+                .map(stageResult -> toBidRequest(stageResult, auctionContext));
     }
 
     public Future<BidRequest> executeProcessedAuctionRequestHooks(AuctionContext auctionContext) {
@@ -163,21 +185,12 @@ public class Ortb2RequestFactory {
         final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
 
         return hookStageExecutor.executeProcessedAuctionRequestStage(bidRequest, account, hookExecutionContext)
-                .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
+                .map(stageResult -> toBidRequest(stageResult, auctionContext));
     }
 
-    private BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
-                                    HookExecutionContext hookExecutionContext) {
-        if (stageResult.isShouldReject()) {
-            throw new RejectedRequestException(hookExecutionContext);
-        }
-
-        return stageResult.getPayload().bidRequest();
-    }
-
-    private HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
-                                             RoutingContext routingContext,
-                                             HookExecutionContext hookExecutionContext) {
+    private static HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
+                                                    RoutingContext routingContext,
+                                                    HookExecutionContext hookExecutionContext) {
 
         if (stageResult.isShouldReject()) {
             throw new RejectedRequestException(hookExecutionContext);
@@ -194,35 +207,29 @@ public class Ortb2RequestFactory {
                 .build();
     }
 
-    /**
-     * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
-     */
-    private Timeout timeout(BidRequest bidRequest, long startTime, TimeoutResolver timeoutResolver) {
-        final long resolvedRequestTimeout = timeoutResolver.resolve(bidRequest.getTmax());
-        final long timeout = timeoutResolver.adjustTimeout(resolvedRequestTimeout);
-        return timeoutFactory.create(startTime, timeout);
+    private static BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
+                                           AuctionContext auctionContext) {
+
+        if (stageResult.isShouldReject()) {
+            throw new RejectedRequestException(
+                    auctionContext.getHookExecutionContext(), auctionContext.isDebugEnabled());
+        }
+
+        return stageResult.getPayload().bidRequest();
+    }
+
+    private static boolean debugEnabled(BidRequest bidRequest) {
+        // FIXME: flesh out debug flag determination logic
+        return false;
     }
 
     /**
-     * Returns {@link Account} fetched by {@link ApplicationSettings}.
+     * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
-    private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout, HttpRequestWrapper httpRequest) {
-        final String accountId = accountIdFrom(bidRequest);
-        final boolean isAccountIdBlank = StringUtils.isBlank(accountId);
-
-        if (CollectionUtils.isNotEmpty(blacklistedAccounts)
-                && !isAccountIdBlank
-                && blacklistedAccounts.contains(accountId)) {
-            return Future.failedFuture(new BlacklistedAccountException(
-                    String.format("Prebid-server has blacklisted Account ID: %s, please "
-                            + "reach out to the prebid server host.", accountId)));
-        }
-
-        return isAccountIdBlank
-                ? responseForEmptyAccount(httpRequest)
-                : applicationSettings.getAccountById(accountId, timeout)
-                .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
+    private Timeout timeout(BidRequest bidRequest, long startTime) {
+        final long resolvedRequestTimeout = timeoutResolver.resolve(bidRequest.getTmax());
+        final long timeout = timeoutResolver.adjustTimeout(resolvedRequestTimeout);
+        return timeoutFactory.create(startTime, timeout);
     }
 
     /**
