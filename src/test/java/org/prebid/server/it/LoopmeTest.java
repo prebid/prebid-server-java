@@ -37,7 +37,7 @@ public class LoopmeTest extends IntegrationTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"loopme":"LPM-UID"}}
-                .cookie("uids", "")
+                .cookie("uids", "eyJ1aWRzIjp7Imxvb3BtZSI6IkxQTS1VSUQifX0=")
                 .body(jsonFrom("openrtb2/loopme/test-auction-loopme-request.json"))
                 .post("/openrtb2/auction");
 

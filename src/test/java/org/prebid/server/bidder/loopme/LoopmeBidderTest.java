@@ -20,6 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.loopme.ExtImpLoopme;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -110,6 +111,53 @@ public class LoopmeBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMakeOneRequestWithAllImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(Arrays.asList(
+                        givenImp(identity()),
+                        givenImp(identity()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = loopmeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(2);
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = loopmeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = loopmeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(

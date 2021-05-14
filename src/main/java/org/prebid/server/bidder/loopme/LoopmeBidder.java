@@ -40,13 +40,13 @@ public class LoopmeBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
 
-        return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(request)
                 .body(mapper.encode(request))
-                .build()), Collections.emptyList());
+                .build());
     }
 
     @Override
@@ -77,19 +77,17 @@ public class LoopmeBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
-        BidType bidType = BidType.banner;
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    return bidType;
+                    return BidType.banner;
                 } else if (imp.getVideo() != null) {
-                    bidType = BidType.video;
+                    return BidType.video;
                 } else if (imp.getXNative() != null) {
-                    bidType = BidType.xNative;
+                    return BidType.xNative;
                 }
             }
         }
-
         return BidType.banner;
     }
 }
