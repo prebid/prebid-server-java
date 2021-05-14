@@ -20,7 +20,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.loopme.ExtImpLoopme;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -112,6 +111,7 @@ public class LoopmeBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
+
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
