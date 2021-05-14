@@ -47,6 +47,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
@@ -54,6 +55,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -283,8 +285,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(ortb2RequestFactory).fetchAccount(eq(AuctionContext.builder().bidRequest(bidRequest).build()));
         verify(ortb2RequestFactory).validateRequest(bidRequest);
         verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver));
-        verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(eq(bidRequest), any(), any());
-
+        verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
+                argThat(context -> Objects.equals(context.getBidRequest(), bidRequest)));
         assertThat(result.result().getData().getBidRequest()).isEqualTo(bidRequest);
         assertThat(result.result().getPodErrors()).isEqualTo(podErrors);
     }
@@ -342,8 +344,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(paramsResolver.resolve(any(), any(), any()))
                 .willAnswer(answerWithFirstArgument());
 
-        given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any(), any(), any()))
-                .willAnswer(answerWithFirstArgument());
+        given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
+                .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));

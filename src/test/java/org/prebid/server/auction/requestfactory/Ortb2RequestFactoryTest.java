@@ -539,8 +539,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Account account = Account.builder().id(accountId).defaultIntegration(integration).build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(bidRequest, account, privacyContext);
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
         assertThat(result)
@@ -561,8 +567,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final Account account = Account.empty("id");
 
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(bidRequest, account, privacyContext);
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
         final Device expectedDevice = Device.builder()

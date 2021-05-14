@@ -138,9 +138,10 @@ public class Ortb2RequestFactory {
         return bidRequest;
     }
 
-    public BidRequest enrichBidRequestWithAccountAndPrivacyData(BidRequest bidRequest,
-                                                                Account account,
-                                                                PrivacyContext privacyContext) {
+    public BidRequest enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
+        final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
 
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequest enrichedRequestExt = enrichExtRequest(requestExt, account);
