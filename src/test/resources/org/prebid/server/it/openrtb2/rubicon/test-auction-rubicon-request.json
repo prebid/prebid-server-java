@@ -62,10 +62,6 @@
       }
     ]
   },
-  "device": {
-    "ua": "testUa",
-    "ip": "193.168.244.1"
-  },
   "ext": {
     "prebid": {
       "targeting": {

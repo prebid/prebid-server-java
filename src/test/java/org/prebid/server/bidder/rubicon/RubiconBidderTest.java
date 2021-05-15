@@ -816,13 +816,11 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeIfSegtaxEqualsThree() {
         // given
-        final ObjectNode userExtNode = mapper.createObjectNode();
-        userExtNode.put("segtax", 3);
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder().data(singletonList(Data.builder()
-                        .segment(singletonList(Segment.builder().id("segmentId")
-                                .build()))
-                        .ext(userExtNode).build())).build()),
+                builder -> builder.user(User.builder()
+                        .data(singletonList(
+                                givenDataWithSegmentEntry(3, "segmentId")
+                        )).build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -849,19 +847,12 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeOnlyIfSegtaxIsEqualThree() {
         // given
-        final ObjectNode firstUserDataNode = mapper.createObjectNode();
-        firstUserDataNode.put("segtax", 3);
-        final ObjectNode secondUserDataNode = mapper.createObjectNode();
-        secondUserDataNode.put("segtax", 2);
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder().data(asList(Data.builder()
-                                .segment(singletonList(Segment.builder().id("segmentId")
-                                        .build()))
-                                .ext(firstUserDataNode).build(),
-                        Data.builder()
-                                .segment(singletonList(Segment.builder().id("secondSegmentId")
-                                        .build()))
-                                .ext(secondUserDataNode).build())).build()),
+                builder -> builder.user(User.builder()
+                        .data(asList(
+                                givenDataWithSegmentEntry(3, "segmentId"),
+                                givenDataWithSegmentEntry(2, "secondSegmentId")))
+                        .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -888,29 +879,15 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFillSiteExtRpWithIabAttributeIfSegtaxEqualsOneOrTwo() {
         // given
-        final ObjectNode firstSiteExtNode = mapper.createObjectNode();
-        firstSiteExtNode.put("segtax", 1);
-        final Data firstDataAttribute = Data.builder()
-                .segment(singletonList(Segment.builder().id("firstSegmentId")
-                        .build()))
-                .ext(firstSiteExtNode).build();
-        final ObjectNode secondSiteExtNode = mapper.createObjectNode();
-        secondSiteExtNode.put("segtax", 2);
-        final Data secondDataAttribute = Data.builder()
-                .segment(singletonList(Segment.builder().id("secondSegmentId")
-                        .build()))
-                .ext(secondSiteExtNode).build();
-        final ObjectNode thirdSiteExtNode = mapper.createObjectNode();
-        thirdSiteExtNode.put("segtax", 3);
-        final Data thirdDataAttribute = Data.builder()
-                .segment(singletonList(Segment.builder().id("thirdSegmentId")
-                        .build()))
-                .ext(thirdSiteExtNode).build();
-
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.site(Site.builder().content(Content.builder()
-                        .data(asList(firstDataAttribute, secondDataAttribute, thirdDataAttribute))
-                        .build()).build()),
+                builder -> builder.site(Site.builder()
+                        .content(Content.builder()
+                                .data(asList(
+                                        givenDataWithSegmentEntry(1, "firstSegmentId"),
+                                        givenDataWithSegmentEntry(2, "secondSegmentId"),
+                                        givenDataWithSegmentEntry(3, "thirdSegmentId")))
+                                .build())
+                        .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -2934,6 +2911,13 @@ public class RubiconBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer) {
         return givenImp(impCustomizer, identity());
+    }
+
+    private static Data givenDataWithSegmentEntry(Integer segtax, String segmentId) {
+        return Data.builder()
+                .segment(singletonList(Segment.builder().id(segmentId).build()))
+                .ext(mapper.createObjectNode().put("segtax", segtax))
+                .build();
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {

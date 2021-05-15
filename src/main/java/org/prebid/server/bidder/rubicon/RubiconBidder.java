@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -141,6 +142,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
+    private static final Set<Integer> USER_SEGTAXES = ImmutableSet.of(3);
+    private static final Set<Integer> SITE_SEGTAXES = ImmutableSet.of(1, 2);
+
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
             DMP_STYPE));
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
@@ -1073,7 +1077,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (user != null) {
             mergeFirstPartyDataFromUser(user.getExt(), result);
 
-            enrichWithIabAttribute(result, user.getData(), 3);
+            enrichWithIabAttribute(result, user.getData(), USER_SEGTAXES);
         }
 
         return result.size() > 0 ? result : null;
@@ -1108,7 +1112,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void enrichWithIabAttribute(ObjectNode target, List<Data> data, int... segtaxValues) {
+    private static void enrichWithIabAttribute(ObjectNode target, List<Data> data, Set<Integer> segtaxValues) {
         final List<String> iabValue = CollectionUtils.emptyIfNull(data).stream()
                 .filter(Objects::nonNull)
                 .filter(dataRecord -> containsSegtaxValue(dataRecord.getExt(), segtaxValues))
@@ -1125,11 +1129,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private boolean containsSegtaxValue(ObjectNode ext, int... segtaxValues) {
-        final Set<Integer> matchingValues = Arrays.stream(segtaxValues).boxed().collect(Collectors.toSet());
+    private static boolean containsSegtaxValue(ObjectNode ext, Set<Integer> segtaxValues) {
         final JsonNode taxonomyName = ext != null ? ext.get("segtax") : null;
 
-        return taxonomyName != null && taxonomyName.isInt() && matchingValues.contains(taxonomyName.intValue());
+        return taxonomyName != null && taxonomyName.isInt() && segtaxValues.contains(taxonomyName.intValue());
     }
 
     private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
@@ -1201,8 +1204,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         ObjectNode target = null;
 
         if (CollectionUtils.isNotEmpty(siteContentData)) {
-            target = existingRubiconSiteExtRpTarget(extSite);
-            enrichWithIabAttribute(target, siteContentData, 1, 2);
+            target = existingRubiconSiteExtRpTargetOrEmptyNode(extSite);
+            enrichWithIabAttribute(target, siteContentData, SITE_SEGTAXES);
         }
 
         return mapper.fillExtension(
@@ -1211,11 +1214,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         target != null && !target.isEmpty() ? target : null)));
     }
 
-    private ObjectNode existingRubiconSiteExtRpTarget(ExtSite siteExt) {
-        final RubiconSiteExt siteRubiconExt = siteExt != null
+    private ObjectNode existingRubiconSiteExtRpTargetOrEmptyNode(ExtSite siteExt) {
+        final RubiconSiteExt rubiconSiteExt = siteExt != null
                 ? mapper.mapper().convertValue(siteExt, RubiconSiteExt.class)
                 : null;
-        final RubiconSiteExtRp rubiconSiteExtRp = siteRubiconExt != null ? siteRubiconExt.getRp() : null;
+        final RubiconSiteExtRp rubiconSiteExtRp = rubiconSiteExt != null ? rubiconSiteExt.getRp() : null;
         final JsonNode target = rubiconSiteExtRp != null ? rubiconSiteExtRp.getTarget() : null;
 
         return target != null && target.isObject() ? (ObjectNode) target : mapper.mapper().createObjectNode();
