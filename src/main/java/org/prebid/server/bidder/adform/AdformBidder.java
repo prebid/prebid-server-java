@@ -63,11 +63,6 @@ public class AdformBidder implements Bidder<Void> {
         this.httpUtil = new AdformHttpUtil();
     }
 
-    /**
-     * Makes the HTTP requests which should be made to fetch bids.
-     * <p>
-     * Creates GET http request with all parameters in url and headers with empty body.
-     */
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final List<Imp> imps = request.getImp();

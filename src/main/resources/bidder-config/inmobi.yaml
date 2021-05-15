@@ -13,6 +13,8 @@ adapters:
         - banner
         - video
       site-media-types:
+        - banner
+        - video
       supported-vendors:
       vendor-id: 333
     usersync:

@@ -76,7 +76,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
         return Result.withValue(createRequest(request, modifiedImps, source, modifiedExtRequest));
     }
 
-    private void validateRegs(Regs regs) {
+    private static void validateRegs(Regs regs) {
         if (regs != null) {
             if (Objects.equals(regs.getCoppa(), 1)) {
                 throw new PreBidException("COPPA is not supported");
@@ -130,7 +130,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String getStoredRequestImpId(Imp imp) {
+    private static String getStoredRequestImpId(Imp imp) {
         final JsonNode extPrebid = imp.getExt().get("prebid");
         final JsonNode storedRequestNode = isNotEmptyNode(extPrebid) ? extPrebid.get("storedrequest") : null;
         final JsonNode storedRequestIdNode = isNotEmptyNode(storedRequestNode) ? storedRequestNode.get("id") : null;
@@ -148,17 +148,16 @@ public class UnicornBidder implements Bidder<BidRequest> {
         return node != null && !node.isEmpty();
     }
 
-    private Source updateSource(Source source) {
+    private static Source updateSource(Source source) {
         return source != null
                 ? source.toBuilder().ext(createExtSource()).build()
                 : Source.builder().ext(createExtSource()).build();
     }
 
-    final ExtSource createExtSource() {
+    private static ExtSource createExtSource() {
         final ExtSource extSource = ExtSource.of(null);
         extSource.addProperty("stype", new TextNode("prebid_server_uncn"));
         extSource.addProperty("bidder", new TextNode("unicorn"));
-
         return extSource;
     }
 
@@ -170,7 +169,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ExtRequest modifyExtRequest(ExtRequest extRequest, Integer accountId) {
+    private static ExtRequest modifyExtRequest(ExtRequest extRequest, Integer accountId) {
         final ExtRequest modifiedRequest = extRequest != null
                 ? ExtRequest.of(extRequest.getPrebid())
                 : ExtRequest.of(null);

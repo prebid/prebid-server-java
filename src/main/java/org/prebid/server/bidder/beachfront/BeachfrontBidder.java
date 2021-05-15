@@ -389,11 +389,11 @@ public class BeachfrontBidder implements Bidder<Void> {
         final String bodyString = httpCall.getResponse().getBody();
         try {
             return processVideoResponse(bodyString, httpCall.getRequest());
-        } catch (DecodeException e) {
+        } catch (DecodeException ignored) {
             try {
                 return processBannerResponse(bodyString);
-            } catch (PreBidException ex) {
-                return Result.withError(BidderError.badServerResponse(ex.getMessage()));
+            } catch (PreBidException e) {
+                return Result.withError(BidderError.badServerResponse(e.getMessage()));
             }
         }
     }
@@ -493,10 +493,6 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private static String getCrId(String nurl) {
         final String[] split = nurl.split(":");
-
-        if (split.length > 1) {
-            return split[2]; //Index out of bound???...
-        }
-        return null;
+        return split.length > 2 ? split[2] : null;
     }
 }
