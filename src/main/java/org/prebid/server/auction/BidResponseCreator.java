@@ -318,8 +318,8 @@ public class BidResponseCreator {
         final Set<BidInfo> winningBidInfos = targeting == null
                 ? null
                 : bidInfos.stream()
-                        .filter(bidInfo -> bidInfo.getTargetingInfo().isWinningBid())
-                        .collect(Collectors.toSet());
+                .filter(bidInfo -> bidInfo.getTargetingInfo().isWinningBid())
+                .collect(Collectors.toSet());
 
         final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBidInfos : bidInfos;
 

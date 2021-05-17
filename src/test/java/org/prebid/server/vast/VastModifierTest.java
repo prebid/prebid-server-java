@@ -101,11 +101,12 @@ public class VastModifierTest {
                 INTEGRATION);
 
         // then
-        final String modifiedVast = "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>"
-                + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>"
+        final String modifiedVast = "<VAST version=\"3.0\"><Ad><Wrapper>"
                 + "<Impression><!"
                 + "[CDATA[http://external-url/event]]>"
-                + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>";
+                + "</Impression><AdSystem>"
+                + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>"
+                + "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>";
 
         assertThat(result).isEqualTo(new TextNode(modifiedVast));
     }
@@ -133,16 +134,6 @@ public class VastModifierTest {
     }
 
     @Test
-    public void createBidVastXmlShouldNotModifyWhenBidAdmIsEmptyAndNurlIsNullAndEventsDisabledByAccount() {
-        // when
-        final String result = target.createBidVastXml(BIDDER, null, null, BID_ID, ACCOUNT_ID,
-                givenEventsContext(false));
-
-        // then
-        assertThat(result).isNull();
-    }
-
-    @Test
     public void createBidVastXmlShouldReturnAdmWhenBidAdmIsPresentAndEventsDisabledByAccount() {
         // when
         final String result = target.createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID,
@@ -155,25 +146,51 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldBeModifiedWithNewImpressionVastUrlWhenEventsEnabledAndNoEmptyTag() {
         // when
-        final String bidAdm = "<Impression>http:/test.com</Impression>";
+        final String bidAdm = "<Wrapper><Impression>http:/test.com</Impression></Wrapper>";
         final String result = target.createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
 
-        assertThat(result).isEqualTo(bidAdm + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression>");
+        assertThat(result).isEqualTo("<Wrapper><Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression>"
+                + "<Impression>http:/test.com</Impression></Wrapper>");
     }
 
     @Test
-    public void createBidVastXmlShouldBeInjectedWithImpressionVastUrlWhenEventsEnabledAndAdmEmptyTagPresent() {
+    public void createBidVastXmlShouldBeModifiedWithNewImpressionAsALastChildForInLineType() {
         // when
-        final String adm = "<Impression></Impression>";
+        final String bidAdm = "<InLine><Impression>http:/test.com</Impression></InLine>";
+        final String result = target.createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
+
+        assertThat(result).isEqualTo("<InLine><Impression>http:/test.com</Impression>"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></InLine>");
+    }
+
+    @Test
+    public void createBidVastXmlShouldNotBeModifiedIfInLineHasNoImpressionTags() {
+        // when
+        final String bidAdm = "<InLine></InLine>";
+        final String result = target.createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
+
+        assertThat(result).isEqualTo(bidAdm);
+    }
+
+    @Test
+    public void createBidVastXmlShouldNotBeModifiedIfNoParentTagsPresent() {
+        // when
+        final String adm = "<Impression>http:/test.com</Impression>";
         final String result = target.createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
 
-        assertThat(result).isEqualTo("<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression>");
+        assertThat(result).isEqualTo(adm);
     }
 
     @Test

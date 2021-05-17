@@ -3,6 +3,7 @@ package org.prebid.server.vast;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.events.EventsContext;
@@ -13,6 +14,8 @@ import java.util.Set;
 
 public class VastModifier {
 
+    private static final String IN_LINE_TAG = "<InLine>";
+    private static final String WRAPPER_TAG = "<Wrapper>";
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
 
@@ -78,6 +81,19 @@ public class VastModifier {
     }
 
     private String appendTrackingUrlToVastXml(String vastXml, String vastUrlTracking) {
+        final int inLineTagIndex = StringUtils.indexOfIgnoreCase(vastXml, IN_LINE_TAG);
+        final int wrapperTagIndex = StringUtils.indexOfIgnoreCase(vastXml, WRAPPER_TAG);
+
+        if (inLineTagIndex != -1) {
+            return appendTrackingUrlForInlineType(vastXml, vastUrlTracking);
+        } else if (wrapperTagIndex != -1) {
+            return appendTrackingUrlForWrapperType(vastXml, vastUrlTracking, wrapperTagIndex);
+        }
+
+        return vastXml;
+    }
+
+    private String appendTrackingUrlForInlineType(String vastXml, String vastUrlTracking) {
         final String closeTag = "</Impression>";
         final int closeTagIndex = vastXml.indexOf(closeTag);
 
@@ -86,14 +102,15 @@ public class VastModifier {
             return vastXml;
         }
 
-        final String impressionUrl = "<![CDATA[" + vastUrlTracking + "]]>";
-        final String openTag = "<Impression>";
+        final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
+        final String inlineCloseTag = IN_LINE_TAG.replace("<", "</");
 
-        // empty impression tag - just insert the link
-        if (closeTagIndex - vastXml.indexOf(openTag) == openTag.length()) {
-            return vastXml.replaceFirst(openTag, openTag + impressionUrl);
-        }
+        return vastXml.replace(inlineCloseTag, impressionTag + inlineCloseTag);
+    }
 
-        return vastXml.replaceFirst(closeTag, closeTag + openTag + impressionUrl + closeTag);
+    private String appendTrackingUrlForWrapperType(String vastXml, String vastUrlTracking, Integer wrapperTagIndex) {
+        final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
+
+        return vastXml.replaceFirst(WRAPPER_TAG, WRAPPER_TAG + impressionTag);
     }
 }
