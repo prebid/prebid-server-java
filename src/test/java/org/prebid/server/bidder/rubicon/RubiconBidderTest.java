@@ -814,15 +814,13 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeIfTaxonomynameContainsIab() {
+    public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeIfSegtaxEqualsThree() {
         // given
-        final ObjectNode userNode = mapper.createObjectNode();
-        userNode.put("taxonomyname", "contains IaB");
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder().data(singletonList(Data.builder()
-                        .segment(singletonList(Segment.builder().id("segmentId")
-                                .build()))
-                        .ext(userNode).build())).build()),
+                builder -> builder.user(User.builder()
+                        .data(singletonList(
+                                givenDataWithSegmentEntry(3, "segmentId")
+                        )).build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -847,21 +845,14 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillWithIabAttributeOnlyIfContainsIabInTaxonomynameAttribute() {
+    public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeOnlyIfSegtaxIsEqualThree() {
         // given
-        final ObjectNode firstUserDataNode = mapper.createObjectNode();
-        firstUserDataNode.put("taxonomyname", "contains IaB");
-        final ObjectNode secondUserDataNode = mapper.createObjectNode();
-        secondUserDataNode.put("taxonomyname", "not contain");
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder().data(asList(Data.builder()
-                                .segment(singletonList(Segment.builder().id("segmentId")
-                                        .build()))
-                                .ext(firstUserDataNode).build(),
-                        Data.builder()
-                                .segment(singletonList(Segment.builder().id("secondSegmentId")
-                                        .build()))
-                                .ext(secondUserDataNode).build())).build()),
+                builder -> builder.user(User.builder()
+                        .data(asList(
+                                givenDataWithSegmentEntry(3, "segmentId"),
+                                givenDataWithSegmentEntry(2, "secondSegmentId")))
+                        .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -886,12 +877,44 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldIgnoreNotTextualTaxonomynameProperty() {
+    public void makeHttpRequestsShouldFillSiteExtRpWithIabAttributeIfSegtaxEqualsOneOrTwo() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder()
+                        .content(Content.builder()
+                                .data(asList(
+                                        givenDataWithSegmentEntry(1, "firstSegmentId"),
+                                        givenDataWithSegmentEntry(2, "secondSegmentId"),
+                                        givenDataWithSegmentEntry(3, "thirdSegmentId")))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedTarget = mapper.createObjectNode();
+        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
+        expectedIabAttribute.add("firstSegmentId");
+        expectedIabAttribute.add("secondSegmentId");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite).doesNotContainNull()
+                .extracting(Site::getExt)
+                .extracting(ext -> ext.getProperty("rp"))
+                .extracting(rp -> rp.get("target"))
+                .containsExactly(expectedTarget);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIgnoreNotIntSegtaxProperty() {
         // given
         final ObjectNode userNode = mapper.createObjectNode();
-        final ArrayNode wrongTaxonomyAttributeType = userNode.putArray("taxonomyname");
-        wrongTaxonomyAttributeType.add("contains IaB value");
-
+        userNode.put("segtax", "3");
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().data(singletonList(Data.builder()
                         .segment(singletonList(Segment.builder().id("segmentId")
@@ -909,7 +932,6 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .extracting(User::getExt)
-                .hasSize(1)
                 .containsNull();
     }
 
@@ -1564,7 +1586,7 @@ public class RubiconBidderTest extends VertxTest {
                                         RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
                         .ext(jacksonMapper.fillExtension(
-                                ExtSite.of(null, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
+                                ExtSite.of(null, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001, null))))
                         .build());
     }
 
@@ -1591,7 +1613,7 @@ public class RubiconBidderTest extends VertxTest {
                                         RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
                         .ext(jacksonMapper.fillExtension(
-                                ExtSite.of(1, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
+                                ExtSite.of(1, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001, null))))
                         .build());
     }
 
@@ -1613,7 +1635,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Site::getExt)
                 .containsOnly(jacksonMapper.fillExtension(
                         ExtSite.of(null, null),
-                        RubiconSiteExt.of(RubiconSiteExtRp.of(3001))));
+                        RubiconSiteExt.of(RubiconSiteExtRp.of(3001, null))));
     }
 
     @Test
@@ -1640,7 +1662,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .build())
                         .ext(jacksonMapper.fillExtension(
                                 ExtApp.of(null, null),
-                                RubiconAppExt.of(RubiconSiteExtRp.of(3001))))
+                                RubiconAppExt.of(RubiconSiteExtRp.of(3001, null))))
                         .build());
     }
 
@@ -1662,7 +1684,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(App::getExt)
                 .containsOnly(jacksonMapper.fillExtension(
                         ExtApp.of(null, null),
-                        RubiconAppExt.of(RubiconSiteExtRp.of(3001))));
+                        RubiconAppExt.of(RubiconSiteExtRp.of(3001, null))));
     }
 
     @Test
@@ -2889,6 +2911,13 @@ public class RubiconBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer) {
         return givenImp(impCustomizer, identity());
+    }
+
+    private static Data givenDataWithSegmentEntry(Integer segtax, String segmentId) {
+        return Data.builder()
+                .segment(singletonList(Segment.builder().id(segmentId).build()))
+                .ext(mapper.createObjectNode().put("segtax", segtax))
+                .build();
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
