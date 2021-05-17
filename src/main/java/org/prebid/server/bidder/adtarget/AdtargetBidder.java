@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -164,9 +163,10 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String bidImpId, String bidId, List<Imp> imps) {
-        final Optional<Imp> impWithBidId = imps.stream().filter(imp -> imp.getId().equals(bidImpId)).findFirst();
-        if (impWithBidId.isPresent()) {
-            return impWithBidId.get().getVideo() != null ? BidType.video : BidType.banner;
+        for (Imp imp : imps) {
+            if (imp.getId().equals(bidImpId)) {
+                return imp.getVideo() != null ? BidType.video : BidType.banner;
+            }
         }
         throw new PreBidException(String.format(
                 "ignoring bid id=%s, request doesn't contain any impression with id=%s", bidId, bidImpId));

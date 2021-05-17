@@ -223,15 +223,15 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     private static BidderBid toBidderBid(Bid bid, BidRequest bidRequest, String currency) {
-        final BidType bidType = getMediaType(bid.getImpid(), bidRequest.getImp());
+        final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
         final Bid updatedBid = bidType == BidType.video
                 ? bid.toBuilder().adm(resolveAdm(bid.getAdm(), bid.getPrice())).build()
                 : bid;
         return BidderBid.of(updatedBid, bidType, currency);
     }
 
-    private static BidType getMediaType(String impId, List<Imp> requestImps) {
-        for (Imp imp : requestImps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 return imp.getBanner() != null ? BidType.banner : BidType.video;
             }

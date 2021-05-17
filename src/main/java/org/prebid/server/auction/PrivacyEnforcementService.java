@@ -169,7 +169,7 @@ public class PrivacyEnforcementService {
 
     private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
         if (Objects.equals(requestType, MetricName.openrtb2web)) {
-            final Site site = bidRequest.getSite();
+            final Site site = bidRequest != null ? bidRequest.getSite() : null;
             final String refUrl = site != null ? site.getRef() : null;
             return RequestLogInfo.of(requestType, refUrl, accountId);
         }
