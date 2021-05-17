@@ -172,20 +172,12 @@ public class Ortb2RequestFactory {
     }
 
     public Future<BidRequest> executeRawAuctionRequestHooks(AuctionContext auctionContext) {
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Account account = auctionContext.getAccount();
-        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
-
-        return hookStageExecutor.executeRawAuctionRequestStage(bidRequest, account, hookExecutionContext)
+        return hookStageExecutor.executeRawAuctionRequestStage(auctionContext)
                 .map(stageResult -> toBidRequest(stageResult, auctionContext));
     }
 
     public Future<BidRequest> executeProcessedAuctionRequestHooks(AuctionContext auctionContext) {
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Account account = auctionContext.getAccount();
-        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
-
-        return hookStageExecutor.executeProcessedAuctionRequestStage(bidRequest, account, hookExecutionContext)
+        return hookStageExecutor.executeProcessedAuctionRequestStage(auctionContext)
                 .map(stageResult -> toBidRequest(stageResult, auctionContext));
     }
 

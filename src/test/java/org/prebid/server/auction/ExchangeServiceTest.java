@@ -210,16 +210,16 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(schainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
-        given(hookStageExecutor.executeBidderRequestStage(any(), any(), any()))
+        given(hookStageExecutor.executeBidderRequestStage(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         BidderRequestPayloadImpl.of(invocation.<BidderRequest>getArgument(0).getBidRequest()))));
-        given(hookStageExecutor.executeRawBidderResponseStage(any(), any(), any(), any()))
+        given(hookStageExecutor.executeRawBidderResponseStage(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         BidderResponsePayloadImpl.of(invocation.<BidderResponse>getArgument(0).getSeatBid()
                                 .getBids()))));
-        given(hookStageExecutor.executeAuctionResponseStage(any(), any(), any(), any()))
+        given(hookStageExecutor.executeAuctionResponseStage(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
@@ -434,7 +434,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldSkipBidderWhenRejectedByBidderRequestHooks() {
         // given
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
-                .when(hookStageExecutor).executeBidderRequestStage(any(), any(), any());
+                .when(hookStageExecutor).executeBidderRequestStage(any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
 
@@ -453,7 +453,7 @@ public class ExchangeServiceTest extends VertxTest {
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                 false,
                 BidderRequestPayloadImpl.of(BidRequest.builder().id("bidderRequestId").build()))))
-                .when(hookStageExecutor).executeBidderRequestStage(any(), any(), any());
+                .when(hookStageExecutor).executeBidderRequestStage(any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
 
@@ -474,7 +474,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.ONE).build()))));
 
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
-                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any(), any(), any());
+                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
 
@@ -502,7 +502,7 @@ public class ExchangeServiceTest extends VertxTest {
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                 false,
                 BidderResponsePayloadImpl.of(singletonList(hookChangedBid)))))
-                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any(), any(), any());
+                .when(hookStageExecutor).executeRawBidderResponseStage(any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
 
@@ -2695,7 +2695,7 @@ public class ExchangeServiceTest extends VertxTest {
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                 false,
                 AuctionResponsePayloadImpl.of(BidResponse.builder().id("bidResponseId").build()))))
-                .when(hookStageExecutor).executeAuctionResponseStage(any(), any(), any(), any());
+                .when(hookStageExecutor).executeAuctionResponseStage(any(), any());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
 

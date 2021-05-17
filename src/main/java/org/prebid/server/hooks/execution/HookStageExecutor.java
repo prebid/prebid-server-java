@@ -7,6 +7,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
@@ -104,9 +105,11 @@ public class HookStageExecutor {
     }
 
     public Future<HookStageExecutionResult<AuctionRequestPayload>> executeRawAuctionRequestStage(
-            BidRequest bidRequest,
-            Account account,
-            HookExecutionContext context) {
+            AuctionContext auctionContext) {
+
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.raw_auction_request;
@@ -115,15 +118,17 @@ public class HookStageExecutor {
                 .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
                 .withHookProvider(hookId ->
                         hookCatalog.rawAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(true)
                 .execute();
     }
 
     public Future<HookStageExecutionResult<AuctionRequestPayload>> executeProcessedAuctionRequestStage(
-            BidRequest bidRequest,
-            Account account,
-            HookExecutionContext context) {
+            AuctionContext auctionContext) {
+
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.processed_auction_request;
@@ -132,36 +137,37 @@ public class HookStageExecutor {
                 .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
                 .withHookProvider(hookId ->
                         hookCatalog.processedAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(true)
                 .execute();
     }
 
     public Future<HookStageExecutionResult<BidderRequestPayload>> executeBidderRequestStage(
-            BidderRequest bidderRequest,
-            Account account,
-            HookExecutionContext context) {
+            BidderRequest bidderRequest, AuctionContext auctionContext) {
 
-        final BidRequest bidRequest = bidderRequest.getBidRequest();
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
+
         final String bidder = bidderRequest.getBidder();
 
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.bidder_request;
 
         return this.<BidderRequestPayload, BidderInvocationContext>stageExecutor(stage, account, endpoint, context)
-                .withInitialPayload(BidderRequestPayloadImpl.of(bidRequest))
+                .withInitialPayload(BidderRequestPayloadImpl.of(bidderRequest.getBidRequest()))
                 .withHookProvider(hookId ->
                         hookCatalog.bidderRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
                 .execute();
     }
 
     public Future<HookStageExecutionResult<BidderResponsePayload>> executeRawBidderResponseStage(
             BidderResponse bidderResponse,
-            BidRequest bidRequest,
-            Account account,
-            HookExecutionContext context) {
+            AuctionContext auctionContext) {
+
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final List<BidderBid> bids = bidderResponse.getSeatBid().getBids();
         final String bidder = bidderResponse.getBidder();
@@ -173,7 +179,7 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
                 .withHookProvider(hookId ->
                         hookCatalog.rawBidderResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
                 .execute();
     }
@@ -181,9 +187,10 @@ public class HookStageExecutor {
     public Future<HookStageExecutionResult<BidderResponsePayload>> executeProcessedBidderResponseStage(
             List<BidderBid> bids,
             String bidder,
-            BidRequest bidRequest,
-            Account account,
-            HookExecutionContext context) {
+            AuctionContext auctionContext) {
+
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.processed_bidder_response;
@@ -192,16 +199,17 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
                 .withHookProvider(hookId ->
                         hookCatalog.processedBidderResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, bidRequest, account, bidder))
+                .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
                 .execute();
     }
 
     public Future<HookStageExecutionResult<AuctionResponsePayload>> executeAuctionResponseStage(
             BidResponse bidResponse,
-            BidRequest bidRequest,
-            Account account,
-            HookExecutionContext context) {
+            AuctionContext auctionContext) {
+
+        final Account account = auctionContext.getAccount();
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.auction_response;
@@ -210,7 +218,7 @@ public class HookStageExecutor {
                 .withInitialPayload(AuctionResponsePayloadImpl.of(bidResponse))
                 .withHookProvider(hookId ->
                         hookCatalog.auctionResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
-                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, bidRequest, account))
+                .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(false)
                 .execute();
     }
@@ -270,21 +278,19 @@ public class HookStageExecutor {
 
     private InvocationContextProvider<AuctionInvocationContext> auctionInvocationContextProvider(
             Endpoint endpoint,
-            BidRequest bidRequest,
-            Account account) {
+            AuctionContext auctionContext) {
 
         return (timeout, hookId, moduleContext) -> auctionInvocationContext(
-                endpoint, timeout, bidRequest, account, hookId, moduleContext);
+                endpoint, timeout, auctionContext, hookId, moduleContext);
     }
 
     private InvocationContextProvider<BidderInvocationContext> bidderInvocationContextProvider(
             Endpoint endpoint,
-            BidRequest bidRequest,
-            Account account,
+            AuctionContext auctionContext,
             String bidder) {
 
         return (timeout, hookId, moduleContext) -> BidderInvocationContextImpl.of(
-                auctionInvocationContext(endpoint, timeout, bidRequest, account, hookId, moduleContext),
+                auctionInvocationContext(endpoint, timeout, auctionContext, hookId, moduleContext),
                 bidder);
     }
 
@@ -294,25 +300,19 @@ public class HookStageExecutor {
 
     private AuctionInvocationContextImpl auctionInvocationContext(Endpoint endpoint,
                                                                   Long timeout,
-                                                                  BidRequest bidRequest,
-                                                                  Account account,
+                                                                  AuctionContext auctionContext,
                                                                   HookId hookId,
                                                                   Object moduleContext) {
 
         return AuctionInvocationContextImpl.of(
                 invocationContext(endpoint, timeout),
-                isDebugEnabled(bidRequest),
-                accountConfigFor(account, hookId),
+                auctionContext.isDebugEnabled(),
+                accountConfigFor(auctionContext.getAccount(), hookId),
                 moduleContext);
     }
 
     private Timeout createTimeout(Long timeout) {
         return timeoutFactory.create(timeout);
-    }
-
-    private static boolean isDebugEnabled(BidRequest bidRequest) {
-        // TODO: implement along with hook messages filtering
-        return false;
     }
 
     private static ObjectNode accountConfigFor(Account account, HookId hookId) {

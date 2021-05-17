@@ -39,7 +39,6 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
@@ -982,15 +981,11 @@ public class ExchangeService {
                                                              boolean debugEnabled,
                                                              BidderAliases aliases) {
 
-        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Account account = auctionContext.getAccount();
-
-        return hookStageExecutor.executeBidderRequestStage(bidderRequest, account, hookExecutionContext)
+        return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, timeout, debugEnabled, aliases))
                 .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
-                        bidderResponse, bidRequest, account, hookExecutionContext)
+                        bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
     }
 
@@ -1004,10 +999,10 @@ public class ExchangeService {
         return hookStageResult.isShouldReject()
                 ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
                 : requestBids(
-                        bidderRequest.with(hookStageResult.getPayload().bidRequest()),
-                        timeout,
-                        debugEnabled,
-                        aliases);
+                bidderRequest.with(hookStageResult.getPayload().bidRequest()),
+                timeout,
+                debugEnabled,
+                aliases);
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
@@ -1206,11 +1201,7 @@ public class ExchangeService {
     }
 
     private Future<BidResponse> invokeResponseHooks(AuctionContext auctionContext, BidResponse bidResponse) {
-        return hookStageExecutor.executeAuctionResponseStage(
-                bidResponse,
-                auctionContext.getBidRequest(),
-                auctionContext.getAccount(),
-                auctionContext.getHookExecutionContext())
+        return hookStageExecutor.executeAuctionResponseStage(bidResponse, auctionContext)
                 .map(stageResult -> stageResult.getPayload().bidResponse());
     }
 

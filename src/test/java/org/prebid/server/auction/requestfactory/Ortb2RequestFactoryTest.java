@@ -127,12 +127,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                 invocation.getArgument(1),
                                 invocation.getArgument(2)))));
 
-        given(hookStageExecutor.executeRawAuctionRequestStage(any(), any(), any()))
+        given(hookStageExecutor.executeRawAuctionRequestStage(any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
 
-        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
@@ -645,7 +645,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest modifiedBidRequest = BidRequest.builder()
                 .app(App.builder().bundle("org.company.application").build())
                 .build();
-        given(hookStageExecutor.executeRawAuctionRequestStage(any(), any(), any()))
+        given(hookStageExecutor.executeRawAuctionRequestStage(any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false, AuctionRequestPayloadImpl.of(modifiedBidRequest))));
 
@@ -664,7 +664,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRawAuctionRequestHookRejectRequest() {
         // given
-        given(hookStageExecutor.executeRawAuctionRequestStage(any(), any(), any()))
+        given(hookStageExecutor.executeRawAuctionRequestStage(any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
 
         final AuctionContext auctionContext = AuctionContext.builder()
@@ -687,7 +687,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest modifiedBidRequest = BidRequest.builder()
                 .app(App.builder().bundle("org.company.application").build())
                 .build();
-        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false, AuctionRequestPayloadImpl.of(modifiedBidRequest))));
 
@@ -706,7 +706,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectRequest() {
         // given
-        given(hookStageExecutor.executeProcessedAuctionRequestStage(any(), any(), any()))
+        given(hookStageExecutor.executeProcessedAuctionRequestStage(any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
 
         final AuctionContext auctionContext = AuctionContext.builder()
