@@ -140,8 +140,7 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
 
     private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, String currency, List<BidderError> errors) {
         try {
-            final BidType bidType = getBidType(bid.getImpid(), imps);
-            return BidderBid.of(bid, bidType, currency);
+            return BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;

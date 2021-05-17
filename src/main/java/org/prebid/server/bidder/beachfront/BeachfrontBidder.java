@@ -389,11 +389,11 @@ public class BeachfrontBidder implements Bidder<Void> {
         final String bodyString = httpCall.getResponse().getBody();
         try {
             return processVideoResponse(bodyString, httpCall.getRequest());
-        } catch (DecodeException e) {
+        } catch (DecodeException ignored) {
             try {
                 return processBannerResponse(bodyString);
-            } catch (PreBidException ex) {
-                return Result.withError(BidderError.badServerResponse(ex.getMessage()));
+            } catch (PreBidException e) {
+                return Result.withError(BidderError.badServerResponse(e.getMessage()));
             }
         }
     }
@@ -455,38 +455,44 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
         final List<Imp> imps = videoRequest.getRequest().getImp();
         if (httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)) {
-            return Result.withValues(updateVideoBids(bids, imps).stream()
+            return Result.withValues(updateNurlVideoBids(bids, imps).stream()
                     .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
                     .collect(Collectors.toList()));
         } else {
-            return Result.withValues(bids.stream()
-                    .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
+            return Result.withValues(updateVideoBids(bids).stream()
                     .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
                     .collect(Collectors.toList()));
         }
     }
 
-    private static List<Bid> updateVideoBids(List<Bid> bids, List<Imp> imps) {
+    private static List<Bid> updateNurlVideoBids(List<Bid> bids, List<Imp> imps) {
+        final List<Bid> result = new ArrayList<>();
         for (int i = 0; i < bids.size(); i++) {
-            final Bid bid = bids.get(i);
+            Bid bid = bids.get(i);
             final Imp imp = imps.get(i);
 
             final String impId = imp.getId();
-            bid.setCrid(getCrId(bid.getNurl()));
-            bid.setImpid(impId);
-            bid.setH(imp.getVideo().getH());
-            bid.setW(imp.getVideo().getW());
-            bid.setId(impId + "NurlVideo");
+
+            bid = bid.toBuilder()
+                    .crid(getCrId(bid.getNurl()))
+                    .impid(impId)
+                    .h(imp.getVideo().getH())
+                    .w(imp.getVideo().getW())
+                    .id(impId + "NurlVideo")
+                    .build();
+            result.add(bid);
         }
-        return bids;
+        return result;
+    }
+
+    private static List<Bid> updateVideoBids(List<Bid> bids) {
+        return bids.stream()
+                .map(bid -> bid.toBuilder().id(bid.getImpid() + "AdmVideo").build())
+                .collect(Collectors.toList());
     }
 
     private static String getCrId(String nurl) {
         final String[] split = nurl.split(":");
-
-        if (split.length > 1) {
-            return split[2]; //Index out of bound???...
-        }
-        return null;
+        return split.length > 2 ? split[2] : null;
     }
 }

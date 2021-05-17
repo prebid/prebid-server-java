@@ -317,10 +317,12 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 throw new PreBidException(String.format("bid %s missing 'bid_id' in 'adm'", bid.getId()));
             }
 
-            bid.setAdid(bidId);
-            bid.setCrid(bidId);
+            final Bid modifiedBid = bid.toBuilder()
+                    .adid(bidId)
+                    .crid(bidId)
+                    .build();
 
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
+            return BidderBid.of(modifiedBid, getBidType(modifiedBid.getImpid(), imps), currency);
 
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
@@ -328,7 +330,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidType resolveBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 final BidType bidType = resolveImpType(imp);
@@ -353,16 +355,13 @@ public class FacebookBidder implements Bidder<BidRequest> {
         final App app = bidRequest.getApp();
         final Publisher publisher = app != null ? app.getPublisher() : null;
         final String publisherId = publisher != null ? publisher.getId() : null;
-
         if (StringUtils.isEmpty(publisherId)) {
             return null;
         }
 
-        final String url = String.format(timeoutNotificationUrlTemplate, this.platformId, publisherId, requestId);
-
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(url)
+                .uri(String.format(timeoutNotificationUrlTemplate, platformId, publisherId, requestId))
                 .build();
     }
 }

@@ -259,7 +259,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateUserSyncTcfInvalidMetric("all");
+        verify(metrics).updateUserSyncTcfInvalidMetricForAllBidders();
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
     }

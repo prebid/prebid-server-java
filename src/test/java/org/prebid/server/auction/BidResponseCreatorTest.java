@@ -31,6 +31,7 @@ import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -245,8 +246,9 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner);
         final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder1", banner);
-        final BidInfo bidInfo3 = toBidInfo(bid3, imp1, "bidder2", banner);
-        final BidInfo bidInfo4 = toBidInfo(bid4, imp2, "bidder2", banner);
+        final TargetingInfo loosedTargetingInfo = toTargetingInfo("bidder2", false);
+        final BidInfo bidInfo3 = toBidInfo(bid3, null, imp1, "bidder2", banner, loosedTargetingInfo);
+        final BidInfo bidInfo4 = toBidInfo(bid4, null, imp2, "bidder2", banner, loosedTargetingInfo);
         ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bidInfo1, bidInfo2, bidInfo3, bidInfo4))),
@@ -305,10 +307,11 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false);
 
         // then
+
         final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner);
         final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder1", banner);
         verify(cacheService).cacheBidsOpenrtb(
-                argThat(t -> t.containsAll(asList(bidInfo1, bidInfo2))),
+                argThat(t -> t.containsAll(asList(bidInfo2, bidInfo1))),
                 same(auctionContext),
                 any(),
                 eq(EventsContext.builder().auctionTimestamp(1000L).build()));
@@ -615,7 +618,16 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false).result();
 
         // then
-        final BidInfo expectedBidInfo = toBidInfo(bid, generatedBid, imp, bidder, banner);
+        TargetingInfo.builder()
+                .bidderCode(bidder)
+                .isTargetingEnabled(true)
+                .isWinningBid(true)
+                .isBidderWinningBid(true)
+                .isAddTargetBidderCode(false)
+                .build();
+
+        final TargetingInfo targetingInfo = toTargetingInfo(bidder, true);
+        final BidInfo expectedBidInfo = toBidInfo(bid, generatedBid, imp, bidder, banner, targetingInfo);
         verify(cacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
 
         verify(eventsService).createEvent(eq(generatedBid), anyString(), anyString(), anyLong(), anyString());
@@ -2252,6 +2264,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .correspondingImp(correspondingImp)
                 .bidder(bidder)
                 .bidType(bidType)
+                .targetingInfo(toTargetingInfo(bidder, true))
                 .build();
     }
 
@@ -2259,13 +2272,25 @@ public class BidResponseCreatorTest extends VertxTest {
                                      String generatedBidId,
                                      Imp correspondingImp,
                                      String bidder,
-                                     BidType bidType) {
+                                     BidType bidType,
+                                     TargetingInfo targetingInfo) {
         return BidInfo.builder()
                 .generatedBidId(generatedBidId)
                 .bid(bid)
                 .correspondingImp(correspondingImp)
                 .bidder(bidder)
                 .bidType(bidType)
+                .targetingInfo(targetingInfo)
+                .build();
+    }
+
+    private static TargetingInfo toTargetingInfo(String bidder, boolean isWinningBid) {
+        return TargetingInfo.builder()
+                .bidderCode(bidder)
+                .isTargetingEnabled(true)
+                .isWinningBid(isWinningBid)
+                .isBidderWinningBid(true)
+                .isAddTargetBidderCode(false)
                 .build();
     }
 

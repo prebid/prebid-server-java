@@ -32,10 +32,7 @@ public class AdmanBidder extends OpenrtbBidder<ExtImpAdman> {
         final String impId = bid.getImpid();
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                if (imp.getBanner() == null && imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                return BidType.banner;
+                return imp.getBanner() == null && imp.getVideo() != null ? BidType.video : BidType.banner;
             }
         }
         throw new PreBidException(String.format("Failed to find impression %s", impId));

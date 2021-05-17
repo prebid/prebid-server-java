@@ -780,9 +780,16 @@ public class ExchangeServiceTest extends VertxTest {
         verify(bidResponseCreator).create(captor.capture(), eq(expectedAuctionContext), eq(expectedCacheInfo),
                 eq(expectedMultiBidMap), eq(false));
 
+        final ObjectNode expectedBidExt = mapper.createObjectNode().put("origbidcpm", new BigDecimal("7.89"));
+        final Bid expectedThirdBid = Bid.builder()
+                .id("bidId3")
+                .impid("impId1")
+                .price(BigDecimal.valueOf(7.89))
+                .ext(expectedBidExt)
+                .build();
         assertThat(captor.getValue()).containsOnly(
                 BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                        BidderBid.of(thirdBid, banner, null)), emptyList(), emptyList()), 0),
+                        BidderBid.of(expectedThirdBid, banner, null)), emptyList(), emptyList()), 0),
                 BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList()), 0));
     }
 

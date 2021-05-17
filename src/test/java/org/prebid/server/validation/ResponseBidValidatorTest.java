@@ -28,7 +28,6 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -61,20 +60,15 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldFailedIfBidderBidCurrencyIsIncorrect() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                responseBidValidator.validate(
-                        BidderBid.of(
-                                Bid.builder()
-                                        .id("bidId1")
-                                        .impid("impId1")
-                                        .crid("crid1")
-                                        .price(BigDecimal.ONE)
-                                        .build(),
-                                null,
-                                "USDD"),
-                        BIDDER_NAME,
-                        givenAuctionContext(),
-                        bidderAliases));
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.banner, "invalid", identity()),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        // then
+        assertThat(result.getErrors()).containsOnly("BidResponse currency \"invalid\" is not valid");
     }
 
     @Test
@@ -84,7 +78,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 BidderBid.of(null, null, "USD"), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
-        assertThat(result.getErrors()).containsOnly("Empty bid object submitted.");
+        assertThat(result.getErrors()).containsOnly("Empty bid object submitted");
     }
 
     @Test
@@ -132,24 +126,27 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldFailedIfNonDealBidHasZeroPrice() {
+        // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.price(BigDecimal.valueOf(0))),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
 
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Non deal bid \"bidId1\" has 0 price");
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly("Non deal bid \"bidId1\" has 0 price");
     }
 
     @Test
     public void validateShouldSuccessForDealZeroPriceBid() {
+        // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.price(BigDecimal.valueOf(0)).dealid("dealId")),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
 
+        // then
         assertThat(result.hasErrors()).isFalse();
     }
 
@@ -189,7 +186,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBannerBidHeightIsGreaterThanImposedByImp() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(50).h(250)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
+                givenBid(builder -> builder.w(50).h(250)),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         assertThat(result.getErrors())
@@ -294,35 +294,41 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldFailedIfVideoBidHasNoNurlAndAdm() {
+        // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(BidType.video, builder -> builder.adm(null).nurl(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
 
-        assertThat(result.getErrors()).hasSize(1)
+        // then
+        assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" with video type missing adm and nurl");
     }
 
     @Test
     public void validateShouldReturnSuccessfulResultForValidVideoBidWithNurl() {
+        // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(BidType.video, builder -> builder.adm(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
 
+        // then
         assertThat(result.hasErrors()).isFalse();
     }
 
     @Test
     public void validateShouldReturnSuccessfulResultForValidVideoBidWithAdm() {
+        // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(BidType.video, builder -> builder.nurl(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
 
+        // then
         assertThat(result.hasErrors()).isFalse();
     }
 
@@ -470,6 +476,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     private static BidderBid givenBid(BidType type, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return givenBid(type, "USD", bidCustomizer);
+    }
+
+    private static BidderBid givenBid(BidType type, String bidCurrency, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         final Bid.BidBuilder bidBuilder = Bid.builder()
                 .id("bidId1")
                 .adm("adm1")
@@ -481,7 +491,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 .adm("<tag>https://site.com/creative.jpg</tag>")
                 .price(BigDecimal.ONE);
 
-        return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, "USD");
+        return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, bidCurrency);
     }
 
     private static AuctionContext givenAuctionContext(BidRequest bidRequest, Account account) {
