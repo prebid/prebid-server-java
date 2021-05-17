@@ -21,7 +21,6 @@ import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.settings.model.Account;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -68,7 +67,6 @@ public class AuctionRequestFactory {
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        final List<String> errors = new ArrayList<>();
         final String body;
         try {
             body = extractAndValidateBody(routingContext);
@@ -76,17 +74,17 @@ public class AuctionRequestFactory {
             return Future.failedFuture(e);
         }
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                HookExecutionContext.of(Endpoint.openrtb2_auction));
 
-        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
-                .compose(httpRequestWrapper -> parseBidRequest(httpRequestWrapper, errors)
-                        .map(bidRequest -> ortb2RequestFactory.createAuctionContext(
-                                httpRequestWrapper,
+        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
+                .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
+                        .map(bidRequest -> ortb2RequestFactory.enrichAuctionContext(
+                                initialAuctionContext,
+                                httpRequest,
                                 bidRequest,
                                 requestTypeMetric(bidRequest),
-                                startTime,
-                                hookExecutionContext,
-                                errors)))
+                                startTime)))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
                         .map(auctionContext::with))

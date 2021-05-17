@@ -84,22 +84,28 @@ public class Ortb2RequestFactory {
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
     }
 
-    public AuctionContext createAuctionContext(HttpRequestWrapper httpRequest,
-                                               BidRequest bidRequest,
-                                               MetricName requestTypeMetric,
-                                               long startTime,
-                                               HookExecutionContext hookExecutionContext,
-                                               List<String> errors) {
+    public AuctionContext createAuctionContext(HookExecutionContext hookExecutionContext) {
 
         return AuctionContext.builder()
+                .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
+                .hookExecutionContext(hookExecutionContext)
+                .debugEnabled(false)
+                .build();
+    }
+
+    public AuctionContext enrichAuctionContext(AuctionContext auctionContext,
+                                               HttpRequestWrapper httpRequest,
+                                               BidRequest bidRequest,
+                                               MetricName requestTypeMetric,
+                                               long startTime) {
+
+        return auctionContext.toBuilder()
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
                 .requestTypeMetric(requestTypeMetric)
                 .timeout(timeout(bidRequest, startTime))
-                .prebidErrors(errors)
-                .debugWarnings(new ArrayList<>())
-                .hookExecutionContext(hookExecutionContext)
                 .debugEnabled(debugEnabled(bidRequest))
                 .build();
     }
@@ -161,14 +167,14 @@ public class Ortb2RequestFactory {
 
     public Future<HttpRequestWrapper> executeEntrypointHooks(RoutingContext routingContext,
                                                              String body,
-                                                             HookExecutionContext hookExecutionContext) {
+                                                             AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
                 routingContext.queryParams(),
                 routingContext.request().headers(),
                 body,
-                hookExecutionContext)
-                .map(stageResult -> toHttpRequest(stageResult, routingContext, hookExecutionContext));
+                auctionContext.getHookExecutionContext())
+                .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
     public Future<BidRequest> executeRawAuctionRequestHooks(AuctionContext auctionContext) {
@@ -183,10 +189,10 @@ public class Ortb2RequestFactory {
 
     private static HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
                                                     RoutingContext routingContext,
-                                                    HookExecutionContext hookExecutionContext) {
+                                                    AuctionContext auctionContext) {
 
         if (stageResult.isShouldReject()) {
-            throw new RejectedRequestException(hookExecutionContext);
+            throw new RejectedRequestException(auctionContext);
         }
 
         return HttpRequestWrapper.builder()
@@ -204,8 +210,7 @@ public class Ortb2RequestFactory {
                                            AuctionContext auctionContext) {
 
         if (stageResult.isShouldReject()) {
-            throw new RejectedRequestException(
-                    auctionContext.getHookExecutionContext(), auctionContext.isDebugEnabled());
+            throw new RejectedRequestException(auctionContext);
         }
 
         return stageResult.getPayload().bidRequest();

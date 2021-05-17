@@ -116,6 +116,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
+        given(ortb2RequestFactory.createAuctionContext(any())).willReturn(defaultActionContext);
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
@@ -230,8 +231,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(ortb2RequestFactory).createAuctionContext(
-                any(), captor.capture(), any(), anyLong(), any(), any());
+        verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), captor.capture(), any(), anyLong());
 
         final BidRequest capturedRequest = captor.getValue();
         assertThat(capturedRequest.getSite()).isNull();
@@ -460,8 +460,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(ortb2RequestFactory).createAuctionContext(
-                any(), eq(bidRequest), eq(MetricName.openrtb2web), anyLong(), any(), any());
+        verify(ortb2RequestFactory).enrichAuctionContext(
+                any(), any(), eq(bidRequest), eq(MetricName.openrtb2web), anyLong());
     }
 
     @Test
@@ -475,8 +475,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(ortb2RequestFactory).createAuctionContext(
-                any(), eq(bidRequest), eq(MetricName.openrtb2app), anyLong(), any(), any());
+        verify(ortb2RequestFactory).enrichAuctionContext(
+                any(), any(), eq(bidRequest), eq(MetricName.openrtb2app), anyLong());
     }
 
     @Test
@@ -579,7 +579,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     private void givenAuctionContext(BidRequest bidRequest, Account account) {
-        given(ortb2RequestFactory.createAuctionContext(any(), any(), any(), anyLong(), any(), any()))
+        given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), any(), anyLong()))
                 .willReturn(defaultActionContext.toBuilder()
                         .bidRequest(bidRequest)
                         .build());

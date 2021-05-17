@@ -59,6 +59,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -127,6 +128,9 @@ public class AmpRequestFactoryTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap()
                         .add("tag_id", "tagId"));
 
+        given(ortb2RequestFactory.createAuctionContext(any())).willReturn(AuctionContext.builder()
+                .prebidErrors(new ArrayList<>())
+                .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
 
@@ -1317,14 +1321,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        target.fromRequest(routingContext, 0L).result();
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<List<String>> errorsCaptor = ArgumentCaptor.forClass(
-                List.class);
-        verify(ortb2RequestFactory).createAuctionContext(any(), any(), any(), anyLong(), any(), errorsCaptor.capture());
-        assertThat(errorsCaptor.getValue()).contains("Amp request parameter consent_string or gdpr_consent have"
-                + " invalid format: consent-value");
+        assertThat(result.getPrebidErrors())
+                .contains("Amp request parameter consent_string or gdpr_consent have invalid format: consent-value");
     }
 
     @Test
@@ -1588,12 +1589,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         verify(ortb2RequestFactory).createAuctionContext(
-                any(),
-                any(),
-                any(),
-                anyLong(),
-                argThat(context -> context.getEndpoint() == Endpoint.openrtb2_amp),
-                any());
+                argThat(context -> context.getEndpoint() == Endpoint.openrtb2_amp));
     }
 
     @Test
@@ -1649,9 +1645,9 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(bidRequest));
 
         final MetricName metricName = MetricName.amp;
-        given(ortb2RequestFactory.createAuctionContext(any(), any(), eq(metricName), anyLong(), any(), any()))
-                .willAnswer(invocationOnMock -> AuctionContext.builder()
-                        .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
+        given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), eq(metricName), anyLong()))
+                .willAnswer(invocationOnMock -> ((AuctionContext) invocationOnMock.getArguments()[0]).toBuilder()
+                        .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
                         .build());
         given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
 

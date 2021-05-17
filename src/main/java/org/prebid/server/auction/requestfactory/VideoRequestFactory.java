@@ -80,19 +80,20 @@ public class VideoRequestFactory {
         }
 
         final List<PodError> podErrors = new ArrayList<>();
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_video);
 
-        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                HookExecutionContext.of(Endpoint.openrtb2_amp));
+
+        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest)
                         .map(bidRequestWithErrors -> populatePodErrors(
                                 bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
-                        .map(bidRequestWithErrors -> ortb2RequestFactory.createAuctionContext(
+                        .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
+                                initialAuctionContext,
                                 httpRequest,
                                 bidRequestWithErrors.getData(),
                                 MetricName.video,
-                                startTime,
-                                hookExecutionContext,
-                                new ArrayList<>())))
+                                startTime)))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
                         .map(auctionContext::with))

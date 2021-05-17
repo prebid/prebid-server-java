@@ -44,7 +44,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -86,6 +85,7 @@ public class VideoRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(ortb2RequestFactory.createAuctionContext(any())).willReturn(AuctionContext.builder().build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
 
@@ -280,8 +280,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         // then
         verify(routingContext).getBodyAsString();
         verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
-        verify(ortb2RequestFactory).createAuctionContext(
-                any(), eq(bidRequest), eq(MetricName.video), eq(0L), any(), eq(new ArrayList<>()));
+        verify(ortb2RequestFactory).createAuctionContext(any());
+        verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(MetricName.video), eq(0L));
         verify(ortb2RequestFactory).fetchAccount(eq(AuctionContext.builder().bidRequest(bidRequest).build()));
         verify(ortb2RequestFactory).validateRequest(bidRequest);
         verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver));
@@ -334,9 +334,9 @@ public class VideoRequestFactoryTest extends VertxTest {
     private void givenBidRequest(BidRequest bidRequest, List<PodError> podErrors) {
         given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(WithPodErrors.of(bidRequest, podErrors)));
-        given(ortb2RequestFactory.createAuctionContext(any(), any(), any(), anyLong(), any(), any()))
+        given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), any(), anyLong()))
                 .willAnswer(invocationOnMock -> AuctionContext.builder()
-                        .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
+                        .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
                         .build());
         given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
 

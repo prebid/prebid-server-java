@@ -1,26 +1,16 @@
 package org.prebid.server.exception;
 
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.auction.model.AuctionContext;
 
 public class RejectedRequestException extends RuntimeException {
 
-    private final HookExecutionContext hookExecutionContext;
-    private final boolean debugEnabled;
+    private final AuctionContext auctionContext;
 
-    public RejectedRequestException(HookExecutionContext hookExecutionContext, boolean debugEnabled) {
-        this.debugEnabled = debugEnabled;
-        this.hookExecutionContext = hookExecutionContext;
+    public RejectedRequestException(AuctionContext auctionContext) {
+        this.auctionContext = auctionContext;
     }
 
-    public RejectedRequestException(HookExecutionContext hookExecutionContext) {
-        this(hookExecutionContext, false);
-    }
-
-    public boolean isDebugEnabled() {
-        return debugEnabled;
-    }
-
-    public HookExecutionContext getHookExecutionContext() {
-        return hookExecutionContext;
+    public AuctionContext getAuctionContext() {
+        return auctionContext;
     }
 }

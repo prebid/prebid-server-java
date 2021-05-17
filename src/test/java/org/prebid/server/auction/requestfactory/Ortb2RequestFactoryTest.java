@@ -447,6 +447,20 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
     @Test
     public void createAuctionContextShouldReturnExpectedAuctionContext() {
+        // when
+        final AuctionContext result = target.createAuctionContext(hookExecutionContext);
+
+        // then
+        assertThat(result).isEqualTo(AuctionContext.builder()
+                .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
+                .hookExecutionContext(hookExecutionContext)
+                .debugEnabled(false)
+                .build());
+    }
+
+    @Test
+    public void enrichAuctionContextShouldReturnExpectedAuctionContext() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .tmax(1000L)
@@ -464,8 +478,17 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final ArrayList<String> errors = new ArrayList<>();
 
         // when
-        final AuctionContext result = target.createAuctionContext(
-                httpRequest, bidRequest, MetricName.openrtb2app, 100, hookExecutionContext, errors);
+        final AuctionContext result = target.enrichAuctionContext(
+                AuctionContext.builder()
+                        .prebidErrors(new ArrayList<>())
+                        .debugWarnings(new ArrayList<>())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugEnabled(false)
+                        .build(),
+                httpRequest,
+                bidRequest,
+                MetricName.openrtb2app,
+                100);
 
         // then
         verify(timeoutResolver).resolve(1000L);
@@ -474,7 +497,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         verify(uidsCookieService).parseFromRequest(httpRequest);
 
-        final AuctionContext expectedAuctionContext = AuctionContext.builder()
+        assertThat(result).isEqualTo(AuctionContext.builder()
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
@@ -483,8 +506,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .prebidErrors(errors)
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
-                .build();
-        assertThat(result).isEqualTo(expectedAuctionContext);
+                .debugEnabled(false) // TODO: check that the flag is overridden
+                .build());
     }
 
     @Test
@@ -609,9 +632,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                         .app(App.builder().bundle("org.company.application").build())
                                         .build())))));
 
+        final AuctionContext auctionContext =
+                AuctionContext.builder().hookExecutionContext(hookExecutionContext).build();
+
         // when
-        final Future<HttpRequestWrapper> result = target.executeEntrypointHooks(routingContext, "",
-                hookExecutionContext);
+        final Future<HttpRequestWrapper> result = target.executeEntrypointHooks(routingContext, "", auctionContext);
 
         // then
         final HttpRequestWrapper httpRequest = result.result();
@@ -629,14 +654,16 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
 
+        final AuctionContext auctionContext =
+                AuctionContext.builder().hookExecutionContext(hookExecutionContext).build();
+
         // when
-        final Future<?> result = target.executeEntrypointHooks(routingContext, "", hookExecutionContext);
+        final Future<?> result = target.executeEntrypointHooks(routingContext, "", auctionContext);
 
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
-        assertThat(((RejectedRequestException) result.cause()).getHookExecutionContext())
-                .isEqualTo(HookExecutionContext.of(Endpoint.openrtb2_auction));
+        assertThat(((RejectedRequestException) result.cause()).getAuctionContext()).isEqualTo(auctionContext);
     }
 
     @Test
@@ -677,8 +704,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
-        assertThat(((RejectedRequestException) result.cause()).getHookExecutionContext())
-                .isEqualTo(HookExecutionContext.of(Endpoint.openrtb2_auction));
+        assertThat(((RejectedRequestException) result.cause()).getAuctionContext()).isEqualTo(auctionContext);
     }
 
     @Test
