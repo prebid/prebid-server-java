@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -260,26 +261,27 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Extracts {@link Bid}s from response.
      */
     private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Result.empty()
-                : Result.withValues(createBiddersBid(bidResponse, imps));
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
+        }
+        return Result.withValues(createBiddersBids(bidResponse.getSeatbid(), imps, bidResponse.getCur()));
     }
 
     /**
      * Extracts {@link Bid}s from response and finds its type against matching {@link Imp}. In case matching {@link Imp}
-     * was not found, {@link BidType} is considered as banner .
+     * was not found, {@link BidType} is considered as banner.
      */
-    private static List<BidderBid> createBiddersBid(BidResponse bidResponse, List<Imp> imps) {
-
-        return bidResponse.getSeatbid().get(0).getBid().stream().filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidderType(imps, bid.getImpid()), bidResponse.getCur()))
+    private static List<BidderBid> createBiddersBids(List<SeatBid> seatBids, List<Imp> imps, String currency) {
+        return seatBids.get(0).getBid().stream()
+                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))
                 .collect(Collectors.toList());
     }
 
     /**
      * Finds matching {@link Imp} by impId and checks for {@link BidType}.
      */
-    private static BidType getBidderType(List<Imp> imps, String impId) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         return imps.stream()
                 .filter(imp -> Objects.equals(imp.getId(), impId))
                 .findAny()
