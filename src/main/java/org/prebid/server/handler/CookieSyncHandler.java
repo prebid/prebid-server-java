@@ -242,10 +242,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
-            final List<String> requestBidders = cookieSyncContext.getCookieSyncRequest().getBidders();
-            if (CollectionUtils.isNotEmpty(requestBidders)) {
-                requestBidders.forEach(metrics::updateUserSyncTcfInvalidMetric);
-            }
+            metrics.updateUserSyncTcfInvalidMetricForAllBidders();
             throw new InvalidRequestException("Consent string is invalid");
         }
     }

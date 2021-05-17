@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class Metrics extends UpdatableMetrics {
 
     private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
+    private static final String ALL_REQUEST_BIDDERS = "all";
 
     private final AccountMetricsVerbosity accountMetricsVerbosity;
     private final BidderCatalog bidderCatalog;
@@ -296,6 +297,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateUserSyncTcfInvalidMetric(String bidder) {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
+    }
+
+    public void updateUserSyncTcfInvalidMetricForAllBidders() {
+        userSync().forBidder(ALL_REQUEST_BIDDERS).tcf().incCounter(MetricName.invalid);
     }
 
     public void updateCookieSyncRequestMetric() {
