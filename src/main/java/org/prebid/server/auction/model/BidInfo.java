@@ -1,5 +1,7 @@
 package org.prebid.server.auction.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import lombok.Builder;
@@ -11,11 +13,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 @Value
 public class BidInfo {
 
-    String generatedBidId;
-
     Bid bid;
 
-    // Can be null
     Imp correspondingImp;
 
     String bidCurrency;
@@ -29,6 +28,11 @@ public class BidInfo {
     TargetingInfo targetingInfo;
 
     public String getBidId() {
-        return generatedBidId != null ? generatedBidId : bid.getId();
+        final ObjectNode extNode = bid != null ? bid.getExt() : null;
+        final JsonNode bidIdNode = extNode != null ? extNode.path("prebid").path("bidid") : null;
+        final String generatedBidId = bidIdNode != null && bidIdNode.isTextual() ? bidIdNode.textValue() : null;
+        final String bidId = bid != null ? bid.getId() : null;
+
+        return generatedBidId != null ? generatedBidId : bidId;
     }
 }

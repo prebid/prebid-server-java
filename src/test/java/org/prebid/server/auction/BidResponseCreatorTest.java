@@ -175,6 +175,43 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldPassBidWithGeneratedIdWhenIdGeneratorTypeUuid() {
+        // given
+        final Imp imp = givenImp();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(imp));
+        final String generatedId = "generatedId";
+        given(idGenerator.getType()).willReturn(IdGeneratorType.uuid);
+        given(idGenerator.generateId()).willReturn(generatedId);
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .impid(IMP_ID)
+                .price(BigDecimal.valueOf(5.67))
+                .build();
+        final String bidder = "bidder1";
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of(bidder, givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
+
+        givenCacheServiceResult(singletonMap(bid, CacheInfo.empty()));
+
+        // when
+        bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false);
+
+        // then
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
+                .bidid(generatedId)
+                .build();
+        final Bid expectedBid = bid.toBuilder()
+                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
+                .build();
+        final TargetingInfo targetingInfo = toTargetingInfo(bidder, true);
+        final BidInfo bidInfo = toBidInfo(expectedBid, imp, bidder, banner, targetingInfo);
+        verify(cacheService).cacheBidsOpenrtb(eq(singletonList(bidInfo)), any(), any(), any());
+    }
+
+    @Test
     public void shouldPassOriginalTimeoutToCacheServiceIfCachingIsRequested() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp()));
@@ -247,8 +284,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidInfo bidInfo1 = toBidInfo(bid1, imp1, "bidder1", banner);
         final BidInfo bidInfo2 = toBidInfo(bid2, imp2, "bidder1", banner);
         final TargetingInfo loosedTargetingInfo = toTargetingInfo("bidder2", false);
-        final BidInfo bidInfo3 = toBidInfo(bid3, null, imp1, "bidder2", banner, loosedTargetingInfo);
-        final BidInfo bidInfo4 = toBidInfo(bid4, null, imp2, "bidder2", banner, loosedTargetingInfo);
+        final BidInfo bidInfo3 = toBidInfo(bid3, imp1, "bidder2", banner, loosedTargetingInfo);
+        final BidInfo bidInfo4 = toBidInfo(bid4, imp2, "bidder2", banner, loosedTargetingInfo);
         ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bidInfo1, bidInfo2, bidInfo3, bidInfo4))),
@@ -607,9 +644,9 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of(bidder, givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
 
-        final String generatedBid = "de7fc739-0a6e-41ad-8961-701c30c82166";
+        final String generatedBidId = "de7fc739-0a6e-41ad-8961-701c30c82166";
         given(idGenerator.getType()).willReturn(IdGeneratorType.uuid);
-        given(idGenerator.generateId()).willReturn(generatedBid);
+        given(idGenerator.generateId()).willReturn(generatedBidId);
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
         givenCacheServiceResult(singletonMap(bid, CacheInfo.of("id", null, null, null)));
@@ -618,19 +655,17 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS, false).result();
 
         // then
-        TargetingInfo.builder()
-                .bidderCode(bidder)
-                .isTargetingEnabled(true)
-                .isWinningBid(true)
-                .isBidderWinningBid(true)
-                .isAddTargetBidderCode(false)
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().bidid(generatedBidId).type(banner).build();
+        final ExtPrebid<ExtBidPrebid, ?> expectedPrebid = ExtPrebid.of(extBidPrebid, null);
+        final Bid expectedBid = bid.toBuilder()
+                .ext(mapper.valueToTree(expectedPrebid))
                 .build();
 
         final TargetingInfo targetingInfo = toTargetingInfo(bidder, true);
-        final BidInfo expectedBidInfo = toBidInfo(bid, generatedBid, imp, bidder, banner, targetingInfo);
+        final BidInfo expectedBidInfo = toBidInfo(expectedBid, imp, bidder, banner, targetingInfo);
         verify(cacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
 
-        verify(eventsService).createEvent(eq(generatedBid), anyString(), anyString(), anyLong(), anyString());
+        verify(eventsService).createEvent(eq(generatedBidId), anyString(), anyString(), anyLong(), anyString());
     }
 
     @Test
@@ -2269,13 +2304,11 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private static BidInfo toBidInfo(Bid bid,
-                                     String generatedBidId,
                                      Imp correspondingImp,
                                      String bidder,
                                      BidType bidType,
                                      TargetingInfo targetingInfo) {
         return BidInfo.builder()
-                .generatedBidId(generatedBidId)
                 .bid(bid)
                 .correspondingImp(correspondingImp)
                 .bidder(bidder)
