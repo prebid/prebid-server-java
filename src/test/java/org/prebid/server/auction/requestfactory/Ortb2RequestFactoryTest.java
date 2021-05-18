@@ -27,7 +27,6 @@ import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -652,7 +651,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfEntrypointHooksRejectRequest() {
+    public void shouldReturnFailedFutureIfEntrypointHooksRejectedRequest() {
         // given
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
@@ -664,9 +663,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Future<?> result = target.executeEntrypointHooks(routingContext, "", auctionContext);
 
         // then
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
-        assertThat(((RejectedRequestException) result.cause()).getAuctionContext()).isEqualTo(auctionContext);
+        assertThat(result).isFailed();
+        assertThat(result.cause()).isInstanceOf(Ortb2RequestFactory.RejectedRequestException.class);
+        assertThat(((Ortb2RequestFactory.RejectedRequestException) result.cause()).getAuctionContext())
+                .isEqualTo(auctionContext);
     }
 
     @Test
@@ -692,7 +692,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfRawAuctionRequestHookRejectRequest() {
+    public void shouldReturnFailedFutureIfRawAuctionRequestHookRejectedRequest() {
         // given
         given(hookStageExecutor.executeRawAuctionRequestStage(any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
@@ -705,9 +705,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Future<BidRequest> result = target.executeRawAuctionRequestHooks(auctionContext);
 
         // then
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
-        assertThat(((RejectedRequestException) result.cause()).getAuctionContext()).isEqualTo(auctionContext);
+        assertThat(result).isFailed();
+        assertThat(result.cause()).isInstanceOf(Ortb2RequestFactory.RejectedRequestException.class);
+        assertThat(((Ortb2RequestFactory.RejectedRequestException) result.cause()).getAuctionContext())
+                .isEqualTo(auctionContext);
     }
 
     @Test
@@ -733,7 +734,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectRequest() {
+    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectedRequest() {
         // given
         given(hookStageExecutor.executeProcessedAuctionRequestStage(any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
@@ -746,8 +747,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Future<BidRequest> result = target.executeProcessedAuctionRequestHooks(auctionContext);
 
         // then
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
+        assertThat(result).isFailed();
+        assertThat(result.cause()).isInstanceOf(Ortb2RequestFactory.RejectedRequestException.class);
+        assertThat(((Ortb2RequestFactory.RejectedRequestException) result.cause()).getAuctionContext())
+                .isEqualTo(auctionContext);
     }
 
     @Test
@@ -759,7 +762,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<AuctionContext> result =
-                target.restoreResultFromRejection(new RejectedRequestException(auctionContext));
+                target.restoreResultFromRejection(new Ortb2RequestFactory.RejectedRequestException(auctionContext));
 
         // then
         assertThat(result).succeededWith(AuctionContext.builder()

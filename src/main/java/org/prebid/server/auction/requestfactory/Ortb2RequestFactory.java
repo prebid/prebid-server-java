@@ -19,7 +19,6 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -371,5 +370,18 @@ public class Ortb2RequestFactory {
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
         return target != null ? getter.apply(target) : null;
+    }
+
+    static class RejectedRequestException extends RuntimeException {
+
+        private final AuctionContext auctionContext;
+
+        public RejectedRequestException(AuctionContext auctionContext) {
+            this.auctionContext = auctionContext;
+        }
+
+        public AuctionContext getAuctionContext() {
+            return auctionContext;
+        }
     }
 }
