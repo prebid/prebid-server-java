@@ -175,7 +175,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassBidWithGeneratedIdWhenIdGeneratorTypeUuid() {
+    public void shouldPassBidWithGeneratedIdAndNotOverrideExtFieldsWhenIdGeneratorTypeUuid() {
         // given
         final Imp imp = givenImp();
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(imp));
@@ -183,10 +183,12 @@ public class BidResponseCreatorTest extends VertxTest {
         given(idGenerator.getType()).willReturn(IdGeneratorType.uuid);
         given(idGenerator.generateId()).willReturn(generatedId);
 
+        final ObjectNode recievedBidExt = mapper.createObjectNode().put("origbidcur", "test");
         final Bid bid = Bid.builder()
                 .id("bidId1")
                 .impid(IMP_ID)
                 .price(BigDecimal.valueOf(5.67))
+                .ext(recievedBidExt)
                 .build();
         final String bidder = "bidder1";
         final List<BidderResponse> bidderResponses = singletonList(
@@ -204,7 +206,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .bidid(generatedId)
                 .build();
         final Bid expectedBid = bid.toBuilder()
-                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
+                .ext(recievedBidExt.set("prebid", mapper.valueToTree(extBidPrebid)))
                 .build();
         final TargetingInfo targetingInfo = toTargetingInfo(bidder, true);
         final BidInfo bidInfo = toBidInfo(expectedBid, imp, bidder, banner, targetingInfo);
