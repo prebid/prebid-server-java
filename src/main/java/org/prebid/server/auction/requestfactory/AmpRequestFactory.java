@@ -135,7 +135,9 @@ public class AmpRequestFactory {
                         ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
-                        .map(auctionContext::with));
+                        .map(auctionContext::with))
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
     /**

@@ -243,7 +243,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfEntrypointHooksRejectedRequest() {
+    public void shouldReturnFailedFutureIfEntrypointHookRejectedRequest() {
         // given
         givenValidBidRequest(defaultBidRequest);
 
@@ -291,7 +291,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfRawAuctionRequestHookFailedRequest() {
+    public void shouldReturnFailedFutureIfRawAuctionRequestHookRejectedRequest() {
         // given
         givenValidBidRequest(defaultBidRequest);
 
@@ -337,7 +337,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectRequest() {
+    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectedRequest() {
         // given
         givenValidBidRequest(defaultBidRequest);
 

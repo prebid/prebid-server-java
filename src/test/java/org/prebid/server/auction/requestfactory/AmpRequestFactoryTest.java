@@ -32,7 +32,6 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -80,8 +79,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class AmpRequestFactoryTest extends VertxTest {
 
@@ -132,6 +133,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
+        given(ortb2RequestFactory.restoreResultFromRejection(any()))
+                .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
 
         given(fpdResolver.resolveApp(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -268,6 +271,31 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getDebug)
                 .containsExactly(1);
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfEntrypointHookRejectedRequest() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(0).build())),
+                Imp.builder().build());
+
+        final Throwable exception = new RuntimeException();
+        doAnswer(invocation -> Future.failedFuture(exception))
+                .when(ortb2RequestFactory)
+                .executeEntrypointHooks(any(), any(), any());
+
+        final AuctionContext auctionContext = AuctionContext.builder().requestRejected(true).build();
+        doReturn(Future.succeededFuture(auctionContext))
+                .when(ortb2RequestFactory)
+                .restoreResultFromRejection(eq(exception));
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).succeededWith(auctionContext);
     }
 
     @Test
@@ -1615,20 +1643,25 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectRequest() {
+    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectedRequest() {
         // given
         givenBidRequest(builder -> builder.ext(ExtRequest.empty()), Imp.builder().build());
 
-        doAnswer(invocation -> Future.failedFuture(new RejectedRequestException(null)))
+        final Throwable exception = new RuntimeException();
+        doAnswer(invocation -> Future.failedFuture(exception))
                 .when(ortb2RequestFactory)
                 .executeProcessedAuctionRequestHooks(any());
 
+        final AuctionContext auctionContext = AuctionContext.builder().requestRejected(true).build();
+        doReturn(Future.succeededFuture(auctionContext))
+                .when(ortb2RequestFactory)
+                .restoreResultFromRejection(eq(exception));
+
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(RejectedRequestException.class);
+        assertThat(future).succeededWith(auctionContext);
     }
 
     private void givenBidRequest(
