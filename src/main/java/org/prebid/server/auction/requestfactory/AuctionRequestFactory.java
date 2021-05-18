@@ -74,8 +74,10 @@ public class AuctionRequestFactory {
             return Future.failedFuture(e);
         }
 
-        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                HookExecutionContext.of(Endpoint.openrtb2_auction));
+        final AuctionContext initialAuctionContext = ortb2RequestFactory
+                .createAuctionContext(HookExecutionContext.of(Endpoint.openrtb2_auction)).toBuilder()
+                .requestTypeMetric(MetricName.openrtb2web)
+                .build();
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
@@ -102,7 +104,9 @@ public class AuctionRequestFactory {
                         ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
-                        .map(auctionContext::with));
+                        .map(auctionContext::with))
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
     private String extractAndValidateBody(RoutingContext context) {

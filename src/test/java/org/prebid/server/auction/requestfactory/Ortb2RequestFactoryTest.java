@@ -68,6 +68,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class Ortb2RequestFactoryTest extends VertxTest {
 
@@ -456,6 +457,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
                 .debugEnabled(false)
+                .requestRejected(false)
                 .build());
     }
 
@@ -611,7 +613,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void executeEntrypointHooksShouldReturnExpectedHttpRequestWrapper() {
+    public void executeEntrypointHooksShouldReturnExpectedHttpRequest() {
         // given
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap().add("test", "test"));
 
@@ -745,6 +747,35 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(RejectedRequestException.class);
+    }
+
+    @Test
+    public void restoreResultFromRejectionShouldReturnSuccessfulFutureWhenRequestRejected() {
+        // given
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .requestRejected(false)
+                .build();
+
+        // when
+        final Future<AuctionContext> result =
+                target.restoreResultFromRejection(new RejectedRequestException(auctionContext));
+
+        // then
+        assertThat(result).succeededWith(AuctionContext.builder()
+                .requestRejected(true)
+                .build());
+    }
+
+    @Test
+    public void restoreResultFromRejectionShouldReturnFailedFutureWhenNotRejectionException() {
+        // given
+        final InvalidRequestException exception = new InvalidRequestException("Request is not really valid");
+
+        // when
+        final Future<AuctionContext> result = target.restoreResultFromRejection(exception);
+
+        // then
+        assertThat(result).isFailed().isSameAs(exception);
     }
 
     private static String bidRequestToString(BidRequest bidRequest) {

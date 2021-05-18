@@ -46,6 +46,8 @@ public class AuctionContext {
 
     boolean debugEnabled;
 
+    boolean requestRejected;
+
     public AuctionContext with(Account account) {
         return this.toBuilder().account(account).build();
     }
@@ -58,6 +60,12 @@ public class AuctionContext {
         return this.toBuilder()
                 .privacyContext(privacyContext)
                 .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                .build();
+    }
+
+    public AuctionContext withRequestRejected() {
+        return this.toBuilder()
+                .requestRejected(true)
                 .build();
     }
 }

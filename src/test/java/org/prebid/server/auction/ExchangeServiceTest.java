@@ -139,6 +139,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -2704,6 +2705,33 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse).isEqualTo(BidResponse.builder().id("bidResponseId").build());
+    }
+
+    @Test
+    public void shouldReturnEmptyBidResponseWhenRequestIsRejected() {
+        // given
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .requestRejected(true)
+                .build();
+
+        // when
+        final Future<BidResponse> result = exchangeService.holdAuction(auctionContext);
+
+        // then
+        verifyZeroInteractions(storedResponseProcessor, httpBidderRequester, hookStageExecutor, bidResponseCreator);
+        assertThat(result).succeededWith(BidResponse.builder()
+                .seatbid(emptyList())
+                .build());
+    }
+
+    @Test
+    public void shouldReturnBidResponseWithHooksDebugInfoWhenAuctionHappened() {
+        // TODO: implement
+    }
+
+    @Test
+    public void shouldReturnBidResponseWIthHooksDebugInfoWhenRequestIsRejected() {
+        // TODO: implement
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {

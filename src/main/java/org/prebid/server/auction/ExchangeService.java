@@ -153,6 +153,23 @@ public class ExchangeService {
      * response containing returned bids and additional information in extensions.
      */
     public Future<BidResponse> holdAuction(AuctionContext context) {
+        return processAuctionRequest(context)
+                .map(bidResponse -> enrichWithHooksDebugInfo(bidResponse, context));
+    }
+
+    private Future<BidResponse> processAuctionRequest(AuctionContext context) {
+        return context.isRequestRejected()
+                ? Future.succeededFuture(emptyResponse())
+                : runAuction(context);
+    }
+
+    private static BidResponse emptyResponse() {
+        return BidResponse.builder()
+                .seatbid(Collections.emptyList())
+                .build();
+    }
+
+    private Future<BidResponse> runAuction(AuctionContext context) {
         final UidsCookie uidsCookie = context.getUidsCookie();
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
@@ -1228,6 +1245,11 @@ public class ExchangeService {
                 errorMetric = MetricName.unknown_error;
         }
         return errorMetric;
+    }
+
+    private BidResponse enrichWithHooksDebugInfo(BidResponse bidResponse, AuctionContext context) {
+        // TODO: add actual enrichment
+        return bidResponse;
     }
 
     private <T> List<T> nullIfEmpty(List<T> value) {

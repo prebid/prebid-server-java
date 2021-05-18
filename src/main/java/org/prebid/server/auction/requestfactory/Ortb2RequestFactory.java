@@ -91,6 +91,7 @@ public class Ortb2RequestFactory {
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
                 .debugEnabled(false)
+                .requestRejected(false)
                 .build();
     }
 
@@ -185,6 +186,16 @@ public class Ortb2RequestFactory {
     public Future<BidRequest> executeProcessedAuctionRequestHooks(AuctionContext auctionContext) {
         return hookStageExecutor.executeProcessedAuctionRequestStage(auctionContext)
                 .map(stageResult -> toBidRequest(stageResult, auctionContext));
+    }
+
+    public Future<AuctionContext> restoreResultFromRejection(Throwable throwable) {
+        if (throwable instanceof RejectedRequestException) {
+            final AuctionContext auctionContext = ((RejectedRequestException) throwable).getAuctionContext();
+
+            return Future.succeededFuture(auctionContext.withRequestRejected());
+        }
+
+        return Future.failedFuture(throwable);
     }
 
     private static HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
