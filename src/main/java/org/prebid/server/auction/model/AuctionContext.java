@@ -45,6 +45,10 @@ public class AuctionContext {
         return this.toBuilder().bidRequest(bidRequest).build();
     }
 
+    public AuctionContext with(BidRequest bidRequest, List<String> errors) {
+        return this.toBuilder().bidRequest(bidRequest).prebidErrors(errors).build();
+    }
+
     public AuctionContext with(PrivacyContext privacyContext) {
         return this.toBuilder()
                 .privacyContext(privacyContext)

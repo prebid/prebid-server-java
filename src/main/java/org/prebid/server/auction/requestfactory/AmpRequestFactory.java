@@ -46,8 +46,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -115,14 +117,25 @@ public class AmpRequestFactory {
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        return createBidRequest(routingContext)
-                .compose(bidRequestWithErrors -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
-                        routingContext,
-                        bidRequestWithErrors.getLeft(),
-                        MetricName.amp,
-                        false,
-                        startTime,
-                        bidRequestWithErrors.getRight()))
+        final BidRequest parsedBidRequest;
+        try {
+            parsedBidRequest = parseBidRequest(routingContext);
+        } catch (InvalidRequestException e) {
+            return Future.failedFuture(e);
+        }
+
+        return ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
+                routingContext,
+                parsedBidRequest,
+                MetricName.amp,
+                false,
+                startTime,
+                new ArrayList<>())
+
+                .compose(auctionContext -> updateBidRequest(auctionContext)
+                        .map(bidRequestWithErrors -> auctionContext.with(
+                                bidRequestWithErrors.getLeft(),
+                                bidRequestWithErrors.getRight())))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))
@@ -134,22 +147,49 @@ public class AmpRequestFactory {
                                 auctionContext.getPrivacyContext())));
     }
 
+    private BidRequest parseBidRequest(RoutingContext context) {
+        final String tagId = context.request().getParam(TAG_ID_REQUEST_PARAM);
+        if (StringUtils.isBlank(tagId)) {
+            throw new InvalidRequestException("AMP requests require an AMP tag_id");
+        }
+
+        final String accountId = context.request().getParam(ACCOUNT_REQUEST_PARAM);
+        final Site siteWithAccount = StringUtils.isNotBlank(accountId)
+                ? Site.builder().publisher(Publisher.builder().id(accountId).build()).build()
+                : null;
+
+        return BidRequest.builder()
+                .site(siteWithAccount)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of(tagId)).build()))
+                .build();
+    }
+
     /**
      * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<Tuple2<BidRequest, List<String>>> createBidRequest(RoutingContext context) {
-        final String tagId = context.request().getParam(TAG_ID_REQUEST_PARAM);
-        if (StringUtils.isBlank(tagId)) {
-            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
+    private Future<Tuple2<BidRequest, List<String>>> updateBidRequest(AuctionContext auctionContext) {
+        final BidRequest receivedBidRequest = auctionContext.getBidRequest();
+        final ExtRequest requestExt = receivedBidRequest != null ? receivedBidRequest.getExt() : null;
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtStoredRequest storedRequest = prebid != null ? prebid.getStoredrequest() : null;
+        final String storedRequestId = storedRequest != null ? storedRequest.getId() : null;
+
+        final Account account = auctionContext.getAccount();
+        final String accountId = account != null ? account.getId() : null;
+
+        if (StringUtils.isBlank(storedRequestId)) {
+            return Future.failedFuture(
+                    new InvalidRequestException("AMP requests require the stored request id in AMP tag_id"));
         }
 
-        final List<String> errors = new ArrayList<>();
-        return storedRequestProcessor.processAmpRequest(context.request().getParam(ACCOUNT_REQUEST_PARAM), tagId)
-                .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
-                .map(bidRequest -> fillExplicitParameters(bidRequest, context))
-                .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))
-                .map(bidRequest -> paramsResolver.resolve(bidRequest, context, timeoutResolver))
+        final RoutingContext routingContext = auctionContext.getRoutingContext();
+        final List<String> errors = auctionContext.getPrebidErrors();
+        return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
+                .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
+                .map(bidRequest -> fillExplicitParameters(bidRequest, routingContext))
+                .map(bidRequest -> overrideParameters(bidRequest, routingContext.request(), errors))
+                .map(bidRequest -> paramsResolver.resolve(bidRequest, routingContext, timeoutResolver))
                 .map(ortb2RequestFactory::validateRequest)
                 .map(bidRequest -> Tuple2.of(bidRequest, errors));
     }
