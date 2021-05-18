@@ -449,10 +449,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void createAuctionContextShouldReturnExpectedAuctionContext() {
         // when
-        final AuctionContext result = target.createAuctionContext(hookExecutionContext);
+        final AuctionContext result = target.createAuctionContext(Endpoint.openrtb2_auction, MetricName.openrtb2app);
 
         // then
         assertThat(result).isEqualTo(AuctionContext.builder()
+                .requestTypeMetric(MetricName.openrtb2app)
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
@@ -482,6 +483,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // when
         final AuctionContext result = target.enrichAuctionContext(
                 AuctionContext.builder()
+                        .requestTypeMetric(MetricName.openrtb2app)
                         .prebidErrors(new ArrayList<>())
                         .debugWarnings(new ArrayList<>())
                         .hookExecutionContext(hookExecutionContext)
@@ -489,7 +491,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build(),
                 httpRequest,
                 bidRequest,
-                MetricName.openrtb2app,
                 100);
 
         // then

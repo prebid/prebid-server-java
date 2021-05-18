@@ -63,6 +63,12 @@ public class AuctionContext {
                 .build();
     }
 
+    public AuctionContext with(MetricName requestTypeMetric) {
+        return this.toBuilder()
+                .requestTypeMetric(requestTypeMetric)
+                .build();
+    }
+
     public AuctionContext withRequestRejected() {
         return this.toBuilder()
                 .requestRejected(true)

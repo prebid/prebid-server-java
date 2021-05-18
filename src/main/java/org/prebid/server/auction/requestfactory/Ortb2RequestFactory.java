@@ -31,6 +31,7 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -84,12 +85,12 @@ public class Ortb2RequestFactory {
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
     }
 
-    public AuctionContext createAuctionContext(HookExecutionContext hookExecutionContext) {
-
+    public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
         return AuctionContext.builder()
+                .requestTypeMetric(requestTypeMetric)
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
-                .hookExecutionContext(hookExecutionContext)
+                .hookExecutionContext(HookExecutionContext.of(endpoint))
                 .debugEnabled(false)
                 .requestRejected(false)
                 .build();
@@ -98,14 +99,12 @@ public class Ortb2RequestFactory {
     public AuctionContext enrichAuctionContext(AuctionContext auctionContext,
                                                HttpRequestWrapper httpRequest,
                                                BidRequest bidRequest,
-                                               MetricName requestTypeMetric,
                                                long startTime) {
 
         return auctionContext.toBuilder()
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
-                .requestTypeMetric(requestTypeMetric)
                 .timeout(timeout(bidRequest, startTime))
                 .debugEnabled(debugEnabled(bidRequest))
                 .build();

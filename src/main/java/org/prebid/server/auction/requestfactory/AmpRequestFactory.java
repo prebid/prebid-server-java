@@ -28,7 +28,6 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -119,16 +118,12 @@ public class AmpRequestFactory {
         final String body = routingContext.getBodyAsString();
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                HookExecutionContext.of(Endpoint.openrtb2_amp));
+                Endpoint.openrtb2_amp, MetricName.amp);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
                         .map(bidRequest -> ortb2RequestFactory.enrichAuctionContext(
-                                initialAuctionContext,
-                                httpRequest,
-                                bidRequest,
-                                MetricName.amp,
-                                startTime)))
+                                initialAuctionContext, httpRequest, bidRequest, startTime)))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
                         .map(auctionContext::with))

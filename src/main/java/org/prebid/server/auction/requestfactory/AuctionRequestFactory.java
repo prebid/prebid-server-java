@@ -13,7 +13,6 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -74,19 +73,14 @@ public class AuctionRequestFactory {
             return Future.failedFuture(e);
         }
 
-        final AuctionContext initialAuctionContext = ortb2RequestFactory
-                .createAuctionContext(HookExecutionContext.of(Endpoint.openrtb2_auction)).toBuilder()
-                .requestTypeMetric(MetricName.openrtb2web)
-                .build();
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                Endpoint.openrtb2_auction, MetricName.openrtb2web);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
-                        .map(bidRequest -> ortb2RequestFactory.enrichAuctionContext(
-                                initialAuctionContext,
-                                httpRequest,
-                                bidRequest,
-                                requestTypeMetric(bidRequest),
-                                startTime)))
+                        .map(bidRequest -> ortb2RequestFactory
+                                .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
+                                .with(requestTypeMetric(bidRequest))))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
                         .map(auctionContext::with))

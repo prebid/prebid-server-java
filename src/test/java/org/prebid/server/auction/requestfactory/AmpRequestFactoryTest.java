@@ -77,7 +77,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -128,7 +127,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap()
                         .add("tag_id", "tagId"));
 
-        given(ortb2RequestFactory.createAuctionContext(any())).willReturn(AuctionContext.builder()
+        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
                 .prebidErrors(new ArrayList<>())
                 .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
@@ -1578,7 +1577,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassHookExecutionContextWithAmpEndpoint() {
+    public void shouldPassAmpEndpointAndRequestMetricType() {
         // given
         givenBidRequest(
                 builder -> builder.ext(ExtRequest.empty()),
@@ -1588,8 +1587,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(ortb2RequestFactory).createAuctionContext(
-                argThat(context -> context.getEndpoint() == Endpoint.openrtb2_amp));
+        verify(ortb2RequestFactory).createAuctionContext(eq(Endpoint.openrtb2_amp), eq(MetricName.amp));
     }
 
     @Test
@@ -1644,8 +1642,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(any(), anyString()))
                 .willReturn(Future.succeededFuture(bidRequest));
 
-        final MetricName metricName = MetricName.amp;
-        given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), eq(metricName), anyLong()))
+        given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), anyLong()))
                 .willAnswer(invocationOnMock -> ((AuctionContext) invocationOnMock.getArguments()[0]).toBuilder()
                         .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
                         .build());
