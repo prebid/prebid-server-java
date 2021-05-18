@@ -1,0 +1,120 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "rp": {
+          "zone_id": 4001,
+          "target": {
+            "page": [
+              "http://www.example.com"
+            ]
+          },
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
+        },
+        "maxbids": 1
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 2001
+        }
+      }
+    },
+    "content": {
+      "data": [
+        {
+          "segment": [
+            {
+              "id": "segmentId1"
+            },
+            {
+              "id": "segmentId2"
+            }
+          ],
+          "ext": {
+            "segtax": 1
+          }
+        },
+        {
+          "segment": [
+            {
+              "id": "segmentId3"
+            }
+          ],
+          "ext": {
+            "segtax": 2
+          }
+        }
+      ]
+    },
+    "ext": {
+      "amp": 0,
+      "rp": {
+        "site_id": 3001,
+        "target": {
+          "iab": [
+            "segmentId1",
+            "segmentId2",
+            "segmentId3"
+          ]
+        }
+      }
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1",
+    "ext": {
+      "rp": {
+      }
+    }
+  },
+  "user": {
+    "buyeruid": "RUB-UID",
+    "data": [
+      {
+        "segment": [
+          {
+            "id": "segmentId4"
+          }
+        ],
+        "ext": {
+          "segtax": 3
+        }
+      }
+    ],
+    "ext": {
+      "rp": {
+        "target": {
+          "iab": [
+            "segmentId4"
+          ]
+        }
+      }
+    }
+  },
+  "at": 1,
+  "tmax": 2000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}
