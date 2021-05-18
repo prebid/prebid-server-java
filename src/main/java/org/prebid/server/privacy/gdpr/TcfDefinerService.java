@@ -8,6 +8,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -83,6 +84,9 @@ public class TcfDefinerService {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
+    /**
+     * Used for auctions.
+     */
     public Future<TcfContext> resolveTcfContext(Privacy privacy,
                                                 String country,
                                                 String ipAddress,
@@ -99,6 +103,9 @@ public class TcfDefinerService {
                 .map(this::updateTcfGeoMetrics);
     }
 
+    /**
+     * Used for cookie sync and setuid.
+     */
     public Future<TcfContext> resolveTcfContext(Privacy privacy,
                                                 String ipAddress,
                                                 AccountGdprConfig accountGdprConfig,
@@ -234,7 +241,18 @@ public class TcfDefinerService {
     }
 
     private String maybeMaskIp(String ipAddress, TCString consent) {
-        return shouldMaskIp(consent) ? ipAddressHelper.maskIpv4(ipAddress) : ipAddress;
+        if (!shouldMaskIp(consent)) {
+            return ipAddress;
+        }
+
+        final IpAddress ip = ipAddressHelper.toIpAddress(ipAddress);
+        if (ip == null) {
+            return ipAddress;
+        }
+
+        return ip.getVersion() == IpAddress.IP.v4
+                ? ipAddressHelper.maskIpv4(ipAddress)
+                : ipAddressHelper.anonymizeIpv6(ipAddress);
     }
 
     private static boolean shouldMaskIp(TCString consent) {
