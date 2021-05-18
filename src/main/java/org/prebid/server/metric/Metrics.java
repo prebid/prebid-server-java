@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
  */
 public class Metrics extends UpdatableMetrics {
 
+    private static final String ALL_REQUEST_BIDDERS = "all";
+
     private final AccountMetricsVerbosity accountMetricsVerbosity;
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
@@ -283,6 +285,14 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateUserSyncTcfBlockedMetric(String bidder) {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
+    }
+
+    public void updateUserSyncTcfInvalidMetric(String bidder) {
+        userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
+    }
+
+    public void updateUserSyncTcfInvalidMetric() {
+        updateUserSyncTcfInvalidMetric(ALL_REQUEST_BIDDERS);
     }
 
     public void updateCookieSyncRequestMetric() {
