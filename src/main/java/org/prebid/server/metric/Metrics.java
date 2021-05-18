@@ -291,8 +291,8 @@ public class Metrics extends UpdatableMetrics {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
     }
 
-    public void updateUserSyncTcfInvalidMetricForAllBidders() {
-        userSync().forBidder(ALL_REQUEST_BIDDERS).tcf().incCounter(MetricName.invalid);
+    public void updateUserSyncTcfInvalidMetric() {
+        updateUserSyncTcfInvalidMetric(ALL_REQUEST_BIDDERS);
     }
 
     public void updateCookieSyncRequestMetric() {
