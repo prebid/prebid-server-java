@@ -28,11 +28,9 @@ public class BidInfo {
     TargetingInfo targetingInfo;
 
     public String getBidId() {
-        final ObjectNode bidExt = bid != null ? bid.getExt() : null;
-        final JsonNode extBidPrebidNode = bidExt != null ? bidExt.get("prebid") : null;
-        final JsonNode generatedBidNode = extBidPrebidNode != null ? extBidPrebidNode.get("bidid") : null;
-        final String generatedBidId = generatedBidNode != null ? generatedBidNode.textValue() : null;
-
+        final ObjectNode extNode = bid != null ? bid.getExt() : null;
+        final JsonNode bidIdNode = extNode != null ? extNode.path("prebid").path("bidid") : null;
+        final String generatedBidId = bidIdNode != null && bidIdNode.isTextual() ? bidIdNode.textValue() : null;
         final String bidId = bid != null ? bid.getId() : null;
 
         return generatedBidId != null ? generatedBidId : bidId;

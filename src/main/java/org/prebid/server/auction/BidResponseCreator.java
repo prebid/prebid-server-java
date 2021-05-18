@@ -176,8 +176,7 @@ public class BidResponseCreator {
                 .integration(integrationFrom(auctionContext))
                 .build();
 
-        final List<BidderResponse> modifiedBidderResponses = enhanceBids(bidderResponses, account,
-                eventsContext);
+        final List<BidderResponse> modifiedBidderResponses = updateBids(bidderResponses, account, eventsContext);
 
         final List<BidderResponseInfo> bidderResponseInfos = toBidderResponseInfos(modifiedBidderResponses, imps);
 
@@ -207,9 +206,9 @@ public class BidResponseCreator {
                 debugEnabled);
     }
 
-    private List<BidderResponse> enhanceBids(List<BidderResponse> bidderResponses,
-                                             Account account,
-                                             EventsContext eventsContext) {
+    private List<BidderResponse> updateBids(List<BidderResponse> bidderResponses,
+                                            Account account,
+                                            EventsContext eventsContext) {
         final List<BidderResponse> result = new ArrayList<>();
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
@@ -219,7 +218,7 @@ public class BidResponseCreator {
             for (BidderBid bidderBid : seatBid.getBids()) {
                 final Bid receivedBid = bidderBid.getBid();
                 final BidType bidType = bidderBid.getType();
-                final Bid modifiedBid = enhanceBid(receivedBid, bidType, bidder, account, eventsContext);
+                final Bid modifiedBid = updateBid(receivedBid, bidType, bidder, account, eventsContext);
                 modifiedBidderBids.add(bidderBid.with(modifiedBid));
             }
 
@@ -229,56 +228,56 @@ public class BidResponseCreator {
         return result;
     }
 
-    private Bid enhanceBid(Bid bid,
-                           BidType bidType,
-                           String bidder,
-                           Account account,
-                           EventsContext eventsContext) {
+    private Bid updateBid(Bid bid,
+                          BidType bidType,
+                          String bidder,
+                          Account account,
+                          EventsContext eventsContext) {
         final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
                 ? bidIdGenerator.generateId()
                 : null;
 
-        final String bidId = bid.getId();
-        final String eventBidId = generatedBidId == null ? bidId : generatedBidId;
-        final String modifiedAdm = modifiedAdm(bid, bidType, bidder, account, eventsContext, eventBidId);
-
-        ObjectNode bidExt = bid.getExt();
-        if (generatedBidId != null) {
-            final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bid.getExt());
-            final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
-            final ExtBidPrebid.ExtBidPrebidBuilder extBidPrebidBuilder = extBidPrebid != null
-                    ? extBidPrebid.toBuilder()
-                    : ExtBidPrebid.builder();
-
-            final ExtBidPrebid modifiedExtBidPrebid = extBidPrebidBuilder
-                    .bidid(generatedBidId)
-                    .build();
-
-            final ObjectNode extPrebidBidder = extPrebid != null ? extPrebid.getBidder() : null;
-            bidExt = mapper.mapper().valueToTree(ExtPrebid.of(modifiedExtBidPrebid, extPrebidBidder));
-        }
-
         return bid.toBuilder()
-                .adm(modifiedAdm)
-                .ext(bidExt)
+                .adm(updateBidAdm(bid, bidType, bidder, account, eventsContext, generatedBidId))
+                .ext(updateBidExt(bid, generatedBidId))
                 .build();
     }
 
-    private String modifiedAdm(Bid bid,
-                               BidType bidType,
-                               String bidder,
-                               Account account,
-                               EventsContext eventsContext,
-                               String eventBidId) {
+    private String updateBidAdm(Bid bid,
+                                BidType bidType,
+                                String bidder,
+                                Account account,
+                                EventsContext eventsContext,
+                                String generatedBidId) {
+        final String bidAdm = bid.getAdm();
         return BidType.video.equals(bidType)
                 ? vastModifier.createBidVastXml(
                 bidder,
-                bid.getAdm(),
+                bidAdm,
                 bid.getNurl(),
-                eventBidId,
+                ObjectUtils.defaultIfNull(generatedBidId, bid.getId()),
                 account.getId(),
                 eventsContext)
-                : bid.getAdm();
+                : bidAdm;
+    }
+
+    private ObjectNode updateBidExt(Bid bid, String generatedBidId) {
+        if (generatedBidId == null) {
+            return bid.getExt();
+        }
+
+        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bid.getExt());
+        final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
+        final ExtBidPrebid.ExtBidPrebidBuilder extBidPrebidBuilder = extBidPrebid != null
+                ? extBidPrebid.toBuilder()
+                : ExtBidPrebid.builder();
+
+        final ExtBidPrebid modifiedExtBidPrebid = extBidPrebidBuilder
+                .bidid(generatedBidId)
+                .build();
+
+        final ObjectNode extPrebidBidder = extPrebid != null ? extPrebid.getBidder() : null;
+        return mapper.mapper().valueToTree(ExtPrebid.of(modifiedExtBidPrebid, extPrebidBidder));
     }
 
     /**
@@ -290,7 +289,8 @@ public class BidResponseCreator {
                 .allMatch(CollectionUtils::isEmpty);
     }
 
-    private List<BidderResponseInfo> toBidderResponseInfos(List<BidderResponse> bidderResponses, List<Imp> imps) {
+    private static List<BidderResponseInfo> toBidderResponseInfos(List<BidderResponse> bidderResponses,
+                                                                  List<Imp> imps) {
         final List<BidderResponseInfo> result = new ArrayList<>();
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
@@ -316,10 +316,7 @@ public class BidResponseCreator {
         return result;
     }
 
-    private BidInfo toBidInfo(Bid bid,
-                              BidType type,
-                              List<Imp> imps,
-                              String bidder) {
+    private static BidInfo toBidInfo(Bid bid, BidType type, List<Imp> imps, String bidder) {
         return BidInfo.builder()
                 .bid(bid)
                 .bidType(type)
