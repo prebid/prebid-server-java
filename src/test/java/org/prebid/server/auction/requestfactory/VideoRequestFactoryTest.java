@@ -89,6 +89,8 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(AuctionContext.builder().build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
+        given(ortb2RequestFactory.restoreResultFromRejection(any()))
+                .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
 
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));

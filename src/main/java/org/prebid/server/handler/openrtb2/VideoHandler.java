@@ -16,7 +16,6 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -125,15 +124,6 @@ public class VideoHandler implements Handler<RoutingContext> {
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
                 body = String.format("Unauthorised: %s", errorMessage);
-            } else if (exception instanceof RejectedRequestException) {
-                metricRequestStatus = MetricName.ok;
-                errorMessages = Collections.emptyList();
-
-                status = HttpResponseStatus.OK.code();
-                context.response()
-                        .headers()
-                        .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-                body = mapper.encode(rejectedResponse());
             } else {
                 metricRequestStatus = MetricName.err;
                 logger.error("Critical error while running the auction", exception);
@@ -173,9 +163,5 @@ public class VideoHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable throwable) {
         logger.warn("Failed to send video response: {0}", throwable.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
-    }
-
-    private static VideoResponse rejectedResponse() {
-        return VideoResponse.of(Collections.emptyList(), null, null, null);
     }
 }

@@ -102,6 +102,8 @@ public class VideoRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
+                .recover(ortb2RequestFactory::restoreResultFromRejection)
+
                 .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
     }
 
