@@ -12,9 +12,6 @@ import lombok.Value;
 @Value
 public class ExtImpAlgorix {
 
-    @JsonProperty("host")
-    String host;
-
     @JsonProperty("sid")
     String sid;
 

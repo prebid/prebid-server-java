@@ -38,10 +38,9 @@ import java.util.stream.Collectors;
 public class AlgorixBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAlgorix>> ALGORIX_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
+            new TypeReference<ExtPrebid<?, ExtImpAlgorix>>() {
             };
 
-    private static final String URL_HOST_MACRO = "{HOST}";
     private static final String URL_SID_MACRO = "{SID}";
     private static final String URL_TOKEN_MACRO = "{TOKEN}";
 
@@ -107,7 +106,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
      * @return target Url
      */
     private String resolveUrl(ExtImpAlgorix extImp) {
-        return endpointUrl.replace(URL_HOST_MACRO, extImp.getHost())
+        return endpointUrl
                 .replace(URL_SID_MACRO, extImp.getSid())
                 .replace(URL_TOKEN_MACRO, extImp.getToken());
     }

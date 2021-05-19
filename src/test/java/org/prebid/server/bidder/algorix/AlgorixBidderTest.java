@@ -40,7 +40,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
  */
 public class AlgorixBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{HOST}.xyz.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}";
+    private static final String ENDPOINT_URL = "https://xyz.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}";
     private static final String IMP_ID = "123";
     private static final int FORMAT_W = 320;
     private static final int FORMAT_H = 50;
@@ -96,7 +96,7 @@ public class AlgorixBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://testHost.xyz.svr-algorix.com/rtb/sa?sid=testSid&token=testToken");
+                .containsExactly("https://xyz.svr-algorix.com/rtb/sa?sid=testSid&token=testToken");
     }
 
     @Test
@@ -245,7 +245,7 @@ public class AlgorixBidderTest extends VertxTest {
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAlgorix.of("testHost", "testSid", "testToken")))))
+                        ExtImpAlgorix.of("testSid", "testToken")))))
                 .build();
     }
 

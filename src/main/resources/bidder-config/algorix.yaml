@@ -1,7 +1,7 @@
 adapters:
   algorix:
     enabled: false
-    endpoint: https://{HOST}.xyz.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}
+    endpoint: https://xyz.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
