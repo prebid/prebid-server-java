@@ -55,6 +55,5 @@ public class AlgorixTest extends IntegrationTest {
                 response, singletonList("algorix"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
-
     }
 }
