@@ -1253,7 +1253,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidRequest prebidRequest, BidRequest bidRequest, BidResponse bidResponse) {
         final Map<String, Imp> idToImp = prebidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
-        final Float cmpOverrideFromRequest = cmpOverrideFromRequest(prebidRequest);
+        final Float cpmOverrideFromRequest = cpmOverrideFromRequest(prebidRequest);
         final BidType bidType = bidType(bidRequest);
 
         return bidResponse.getSeatbid().stream()
@@ -1261,7 +1261,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cmpOverrideFromRequest, bidResponse))
+                .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cpmOverrideFromRequest, bidResponse))
                 .filter(RubiconBidder::validatePrice)
                 .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
@@ -1272,7 +1272,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return bid.getDealid() != null ? price.compareTo(BigDecimal.ZERO) >= 0 : price.compareTo(BigDecimal.ZERO) > 0;
     }
 
-    private Bid updateBid(Bid bid, Imp imp, Float cmpOverrideFromRequest, BidResponse bidResponse) {
+    private Bid updateBid(Bid bid, Imp imp, Float cpmOverrideFromRequest, BidResponse bidResponse) {
         String bidId = bid.getId();
         if (generateBidId) {
             // Since Rubicon XAPI returns openrtb_response.seatbid.bid.id not unique enough
@@ -1285,7 +1285,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         // Unconditionally set price if coming from CPM override
-        final Float cpmOverride = ObjectUtils.defaultIfNull(cpmOverrideFromImp(imp), cmpOverrideFromRequest);
+        final Float cpmOverride = ObjectUtils.defaultIfNull(cpmOverrideFromImp(imp), cpmOverrideFromRequest);
         final BigDecimal bidPrice = cpmOverride != null
                 ? new BigDecimal(String.valueOf(cpmOverride))
                 : bid.getPrice();
@@ -1296,7 +1296,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Float cmpOverrideFromRequest(BidRequest bidRequest) {
+    private Float cpmOverrideFromRequest(BidRequest bidRequest) {
         final RubiconExtPrebidBiddersBidder bidder = extPrebidBiddersRubicon(bidRequest.getExt());
         final RubiconExtPrebidBiddersBidderDebug debug = bidder != null ? bidder.getDebug() : null;
         return debug != null ? debug.getCpmoverride() : null;
