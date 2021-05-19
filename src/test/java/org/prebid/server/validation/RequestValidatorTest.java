@@ -2102,11 +2102,25 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationResultWithoutErrorsForNativeSpecificContextTypes()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(500).assets(singletonList(Asset.builder().build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void validateShouldReturnValidationResultWithErrorWhenContextTypeOutOfPossibleValuesRange()
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.context(100));
+                nativeReqCustomizer.context(323));
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -2234,7 +2248,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
                 nativeReqCustomizer.context(1).contextsubtype(12).eventtrackers(singletonList(EventTracker.builder()
-                        .event(5).build())).assets(singletonList(Asset.builder().build())));
+                        .event(323).build())).assets(singletonList(Asset.builder().build())));
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -2298,11 +2312,40 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationResultWithEmptyErrorWhenEventTrackerHasSpecificType()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(1).contextsubtype(12).eventtrackers(singletonList(EventTracker.builder()
+                        .event(500).methods(singletonList(2)).build())).assets(singletonList(Asset.builder().build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithoutErrorsForNativeSpecificPlacementTypes()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.plcmttype(500).assets(singletonList(Asset.builder().build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void validateShouldReturnValidationResultWithErrorWhenPlacementTypeOutOfPossibleValuesRange()
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.plcmttype(100));
+                nativeReqCustomizer.plcmttype(323));
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
