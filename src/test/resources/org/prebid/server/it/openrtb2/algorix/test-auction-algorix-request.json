@@ -13,7 +13,6 @@
       },
       "ext": {
         "algorix": {
-          "host": "use",
           "sid": "testSid",
           "token": "testToken"
         }
@@ -43,15 +42,6 @@
   "ext": {
     "prebid": {
       "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
       },
       "cache": {
         "bids": {}
