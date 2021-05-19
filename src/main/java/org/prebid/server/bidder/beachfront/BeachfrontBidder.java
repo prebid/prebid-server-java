@@ -191,7 +191,7 @@ public class BeachfrontBidder implements Bidder<Void> {
 
             requestBuilder.page(page);
             requestBuilder.domain(StringUtils.isBlank(site.getDomain())
-                    ? HttpUtil.getDomainFromUrl(page) : site.getDomain());
+                    ? HttpUtil.getHostFromUrl(page) : site.getDomain());
             requestBuilder.isMobile(0);
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(page));
         } else {
@@ -321,7 +321,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             int secure = 0;
             final Site site = bidRequest.getSite();
             if (site != null && StringUtils.isBlank(site.getDomain()) && StringUtils.isNotBlank(site.getPage())) {
-                bidRequestBuilder.site(site.toBuilder().domain(HttpUtil.getDomainFromUrl(site.getPage())).build());
+                bidRequestBuilder.site(site.toBuilder().domain(HttpUtil.getHostFromUrl(site.getPage())).build());
 
                 secure = getSecure(site.getPage());
             }

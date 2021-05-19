@@ -12,7 +12,7 @@
       ]
     }
   ],
-  "domain": "example.com",
+  "domain": "www.example.com",
   "page": "http://www.example.com",
   "secure": 0,
   "isMobile": 0,
