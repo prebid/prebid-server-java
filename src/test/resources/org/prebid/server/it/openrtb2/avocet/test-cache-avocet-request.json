@@ -19,7 +19,8 @@
         "ext": {
           "avocet": {
             "duration": 30
-          }
+          },
+          "origbidcpm": 0.500000
         }
       }
     },

@@ -9,6 +9,7 @@ import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.BasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
 
@@ -33,7 +34,7 @@ public abstract class PurposeStrategy {
         this.noEnforcePurposeStrategy = noEnforcePurposeStrategy;
     }
 
-    public abstract org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose getPurpose();
+    public abstract PurposeCode getPurpose();
 
     /**
      * This method is allow permission for purpose when account and server config was used.

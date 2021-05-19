@@ -6,7 +6,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -28,10 +27,8 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,8 +50,7 @@ public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
-    private static final Set<CharSequence> HEADERS_TO_COPY = Collections.unmodifiableSet(new HashSet<>(
-            Arrays.asList(HttpUtil.SEC_GPC.toString())));
+    private static final Set<CharSequence> HEADERS_TO_COPY = Collections.singleton(HttpUtil.SEC_GPC.toString());
 
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
@@ -81,8 +77,7 @@ public class HttpBidderRequester {
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
-        final List<HttpRequest<T>> httpRequests
-                = enrichWithRequiredData(httpRequestsWithErrors.getValue(), routingContext);
+        final List<HttpRequest<T>> httpRequests = enrichRequests(httpRequestsWithErrors.getValue(), routingContext);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
@@ -113,36 +108,24 @@ public class HttpBidderRequester {
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
     }
 
-    private static <T> List<HttpRequest<T>> enrichWithRequiredData(List<HttpRequest<T>> httpRequests,
-                                                                   RoutingContext routingContext) {
-        final MultiMap headersToAdd = new CaseInsensitiveHeaders();
-        routingContext.request().headers().entries().stream()
-                .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey()))
-                .forEach(entry -> headersToAdd.add(entry.getKey(), entry.getValue()));
+    private static <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
+                                                           RoutingContext routingContext) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
-                .headers(enrichHeaders(httpRequest.getHeaders(), headersToAdd))
+                .headers(enrichHeaders(httpRequest.getHeaders(), routingContext.request().headers()))
                 .build())
                 .collect(Collectors.toList());
-
     }
 
-    private static MultiMap enrichHeaders(MultiMap requestHeaders, MultiMap headersToAdd) {
-        if (requestHeaders == null) {
-            return headersToAdd;
-        }
-        final Map<String, String> neededToAddHeaders = headersToAdd.entries().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        requestHeaders.entries().forEach(entry ->
-                neededToAddHeaders.computeIfPresent(entry.getKey(), (key, val) -> entry.getValue()));
-        neededToAddHeaders.forEach(requestHeaders::set);
-
-        return requestHeaders;
+    private static MultiMap enrichHeaders(MultiMap bidderRequestHeaders, MultiMap originalRequestHeaders) {
+        originalRequestHeaders.entries().stream()
+                .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey())
+                        && !bidderRequestHeaders.contains(entry.getKey()))
+                .forEach(entry -> bidderRequestHeaders.add(entry.getKey(), entry.getValue()));
+        return bidderRequestHeaders;
     }
 
-    private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
-                                         String storedResponse,
-                                         String bidder) {
+    private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
         if (StringUtils.isBlank(storedResponse)) {
             return false;
         }
@@ -157,10 +140,11 @@ public class HttpBidderRequester {
         return true;
     }
 
-    final <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest,
-                                                     String storedResponse) {
-        return Future.succeededFuture(HttpCall.success(httpRequest, HttpResponse.of(HttpResponseStatus.OK.code(), null,
-                storedResponse), null));
+    private <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest, String storedResponse) {
+        return Future.succeededFuture(
+                HttpCall.success(httpRequest,
+                        HttpResponse.of(HttpResponseStatus.OK.code(), null, storedResponse),
+                        null));
     }
 
     /**
@@ -242,7 +226,6 @@ public class HttpBidderRequester {
     }
 
     private static <T> Result<List<BidderBid>> makeBids(Bidder<T> bidder, HttpCall<T> httpCall, BidRequest bidRequest) {
-
         return httpCall.getError() != null
                 ? null
                 : makeResult(bidder, httpCall, bidRequest);

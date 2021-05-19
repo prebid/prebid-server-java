@@ -133,6 +133,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         final MultiMap headers = new CaseInsensitiveHeaders();
+        headers.add("header1", "value1");
+        headers.add("header2", "value2");
+
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -141,10 +144,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .headers(headers)
                         .build()),
                 emptyList()));
-        headers.add("header1", "value1");
-        headers.add("header2", "value2");
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
+
         // when
         httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
 

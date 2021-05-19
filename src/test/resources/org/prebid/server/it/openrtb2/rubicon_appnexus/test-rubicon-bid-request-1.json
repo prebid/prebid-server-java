@@ -47,7 +47,8 @@
             "mint": "",
             "mint_version": ""
           }
-        }
+        },
+        "maxbids": 1
       }
     }
   ],
@@ -84,7 +85,7 @@
     "data": [
       {
         "ext": {
-          "taxonomyname": "Iab"
+          "segtax": 3
         },
         "segment": [
           {

@@ -8,7 +8,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import java.util.List;
 
 /**
- * Seatid returned by a {@link Bidder}.
+ * Seatbid returned by a {@link Bidder}.
  * <p>
  * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
  * back with type safety.
@@ -41,4 +41,8 @@ public class BidderSeatBid {
      * Error messages should help publishers understand what might account for "bad" bids.
      */
     List<BidderError> errors;
+
+    public BidderSeatBid with(List<BidderBid> bids) {
+        return BidderSeatBid.of(bids, this.httpCalls, this.errors);
+    }
 }

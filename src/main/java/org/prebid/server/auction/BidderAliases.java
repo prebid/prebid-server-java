@@ -18,26 +18,22 @@ public class BidderAliases {
 
     private final BidderCatalog bidderCatalog;
 
-    private BidderAliases(
-            Map<String, String> aliasToBidder, Map<String, Integer> aliasToVendorId, BidderCatalog bidderCatalog) {
+    private BidderAliases(Map<String, String> aliasToBidder, Map<String, Integer> aliasToVendorId,
+                          BidderCatalog bidderCatalog) {
 
         this.aliasToBidder = MapUtils.emptyIfNull(aliasToBidder);
         this.aliasToVendorId = MapUtils.emptyIfNull(aliasToVendorId);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
     }
 
-    public static BidderAliases of(
-            Map<String, String> aliasToBidder, Map<String, Integer> aliasToVendorId, BidderCatalog bidderCatalog) {
+    public static BidderAliases of(Map<String, String> aliasToBidder, Map<String, Integer> aliasToVendorId,
+                                   BidderCatalog bidderCatalog) {
 
         return new BidderAliases(aliasToBidder, aliasToVendorId, bidderCatalog);
     }
 
-    public static BidderAliases of(BidderCatalog bidderCatalog) {
-        return new BidderAliases(null, null, bidderCatalog);
-    }
-
     public boolean isAliasDefined(String alias) {
-        return aliasToBidder.containsKey(alias) || bidderCatalog.isAlias(alias);
+        return aliasToBidder.containsKey(alias);
     }
 
     public String resolveBidder(String aliasOrBidder) {
@@ -53,8 +49,7 @@ public class BidderAliases {
     }
 
     private String resolveBidderViaCatalog(String aliasOrBidder) {
-        final String resolvedBidder = bidderCatalog.nameByAlias(aliasOrBidder);
-        return bidderCatalog.isActive(resolvedBidder) ? resolvedBidder : null;
+        return bidderCatalog.isActive(aliasOrBidder) ? aliasOrBidder : null;
     }
 
     private Integer resolveAliasVendorIdViaCatalog(String alias) {

@@ -5,7 +5,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
@@ -110,23 +109,6 @@ public final class HttpUtil {
         }
     }
 
-    /**
-     * Determines IP-Address by checking "X-Forwarded-For", "X-Real-IP" http headers or remote host address
-     * if both are empty.
-     */
-    public static String ipFrom(HttpServerRequest request) {
-        // X-Forwarded-For: client1, proxy1, proxy2
-        String ip = StringUtils.trimToNull(
-                StringUtils.substringBefore(request.headers().get("X-Forwarded-For"), ","));
-        if (ip == null) {
-            ip = StringUtils.trimToNull(request.headers().get("X-Real-IP"));
-        }
-        if (ip == null) {
-            ip = StringUtils.trimToNull(request.remoteAddress().host());
-        }
-        return ip;
-    }
-
     public static String getDomainFromUrl(String url) {
         if (StringUtils.isBlank(url)) {
             return null;
@@ -148,7 +130,7 @@ public final class HttpUtil {
     }
 
     /**
-     * Sends HTTP response according to the given status and body
+     * Sends HTTP response according to the given status and body.
      */
     public static void respondWith(RoutingContext context, HttpResponseStatus status, String body) {
         final HttpServerResponse response = context.response().setStatusCode(status.code());
