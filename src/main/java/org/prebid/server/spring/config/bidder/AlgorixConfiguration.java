@@ -18,7 +18,7 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 /**
- * @author xunyunbo@do-global.com
+ * @author xunyunbo@algorix.co
  */
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/algorix.yaml",

@@ -20,7 +20,7 @@ import static java.util.Collections.singletonList;
 
 /**
  * Algorix Test in org.prebid.server.it
- * @author xunyunbo@do-global.com
+ * @author xunyunbo@algorix.co
  */
 @RunWith(SpringRunner.class)
 public class AlgorixTest extends IntegrationTest {

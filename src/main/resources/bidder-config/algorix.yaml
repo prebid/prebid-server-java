@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases: {}
     meta-info:
-      maintainer-email: xunyunbo@do-global.com
+      maintainer-email: xunyunbo@algorix.co
       app-media-types:
         - banner
         - video

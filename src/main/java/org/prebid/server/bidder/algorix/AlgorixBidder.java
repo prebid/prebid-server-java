@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 /**
  * AlgoriX (@link Bidder) implementation.
- * @author xunyunbo@do-global.com
+ * @author xunyunbo@algorix.co
  */
 public class AlgorixBidder implements Bidder<BidRequest> {
 
