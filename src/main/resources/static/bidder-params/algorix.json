@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AlgoriX Adapter Params",
+  "description": "A schema which validates params accepted by the AlgoriX adapter",
+  "type": "object",
+  "properties": {
+    "host": {
+      "type": "string",
+      "description": "Network host to send request: apac for SG，use for US"
+    },
+    "sid": {
+      "type": "string",
+      "description": "Your Sid"
+    },
+    "token": {
+      "type": "string",
+      "description": "Your Token"
+    }
+  },
+  "required": ["host", "sid", "token"]
+}
