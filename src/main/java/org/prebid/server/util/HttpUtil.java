@@ -109,7 +109,7 @@ public final class HttpUtil {
         }
     }
 
-    public static String getDomainFromUrl(String url) {
+    public static String getHostFromUrl(String url) {
         if (StringUtils.isBlank(url)) {
             return null;
         }

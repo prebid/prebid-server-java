@@ -235,6 +235,9 @@
   "site": {
     "domain": "prebid.com",
     "page": "https://prebid.com",
+    "publisher": {
+      "domain": "prebid.com"
+    },
     "content": {
       "episode": 6,
       "title": "episodeName",

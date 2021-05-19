@@ -209,8 +209,7 @@ public class ApplicationTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
-                                "openrtb2/rubicon_appnexus_multi_bid/test-cache-matcher-rubicon-appnexus.json")
-                ));
+                                "openrtb2/rubicon_appnexus_multi_bid/test-cache-matcher-rubicon-appnexus.json")));
 
         // when
         final Response response = given(SPEC)
