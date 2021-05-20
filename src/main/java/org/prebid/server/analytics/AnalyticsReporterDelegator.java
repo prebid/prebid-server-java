@@ -72,7 +72,7 @@ public class AnalyticsReporterDelegator {
         if (privacyEnforcementMapResult.succeeded()) {
             final Map<Integer, PrivacyEnforcementAction> privacyEnforcementActionMap =
                     privacyEnforcementMapResult.result();
-            validateEvent(event);
+            checkUnknownAdaptersForAuctionEvent(event);
             for (AnalyticsReporter analyticsReporter : delegates) {
                 final T updatedEvent = updateEvent(event, analyticsReporter.name());
                 final int reporterVendorId = analyticsReporter.vendorId();
@@ -92,7 +92,7 @@ public class AnalyticsReporterDelegator {
         }
     }
 
-    private <T> void validateEvent(T event) {
+    private <T> void checkUnknownAdaptersForAuctionEvent(T event) {
         if (event instanceof AuctionEvent) {
             logUnknownAdapters((AuctionEvent) event);
         }
