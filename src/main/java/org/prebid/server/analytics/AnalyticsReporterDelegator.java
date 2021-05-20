@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -100,10 +99,9 @@ public class AnalyticsReporterDelegator {
 
     private void logUnknownAdapters(AuctionEvent auctionEvent) {
         final BidRequest bidRequest = auctionEvent.getAuctionContext().getBidRequest();
-        final ObjectNode analytics = Optional.ofNullable(bidRequest.getExt())
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAnalytics)
-                .orElse(null);
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid extPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final ObjectNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
         final Iterator<String> analyticsFieldNames = analytics != null && !analytics.isEmpty()
                 ? analytics.fieldNames() : null;
 
@@ -112,12 +110,10 @@ public class AnalyticsReporterDelegator {
                     .filter(adapter -> !reporterNames.contains(adapter))
                     .collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(unknownAdapterNames)) {
-                final String refererUrl = Optional.of(bidRequest)
-                        .map(BidRequest::getSite)
-                        .map(Site::getPage)
-                        .orElse(null);
+                final Site site = bidRequest.getSite();
+                final String refererUrl = site != null ? site.getPage() : null;
                 UNKNOWN_ADAPTERS_LOGGER.warn(
-                        String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s, publisher: '%s'",
+                        String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'",
                                 unknownAdapterNames, refererUrl), 0.01);
             }
         }
