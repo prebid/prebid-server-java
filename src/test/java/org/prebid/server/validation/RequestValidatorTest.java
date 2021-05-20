@@ -2531,7 +2531,24 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(
-                        "request.imp[0].native.request.assets[0].data.type must in the range [1, 12]. Got 100");
+                        "request.imp[0].native.request.assets[0].data.type is invalid. See section 7.4: "
+                                + "https://iabtechlab.com/wp-content/uploads/2016/07/"
+                                + "OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=40");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithoutErrorsWhenDataHasSpecicNativeTypes()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .data(DataObject.builder().type(500).build()).build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test

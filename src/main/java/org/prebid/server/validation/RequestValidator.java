@@ -769,10 +769,11 @@ public class RequestValidator {
         }
 
         final Integer type = data.getType();
-        if (type < DataAssetType.SPONSORED.getValue() || type > DataAssetType.CTA_TEXT.getValue()) {
+        if (type < DataAssetType.SPONSORED.getValue()
+                || (type > DataAssetType.CTA_TEXT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
             throw new ValidationException(
-                    "request.imp[%d].native.request.assets[%d].data.type must in the range [1, 12]. Got %d",
-                    impIndex, assetIndex, type);
+                    "request.imp[%d].native.request.assets[%d].data.type is invalid. See section 7.4: "
+                            + documentationOnPage(40), impIndex, assetIndex);
         }
     }
 
