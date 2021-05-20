@@ -1,7 +1,9 @@
 package org.prebid.server.analytics;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Site;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -10,22 +12,21 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.util.StreamUtil;
 
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * Class dispatches event processing to all enabled reporters.
@@ -33,7 +34,8 @@ import java.util.stream.StreamSupport;
 public class AnalyticsReporterDelegator {
 
     private static final Logger logger = LoggerFactory.getLogger(AnalyticsReporterDelegator.class);
-    private static final Set<String> ADAPTERS_PERMITTED_FOR_FULL_DATA = new HashSet<>(Arrays.asList("logAnalytics"));
+    private static final ConditionalLogger UNKNOWN_ADAPTERS_LOGGER = new ConditionalLogger(logger);
+    private static final Set<String> ADAPTERS_PERMITTED_FOR_FULL_DATA = Collections.singleton("logAnalytics");
 
     private final List<AnalyticsReporter> delegates;
     private final Vertx vertx;
@@ -82,7 +84,6 @@ public class AnalyticsReporterDelegator {
                     vertx.runOnContext(ignored -> analyticsReporter.processEvent(updatedEvent));
                 }
             }
-
         } else {
             final Throwable privacyEnforcementException = privacyEnforcementMapResult.cause();
             logger.error("Analytics TCF enforcement check failed for consentString: {0} and "
@@ -93,34 +94,40 @@ public class AnalyticsReporterDelegator {
 
     private <T> void validateEvent(T event) {
         if (event instanceof AuctionEvent) {
-            validateExtPrebidAnalytics((AuctionEvent) event);
+            logUnknownAdapters((AuctionEvent) event);
         }
     }
 
-    private void validateExtPrebidAnalytics(AuctionEvent auctionEvent) {
-        final ExtRequest requestExt = auctionEvent.getAuctionContext().getBidRequest().getExt();
-        final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ObjectNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
+    private void logUnknownAdapters(AuctionEvent auctionEvent) {
+        final BidRequest bidRequest = auctionEvent.getAuctionContext().getBidRequest();
+        final ObjectNode analytics = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAnalytics)
+                .orElse(null);
         final Iterator<String> analyticsFieldNames = analytics != null && !analytics.isEmpty()
                 ? analytics.fieldNames() : null;
 
         if (analyticsFieldNames != null) {
-            final List<String> unknownAdapterNames = StreamSupport.stream(
-                    Spliterators.spliteratorUnknownSize(analyticsFieldNames, Spliterator.ORDERED), false)
+            final List<String> unknownAdapterNames = StreamUtil.asStream(analyticsFieldNames)
                     .filter(adapter -> !reporterNames.contains(adapter))
                     .collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(unknownAdapterNames)) {
-                logger.warn(
-                        String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s", analyticsFieldNames));
+                final String refererUrl = Optional.of(bidRequest)
+                        .map(BidRequest::getSite)
+                        .map(Site::getPage)
+                        .orElse(null);
+                UNKNOWN_ADAPTERS_LOGGER.warn(
+                        String.format("Unknown adapters in ext.prebid.analytics[].adapter: %s, publisher: '%s'",
+                                unknownAdapterNames, refererUrl), 0.01);
             }
         }
     }
 
-    private static <T> T updateEvent(T event, String delegatorAdapter) {
-        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(delegatorAdapter) && event instanceof AuctionEvent) {
+    private static <T> T updateEvent(T event, String adapter) {
+        if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent) {
             final AuctionEvent auctionEvent = (AuctionEvent) event;
             final AuctionContext updatedAuctionContext =
-                    updateAuctionContextForDelegator(auctionEvent.getAuctionContext(), delegatorAdapter);
+                    updateAuctionContextAdapter(auctionEvent.getAuctionContext(), adapter);
             return updatedAuctionContext != null
                     ? (T) auctionEvent.toBuilder().auctionContext(updatedAuctionContext).build()
                     : event;
@@ -129,8 +136,8 @@ public class AnalyticsReporterDelegator {
         return event;
     }
 
-    private static AuctionContext updateAuctionContextForDelegator(AuctionContext context, String delegatorAdapter) {
-        final BidRequest updatedBidRequest = updateBidRequest(context.getBidRequest(), delegatorAdapter);
+    private static AuctionContext updateAuctionContextAdapter(AuctionContext context, String adapter) {
+        final BidRequest updatedBidRequest = updateBidRequest(context.getBidRequest(), adapter);
 
         return updatedBidRequest != null ? context.toBuilder().bidRequest(updatedBidRequest).build() : null;
     }
@@ -157,11 +164,9 @@ public class AnalyticsReporterDelegator {
 
     private static ObjectNode prepareAnalytics(ObjectNode analytics, String adapterName) {
         final ObjectNode analyticsNodeCopy = analytics.deepCopy();
-        analyticsNodeCopy.fieldNames().forEachRemaining(fieldName -> {
-            if (!Objects.equals(adapterName, fieldName)) {
-                analyticsNodeCopy.remove(fieldName);
-            }
-        });
+        final JsonNode adapterNode = analyticsNodeCopy.get(adapterName);
+        analyticsNodeCopy.removeAll();
+        analyticsNodeCopy.set(adapterName, adapterNode);
 
         return !analyticsNodeCopy.isEmpty() ? analyticsNodeCopy : null;
     }
