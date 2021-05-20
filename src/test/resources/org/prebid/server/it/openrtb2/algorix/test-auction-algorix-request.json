@@ -19,26 +19,6 @@
       }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
-  "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
   "ext": {
     "prebid": {
       "targeting": {
