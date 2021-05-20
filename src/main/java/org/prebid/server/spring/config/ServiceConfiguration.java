@@ -210,7 +210,8 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
-            ApplicationSettings applicationSettings) {
+            ApplicationSettings applicationSettings,
+            IpAddressHelper ipAddressHelper) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
@@ -222,7 +223,8 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
-                applicationSettings);
+                applicationSettings,
+                ipAddressHelper);
     }
 
     @Bean

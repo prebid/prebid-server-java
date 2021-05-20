@@ -290,8 +290,7 @@ public class BidResponseCreator {
                 .allMatch(CollectionUtils::isEmpty);
     }
 
-    private static List<BidderResponseInfo> toBidderResponseInfos(List<BidderResponse> bidderResponses,
-                                                                  List<Imp> imps) {
+    private List<BidderResponseInfo> toBidderResponseInfos(List<BidderResponse> bidderResponses, List<Imp> imps) {
         final List<BidderResponseInfo> result = new ArrayList<>();
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
@@ -317,7 +316,7 @@ public class BidResponseCreator {
         return result;
     }
 
-    private static BidInfo toBidInfo(Bid bid, BidType type, List<Imp> imps, String bidder) {
+    private BidInfo toBidInfo(Bid bid, BidType type, List<Imp> imps, String bidder) {
         return BidInfo.builder()
                 .bid(bid)
                 .bidType(type)
@@ -358,8 +357,8 @@ public class BidResponseCreator {
         final Set<BidInfo> winningBidInfos = targeting == null
                 ? null
                 : bidInfos.stream()
-                        .filter(bidInfo -> bidInfo.getTargetingInfo().isWinningBid())
-                        .collect(Collectors.toSet());
+                .filter(bidInfo -> bidInfo.getTargetingInfo().isWinningBid())
+                .collect(Collectors.toSet());
 
         final Set<BidInfo> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBidInfos : bidInfos;
 
