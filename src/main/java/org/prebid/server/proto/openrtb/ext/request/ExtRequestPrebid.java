@@ -116,4 +116,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.multibid
      */
     List<ExtRequestPrebidMultiBid> multibid;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.analytics
+     */
+    ObjectNode analytics;
 }

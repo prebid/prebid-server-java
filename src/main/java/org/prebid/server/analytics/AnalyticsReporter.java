@@ -17,4 +17,9 @@ public interface AnalyticsReporter {
      * Method for defining analytics reporter ID for TCF checks.
      */
     int vendorId();
+
+    /**
+     * Method for defining name of the related to this analytic adapter.
+     */
+    String name();
 }
