@@ -7,10 +7,12 @@ import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
+import lombok.AllArgsConstructor;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.BDDMockito;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -43,6 +45,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
@@ -151,7 +154,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
 
         // then
-        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), eq(headers), eq("requestBody"), eq(500L));
+        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), argThat(new MultiMapMatcher(headers)),
+                eq("requestBody"), eq(500L));
     }
 
     @Test
@@ -637,6 +641,18 @@ public class HttpBidderRequesterTest extends VertxTest {
         // setup multiple answers
         for (HttpClientResponse httpClientResponse : httpClientResponses) {
             stubbing = stubbing.willReturn(Future.succeededFuture(httpClientResponse));
+        }
+    }
+
+    @AllArgsConstructor
+    public static class MultiMapMatcher implements ArgumentMatcher<MultiMap> {
+
+        private final MultiMap left;
+
+        @Override
+        public boolean matches(MultiMap right) {
+            return left.size() == right.size() && left.entries().stream()
+                    .allMatch(entry -> right.contains(entry.getKey(), entry.getValue(), true));
         }
     }
 }

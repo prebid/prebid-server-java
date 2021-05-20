@@ -23,7 +23,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
@@ -284,10 +283,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static MultiMap headers(String xapiUsername, String xapiPassword) {
-        return MultiMap.caseInsensitiveMultiMap()
+        return HttpUtil.headers()
                 .add(HttpUtil.AUTHORIZATION_HEADER, authHeader(xapiUsername, xapiPassword))
-                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
-                .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
                 .add(HttpUtil.USER_AGENT_HEADER, PREBID_SERVER_USER_AGENT);
     }
 
