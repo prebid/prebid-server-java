@@ -17,43 +17,37 @@ accounts:
             stages:
               raw-auction-request:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: raw-auction-request
               processed-auction-request:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: processed-auction-request
               bidder-request:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: bidder-request
               raw-bidder-response:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: raw-bidder-response
               processed-bidder-response:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: processed-bidder-response
               auction-response:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: auction-response
@@ -65,8 +59,7 @@ accounts:
             stages:
               raw-auction-request:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-raw-auction-request
@@ -78,8 +71,7 @@ accounts:
             stages:
               processed-auction-request:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-processed-auction-request
@@ -91,8 +83,7 @@ accounts:
             stages:
               bidder-request:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-bidder-request
@@ -104,8 +95,7 @@ accounts:
             stages:
               raw-bidder-response:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-raw-bidder-response
@@ -117,8 +107,7 @@ accounts:
             stages:
               processed-bidder-response:
                 groups:
-                  - synchronous: true
-                    timeout: 5
+                  - timeout: 5
                     hook-sequence:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-processed-bidder-response
