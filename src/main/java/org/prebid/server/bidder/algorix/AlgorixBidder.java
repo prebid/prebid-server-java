@@ -79,7 +79,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
-                        .uri(resolveUrl(extImpAlgorix))
+                        .uri(resolveUrl(endpointUrl, extImpAlgorix))
                         .headers(resolveHeaders())
                         .payload(outgoingRequest)
                         .body(body)
@@ -102,28 +102,33 @@ public class AlgorixBidder implements Bidder<BidRequest> {
 
     /**
      * Resolve Url
+     * @param endpoint endpoint Url
      * @param extImp Algorix Ext Imp
      * @return target Url
      */
-    private String resolveUrl(ExtImpAlgorix extImp) {
-        return endpointUrl
+    private static String resolveUrl(String endpoint, ExtImpAlgorix extImp) {
+        return endpoint
                 .replace(URL_SID_MACRO, extImp.getSid())
                 .replace(URL_TOKEN_MACRO, extImp.getToken());
     }
 
-    private MultiMap resolveHeaders() {
+    /**
+     * Resolve Headers
+     * @return headers
+     */
+    private static MultiMap resolveHeaders() {
         final MultiMap headers = HttpUtil.headers();
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
         return headers;
     }
 
     /**
-     * check Integer valid is not null and Zero
-     * @param value value
+     * check Integer Size Value is Valid(not null and no zero)
+     * @param value Integer size value
      * @return true or false
      */
-    private boolean checkValid(Integer value) {
-        return value == null || value == 0;
+    private static boolean isValidSizeValue(Integer value) {
+        return value != null && value > 0;
     }
 
     /**
@@ -131,17 +136,15 @@ public class AlgorixBidder implements Bidder<BidRequest> {
      * @param imp imp
      * @return new imp
      */
-    private Imp updateImp(Imp imp) {
+    private static Imp updateImp(Imp imp) {
         if (imp.getBanner() != null) {
             final Banner banner = imp.getBanner();
-            boolean formatValid = checkValid(banner.getW()) || checkValid(banner.getH());
-            boolean formatFlag = CollectionUtils.isNotEmpty(banner.getFormat());
-            if (formatValid && formatFlag) {
-                final Format format = banner.getFormat().get(FIRST_INDEX);
+            if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH())) && CollectionUtils.isNotEmpty(banner.getFormat())) {
+                final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
                 return imp.toBuilder()
                         .banner(banner.toBuilder()
-                                .w(format.getW())
-                                .h(format.getH())
+                                .w(firstFormat.getW())
+                                .h(firstFormat.getH())
                                 .build())
                         .build();
             }
@@ -166,7 +169,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -176,7 +179,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    protected BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {

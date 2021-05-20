@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request.algorix;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -12,9 +11,7 @@ import lombok.Value;
 @Value
 public class ExtImpAlgorix {
 
-    @JsonProperty("sid")
     String sid;
 
-    @JsonProperty("token")
     String token;
 }
