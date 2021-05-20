@@ -170,18 +170,14 @@ public class AmpRequestFactory {
      */
     private Future<Tuple2<BidRequest, List<String>>> updateBidRequest(AuctionContext auctionContext) {
         final BidRequest receivedBidRequest = auctionContext.getBidRequest();
-        final ExtRequest requestExt = receivedBidRequest != null ? receivedBidRequest.getExt() : null;
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtStoredRequest storedRequest = prebid != null ? prebid.getStoredrequest() : null;
-        final String storedRequestId = storedRequest != null ? storedRequest.getId() : null;
-
-        final Account account = auctionContext.getAccount();
-        final String accountId = account != null ? account.getId() : null;
-
+        final String storedRequestId = storedRequestId(receivedBidRequest);
         if (StringUtils.isBlank(storedRequestId)) {
             return Future.failedFuture(
                     new InvalidRequestException("AMP requests require the stored request id in AMP tag_id"));
         }
+
+        final Account account = auctionContext.getAccount();
+        final String accountId = account != null ? account.getId() : null;
 
         final RoutingContext routingContext = auctionContext.getRoutingContext();
         final List<String> errors = auctionContext.getPrebidErrors();
@@ -192,6 +188,13 @@ public class AmpRequestFactory {
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, routingContext, timeoutResolver))
                 .map(ortb2RequestFactory::validateRequest)
                 .map(bidRequest -> Tuple2.of(bidRequest, errors));
+    }
+
+    private static String storedRequestId(BidRequest receivedBidRequest) {
+        final ExtRequest requestExt = receivedBidRequest != null ? receivedBidRequest.getExt() : null;
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtStoredRequest storedRequest = prebid != null ? prebid.getStoredrequest() : null;
+        return storedRequest != null ? storedRequest.getId() : null;
     }
 
     /**
