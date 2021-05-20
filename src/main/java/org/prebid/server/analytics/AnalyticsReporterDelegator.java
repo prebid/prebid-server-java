@@ -162,7 +162,9 @@ public class AnalyticsReporterDelegator {
         final ObjectNode analyticsNodeCopy = analytics.deepCopy();
         final JsonNode adapterNode = analyticsNodeCopy.get(adapterName);
         analyticsNodeCopy.removeAll();
-        analyticsNodeCopy.set(adapterName, adapterNode);
+        if (adapterNode != null) {
+            analyticsNodeCopy.set(adapterName, adapterNode);
+        }
 
         return !analyticsNodeCopy.isEmpty() ? analyticsNodeCopy : null;
     }

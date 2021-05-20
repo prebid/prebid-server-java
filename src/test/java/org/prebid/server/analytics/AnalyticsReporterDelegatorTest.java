@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -113,21 +114,21 @@ public class AnalyticsReporterDelegatorTest {
 
         // then
         verify(vertx, times(2)).runOnContext(any());
-        assertThat(captureAuctionEvent(firstReporter))
+        assertThat(singleton(captureAuctionEvent(firstReporter)))
                 .extracting(AuctionEvent::getAuctionContext)
-                .extracting("bidRequest")
-                .extracting("ext")
-                .extracting("prebid")
-                .extracting("analytics")
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getAnalytics)
                 .containsExactly(analyticsNode);
         final ObjectNode expectedAnalytics = new ObjectMapper().createObjectNode();
         expectedAnalytics.set("adapter", new TextNode("someValue"));
-        assertThat(captureAuctionEvent(secondReporter))
+        assertThat(singleton(captureAuctionEvent(secondReporter)))
                 .extracting(AuctionEvent::getAuctionContext)
-                .extracting("bidRequest")
-                .extracting("ext")
-                .extracting("prebid")
-                .extracting("analytics")
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getAnalytics)
                 .containsExactly(expectedAnalytics);
     }
 
