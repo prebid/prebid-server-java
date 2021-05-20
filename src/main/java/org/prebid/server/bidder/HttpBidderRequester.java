@@ -133,7 +133,6 @@ public class HttpBidderRequester {
         if (source != null && !source.isEmpty()) {
             source.forEach(entry -> copiedMultiMap.add(entry.getKey(), entry.getValue()));
         }
-
         return copiedMultiMap;
     }
 

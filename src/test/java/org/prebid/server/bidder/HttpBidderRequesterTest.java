@@ -651,10 +651,8 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         @Override
         public boolean matches(MultiMap right) {
-
             return left.size() == right.size() && left.entries().stream()
-                    .allMatch(headerEntry ->
-                            right.contains(headerEntry.getKey(), headerEntry.getValue(), true));
+                    .allMatch(entry -> right.contains(entry.getKey(), entry.getValue(), true));
         }
     }
 }
