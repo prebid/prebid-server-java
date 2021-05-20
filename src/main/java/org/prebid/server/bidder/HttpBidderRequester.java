@@ -118,11 +118,23 @@ public class HttpBidderRequester {
     }
 
     private static MultiMap enrichHeaders(MultiMap bidderRequestHeaders, MultiMap originalRequestHeaders) {
+        // some bidders has headers on class level, so we create copy to not affect them
+        final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);
+
         originalRequestHeaders.entries().stream()
                 .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey())
-                        && !bidderRequestHeaders.contains(entry.getKey()))
-                .forEach(entry -> bidderRequestHeaders.add(entry.getKey(), entry.getValue()));
-        return bidderRequestHeaders;
+                        && !bidderRequestHeadersCopy.contains(entry.getKey()))
+                .forEach(entry -> bidderRequestHeadersCopy.add(entry.getKey(), entry.getValue()));
+        return bidderRequestHeadersCopy;
+    }
+
+    private static MultiMap copyMultiMap(MultiMap source) {
+        final MultiMap copiedMultiMap = MultiMap.caseInsensitiveMultiMap();
+        if (source != null && !source.isEmpty()) {
+            source.forEach(entry -> copiedMultiMap.add(entry.getKey(), entry.getValue()));
+        }
+
+        return copiedMultiMap;
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
