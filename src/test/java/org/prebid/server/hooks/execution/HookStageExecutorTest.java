@@ -450,7 +450,7 @@ public class HookStageExecutorTest extends VertxTest {
                     return promise.future();
                 });
 
-        // hook implementation takes too long - in async group
+        // hook implementation takes too long
         givenEntrypointHook(
                 "module-alpha",
                 "hook-b",
@@ -459,7 +459,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 payload.queryParams(), payload.headers(), payload.body() + "-def")),
                         250));
 
-        // hook implementation takes too long - in sync group
+        // hook implementation takes too long
         givenEntrypointHook(
                 "module-beta",
                 "hook-a",
@@ -510,7 +510,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             .isEqualTo(HookId.of("module-beta", "hook-a"));
                                     assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.timeout);
                                     assertThat(hookOutcome.getMessage()).isEqualTo("Timed out while executing action");
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(100L, 110L);
+                                    assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 210L);
                                 });
 
                                 final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
@@ -970,20 +970,18 @@ public class HookStageExecutorTest extends VertxTest {
             verify(hookImpl, times(4)).call(any(), invocationContextCaptor.capture());
             final List<InvocationContext> capturedContexts = invocationContextCaptor.getAllValues();
 
-            // two invocations for sync group - timeout split between invocations
             assertThat(capturedContexts.get(0)).satisfies(invocationContext -> {
                 assertThat(invocationContext.endpoint()).isEqualTo(Endpoint.openrtb2_auction);
                 assertThat(invocationContext.timeout()).isNotNull();
-                assertThat(invocationContext.timeout().remaining()).isEqualTo(100L);
+                assertThat(invocationContext.timeout().remaining()).isEqualTo(200L);
             });
 
             assertThat(capturedContexts.get(1)).satisfies(invocationContext -> {
                 assertThat(invocationContext.endpoint()).isEqualTo(Endpoint.openrtb2_auction);
                 assertThat(invocationContext.timeout()).isNotNull();
-                assertThat(invocationContext.timeout().remaining()).isEqualTo(100L);
+                assertThat(invocationContext.timeout().remaining()).isEqualTo(200L);
             });
 
-            // two invocations for async group - timeout the same for both invocations
             assertThat(capturedContexts.get(2)).satisfies(invocationContext -> {
                 assertThat(invocationContext.endpoint()).isEqualTo(Endpoint.openrtb2_auction);
                 assertThat(invocationContext.timeout()).isNotNull();
@@ -1046,7 +1044,6 @@ public class HookStageExecutorTest extends VertxTest {
                         Stage.raw_auction_request,
                         StageExecutionPlan.of(singletonList(
                                 ExecutionGroup.of(
-                                        true,
                                         200L,
                                         singletonList(HookId.of("module-alpha", "hook-a")))))))));
         final HookStageExecutor executor = createExecutor(defaultPlan);
@@ -1062,7 +1059,6 @@ public class HookStageExecutorTest extends VertxTest {
                         Stage.raw_auction_request,
                         StageExecutionPlan.of(singletonList(
                                 ExecutionGroup.of(
-                                        true,
                                         200L,
                                         singletonList(HookId.of("module-beta", "hook-b")))))))));
         final Account account = Account.builder()
@@ -1236,14 +1232,12 @@ public class HookStageExecutorTest extends VertxTest {
                                 Stage.raw_auction_request,
                                 StageExecutionPlan.of(asList(
                                         ExecutionGroup.of(
-                                                false,
                                                 200L,
                                                 asList(
                                                         HookId.of("module-alpha", "hook-a"),
                                                         HookId.of("module-beta", "hook-a"),
                                                         HookId.of("module-alpha", "hook-c"))),
                                         ExecutionGroup.of(
-                                                true,
                                                 200L,
                                                 asList(
                                                         HookId.of("module-beta", "hook-b"),
@@ -1302,11 +1296,11 @@ public class HookStageExecutorTest extends VertxTest {
                     assertThat(invocationContext.moduleContext()).isEqualTo("a"));
 
             assertThat(capturedContexts.get(5)).satisfies(invocationContext ->
-                    assertThat(invocationContext.moduleContext()).isEqualTo("aa"));
+                    assertThat(invocationContext.moduleContext()).isEqualTo("a"));
 
             assertThat(hookExecutionContext.getModuleContexts()).containsOnly(
                     entry("module-alpha", "aa"),
-                    entry("module-beta", "aaa"));
+                    entry("module-beta", "aa"));
 
             async.complete();
         }));
@@ -1395,7 +1389,6 @@ public class HookStageExecutorTest extends VertxTest {
                         Stage.processed_auction_request,
                         StageExecutionPlan.of(singletonList(
                                 ExecutionGroup.of(
-                                        true,
                                         200L,
                                         singletonList(HookId.of("module-alpha", "hook-a")))))))));
         final HookStageExecutor executor = createExecutor(defaultPlan);
@@ -1412,7 +1405,6 @@ public class HookStageExecutorTest extends VertxTest {
                         Stage.processed_auction_request,
                         StageExecutionPlan.of(singletonList(
                                 ExecutionGroup.of(
-                                        true,
                                         200L,
                                         singletonList(HookId.of("module-beta", "hook-b")))))))));
         final Account account = Account.builder()
@@ -1589,14 +1581,12 @@ public class HookStageExecutorTest extends VertxTest {
                                 Stage.processed_auction_request,
                                 StageExecutionPlan.of(asList(
                                         ExecutionGroup.of(
-                                                false,
                                                 200L,
                                                 asList(
                                                         HookId.of("module-alpha", "hook-a"),
                                                         HookId.of("module-beta", "hook-a"),
                                                         HookId.of("module-alpha", "hook-c"))),
                                         ExecutionGroup.of(
-                                                true,
                                                 200L,
                                                 asList(
                                                         HookId.of("module-beta", "hook-b"),
@@ -1656,11 +1646,11 @@ public class HookStageExecutorTest extends VertxTest {
                     assertThat(invocationContext.moduleContext()).isEqualTo("a"));
 
             assertThat(capturedContexts.get(5)).satisfies(invocationContext ->
-                    assertThat(invocationContext.moduleContext()).isEqualTo("aa"));
+                    assertThat(invocationContext.moduleContext()).isEqualTo("a"));
 
             assertThat(hookExecutionContext.getModuleContexts()).containsOnly(
                     entry("module-alpha", "aa"),
-                    entry("module-beta", "aaa"));
+                    entry("module-beta", "aa"));
 
             async.complete();
         }));
@@ -2260,13 +2250,11 @@ public class HookStageExecutorTest extends VertxTest {
     private static StageExecutionPlan execPlanTwoGroupsTwoHooksEach() {
         return StageExecutionPlan.of(asList(
                 ExecutionGroup.of(
-                        true,
                         200L,
                         asList(
                                 HookId.of("module-alpha", "hook-a"),
                                 HookId.of("module-beta", "hook-a"))),
                 ExecutionGroup.of(
-                        false,
                         200L,
                         asList(
                                 HookId.of("module-beta", "hook-b"),
@@ -2276,7 +2264,6 @@ public class HookStageExecutorTest extends VertxTest {
     private StageExecutionPlan execPlanOneGroupOneHook() {
         return StageExecutionPlan.of(singletonList(
                 ExecutionGroup.of(
-                        true,
                         200L,
                         singletonList(HookId.of("module-alpha", "hook-a")))));
     }
