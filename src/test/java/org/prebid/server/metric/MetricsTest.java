@@ -474,11 +474,11 @@ public class MetricsTest {
         metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_setuid, MetricName.ok);
 
         // then
-        assertThat(metricRegistry.counter("analytics.analyticCode.auctions.ok").getCount()).isOne();
+        assertThat(metricRegistry.counter("analytics.analyticCode.auction.ok").getCount()).isOne();
         assertThat(metricRegistry.counter("analytics.analyticCode.amp.timeout").getCount()).isOne();
         assertThat(metricRegistry.counter("analytics.analyticCode.video.err").getCount()).isOne();
         assertThat(metricRegistry.counter("analytics.analyticCode.cookie_sync.timeout").getCount()).isOne();
-        assertThat(metricRegistry.counter("analytics.analyticCode.events.err").getCount()).isOne();
+        assertThat(metricRegistry.counter("analytics.analyticCode.event.err").getCount()).isOne();
         assertThat(metricRegistry.counter("analytics.analyticCode.setuid.ok").getCount()).isOne();
     }
 

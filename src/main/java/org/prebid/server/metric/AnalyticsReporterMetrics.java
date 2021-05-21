@@ -8,14 +8,14 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Analytics by code metrics support.
+ * AnalyticsReporter metrics support.
  */
-class AnalyticsCodeMetrics extends UpdatableMetrics {
+class AnalyticsReporterMetrics extends UpdatableMetrics {
 
     private final Function<MetricName, EventTypeMetrics> eventTypeMetricsCreator;
     private final Map<MetricName, EventTypeMetrics> eventTypeMetrics;
 
-    AnalyticsCodeMetrics(MetricRegistry metricRegistry, CounterType counterType, String analyticCode) {
+    AnalyticsReporterMetrics(MetricRegistry metricRegistry, CounterType counterType, String analyticCode) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 nameCreator(createAdapterPrefix(Objects.requireNonNull(analyticCode))));
 
@@ -24,8 +24,8 @@ class AnalyticsCodeMetrics extends UpdatableMetrics {
         eventTypeMetrics = new HashMap<>();
     }
 
-    private static String createAdapterPrefix(String adapterType) {
-        return String.format("analytics.%s", adapterType);
+    private static String createAdapterPrefix(String reporterName) {
+        return String.format("analytics.%s", reporterName);
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {

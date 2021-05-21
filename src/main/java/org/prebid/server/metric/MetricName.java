@@ -44,10 +44,10 @@ public enum MetricName {
     setuid,
 
     // event types
-    event_auction("auctions"),
+    event_auction("auction"),
     event_amp("amp"),
     event_video("video"),
-    event_notification("events"),
+    event_notification("event"),
     event_cookie_sync("cookie_sync"),
     event_setuid("setuid"),
     event_unknown("unknown"),

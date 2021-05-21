@@ -18,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
-import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
@@ -73,12 +72,12 @@ public class AnalyticsReporterDelegatorTest {
         firstReporter = mock(AnalyticsReporter.class);
         given(firstReporter.vendorId()).willReturn(FIRST_REPORTER_ID);
         given(firstReporter.name()).willReturn("logAnalytics");
-        given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture(AuctionEvent.builder().build()));
+        given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture());
 
         secondReporter = mock(AnalyticsReporter.class);
         given(secondReporter.vendorId()).willReturn(SECOND_REPORTER_ID);
         given(secondReporter.name()).willReturn("adapter");
-        given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture(AmpEvent.builder().build()));
+        given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture());
 
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
         final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
@@ -113,8 +112,8 @@ public class AnalyticsReporterDelegatorTest {
         analyticsNode.set("anotherAdapter", new IntNode(2));
         final AuctionEvent givenAuctionEvent = givenAuctionEvent(bidRequestBuilder ->
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                                .analytics(analyticsNode)
-                                .build())));
+                        .analytics(analyticsNode)
+                        .build())));
 
         // when
         target.processEvent(givenAuctionEvent, TcfContext.empty());
@@ -146,7 +145,7 @@ public class AnalyticsReporterDelegatorTest {
 
         // then
         verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.ok);
-        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_amp, MetricName.ok);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.ok);
     }
 
     @Test

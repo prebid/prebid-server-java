@@ -29,7 +29,7 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     }
 
     @Override
-    public <T> Future<T> processEvent(T event) {
+    public <T> Future<Void> processEvent(T event) {
         final LogEvent<?> logEvent;
 
         if (event instanceof AuctionEvent) {
@@ -51,7 +51,7 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
 
         logger.debug(mapper.encode(logEvent));
 
-        return Future.succeededFuture(event);
+        return Future.succeededFuture();
     }
 
     @Override
