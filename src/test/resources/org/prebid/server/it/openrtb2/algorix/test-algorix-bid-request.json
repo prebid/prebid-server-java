@@ -35,14 +35,14 @@
   "user": {
     "buyeruid": "BTW-UID"
   },
-  "at": 1,
-  "tmax": 2000,
-  "cur": [ "USD" ],
   "regs": {
     "ext": {
       "gdpr": 0
     }
   },
+  "at": 1,
+  "tmax": 2000,
+  "cur": [ "USD" ],
   "ext": {
     "prebid": {
       "targeting": {
