@@ -20,8 +20,10 @@
     }
   ],
   "at": 1,
-  "tmax": 2000,
-  "cur": [ "USD" ],
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
   "ext": {
     "prebid": {
       "targeting": {
