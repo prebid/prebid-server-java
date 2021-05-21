@@ -32,9 +32,11 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -109,14 +111,10 @@ public class AnalyticsReporterDelegatorTest {
         final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
         analyticsNode.set("adapter", new TextNode("someValue"));
         analyticsNode.set("anotherAdapter", new IntNode(2));
-        final BidRequest bidRequest = BidRequest.builder()
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .analytics(analyticsNode)
-                        .build())).build();
-        final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
-                .auctionContext(AuctionContext.builder()
-                        .bidRequest(bidRequest).build())
-                .build();
+        final AuctionEvent givenAuctionEvent = givenAuctionEvent(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .analytics(analyticsNode)
+                                .build())));
 
         // when
         target.processEvent(givenAuctionEvent, TcfContext.empty());
@@ -143,14 +141,8 @@ public class AnalyticsReporterDelegatorTest {
 
     @Test
     public void shouldUpdateOkMetricsWithSpecificEventAndAdapterType() {
-        // given
-        final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
-                .auctionContext(AuctionContext.builder()
-                        .bidRequest(BidRequest.builder().build()).build())
-                .build();
-
         // when
-        target.processEvent(givenAuctionEvent, TcfContext.empty());
+        target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
 
         // then
         verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.ok);
@@ -162,13 +154,9 @@ public class AnalyticsReporterDelegatorTest {
         // given
         given(firstReporter.processEvent(any())).willReturn(Future.failedFuture(new TimeoutException()));
         given(secondReporter.processEvent(any())).willReturn(Future.failedFuture(new ConnectTimeoutException()));
-        final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
-                .auctionContext(AuctionContext.builder()
-                        .bidRequest(BidRequest.builder().build()).build())
-                .build();
 
         // when
-        target.processEvent(givenAuctionEvent, TcfContext.empty());
+        target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
 
         // then
         verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.timeout);
@@ -180,13 +168,9 @@ public class AnalyticsReporterDelegatorTest {
         // given
         given(firstReporter.processEvent(any())).willReturn(Future.failedFuture(new RuntimeException()));
         given(secondReporter.processEvent(any())).willReturn(Future.failedFuture(new Exception()));
-        final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
-                .auctionContext(AuctionContext.builder()
-                        .bidRequest(BidRequest.builder().build()).build())
-                .build();
 
         // when
-        target.processEvent(givenAuctionEvent, TcfContext.empty());
+        target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
 
         // then
         verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.err);
@@ -250,5 +234,15 @@ public class AnalyticsReporterDelegatorTest {
         final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
         verify(reporter).processEvent(auctionEventCaptor.capture());
         return auctionEventCaptor.getValue();
+    }
+
+    private static AuctionEvent givenAuctionEvent(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+
+        return AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .bidRequest(bidRequestCustomizer.apply(BidRequest.builder()).build())
+                        .build())
+                .build();
     }
 }
