@@ -71,12 +71,19 @@ public class AnalyticsReporterDelegatorTest {
         firstReporter = mock(AnalyticsReporter.class);
         given(firstReporter.vendorId()).willReturn(FIRST_REPORTER_ID);
         given(firstReporter.name()).willReturn("logAnalytics");
-        given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture());
+        given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture(AuctionEvent.builder().build()));
 
         secondReporter = mock(AnalyticsReporter.class);
         given(secondReporter.vendorId()).willReturn(SECOND_REPORTER_ID);
         given(secondReporter.name()).willReturn("adapter");
-        given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture());
+        given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture(AmpEvent.builder().build()));
+
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
+        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
+        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+                .willReturn(Future.succeededFuture(enforcementActionMap));
 
         target = new AnalyticsReporterDelegator(asList(firstReporter, secondReporter), vertx,
                 privacyEnforcementService, metrics);
@@ -99,13 +106,6 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldPassOnlyAdapterRelatedEntriesToAnalyticReporters() {
         // given
-        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
-        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
-        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
-                .willReturn(Future.succeededFuture(enforcementActionMap));
         final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
         analyticsNode.set("adapter", new TextNode("someValue"));
         analyticsNode.set("anotherAdapter", new IntNode(2));
@@ -144,14 +144,6 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldUpdateOkMetricsWithSpecificEventAndAdapterType() {
         // given
-        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
-        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
-        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-        given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture(AuctionEvent.builder().build()));
-        given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture(AmpEvent.builder().build()));
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
-                .willReturn(Future.succeededFuture(enforcementActionMap));
         final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
                 .auctionContext(AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build()).build())
@@ -168,14 +160,8 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldUpdateTimeoutMetricsWithSpecificEventAndAdapterType() {
         // given
-        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
-        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
-        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
         given(firstReporter.processEvent(any())).willReturn(Future.failedFuture(new TimeoutException()));
         given(secondReporter.processEvent(any())).willReturn(Future.failedFuture(new ConnectTimeoutException()));
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
-                .willReturn(Future.succeededFuture(enforcementActionMap));
         final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
                 .auctionContext(AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build()).build())
@@ -192,14 +178,8 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldUpdateErrorMetricsWithSpecificEventAndAdapterType() {
         // given
-        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
-        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
-        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
         given(firstReporter.processEvent(any())).willReturn(Future.failedFuture(new RuntimeException()));
         given(secondReporter.processEvent(any())).willReturn(Future.failedFuture(new Exception()));
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
-                .willReturn(Future.succeededFuture(enforcementActionMap));
         final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
                 .auctionContext(AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build()).build())
