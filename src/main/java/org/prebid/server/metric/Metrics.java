@@ -28,6 +28,7 @@ public class Metrics extends UpdatableMetrics {
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterTypeMetrics> adapterMetricsCreator;
+    private final Function<String, AnalyticsCodeMetrics> analyticMetricsCreator;
     private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
     private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     private final Function<MetricName, SettingsCacheMetrics> settingsCacheMetricsCreator;
@@ -37,6 +38,7 @@ public class Metrics extends UpdatableMetrics {
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterTypeMetrics> adapterMetrics;
+    private final Map<String, AnalyticsCodeMetrics> analyticMetrics;
     private final Map<Integer, BidderCardinalityMetrics> bidderCardinailtyMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
@@ -58,11 +60,13 @@ public class Metrics extends UpdatableMetrics {
         adapterMetricsCreator = adapterType -> new AdapterTypeMetrics(metricRegistry, counterType, adapterType);
         bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
                 metricRegistry, counterType, cardinality);
+        analyticMetricsCreator = analyticCode -> new AnalyticsCodeMetrics(metricRegistry, counterType, analyticCode);
         circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
         settingsCacheMetricsCreator = type -> new SettingsCacheMetrics(metricRegistry, counterType, type);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
+        analyticMetrics = new HashMap<>();
         bidderCardinailtyMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
@@ -88,6 +92,10 @@ public class Metrics extends UpdatableMetrics {
 
     AdapterTypeMetrics forAdapter(String adapterType) {
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
+    }
+
+    AnalyticsCodeMetrics forAnalytic(String analyticCode) {
+        return analyticMetrics.computeIfAbsent(analyticCode, analyticMetricsCreator);
     }
 
     UserSyncMetrics userSync() {
@@ -259,6 +267,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
         forAdapter(bidder).request().incCounter(errorMetric);
+    }
+
+    public void updateAnalyticEventMetric(String analyticCode, MetricName eventType, MetricName result) {
+        forAnalytic(analyticCode).forEventType(eventType).incCounter(result);
     }
 
     public void updateSizeValidationMetrics(String bidder, String accountId, MetricName type) {

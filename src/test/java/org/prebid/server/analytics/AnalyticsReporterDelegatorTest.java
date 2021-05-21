@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
+import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -17,9 +18,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
+import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -27,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
@@ -52,6 +57,8 @@ public class AnalyticsReporterDelegatorTest {
     private Vertx vertx;
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
+    @Mock
+    private Metrics metrics;
 
     private AnalyticsReporter firstReporter;
 
@@ -64,13 +71,15 @@ public class AnalyticsReporterDelegatorTest {
         firstReporter = mock(AnalyticsReporter.class);
         given(firstReporter.vendorId()).willReturn(FIRST_REPORTER_ID);
         given(firstReporter.name()).willReturn("logAnalytics");
+        given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture());
 
         secondReporter = mock(AnalyticsReporter.class);
         given(secondReporter.vendorId()).willReturn(SECOND_REPORTER_ID);
         given(secondReporter.name()).willReturn("adapter");
+        given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture());
 
         target = new AnalyticsReporterDelegator(asList(firstReporter, secondReporter), vertx,
-                privacyEnforcementService);
+                privacyEnforcementService, metrics);
     }
 
     @Test
@@ -130,6 +139,78 @@ public class AnalyticsReporterDelegatorTest {
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getAnalytics)
                 .containsExactly(expectedAnalytics);
+    }
+
+    @Test
+    public void shouldUpdateOkMetricsWithSpecificEventAndAdapterType() {
+        // given
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
+        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
+        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+        given(firstReporter.processEvent(any())).willReturn(Future.succeededFuture(AuctionEvent.builder().build()));
+        given(secondReporter.processEvent(any())).willReturn(Future.succeededFuture(AmpEvent.builder().build()));
+        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+                .willReturn(Future.succeededFuture(enforcementActionMap));
+        final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build()).build())
+                .build();
+
+        // when
+        target.processEvent(givenAuctionEvent, TcfContext.empty());
+
+        // then
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.ok);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_amp, MetricName.ok);
+    }
+
+    @Test
+    public void shouldUpdateTimeoutMetricsWithSpecificEventAndAdapterType() {
+        // given
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
+        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
+        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+        given(firstReporter.processEvent(any())).willReturn(Future.failedFuture(new TimeoutException()));
+        given(secondReporter.processEvent(any())).willReturn(Future.failedFuture(new ConnectTimeoutException()));
+        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+                .willReturn(Future.succeededFuture(enforcementActionMap));
+        final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build()).build())
+                .build();
+
+        // when
+        target.processEvent(givenAuctionEvent, TcfContext.empty());
+
+        // then
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.timeout);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.timeout);
+    }
+
+    @Test
+    public void shouldUpdateErrorMetricsWithSpecificEventAndAdapterType() {
+        // given
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
+        final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
+        enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+        enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
+        given(firstReporter.processEvent(any())).willReturn(Future.failedFuture(new RuntimeException()));
+        given(secondReporter.processEvent(any())).willReturn(Future.failedFuture(new Exception()));
+        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+                .willReturn(Future.succeededFuture(enforcementActionMap));
+        final AuctionEvent givenAuctionEvent = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build()).build())
+                .build();
+
+        // when
+        target.processEvent(givenAuctionEvent, TcfContext.empty());
+
+        // then
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.err);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.err);
     }
 
     @Test
