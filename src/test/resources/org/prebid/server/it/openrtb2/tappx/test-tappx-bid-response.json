@@ -3,19 +3,25 @@
   "seatbid": [
     {
       "seat": "rtbhouse",
-      "bid": [{
-        "id": "wehM-93KGr0_0_0",
-        "impid": "impId12",
-        "price": 0.5,
-        "cid": "3706",
-        "crid": "19005",
-        "adid": "19005",
-        "adm": "<!-- admarkup -->",
-        "cat": ["IAB2"],
-        "adomain": ["test.com"],
-        "h": 250,
-        "w": 300
-      }]
+      "bid": [
+        {
+          "id": "wehM-93KGr0_0_0",
+          "impid": "impId12",
+          "price": 0.5,
+          "cid": "3706",
+          "crid": "19005",
+          "adid": "19005",
+          "adm": "<!-- admarkup -->",
+          "cat": [
+            "IAB2"
+          ],
+          "adomain": [
+            "test.com"
+          ],
+          "h": 250,
+          "w": 300
+        }
+      ]
     }
   ],
   "bidid": "bid01"

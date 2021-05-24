@@ -8,13 +8,14 @@
         "price": 0.01,
         "adm": "<b>hi</b>",
         "cid": "test_cid",
-        "exp" : 120,
+        "exp": 120,
         "crid": "test_video_crid",
         "ext": {
-          "format": "VIDEO"
+          "format": "VIDEO",
+          "origbidcpm": 0.01
         }
       },
-      "expiry" : 120
+      "expiry": 120
     },
     {
       "type": "xml",

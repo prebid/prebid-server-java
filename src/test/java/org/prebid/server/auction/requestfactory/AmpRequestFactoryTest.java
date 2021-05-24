@@ -73,6 +73,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -1235,12 +1236,17 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest firstResult = target.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest secondResult = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(result.getUser()).isEqualTo(User.builder()
+        final User expectedUser = User.builder()
                 .ext(ExtUser.builder().consent("should-remain").build())
-                .build());
+                .build();
+
+        assertThat(firstResult.getUser()).isEqualTo(expectedUser);
+        assertThat(secondResult.getUser()).isEqualTo(expectedUser);
+
     }
 
     @Test
@@ -1324,7 +1330,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<List<String>> errorsCaptor = ArgumentCaptor.forClass(
                 List.class);
-        verify(ortb2RequestFactory).fetchAccountAndCreateAuctionContext(any(), any(), any(), anyLong(), any(),
+        verify(ortb2RequestFactory).fetchAccountAndCreateAuctionContext(any(), any(), any(), anyBoolean(), anyLong(),
+                any(),
                 errorsCaptor.capture());
         assertThat(errorsCaptor.getValue()).contains("Amp request parameter consent_string or gdpr_consent have"
                 + " invalid format: consent-value");
@@ -1594,6 +1601,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 any(),
                 any(),
                 any(),
+                anyBoolean(),
                 anyLong(),
                 argThat(context -> context.getEndpoint() == Endpoint.openrtb2_amp),
                 any());
@@ -1652,8 +1660,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(bidRequest));
 
         final MetricName metricName = MetricName.amp;
-        given(ortb2RequestFactory.fetchAccountAndCreateAuctionContext(any(), any(), eq(metricName), anyLong(), any(),
-                any()))
+        given(ortb2RequestFactory.fetchAccountAndCreateAuctionContext(any(), any(), eq(metricName), anyBoolean(),
+                anyLong(), any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         AuctionContext.builder()
                                 .bidRequest((BidRequest) invocationOnMock.getArguments()[1])

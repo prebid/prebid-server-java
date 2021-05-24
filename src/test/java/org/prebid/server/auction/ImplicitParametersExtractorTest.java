@@ -13,8 +13,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.MalformedURLException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
@@ -87,67 +85,52 @@ public class ImplicitParametersExtractorTest {
     }
 
     @Test
-    public void domainFromShouldFailIfUrlIsMissing() {
+    public void domainFromShouldFailIfHostIsNull() {
         assertThatCode(() -> extractor.domainFrom(null))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'null': null")
-                .hasCauseInstanceOf(MalformedURLException.class);
+                .hasMessage("Host is not defined or can not be derived from request");
     }
 
     @Test
-    public void domainFromShouldFailIfUrlCouldNotBeParsed() {
-        assertThatCode(() -> extractor.domainFrom("httpP://non_an_url"))
+    public void domainFromShouldFailIfDomainCouldNotBeDerivedFromHost() {
+        assertThatCode(() -> extractor.domainFrom("domain"))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'httpP://non_an_url': unknown protocol: httpp")
-                .hasCauseInstanceOf(MalformedURLException.class);
+                .hasMessage("Cannot derive eTLD+1 for host domain");
     }
 
     @Test
-    public void domainFromShouldFailIfUrlDoesNotContainHost() {
-        assertThatCode(() -> extractor.domainFrom("http:/path"))
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Host not found from URL 'http:/path'");
+    public void domainFromShouldDeriveDomainFromHost() {
+        assertThat(extractor.domainFrom("example.com")).isEqualTo("example.com");
     }
 
     @Test
-    public void domainFromShouldFailIfDomainCouldNotBeDerivedFromUrl() {
-        assertThatCode(() -> extractor.domainFrom("http://domain"))
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'domain': cannot derive eTLD+1 for domain domain");
-    }
-
-    @Test
-    public void domainFromShouldDeriveDomainFromUrl() {
-        assertThat(extractor.domainFrom("http://example.com")).isEqualTo("example.com");
+    public void domainFromShouldDeriveDomainFromHostWithSubdomain() {
+        assertThat(extractor.domainFrom("subdomain.example.com")).isEqualTo("example.com");
     }
 
     @Test
     public void ipFromShouldReturnIpFromHeadersAndRemoteAddress() {
         // given
-        httpRequest = HttpRequestWrapper.builder()
-                .headers(new CaseInsensitiveHeaders())
-                .remoteHost("192.168.144.5")
-                .build();
-        httpRequest.getHeaders().set("True-Client-IP", "192.168.144.1 ");
-        httpRequest.getHeaders().set("X-Forwarded-For", "192.168.144.2 , 192.168.144.3 ");
-        httpRequest.getHeaders().set("X-Real-IP", "192.168.144.4 ");
+        final MultiMap headers = new CaseInsensitiveHeaders()
+                .set("True-Client-IP", "192.168.144.1 ")
+                .set("X-Forwarded-For", "192.168.144.2 , 192.168.144.3 ")
+                .set("X-Real-IP", "192.168.144.4 ");
+        final String remoteHost = "192.168.144.5";
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).containsExactly(
-                "192.168.144.1", "192.168.144.2", "192.168.144.3", "192.168.144.4", "192.168.144.5");
+        assertThat(extractor.ipFrom(headers, remoteHost)).containsExactly(
+                "192.168.144.1", "192.168.144.2", "192.168.144.3", "192.168.144.4", remoteHost);
     }
 
     @Test
     public void ipFromShouldNotReturnNullsAndEmptyValues() {
         // given
-        httpRequest = HttpRequestWrapper.builder()
-                .headers(new CaseInsensitiveHeaders())
-                .remoteHost("192.168.144.5")
-                .build();
-        httpRequest.getHeaders().set("X-Real-IP", " ");
+        final MultiMap headers = new CaseInsensitiveHeaders()
+                .set("X-Real-IP", " ");
+        final String remoteHost = "192.168.144.5";
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).containsExactly("192.168.144.5");
+        assertThat(extractor.ipFrom(headers, remoteHost)).containsExactly("192.168.144.5");
     }
 
     @Test

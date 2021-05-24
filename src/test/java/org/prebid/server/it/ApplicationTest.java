@@ -66,7 +66,6 @@ public class ApplicationTest extends IntegrationTest {
     private static final String ADFORM = "adform";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
-    private static final String DISTRICTM_APPNEXUS_ALIAS = "districtm";
     private static final String RUBICON = "rubicon";
 
     private static final int ADMIN_PORT = 8060;
@@ -88,24 +87,28 @@ public class ApplicationTest extends IntegrationTest {
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("prebid-server/1.0"))
+                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
 
         // rubicon bid response for imp 2
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
         // appnexus bid response for imp 3
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
         // appnexus bid response for imp 3 with alias parameters
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-2.json"))));
@@ -125,6 +128,7 @@ public class ApplicationTest extends IntegrationTest {
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
+                .header("Sec-GPC", 1)
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
                 .body(jsonFrom("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-request.json"))
@@ -136,6 +140,44 @@ public class ApplicationTest extends IntegrationTest {
                 response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
+    }
+
+    @Test
+    public void testOpenrtb2AuctionCoreFunctionality() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withQueryParam("tk_xint", equalTo("rp-pbs"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/rubicon_core_functionality/test-rubicon-bid-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/rubicon_core_functionality/test-rubicon-bid-response.json"))));
+
+        // pre-bid cache
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/rubicon_core_functionality/test-cache-rubicon-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/rubicon_core_functionality/test-cache-rubicon-response.json"))));
+
+        // when
+        final Response response = given(SPEC)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "193.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"rubicon":"RUB-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJSVUItVUlEIn19")
+                .body(jsonFrom("openrtb2/rubicon_core_functionality/test-auction-rubicon-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/rubicon_core_functionality/test-auction-rubicon-response.json",
+                response, singletonList("rubicon"));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -167,8 +209,7 @@ public class ApplicationTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
-                                "openrtb2/rubicon_appnexus_multi_bid/test-cache-matcher-rubicon-appnexus.json")
-                ));
+                                "openrtb2/rubicon_appnexus_multi_bid/test-cache-matcher-rubicon-appnexus.json")));
 
         // when
         final Response response = given(SPEC)
@@ -352,8 +393,8 @@ public class ApplicationTest extends IntegrationTest {
                                         "http://localhost:8080/setuid?bidder=rubicon"
                                                 + "&gdpr=1&gdpr_consent=" + gdprConsent
                                                 + "&us_privacy=1YNN"
-                                                + "&uid=host-cookie-uid"
-                                                + "&f=i",
+                                                + "&f=i"
+                                                + "&uid=host-cookie-uid",
                                         "redirect", false))
                                 .build(),
                         BidderUsersyncStatus.builder()
@@ -363,6 +404,7 @@ public class ApplicationTest extends IntegrationTest {
                                         "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                                 + "%26us_privacy%3D1YNN"
+                                                + "%26f%3Di"
                                                 + "%26uid%3D%24UID",
                                         "redirect", false))
                                 .build(),

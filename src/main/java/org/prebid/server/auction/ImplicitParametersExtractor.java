@@ -7,8 +7,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,30 +39,20 @@ public class ImplicitParametersExtractor {
     }
 
     /**
-     * Determines domain the address refers to.
+     * Determines top-level domain of the passed host name.
      *
-     * @throws PreBidException if address does not represent valid URL, host could not be found in URL or top level
-     *                         domain could not be derived from the host
+     * @throws PreBidException if top level domain could not be derived from the host name
      */
-    public String domainFrom(String urlString) throws PreBidException {
-        final URL url;
-        try {
-            url = new URL(urlString);
-        } catch (MalformedURLException e) {
-            throw new PreBidException(String.format("Invalid URL '%s': %s", urlString, e.getMessage()), e);
-        }
-
-        final String host = url.getHost();
+    public String domainFrom(String host) throws PreBidException {
         if (StringUtils.isBlank(host)) {
-            throw new PreBidException(String.format("Host not found from URL '%s'", url.toString()));
+            throw new PreBidException("Host is not defined or can not be derived from request");
         }
 
         final String domain = psl.getRegistrableDomain(host);
 
         if (domain == null) {
             // null means effective top level domain plus one couldn't be derived
-            throw new PreBidException(
-                    String.format("Invalid URL '%s': cannot derive eTLD+1 for domain %s", host, host));
+            throw new PreBidException(String.format("Cannot derive eTLD+1 for host %s", host));
         }
 
         return domain;
@@ -73,9 +61,7 @@ public class ImplicitParametersExtractor {
     /**
      * Determines IP-Address candidates by checking http headers and remote host address.
      */
-    public List<String> ipFrom(HttpRequestWrapper request) {
-        final MultiMap headers = request.getHeaders();
-
+    public List<String> ipFrom(MultiMap headers, String host) {
         final List<String> candidates = new ArrayList<>();
         candidates.add(headers.get("True-Client-IP"));
         final String xff = headers.get("X-Forwarded-For");
@@ -83,7 +69,7 @@ public class ImplicitParametersExtractor {
             candidates.addAll(Arrays.asList(xff.split(",")));
         }
         candidates.add(headers.get("X-Real-IP"));
-        candidates.add(request.getRemoteHost());
+        candidates.add(host);
 
         return candidates.stream()
                 .map(StringUtils::trimToNull)

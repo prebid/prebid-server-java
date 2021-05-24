@@ -56,7 +56,7 @@
           }
         ],
         "site": {
-          "domain": "example.com",
+          "domain": "www.example.com",
           "page": "http://www.example.com",
           "publisher": {
             "id": "6001"

@@ -241,6 +241,29 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithBadRequestStatusIfGdprConsentIsInvalid() {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.builder()
+                        .bidders(singletonList(RUBICON))
+                        .gdpr(1)
+                        .gdprConsent("invalid")
+                        .build()));
+
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(null,
+                        TcfContext.builder().gdpr("1").isConsentValid(false).build())));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateUserSyncTcfInvalidMetric();
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
+    }
+
+    @Test
     public void shouldNotSendResponseIfClientClosedConnection() {
         // given
         given(routingContext.getBody()).willReturn(
@@ -958,7 +981,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .extracting(BidderUsersyncStatus::getUsersync)
                 .containsOnly(
                         UsersyncInfo.of("http://external-url/setuid?bidder=rubicon&gdpr=&gdpr_consent=&us_privacy="
-                                + "&uid=host%2Fcookie%2Fvalue&f=i", "redirect", false));
+                                + "&f=i&uid=host%2Fcookie%2Fvalue", "redirect", false));
     }
 
     @Test

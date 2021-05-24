@@ -84,6 +84,7 @@ public class AuctionRequestFactory {
                                 httpRequestWrapper,
                                 bidRequest,
                                 requestTypeMetric(bidRequest),
+                                true,
                                 startTime,
                                 hookExecutionContext,
                                 errors)))

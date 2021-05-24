@@ -88,6 +88,7 @@ public class VideoRequestFactory {
                                 httpRequest,
                                 bidRequestWithErrors.getData(),
                                 MetricName.video,
+                                false,
                                 startTime,
                                 hookExecutionContext,
                                 new ArrayList<>())

@@ -12,8 +12,9 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
-import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoExt;
+import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoAdsExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -146,9 +147,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         final Map<String, BidType> impTypes = new HashMap<>();
         for (Imp imp : bidRequest.getImp()) {
             final String impId = imp.getId();
-            if (impTypes.get(impId) != null) {
-                throw new PreBidException(String.format("duplicate $.imp.id %s", impId));
-            }
+
             if (imp.getBanner() != null) {
                 impTypes.put(impId, BidType.banner);
             } else if (imp.getVideo() != null) {
@@ -157,30 +156,31 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                 impTypes.put(impId, BidType.audio);
             } else if (imp.getXNative() != null) {
                 impTypes.put(impId, BidType.xNative);
-            } else {
-                throw new PreBidException("one of $.imp.banner, $.imp.video, $.imp.audio "
-                        + "and $.imp.native field required");
             }
         }
         return impTypes;
     }
 
     private BidderBid createBid(Bid bid, Map<String, BidType> impTypes, String currency) {
-        if (impTypes.get(bid.getImpid()) == null) {
-            throw new PreBidException(String.format("unknown impId: %s", bid.getImpid()));
+        final String bidImpId = bid.getImpid();
+
+        if (impTypes.get(bidImpId) == null) {
+            throw new PreBidException(String.format("unknown impId: %s", bidImpId));
         }
-        validateResponseVideoExt(bid, impTypes);
-        return BidderBid.of(bid, impTypes.get(bid.getImpid()), currency);
+        if (impTypes.get(bidImpId) == BidType.video) {
+            validateVideoBidExt(bid);
+        }
+
+        return BidderBid.of(bid, impTypes.get(bidImpId), currency);
     }
 
-    private void validateResponseVideoExt(Bid bid, Map<String, BidType> impTypes) {
-        if (impTypes.get(bid.getImpid()) == BidType.video) {
-            final ObjectNode ext = bid.getExt();
-            final AdopplerResponseExt adopplerResponseExt = parseResponseExt(ext);
-            final AdopplerResponseVideoExt adopplerResponseVideoExt = adopplerResponseExt.getAds();
-            if (adopplerResponseVideoExt == null) {
-                throw new PreBidException("$.seatbid.bid.ext.ads.video required");
-            }
+    private void validateVideoBidExt(Bid bid) {
+        final ObjectNode extNode = bid.getExt();
+        final AdopplerResponseExt ext = extNode != null ? parseResponseExt(extNode) : null;
+        final AdopplerResponseAdsExt adsExt = ext != null ? ext.getAds() : null;
+        final AdopplerResponseVideoAdsExt videoAdsExt = adsExt != null ? adsExt.getVideo() : null;
+        if (videoAdsExt == null) {
+            throw new PreBidException("$.seatbid.bid.ext.ads.video required");
         }
     }
 

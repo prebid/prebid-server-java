@@ -12,7 +12,8 @@
         "w": 300,
         "h": 250,
         "ext": {
-          "crtype": "banner"
+          "crtype": "banner",
+          "origbidcpm": 3.5
         }
       }
     }

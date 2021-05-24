@@ -210,7 +210,9 @@ public class ServiceConfiguration {
             RequestValidator requestValidator,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
+            StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings,
+            IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -222,7 +224,9 @@ public class ServiceConfiguration {
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
+                storedRequestProcessor,
                 applicationSettings,
+                ipAddressHelper,
                 hookStageExecutor);
     }
 
@@ -590,13 +594,21 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             PrivacyExtractor privacyExtractor,
             TcfDefinerService tcfDefinerService,
+            ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             @Value("${lmt.enforce}") boolean lmtEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce, lmtEnforce);
+                bidderCatalog,
+                privacyExtractor,
+                tcfDefinerService,
+                implicitParametersExtractor,
+                ipAddressHelper,
+                metrics,
+                ccpaEnforce,
+                lmtEnforce);
     }
 
     @Bean

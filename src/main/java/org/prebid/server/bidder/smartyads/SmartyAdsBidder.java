@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -152,12 +151,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().get(FIRST_SEAT_BID_INDEX);
-        final List<Bid> bidsFromSeat = firstSeatBid.getBid();
-        if (CollectionUtils.isEmpty(bidsFromSeat)) {
-            return Collections.emptyList();
-        }
-
-        return bidsFromSeat.stream()
+        return CollectionUtils.emptyIfNull(firstSeatBid.getBid()).stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());

@@ -48,4 +48,6 @@ public class BeachfrontBannerRequest {
 
     @JsonProperty("requestId")
     String requestId;
+
+    Boolean real204;
 }
