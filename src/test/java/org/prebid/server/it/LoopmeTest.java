@@ -3,8 +3,10 @@ package org.prebid.server.it;
 import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
@@ -15,6 +17,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 
+@RunWith(SpringRunner.class)
 public class LoopmeTest extends IntegrationTest {
 
     @Test
