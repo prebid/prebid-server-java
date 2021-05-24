@@ -4,6 +4,7 @@ import lombok.Value;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 @Value(staticConstructor = "of")
 public class StageExecutionPlan {
@@ -14,5 +15,9 @@ public class StageExecutionPlan {
 
     public static StageExecutionPlan empty() {
         return EMPTY;
+    }
+
+    public boolean isEmpty() {
+        return Objects.equals(this, EMPTY);
     }
 }
