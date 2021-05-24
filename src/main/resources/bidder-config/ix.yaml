@@ -1,7 +1,7 @@
 adapters:
   ix:
     enabled: false
-    endpoint: http://rubicon-us-east.lb.indexww.com/transbidder?p=189517
+    endpoint: https://
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
@@ -22,8 +22,8 @@ adapters:
       supported-vendors:
       vendor-id: 10
     usersync:
-      url:
-      redirect-url:
+      url: https://ssum.casalemedia.com/usermatchredir?s=189517&gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&cb=
+      redirect-url: /setuid?bidder=ix&gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&uid=
       cookie-family-name: ix
       type: redirect
       support-cors: false

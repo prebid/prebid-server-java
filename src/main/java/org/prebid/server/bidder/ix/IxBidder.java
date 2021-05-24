@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.ix;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -24,6 +26,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -194,19 +198,51 @@ public class IxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse, bidRequest);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> prepareBid(bid, bidRequest))
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> toBidderBid(bid, bidRequest, bidResponse))
                 .collect(Collectors.toList());
+    }
+
+    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse) {
+        final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+
+        final ExtBidPrebid bidExt = parseBidExt(bid.getExt());
+        final boolean bidHasNoSizes = bid.getH() == null || bid.getW() == null;
+        final Banner banner = bidRequest.getImp().get(0).getBanner();
+        if ((bidHasNoSizes && banner != null) || (bidExt != null && bidExt.getVideo() != null)) {
+            final Bid.BidBuilder bidBuilder = bid.toBuilder();
+
+            if (bidType == BidType.banner) {
+                if (bidHasNoSizes && banner != null) {
+                    bidBuilder
+                            .w(banner.getW())
+                            .h(banner.getH())
+                            .build();
+                }
+            }
+
+            if (bidType == BidType.video) {
+                if (bidExt != null && bidExt.getVideo() != null) {
+                    final ExtBidPrebidVideo video = bidExt.getVideo();
+                    bidBuilder.ext(toBidExt(video));
+                    if (CollectionUtils.isEmpty(bid.getCat())) {
+                        bidBuilder.cat(Collections.singletonList(video.getPrimaryCategory())).build();
+                    }
+                }
+            }
+            bid = bidBuilder.build();
+        }
+
+        return BidderBid.of(bid, bidType, bidResponse.getCur());
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
@@ -226,16 +262,16 @@ public class IxBidder implements Bidder<BidRequest> {
         throw new PreBidException(String.format("Unmatched impression id %s", impId));
     }
 
-    private static Bid prepareBid(Bid bid, BidRequest bidRequest) {
-        // Current implementation ensure that we have at least one imp in request
-        final boolean bidHasNoSizes = bid.getH() == null || bid.getW() == null;
-        final Banner banner = bidRequest.getImp().get(0).getBanner();
-        if (bidHasNoSizes && banner != null) {
-            return bid.toBuilder()
-                    .w(banner.getW())
-                    .h(banner.getH())
-                    .build();
+    private ExtBidPrebid parseBidExt(ObjectNode bidExt) {
+        try {
+            return bidExt == null ? null : mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
         }
-        return bid;
     }
+
+    private ObjectNode toBidExt(ExtBidPrebidVideo extBidVideo) {
+        return mapper.mapper().valueToTree(ExtBidPrebidVideo.of(extBidVideo.getDuration(), null));
+    }
+
 }

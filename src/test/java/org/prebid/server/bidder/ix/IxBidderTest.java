@@ -23,6 +23,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -372,6 +373,31 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), BidType.banner, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithVideoExt() throws JsonProcessingException {
+        // given
+        final Video video = Video.builder().build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(video).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(
+                                bidBuilder -> bidBuilder
+                                        .impid("123")
+                                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtBidPrebidVideo.of(1, "cat")))))));
+
+        // when
+        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(mapper.valueToTree(ExtPrebid.of(null, ExtBidPrebidVideo.of(1, "cat"))));
     }
 
     private static BidRequest givenBidRequest(
