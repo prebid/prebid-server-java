@@ -4,15 +4,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Site;
+import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.CookieSyncEvent;
+import org.prebid.server.analytics.model.NotificationEvent;
+import org.prebid.server.analytics.model.SetuidEvent;
+import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -25,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -39,16 +49,19 @@ public class AnalyticsReporterDelegator {
     private final List<AnalyticsReporter> delegates;
     private final Vertx vertx;
     private final PrivacyEnforcementService privacyEnforcementService;
+    private final Metrics metrics;
 
     private final Set<Integer> reporterVendorIds;
     private final Set<String> reporterNames;
 
     public AnalyticsReporterDelegator(List<AnalyticsReporter> delegates,
                                       Vertx vertx,
-                                      PrivacyEnforcementService privacyEnforcementService) {
+                                      PrivacyEnforcementService privacyEnforcementService,
+                                      Metrics metrics) {
         this.delegates = Objects.requireNonNull(delegates);
         this.vertx = Objects.requireNonNull(vertx);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.metrics = Objects.requireNonNull(metrics);
 
         reporterVendorIds = delegates.stream().map(AnalyticsReporter::vendorId).collect(Collectors.toSet());
         reporterNames = delegates.stream().map(AnalyticsReporter::name).collect(Collectors.toSet());
@@ -56,7 +69,7 @@ public class AnalyticsReporterDelegator {
 
     public <T> void processEvent(T event) {
         for (AnalyticsReporter analyticsReporter : delegates) {
-            vertx.runOnContext(ignored -> analyticsReporter.processEvent(event));
+            vertx.runOnContext(ignored -> processEventByReporter(analyticsReporter, event));
         }
     }
 
@@ -80,7 +93,7 @@ public class AnalyticsReporterDelegator {
                 final PrivacyEnforcementAction reporterPrivacyAction = privacyEnforcementActionMap
                         .getOrDefault(reporterVendorId, PrivacyEnforcementAction.restrictAll());
                 if (!reporterPrivacyAction.isBlockAnalyticsReport()) {
-                    vertx.runOnContext(ignored -> analyticsReporter.processEvent(updatedEvent));
+                    vertx.runOnContext(ignored -> processEventByReporter(analyticsReporter, updatedEvent));
                 }
             }
         } else {
@@ -167,5 +180,48 @@ public class AnalyticsReporterDelegator {
         }
 
         return !analyticsNodeCopy.isEmpty() ? analyticsNodeCopy : null;
+    }
+
+    private <T> void processEventByReporter(AnalyticsReporter analyticsReporter, T event) {
+        final String reporterName = analyticsReporter.name();
+        analyticsReporter.processEvent(event)
+                .map(ignored -> processSuccess(event, reporterName))
+                .otherwise(exception -> processFail(exception, event, reporterName));
+    }
+
+    private <T> Future<Void> processSuccess(T event, String reporterName) {
+        updateMetricsByEventType(event, reporterName, MetricName.ok);
+        return Future.succeededFuture();
+    }
+
+    private <T> Future<Void> processFail(Throwable exception, T event, String reporterName) {
+        final MetricName failedResult;
+        if (exception instanceof TimeoutException || exception instanceof ConnectTimeoutException) {
+            failedResult = MetricName.timeout;
+        } else {
+            failedResult = MetricName.err;
+        }
+        updateMetricsByEventType(event, reporterName, failedResult);
+        return Future.failedFuture(exception);
+    }
+
+    private <T> void updateMetricsByEventType(T event, String analyticsCode, MetricName result) {
+        final MetricName eventType;
+        if (event instanceof AuctionEvent) {
+            eventType = MetricName.event_auction;
+        } else if (event instanceof AmpEvent) {
+            eventType = MetricName.event_amp;
+        } else if (event instanceof VideoEvent) {
+            eventType = MetricName.event_video;
+        } else if (event instanceof SetuidEvent) {
+            eventType = MetricName.event_setuid;
+        } else if (event instanceof CookieSyncEvent) {
+            eventType = MetricName.event_cookie_sync;
+        } else if (event instanceof NotificationEvent) {
+            eventType = MetricName.event_notification;
+        } else {
+            eventType = MetricName.event_unknown;
+        }
+        metrics.updateAnalyticEventMetric(analyticsCode, eventType, result);
     }
 }

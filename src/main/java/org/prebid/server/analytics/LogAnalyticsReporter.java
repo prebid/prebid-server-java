@@ -1,6 +1,7 @@
 package org.prebid.server.analytics;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
@@ -28,7 +29,7 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     }
 
     @Override
-    public <T> void processEvent(T event) {
+    public <T> Future<Void> processEvent(T event) {
         final LogEvent<?> logEvent;
 
         if (event instanceof AuctionEvent) {
@@ -49,6 +50,8 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
         }
 
         logger.debug(mapper.encode(logEvent));
+
+        return Future.succeededFuture();
     }
 
     @Override
