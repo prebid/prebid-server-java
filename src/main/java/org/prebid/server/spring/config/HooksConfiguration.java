@@ -33,7 +33,13 @@ public class HooksConfiguration {
                                         JacksonMapper mapper) {
 
         return HookStageExecutor.create(
-                hooksConfiguration.getExecutionPlan(), hookCatalog, timeoutFactory, vertx, clock, mapper);
+                hooksConfiguration.getHostExecutionPlan(),
+                hooksConfiguration.getDefaultAccountExecutionPlan(),
+                hookCatalog,
+                timeoutFactory,
+                vertx,
+                clock,
+                mapper);
     }
 
     @Bean
@@ -47,6 +53,8 @@ public class HooksConfiguration {
     @NoArgsConstructor
     private static class HooksConfigurationProperties {
 
-        String executionPlan;
+        String hostExecutionPlan;
+
+        String defaultAccountExecutionPlan;
     }
 }
