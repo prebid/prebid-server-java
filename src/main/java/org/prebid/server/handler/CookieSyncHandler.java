@@ -215,8 +215,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
             try {
                 validateCookieSyncContext(cookieSyncContext);
-            } catch (InvalidRequestException | UnauthorizedUidsException ex) {
-                handleErrors(ex, routingContext, tcfContext);
+            } catch (InvalidRequestException | UnauthorizedUidsException e) {
+                handleErrors(e, routingContext, tcfContext);
                 return;
             }
 
@@ -648,7 +648,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED.code();
             body = String.format("Unauthorized: %s", message);
-
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
             body = String.format("Unexpected setuid processing error: %s", message);
