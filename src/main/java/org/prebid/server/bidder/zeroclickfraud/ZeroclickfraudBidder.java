@@ -125,17 +125,18 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
                 : bidsFromResponse(bidResponse, bidRequest.getImp());
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> requestImps) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> imps) {
         return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getMediaType(bid.getImpid(), requestImps), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getMediaType(String impId, List<Imp> requestImps) {
-        for (Imp imp : requestImps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getVideo() != null) {
                     return BidType.video;

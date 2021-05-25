@@ -7,22 +7,22 @@
         "w": 320,
         "h": 250
       },
-      "displaymanager" : "di_prebid",
-      "displaymanagerver" : "2.0.0",
-      "tagid" : "possibleTagId",
+      "displaymanager": "di_prebid",
+      "displaymanagerver": "2.0.0",
+      "tagid": "possibleTagId",
       "ext": {
         "bidder": {
           "tagId": "possibleTagId"
         }
       }
-
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

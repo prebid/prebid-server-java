@@ -3,7 +3,6 @@
   "imp": [
     {
       "id": "impId001",
-      "tagid": "extTagId",
       "banner": {
         "format": [
           {
@@ -14,7 +13,7 @@
       },
       "ext": {
         "bidder": {
-          "TagID": "extTagId"
+          "key": "someKey"
         }
       }
     }
@@ -31,7 +30,8 @@
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

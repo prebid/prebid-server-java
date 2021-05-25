@@ -56,6 +56,12 @@ public class ConditionalLogger {
         log(message, duration, unit, logger -> logger.info(message));
     }
 
+    public void info(String message, double samplingRate) {
+        if (samplingRate >= 1.0d || ThreadLocalRandom.current().nextDouble() < samplingRate) {
+            logger.warn(message);
+        }
+    }
+
     public void errorWithKey(String key, String message, int limit) {
         log(key, limit, logger -> logger.error(message));
     }

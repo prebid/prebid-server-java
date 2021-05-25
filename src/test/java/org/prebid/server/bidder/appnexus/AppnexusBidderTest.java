@@ -483,6 +483,69 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsNotSet() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                identity(),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder
+                        .placementId(20)
+                        .reserve(BigDecimal.valueOf(123)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(123));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder
+                        .placementId(20)
+                        .reserve(BigDecimal.valueOf(123)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(123));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsNegative() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO.subtract(BigDecimal.ONE)),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder
+                        .placementId(20)
+                        .reserve(BigDecimal.valueOf(123)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(123));
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetNativeIfRequestImpIsNative() {
         // given
         final BidRequest bidRequest = givenBidRequest(

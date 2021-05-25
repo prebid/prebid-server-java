@@ -1,10 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.json.IntegerFlagDeserializer;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +19,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.debug
      */
+    @JsonDeserialize(using = IntegerFlagDeserializer.class)
     Integer debug;
 
     /**
@@ -33,7 +35,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.bidadjustmentfactors
      */
-    Map<String, BigDecimal> bidadjustmentfactors;
+    ExtRequestBidadjustmentfactors bidadjustmentfactors;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.currency
@@ -114,4 +116,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.multibid
      */
     List<ExtRequestPrebidMultiBid> multibid;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.analytics
+     */
+    ObjectNode analytics;
 }
