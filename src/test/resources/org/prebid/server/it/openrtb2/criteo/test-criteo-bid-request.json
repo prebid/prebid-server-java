@@ -1,0 +1,42 @@
+{
+  "id": "pbj-test-request-id",
+  "publisher": {
+    "siteid": "site-id",
+    "url": "criteo.com",
+    "networkid": 78910
+  },
+  "user": {
+    "deviceid": "ifa",
+    "deviceos": "android",
+    "deviceidtype": "gaid",
+    "cookieuid": "CR-UID",
+    "ip": "91.199.242.236",
+    "ua": "userAgent",
+    "usp_iab": "1YNN"
+  },
+  "gdprconsent": {
+    "gdprapplies": false,
+    "consentdata": "consentValue"
+  },
+  "slots": [
+    {
+      "slotid": "e77e016a-091d-4cdb-a759-29d57a1ffa48",
+      "impid": "test-imp-id",
+      "zoneid": 123456,
+      "networkid": 78910,
+      "sizes": [
+        "250x250"
+      ]
+    }
+  ],
+  "eids": [
+    {
+      "source": "criteo.com",
+      "uids": [
+        {
+          "id": "criteo-eid"
+        }
+      ]
+    }
+  ]
+}
