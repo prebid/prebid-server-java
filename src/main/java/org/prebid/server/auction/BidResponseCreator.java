@@ -408,8 +408,7 @@ public class BidResponseCreator {
         // All bids from bidder for imp
         final Set<BidInfo> winningBidsByBidder = new HashSet<>();
 
-        for (Map.Entry<String, Map<String, List<BidInfo>>> impIdBidderToBidInfos : impIdToBidderToBidInfos.entrySet()) {
-            final Map<String, List<BidInfo>> bidderToBidInfos = impIdBidderToBidInfos.getValue();
+        for (Map<String, List<BidInfo>> bidderToBidInfos : impIdToBidderToBidInfos.values()) {
 
             bidderToBidInfos.values().forEach(winningBidsByBidder::addAll);
 
