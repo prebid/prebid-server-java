@@ -365,7 +365,7 @@ public class AmpRequestFactory {
             if (StringUtils.isNotBlank(canonicalUrl)) {
                 siteBuilder.page(canonicalUrl);
 
-                final String domain = HttpUtil.getDomainFromUrl(canonicalUrl);
+                final String domain = HttpUtil.getHostFromUrl(canonicalUrl);
                 if (StringUtils.isNotBlank(domain)) {
                     siteBuilder.domain(domain);
                 }

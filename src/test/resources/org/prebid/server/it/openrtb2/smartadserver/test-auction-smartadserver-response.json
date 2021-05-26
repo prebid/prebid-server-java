@@ -63,7 +63,7 @@
         "smartadserver": [
           {
             "uri": "{{ smartadserver.exchange_uri }}/api/bid?callerId=5",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"test-imp-banner-id\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":500,\"h\":400},\"ext\":{\"bidder\":{\"siteId\":1,\"pageId\":2,\"formatId\":3,\"networkId\":73}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"73\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SA-UID\",\"ext\":{\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"debug\":1,\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"auctiontimestamp\":1000,\"channel\":{\"name\":\"web\"}}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"test-imp-banner-id\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":500,\"h\":400},\"ext\":{\"bidder\":{\"siteId\":1,\"pageId\":2,\"formatId\":3,\"networkId\":73}}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"73\",\"domain\":\"example.com\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SA-UID\",\"ext\":{\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"debug\":1,\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"auctiontimestamp\":1000,\"channel\":{\"name\":\"web\"}}}}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"h\":576,\"w\":1024}]}]}",
             "status": 200
           }
@@ -99,10 +99,11 @@
           }
         ],
         "site": {
-          "domain": "example.com",
+          "domain": "www.example.com",
           "page": "http://www.example.com",
           "publisher": {
-            "id": "publisherId"
+            "id": "publisherId",
+            "domain": "example.com"
           },
           "ext": {
             "amp": 0
