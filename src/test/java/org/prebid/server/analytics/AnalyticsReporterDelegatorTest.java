@@ -105,6 +105,29 @@ public class AnalyticsReporterDelegatorTest {
     }
 
     @Test
+    public void shouldTolerateInvalidExtPrebidAnalyticsNode() {
+        // given
+        final TextNode analyticsNode = new TextNode("invalid");
+        final AuctionEvent givenAuctionEvent = givenAuctionEvent(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .analytics(analyticsNode)
+                        .build())));
+
+        // when
+        target.processEvent(givenAuctionEvent, TcfContext.empty());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+        assertThat(asList(captureAuctionEvent(firstReporter), captureAuctionEvent(secondReporter)))
+                .extracting(AuctionEvent::getAuctionContext)
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getAnalytics)
+                .containsExactly(analyticsNode, analyticsNode);
+    }
+
+    @Test
     public void shouldPassOnlyAdapterRelatedEntriesToAnalyticReporters() {
         // given
         final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
