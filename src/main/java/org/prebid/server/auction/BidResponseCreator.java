@@ -52,7 +52,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -344,13 +343,10 @@ public class BidResponseCreator {
                                                            EventsContext eventsContext,
                                                            boolean debugEnabled) {
 
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final ExtRequestTargeting targeting = targeting(bidRequest);
-        final List<Imp> imps = bidRequest.getImp();
-        final boolean accountPreferDeals = isPreferDeals(auctionContext.getAccount(), targeting);
+        final ExtRequestTargeting targeting = targeting(auctionContext.getBidRequest());
 
         final List<BidderResponseInfo> bidderResponseInfos =
-                toBidderResponseWithTargetingBidInfos(bidderResponses, imps, bidderToMultiBids, accountPreferDeals);
+                toBidderResponseWithTargetingBidInfos(bidderResponses, bidderToMultiBids, preferDeals(targeting));
 
         final Set<BidInfo> bidInfos = bidderResponseInfos.stream()
                 .map(BidderResponseInfo::getSeatBid)
@@ -386,26 +382,19 @@ public class BidResponseCreator {
         return prebid != null ? prebid.getTargeting() : null;
     }
 
-    private boolean isPreferDeals(Account account, ExtRequestTargeting targeting) {
-        final Boolean requestPreferDeals = targeting != null ? targeting.getPreferdeals() : null;
-        final Boolean accountPreferDeals = account.getPreferDeals();
-        return requestPreferDeals != null
-                ? requestPreferDeals
-                : BooleanUtils.toBooleanDefaultIfNull(accountPreferDeals, false);
+    private boolean preferDeals(ExtRequestTargeting targeting) {
+        return BooleanUtils.toBooleanDefaultIfNull(targeting != null ? targeting.getPreferdeals() : null, false);
     }
 
     private List<BidderResponseInfo> toBidderResponseWithTargetingBidInfos(
             List<BidderResponseInfo> bidderResponses,
-            List<Imp> imps,
             Map<String, MultiBidConfig> bidderToMultiBids,
-            boolean accountPreferDeals) {
+            boolean preferDeals) {
 
-        final Map<String, Boolean> impsPreferDeals = extractDealsPreferenceByImp(imps, accountPreferDeals);
         final Map<BidderResponseInfo, List<BidInfo>> bidderResponseToReducedBidInfos = bidderResponses.stream()
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        bidderResponse -> toSortedMultiBidInfo(
-                                bidderResponse, imps, bidderToMultiBids, impsPreferDeals)));
+                        bidderResponse -> toSortedMultiBidInfo(bidderResponse, bidderToMultiBids, preferDeals)));
 
         final Map<String, Map<String, List<BidInfo>>> impIdToBidderToBidInfos = bidderResponseToReducedBidInfos.values()
                 .stream()
@@ -420,14 +409,13 @@ public class BidResponseCreator {
         final Set<BidInfo> winningBidsByBidder = new HashSet<>();
 
         for (Map.Entry<String, Map<String, List<BidInfo>>> impIdBidderToBidInfos : impIdToBidderToBidInfos.entrySet()) {
-            final String impId = impIdBidderToBidInfos.getKey();
             final Map<String, List<BidInfo>> bidderToBidInfos = impIdBidderToBidInfos.getValue();
 
             bidderToBidInfos.values().forEach(winningBidsByBidder::addAll);
 
             bidderToBidInfos.values().stream()
                     .flatMap(Collection::stream)
-                    .max(winningBidComparatorFactory.create(impsPreferDeals.get(impId)))
+                    .max(winningBidComparatorFactory.create(preferDeals))
                     .ifPresent(winningBids::add);
         }
 
@@ -437,37 +425,13 @@ public class BidResponseCreator {
                         responseToBidInfos.getValue(),
                         bidderToMultiBids,
                         winningBids,
-                        winningBidsByBidder
-                ))
+                        winningBidsByBidder))
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Boolean> extractDealsPreferenceByImp(List<Imp> imps, boolean preferDeals) {
-        return imps.stream()
-                .collect(Collectors.toMap(Imp::getId,
-                        imp -> preferDeals(extractImpPreferDeal(imp), preferDeals)));
-    }
-
-    private Boolean extractImpPreferDeal(Imp imp) {
-        final ExtImp extImp;
-        try {
-            extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format(
-                    "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
-        }
-        final ExtImpTargeting extImpTargeting = extImp.getTargeting();
-        return extImpTargeting != null ? extImpTargeting.getPreferDeals() : null;
-    }
-
-    private static boolean preferDeals(Boolean impPreferDeals, boolean accountPreferDeals) {
-        return impPreferDeals != null ? impPreferDeals : accountPreferDeals;
-    }
-
     private List<BidInfo> toSortedMultiBidInfo(BidderResponseInfo bidderResponse,
-                                               List<Imp> imps,
                                                Map<String, MultiBidConfig> bidderToMultiBids,
-                                               Map<String, Boolean> impsPreferDeals) {
+                                               boolean preferDeals) {
 
         final List<BidInfo> bidInfos = bidderResponse.getSeatBid().getBidsInfos();
         final Map<String, List<BidInfo>> impIdToBidInfos = bidInfos.stream()
@@ -476,9 +440,8 @@ public class BidResponseCreator {
         final MultiBidConfig multiBid = bidderToMultiBids.get(bidderResponse.getBidder());
         final Integer bidLimit = multiBid != null ? multiBid.getMaxBids() : DEFAULT_BID_LIMIT_MIN;
 
-        return impIdToBidInfos.entrySet().stream()
-                .map(impIdBidInfos -> sortReducedBidInfo(impIdBidInfos.getValue(), bidLimit,
-                        impsPreferDeals.get(impIdBidInfos.getKey())))
+        return impIdToBidInfos.values().stream()
+                .map(infos -> sortReducedBidInfo(infos, bidLimit, preferDeals))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }

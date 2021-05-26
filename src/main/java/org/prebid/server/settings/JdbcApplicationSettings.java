@@ -126,7 +126,6 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
                         .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
                         .status(toAccountStatus(row.getString(12)))
-                        .preferDeals(row.getBoolean(14))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));

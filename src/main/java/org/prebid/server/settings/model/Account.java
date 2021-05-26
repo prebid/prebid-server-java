@@ -38,8 +38,6 @@ public class Account {
     @JsonProperty("cookie-sync")
     AccountCookieSyncConfig cookieSync;
 
-    Boolean preferDeals;
-
     public Account merge(Account another) {
         return Account.builder()
                 .id(ObjectUtils.defaultIfNull(id, another.id))
@@ -57,7 +55,6 @@ public class Account {
                 .bidValidations(ObjectUtils.defaultIfNull(bidValidations, another.bidValidations))
                 .status(ObjectUtils.defaultIfNull(status, another.status))
                 .cookieSync(ObjectUtils.defaultIfNull(cookieSync, another.cookieSync))
-                .preferDeals(ObjectUtils.defaultIfNull(preferDeals, another.preferDeals))
                 .build();
     }
 
