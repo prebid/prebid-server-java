@@ -2,7 +2,6 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.Imp;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
 import java.util.ArrayList;
@@ -22,10 +21,9 @@ import java.util.stream.Collectors;
  */
 public class Metrics extends UpdatableMetrics {
 
-    private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
+    private static final String ALL_REQUEST_BIDDERS = "all";
 
     private final AccountMetricsVerbosity accountMetricsVerbosity;
-    private final BidderCatalog bidderCatalog;
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
@@ -49,12 +47,11 @@ public class Metrics extends UpdatableMetrics {
     private final CurrencyRatesMetrics currencyRatesMetrics;
     private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
 
-    public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
-            accountMetricsVerbosity, BidderCatalog bidderCatalog) {
+    public Metrics(MetricRegistry metricRegistry, CounterType counterType,
+                   AccountMetricsVerbosity accountMetricsVerbosity) {
         super(metricRegistry, counterType, MetricName::toString);
 
         this.accountMetricsVerbosity = Objects.requireNonNull(accountMetricsVerbosity);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
 
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
@@ -130,7 +127,17 @@ public class Metrics extends UpdatableMetrics {
         incCounter(MetricName.imps_requested, numImps);
     }
 
-    public void updateImpTypesMetrics(Map<String, Long> countPerMediaType) {
+    public void updateImpTypesMetrics(List<Imp> imps) {
+
+        final Map<String, Long> mediaTypeToCount = imps.stream()
+                .map(Metrics::getPresentMediaTypes)
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        updateImpTypesMetrics(mediaTypeToCount);
+    }
+
+    void updateImpTypesMetrics(Map<String, Long> countPerMediaType) {
         for (Map.Entry<String, Long> mediaTypeCount : countPerMediaType.entrySet()) {
             switch (mediaTypeCount.getKey()) {
                 case "banner":
@@ -150,16 +157,6 @@ public class Metrics extends UpdatableMetrics {
                     break;
             }
         }
-    }
-
-    public void updateImpTypesMetrics(List<Imp> imps) {
-
-        final Map<String, Long> mediaTypeToCount = imps.stream()
-                .map(Metrics::getPresentMediaTypes)
-                .flatMap(Collection::stream)
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-
-        updateImpTypesMetrics(mediaTypeToCount);
     }
 
     private static List<String> getPresentMediaTypes(Imp imp) {
@@ -211,7 +208,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
-        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(resolveMetricsBidderName(bidder));
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
 
         adapterTypeMetrics.requestType(requestType).incCounter(MetricName.requests);
 
@@ -221,36 +218,32 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateAdapterResponseTime(String bidder, String accountId, int responseTime) {
-        final String metricsBidderName = resolveMetricsBidderName(bidder);
-        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(metricsBidderName);
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
         adapterTypeMetrics.updateTimer(MetricName.request_time, responseTime);
 
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             final AdapterTypeMetrics accountAdapterMetrics =
-                    forAccount(accountId).adapter().forAdapter(metricsBidderName);
+                    forAccount(accountId).adapter().forAdapter(bidder);
             accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
         }
     }
 
     public void updateAdapterRequestNobidMetrics(String bidder, String accountId) {
-        final String metricsBidderName = resolveMetricsBidderName(bidder);
-        forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
+        forAdapter(bidder).request().incCounter(MetricName.nobid);
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(accountId).adapter().forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
+            forAccount(accountId).adapter().forAdapter(bidder).request().incCounter(MetricName.nobid);
         }
     }
 
     public void updateAdapterRequestGotbidsMetrics(String bidder, String accountId) {
-        final String metricsBidderName = resolveMetricsBidderName(bidder);
-        forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
+        forAdapter(bidder).request().incCounter(MetricName.gotbids);
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(accountId).adapter().forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
+            forAccount(accountId).adapter().forAdapter(bidder).request().incCounter(MetricName.gotbids);
         }
     }
 
     public void updateAdapterBidMetrics(String bidder, String accountId, long cpm, boolean isAdm, String bidType) {
-        final String metricsBidderName = resolveMetricsBidderName(bidder);
-        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(metricsBidderName);
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
         adapterTypeMetrics.updateHistogram(MetricName.prices, cpm);
         adapterTypeMetrics.incCounter(MetricName.bids_received);
         adapterTypeMetrics.forBidType(bidType)
@@ -258,23 +251,23 @@ public class Metrics extends UpdatableMetrics {
 
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             final AdapterTypeMetrics accountAdapterMetrics =
-                    forAccount(accountId).adapter().forAdapter(metricsBidderName);
+                    forAccount(accountId).adapter().forAdapter(bidder);
             accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
             accountAdapterMetrics.incCounter(MetricName.bids_received);
         }
     }
 
     public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
-        forAdapter(resolveMetricsBidderName(bidder)).request().incCounter(errorMetric);
+        forAdapter(bidder).request().incCounter(errorMetric);
     }
 
     public void updateSizeValidationMetrics(String bidder, String accountId, MetricName type) {
-        forAdapter(resolveMetricsBidderName(bidder)).response().validation().size().incCounter(type);
+        forAdapter(bidder).response().validation().size().incCounter(type);
         forAccount(accountId).response().validation().size().incCounter(type);
     }
 
     public void updateSecureValidationMetrics(String bidder, String accountId, MetricName type) {
-        forAdapter(resolveMetricsBidderName(bidder)).response().validation().secure().incCounter(type);
+        forAdapter(bidder).response().validation().secure().incCounter(type);
         forAccount(accountId).response().validation().secure().incCounter(type);
     }
 
@@ -294,6 +287,14 @@ public class Metrics extends UpdatableMetrics {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
     }
 
+    public void updateUserSyncTcfInvalidMetric(String bidder) {
+        userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
+    }
+
+    public void updateUserSyncTcfInvalidMetric() {
+        updateUserSyncTcfInvalidMetric(ALL_REQUEST_BIDDERS);
+    }
+
     public void updateCookieSyncRequestMetric() {
         incCounter(MetricName.cookie_sync_requests);
     }
@@ -307,7 +308,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateCookieSyncTcfBlockedMetric(String bidder) {
-        cookieSync().forBidder(resolveMetricsBidderName(bidder)).tcf().incCounter(MetricName.blocked);
+        cookieSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
     }
 
     public void updateAuctionTcfMetrics(String bidder,
@@ -317,7 +318,7 @@ public class Metrics extends UpdatableMetrics {
                                         boolean analyticsBlocked,
                                         boolean requestBlocked) {
 
-        final TcfMetrics tcf = forAdapter(resolveMetricsBidderName(bidder)).requestType(requestType).tcf();
+        final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
 
         if (userIdRemoved) {
             tcf.incCounter(MetricName.userid_removed);
@@ -489,9 +490,5 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateSettingsCacheEventMetric(MetricName cacheType, MetricName event) {
         forSettingsCacheType(cacheType).incCounter(event);
-    }
-
-    private String resolveMetricsBidderName(String bidder) {
-        return bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER;
     }
 }

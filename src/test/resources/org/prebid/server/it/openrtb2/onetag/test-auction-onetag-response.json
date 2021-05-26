@@ -1,0 +1,54 @@
+{
+  "id": "some-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "testid",
+          "impid": "testimpid",
+          "price": 0.01,
+          "adid": "2068416",
+          "cid": "8048",
+          "crid": "24080",
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "0.00",
+                "hb_cache_id_onetag": "3c0769d8-0dd9-465c-8bf3-f570605ba698",
+                "hb_bidder_onetag": "onetag",
+                "hb_bidder": "onetag",
+                "hb_cache_id": "3c0769d8-0dd9-465c-8bf3-f570605ba698",
+                "hb_pb_onetag": "0.00",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_onetag": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_onetag": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}3c0769d8-0dd9-465c-8bf3-f570605ba698",
+                  "cacheId": "3c0769d8-0dd9-465c-8bf3-f570605ba698"
+                }
+              }
+            },
+            "origbidcpm": 0.01
+          }
+        }
+      ],
+      "seat": "onetag",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "onetag": "{{ onetag.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 1000
+  }
+}

@@ -5,12 +5,12 @@
       "id": "impId001",
       "banner": {
         "format": [],
-        "w" : 300,
-        "h" : 250
+        "w": 300,
+        "h": 250
       },
-      "bidfloor" : 12.2345,
-      "bidfloorcur" : "RUB",
-      "secure" : 0,
+      "bidfloor": 12.2345,
+      "bidfloorcur": "RUB",
+      "secure": 0,
       "ext": {
         "bidder": {
           "host": "lbs-ru1.ads",
@@ -39,7 +39,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "BTW-UID"
+    "buyeruid": "BTW-UID"
   },
   "at": 1,
   "tmax": 5000,
@@ -74,8 +74,8 @@
         "bids": {}
       },
       "auctiontimestamp": 1000,
-      "channel" : {
-        "name" : "web"
+      "channel": {
+        "name": "web"
       }
     }
   }

@@ -9,7 +9,10 @@
         "adm": "adm1",
         "crid": "crid1",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 0.8
+        }
       }
     }
   ]
