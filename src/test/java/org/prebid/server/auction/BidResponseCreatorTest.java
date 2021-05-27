@@ -768,7 +768,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .cur(singletonList("USD"))
                 .tmax(1000L)
-                .app(App.builder().build())
                 .imp(singletonList(Imp.builder()
                         .id(IMP_ID)
                         .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
