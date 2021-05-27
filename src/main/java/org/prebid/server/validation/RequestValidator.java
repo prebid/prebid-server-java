@@ -88,6 +88,7 @@ public class RequestValidator {
     private static final String BIDDER_EXT = "bidder";
     private static final String ASTERISK = "*";
     private static final Locale LOCALE = Locale.US;
+    private static final Integer NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND = 500;
 
     private static final String DOCUMENTATION = "https://iabtechlab.com/wp-content/uploads/2016/07/"
             + "OpenRTB-Native-Ads-Specification-Final-1.2.pdf";
@@ -218,8 +219,8 @@ public class RequestValidator {
         }
         final Map<BidAdjustmentMediaType, Map<String, BigDecimal>> adjustmentsMediaTypeFactors =
                 adjustmentFactors != null
-                ? adjustmentFactors.getMediatypes()
-                : null;
+                        ? adjustmentFactors.getMediatypes()
+                        : null;
 
         if (adjustmentsMediaTypeFactors == null) {
             return;
@@ -645,7 +646,8 @@ public class RequestValidator {
             return;
         }
 
-        if (type < ContextType.CONTENT.getValue() || type > ContextType.PRODUCT.getValue()) {
+        if (type < ContextType.CONTENT.getValue()
+                || (type > ContextType.PRODUCT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
             throw new ValidationException(
                     "request.imp[%d].native.request.context is invalid. See " + documentationOnPage(39), index);
         }
@@ -660,30 +662,36 @@ public class RequestValidator {
             return;
         }
 
-        if (subType >= 100) {
+        if (subType >= ContextSubType.GENERAL.getValue() && subType <= ContextSubType.USER_GENERATED.getValue()) {
+            if (type != ContextType.CONTENT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND) {
+                throw new ValidationException(
+                        "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid "
+                                + "combination. See " + documentationOnPage(39), index, context, contextSubType);
+            }
+            return;
+        }
+
+        if (subType >= ContextSubType.SOCIAL.getValue() && subType <= ContextSubType.CHAT.getValue()) {
+            if (type != ContextType.SOCIAL.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND) {
+                throw new ValidationException(
+                        "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid "
+                                + "combination. See " + documentationOnPage(39), index, context, contextSubType);
+            }
+            return;
+        }
+
+        if (subType >= ContextSubType.SELLING.getValue() && subType <= ContextSubType.PRODUCT_REVIEW.getValue()) {
+            if (type != ContextType.PRODUCT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND) {
+                throw new ValidationException(
+                        "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid "
+                                + "combination. See " + documentationOnPage(39), index, context, contextSubType);
+            }
+            return;
+        }
+
+        if (subType < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND) {
             throw new ValidationException(
                     "request.imp[%d].native.request.contextsubtype is invalid. See " + documentationOnPage(39), index);
-        }
-
-        if (subType >= ContextSubType.GENERAL.getValue() && subType <= ContextSubType.USER_GENERATED.getValue()
-                && type != ContextType.CONTENT.getValue()) {
-            throw new ValidationException(
-                    "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid "
-                            + "combination. See " + documentationOnPage(39), index, context, contextSubType);
-        }
-
-        if (subType >= ContextSubType.SOCIAL.getValue() && subType <= ContextSubType.CHAT.getValue()
-                && type != ContextType.SOCIAL.getValue()) {
-            throw new ValidationException(
-                    "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid "
-                            + "combination. See " + documentationOnPage(39), index, context, contextSubType);
-        }
-
-        if (subType >= ContextSubType.SELLING.getValue() && subType <= ContextSubType.PRODUCT_REVIEW.getValue()
-                && type != ContextType.PRODUCT.getValue()) {
-            throw new ValidationException(
-                    "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid "
-                            + "combination. See " + documentationOnPage(39), index, context, contextSubType);
         }
     }
 
@@ -693,7 +701,8 @@ public class RequestValidator {
             return;
         }
 
-        if (type < PlacementType.FEED.getValue() || type > PlacementType.RECOMMENDATION_WIDGET.getValue()) {
+        if (type < PlacementType.FEED.getValue() || (type > PlacementType.RECOMMENDATION_WIDGET.getValue()
+                && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
             throw new ValidationException(
                     "request.imp[%d].native.request.plcmttype is invalid. See " + documentationOnPage(40), index, type);
         }
@@ -760,10 +769,11 @@ public class RequestValidator {
         }
 
         final Integer type = data.getType();
-        if (type < DataAssetType.SPONSORED.getValue() || type > DataAssetType.CTA_TEXT.getValue()) {
+        if (type < DataAssetType.SPONSORED.getValue()
+                || (type > DataAssetType.CTA_TEXT.getValue() && type < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
             throw new ValidationException(
-                    "request.imp[%d].native.request.assets[%d].data.type must in the range [1, 12]. Got %d",
-                    impIndex, assetIndex, type);
+                    "request.imp[%d].native.request.assets[%d].data.type is invalid. See section 7.4: "
+                            + documentationOnPage(40), impIndex, assetIndex);
         }
     }
 
@@ -829,8 +839,8 @@ public class RequestValidator {
         if (eventTracker != null) {
             final int event = eventTracker.getEvent() != null ? eventTracker.getEvent() : 0;
 
-            if (event != 0 && (event < EventType.IMPRESSION.getValue()
-                    || event > EventType.VIEWABLE_VIDEO50.getValue())) {
+            if (event != 0 && (event < EventType.IMPRESSION.getValue() || (event > EventType.VIEWABLE_VIDEO50.getValue()
+                    && event < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND))) {
                 throw new ValidationException(
                         "request.imp[%d].native.request.eventtrackers[%d].event is invalid. See section 7.6: "
                                 + documentationOnPage(43), impIndex, eventIndex
@@ -848,8 +858,8 @@ public class RequestValidator {
 
             for (int methodIndex = 0; methodIndex < methods.size(); methodIndex++) {
                 int method = methods.get(methodIndex) != null ? methods.get(methodIndex) : 0;
-                if (method < EventTrackingMethod.IMAGE.getValue()
-                        || method > EventTrackingMethod.JS.getValue()) {
+                if (method < EventTrackingMethod.IMAGE.getValue() || (method > EventTrackingMethod.JS.getValue()
+                        && event < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
                     throw new ValidationException(
                             "request.imp[%d].native.request.eventtrackers[%d].methods[%d] is invalid. See section 7.7: "
                                     + documentationOnPage(43), impIndex, eventIndex, methodIndex
