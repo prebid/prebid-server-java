@@ -908,9 +908,7 @@ public class BidResponseCreator {
                         bidInfo,
                         requestCacheInfo,
                         bidToCacheInfo,
-                        bidRequest,
-                        bidErrors
-                ))
+                        bidErrors))
                 .filter(Objects::nonNull)
                 .map(bidInfo -> toBid(
                         bidInfo,
@@ -932,7 +930,6 @@ public class BidResponseCreator {
     private BidInfo injectAdmWithCacheInfo(BidInfo bidInfo,
                                            BidRequestCacheInfo requestCacheInfo,
                                            Map<Bid, CacheInfo> bidsWithCacheIds,
-                                           BidRequest bidRequest,
                                            Map<String, List<ExtBidderError>> bidErrors) {
         final Bid bid = bidInfo.getBid();
         final BidType bidType = bidInfo.getBidType();
@@ -949,10 +946,9 @@ public class BidResponseCreator {
             modifiedBidAdm = null;
         }
 
-        final boolean isApp = bidRequest.getApp() != null;
-        if (isApp && bidType.equals(BidType.xNative) && modifiedBidAdm != null) {
+        if (bidType.equals(BidType.xNative) && modifiedBidAdm != null) {
             try {
-                modifiedBidAdm = crateNativeMarkup(modifiedBidAdm, correspondingImp);
+                modifiedBidAdm = createNativeMarkup(modifiedBidAdm, correspondingImp);
             } catch (PreBidException e) {
                 bidErrors.computeIfAbsent(bidder, ignored -> new ArrayList<>())
                         .add(ExtBidderError.of(BidderError.Type.bad_server_response.getCode(), e.getMessage()));
@@ -1033,7 +1029,7 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private String crateNativeMarkup(String bidAdm, Imp correspondingImp) {
+    private String createNativeMarkup(String bidAdm, Imp correspondingImp) {
         final Response nativeMarkup;
         try {
             nativeMarkup = mapper.decodeValue(bidAdm, Response.class);
