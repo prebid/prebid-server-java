@@ -382,7 +382,7 @@ public class BidResponseCreator {
         return prebid != null ? prebid.getTargeting() : null;
     }
 
-    private boolean preferDeals(ExtRequestTargeting targeting) {
+    private static boolean preferDeals(ExtRequestTargeting targeting) {
         return BooleanUtils.toBooleanDefaultIfNull(targeting != null ? targeting.getPreferdeals() : null, false);
     }
 

@@ -18,10 +18,10 @@ public class WinningBidComparatorFactoryTest {
     public void preferDealsComparatorCompareShouldReturnMoreThanZeroForNonDealsWhenFirstHasHigherPrice() {
         // given
         final BidInfo higherPriceBidInfo = givenBidInfo(5.0f);
-        final BidInfo loverPriceBidInfo = givenBidInfo(1.0f);
+        final BidInfo lowerPriceBidInfo = givenBidInfo(1.0f);
 
         // when
-        final int result = winningBidComparatorFactory.create(true).compare(higherPriceBidInfo, loverPriceBidInfo);
+        final int result = winningBidComparatorFactory.create(true).compare(higherPriceBidInfo, lowerPriceBidInfo);
 
         // then
         assertThat(result).isGreaterThan(0);
@@ -30,11 +30,11 @@ public class WinningBidComparatorFactoryTest {
     @Test
     public void preferDealsComparatorCompareShouldReturnLessThanZeroForNonDealsWhenFirstHasLowerPrice() {
         // given
-        final BidInfo loverPriceBidInfo = givenBidInfo(1.0f);
+        final BidInfo lowerPriceBidInfo = givenBidInfo(1.0f);
         final BidInfo higherPriceBidInfo = givenBidInfo(5.0f);
 
         // when
-        final int result = winningBidComparatorFactory.create(true).compare(loverPriceBidInfo, higherPriceBidInfo);
+        final int result = winningBidComparatorFactory.create(true).compare(lowerPriceBidInfo, higherPriceBidInfo);
 
         // then
         assertThat(result).isLessThan(0);
@@ -119,10 +119,10 @@ public class WinningBidComparatorFactoryTest {
     public void priceComparatorCompareShouldReturnMoreThatZeroWhenFirstHasHigherPriceForNonDealsBids() {
         // given
         final BidInfo higherPriceBidInfo = givenBidInfo(5.0f);
-        final BidInfo loverPriceBidInfo = givenBidInfo(1.0f);
+        final BidInfo lowerPriceBidInfo = givenBidInfo(1.0f);
 
         // when
-        final int result = winningBidComparatorFactory.create(false).compare(higherPriceBidInfo, loverPriceBidInfo);
+        final int result = winningBidComparatorFactory.create(false).compare(higherPriceBidInfo, lowerPriceBidInfo);
 
         // then
         assertThat(result).isGreaterThan(0);
@@ -131,11 +131,11 @@ public class WinningBidComparatorFactoryTest {
     @Test
     public void priceComparatorCompareShouldReturnLessThatZeroWhenFirstHasLowerPriceForNonDealsBids() {
         // given
-        final BidInfo loverPriceBidInfo = givenBidInfo(1.0f);
+        final BidInfo lowerPriceBidInfo = givenBidInfo(1.0f);
         final BidInfo higherPriceBidInfo = givenBidInfo(5.0f);
 
         // when
-        final int result = winningBidComparatorFactory.create(false).compare(loverPriceBidInfo, higherPriceBidInfo);
+        final int result = winningBidComparatorFactory.create(false).compare(lowerPriceBidInfo, higherPriceBidInfo);
 
         // then
         assertThat(result).isLessThan(0);
