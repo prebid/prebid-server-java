@@ -38,6 +38,7 @@ public class MetricsTest {
     private static final String RUBICON = "rubicon";
     private static final String CONVERSANT = "conversant";
     private static final String ACCOUNT_ID = "accountId";
+    private static final String ANALYTIC_CODE = "analyticCode";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -459,6 +460,26 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("adapter.rubicon.requests.type.openrtb2-app").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("adapter.rubicon.no_cookie_requests").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.requests.type.amp").getCount()).isOne();
+    }
+
+    @Test
+    public void updateAnalyticWithEventTypeShouldUpdateMetricsAsExpected() {
+
+        // when
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_auction, MetricName.ok);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_amp, MetricName.timeout);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_video, MetricName.err);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_cookie_sync, MetricName.timeout);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_notification, MetricName.err);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_setuid, MetricName.ok);
+
+        // then
+        assertThat(metricRegistry.counter("analytics.analyticCode.auction.ok").getCount()).isOne();
+        assertThat(metricRegistry.counter("analytics.analyticCode.amp.timeout").getCount()).isOne();
+        assertThat(metricRegistry.counter("analytics.analyticCode.video.err").getCount()).isOne();
+        assertThat(metricRegistry.counter("analytics.analyticCode.cookie_sync.timeout").getCount()).isOne();
+        assertThat(metricRegistry.counter("analytics.analyticCode.event.err").getCount()).isOne();
+        assertThat(metricRegistry.counter("analytics.analyticCode.setuid.ok").getCount()).isOne();
     }
 
     @Test

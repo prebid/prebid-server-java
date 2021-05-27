@@ -142,8 +142,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
             try {
                 validateSetuidContext(setuidContext, bidder);
-            } catch (InvalidRequestException | UnauthorizedUidsException ex) {
-                handleErrors(ex, routingContext, tcfContext);
+            } catch (InvalidRequestException | UnauthorizedUidsException e) {
+                handleErrors(e, routingContext, tcfContext);
                 return;
             }
 

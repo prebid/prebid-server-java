@@ -20,10 +20,11 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "testTagId"
+      "id": "testTagId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
