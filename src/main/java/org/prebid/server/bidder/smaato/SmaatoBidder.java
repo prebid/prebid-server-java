@@ -2,6 +2,7 @@ package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -60,7 +61,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpSmaato>>() {
             };
 
-    private static final String CLIENT_VERSION = "prebid_server_0.1";
+    private static final String CLIENT_VERSION = "prebid_server_0.2";
     private static final String SMT_ADTYPE_HEADER = "X-SMT-ADTYPE";
     private static final String SMT_AD_TYPE_IMG = "Img";
     private static final String SMT_ADTYPE_RICHMEDIA = "Richmedia";
@@ -96,6 +97,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             outgoingRequest = request.toBuilder()
                     .imp(imps)
                     .site(modifySite(request.getSite(), firstPublisherId))
+                    .app(modifyApp(request.getApp(), firstPublisherId))
                     .user(modifyUser(request.getUser()))
                     .ext(mapper.fillExtension(ExtRequest.empty(), SmaatoBidRequestExt.of(CLIENT_VERSION)))
                     .build();
@@ -164,6 +166,12 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         return siteBuilder.build();
+    }
+
+    private App modifyApp(App app, String publishedId) {
+        return app != null
+                ? app.toBuilder().publisher(Publisher.builder().id(publishedId).build()).build()
+                : null;
     }
 
     private User modifyUser(User user) {

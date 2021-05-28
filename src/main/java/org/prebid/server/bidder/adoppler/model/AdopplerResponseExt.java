@@ -7,5 +7,5 @@ import lombok.Value;
 @Value
 public class AdopplerResponseExt {
 
-    AdopplerResponseVideoExt ads;
+    AdopplerResponseAdsExt ads;
 }

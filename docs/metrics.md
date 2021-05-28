@@ -115,6 +115,8 @@ Following metrics are collected and submitted if account is configured with `det
 - `usersync.bad_requests` - number of requests received with bidder not specified
 - `usersync.<bidder-name>.sets` - number of requests received resulted in `uid` cookie update for `<bidder-name>`
 - `usersync.<bidder-name>.tcf.blocked` - number of requests received that didn't result in `uid` cookie update for `<bidder-name>` because of lack of user consent for this action according to TCF
+- `usersync.<bidder-name>.tcf.invalid` - number of requests received that are lacking of a valid consent string for `<bidder-name>` in setuid endpoint
+- `usersync.all.tcf.invalid` - number of requests received that are lacking of a valid consent string for all requested bidders cookieSync endpoint
 
 ## Privacy metrics
 - `privacy.tcf.(missing|invalid)` - number of requests lacking a valid consent string

@@ -142,7 +142,10 @@
           "targetbiddercodeprefix": "rubN"
         },
         {
-          "bidders": ["appnexus", "someBidder"],
+          "bidders": [
+            "appnexus",
+            "someBidder"
+          ],
           "maxbids": 2
         }
       ],

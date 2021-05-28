@@ -11,7 +11,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 
@@ -120,7 +120,7 @@ public class GdprService {
         final VendorV1 vendorListEntry = vendorListMapping.get(vendorId);
 
         // confirm purposes
-        final EnumSet<Purpose> claimedPurposes = vendorListEntry.combinedPurposes();
+        final EnumSet<PurposeCode> claimedPurposes = vendorListEntry.combinedPurposes();
         final boolean claimedPurposesAllowed = isClaimedPurposesAllowed(claimedPurposes, allowedPurposeIds);
         final boolean purposeOneClaimedAndAllowed = isPurposeOneClaimedAndAllowed(claimedPurposes, allowedPurposeIds);
 
@@ -144,14 +144,15 @@ public class GdprService {
         }
     }
 
-    private static boolean isClaimedPurposesAllowed(EnumSet<Purpose> claimedPurposes, Set<Integer> allowedPurposeIds) {
-        return claimedPurposes.stream().allMatch(o -> allowedPurposeIds.contains(o.code()));
+    private static boolean isClaimedPurposesAllowed(EnumSet<PurposeCode> claimedPurposeCodes,
+                                                    Set<Integer> allowedPurposeIds) {
+        return claimedPurposeCodes.stream().allMatch(o -> allowedPurposeIds.contains(o.code()));
     }
 
     private static boolean isPurposeOneClaimedAndAllowed(
-            EnumSet<Purpose> claimedPurposes, Set<Integer> allowedPurposeIds) {
+            EnumSet<PurposeCode> claimedPurposeCodes, Set<Integer> allowedPurposeIds) {
 
-        return claimedPurposes.contains(Purpose.ONE) && allowedPurposeIds.contains(Purpose.ONE.code());
+        return claimedPurposeCodes.contains(PurposeCode.ONE) && allowedPurposeIds.contains(PurposeCode.ONE.code());
     }
 
     private static PrivacyEnforcementAction allDenied() {

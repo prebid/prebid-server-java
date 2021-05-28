@@ -132,8 +132,8 @@ public class IxBidder implements Bidder<BidRequest> {
         return site == null
                 ? null
                 : site.toBuilder()
-                        .publisher(modifyPublisher(site.getPublisher(), extImpIx.getSiteId()))
-                        .build();
+                .publisher(modifyPublisher(site.getPublisher(), extImpIx.getSiteId()))
+                .build();
     }
 
     private static Publisher modifyPublisher(Publisher publisher, String siteId) {
@@ -227,9 +227,10 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static Bid prepareBid(Bid bid, BidRequest bidRequest) {
-        // Current implementation ensure that we have one imp
+        // Current implementation ensure that we have at least one imp in request
+        final boolean bidHasNoSizes = bid.getH() == null || bid.getW() == null;
         final Banner banner = bidRequest.getImp().get(0).getBanner();
-        if (bid.getH() == null || bid.getW() == null && banner != null) {
+        if (bidHasNoSizes && banner != null) {
             return bid.toBuilder()
                     .w(banner.getW())
                     .h(banner.getH())

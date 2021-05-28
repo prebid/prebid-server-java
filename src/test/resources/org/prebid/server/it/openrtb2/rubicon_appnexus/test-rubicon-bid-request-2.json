@@ -32,12 +32,12 @@
             "mint_version": ""
           }
         },
-        "maxbids" : 1
+        "maxbids": 1
       }
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
       "ext": {
@@ -69,7 +69,7 @@
     "data": [
       {
         "ext": {
-          "taxonomyname": "Iab"
+          "segtax": 3
         },
         "segment": [
           {
