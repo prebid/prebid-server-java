@@ -6,7 +6,6 @@
         "id": "test-bid-id-1",
         "impid": "impId001",
         "price": 11.393,
-        "adm": "test1",
         "adomain": [],
         "crid": "test-creative-id-1",
         "ext": {
