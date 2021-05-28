@@ -1,6 +1,7 @@
 package org.prebid.server.analytics.pubstack;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -8,7 +9,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
@@ -128,15 +128,16 @@ public class PubstackEventHandler {
     }
 
     private void sendEvents(AtomicReference<Queue<String>> events) {
-        final Queue<String> copyToSend = events.get();
-        resetReportEventsConditions(events);
-        httpClient.request(HttpMethod.POST, HttpUtil.validateUrl(endpoint), headers, toGzippedBytes(copyToSend),
-                timeoutMs)
+        final String url = HttpUtil.validateUrl(endpoint);
+        final Queue<String> copyToSend = events.getAndSet(new ConcurrentLinkedQueue<>());
+
+        resetReportEventsConditions();
+
+        httpClient.request(HttpMethod.POST, url, headers, toGzippedBytes(copyToSend), timeoutMs)
                 .setHandler(this::handleReportResponse);
     }
 
-    private void resetReportEventsConditions(AtomicReference<Queue<String>> events) {
-        events.set(new ConcurrentLinkedQueue<>());
+    private void resetReportEventsConditions() {
         byteSize.set(0);
         vertx.cancelTimer(reportTimerId);
         reportTimerId = setReportTtlTimer();
@@ -147,10 +148,12 @@ public class PubstackEventHandler {
     }
 
     private static byte[] gzip(String value) {
-        try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
-                 GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
+        try (ByteArrayOutputStream obj = new ByteArrayOutputStream(); GZIPOutputStream gzip = new GZIPOutputStream(
+                obj)) {
+
             gzip.write(value.getBytes(StandardCharsets.UTF_8));
             gzip.finish();
+
             return obj.toByteArray();
         } catch (IOException e) {
             throw new PreBidException(String.format("[pubstack] failed to compress, skip the events : %s",

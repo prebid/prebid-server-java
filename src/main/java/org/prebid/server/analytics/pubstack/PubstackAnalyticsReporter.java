@@ -157,6 +157,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     private void updateHandlers(PubstackConfig pubstackConfig) {
         final Map<EventType, Boolean> handlersEnabled = MapUtils.emptyIfNull(pubstackConfig.getFeatures());
+
         eventHandlers.forEach((eventType, eventHandler) -> eventHandler.updateConfig(
                 BooleanUtils.toBooleanDefaultIfNull(handlersEnabled.get(eventType), false),
                 makeEventHandlerEndpoint(pubstackConfig.getEndpoint(), eventType),
