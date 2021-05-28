@@ -421,7 +421,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             return mapper.mapper().readValue(
                     responseBody,
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, BeachfrontResponseSlot.class));
-        } catch (IOException ex) {
+        } catch (IOException e) {
             throw new PreBidException("server response failed to unmarshal "
                     + "as valid rtb. Run with request.debug = 1 for more info");
         }

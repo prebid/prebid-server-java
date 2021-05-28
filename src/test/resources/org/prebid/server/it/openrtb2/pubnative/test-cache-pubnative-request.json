@@ -40,7 +40,7 @@
         "id": "bid003",
         "impid": "impId003",
         "price": 9.99,
-        "adm": "adm003",
+        "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
         "adid": "adid003",
         "cid": "cid003",
         "crid": "crid003",

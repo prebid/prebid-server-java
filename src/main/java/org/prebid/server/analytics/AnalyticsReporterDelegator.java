@@ -114,9 +114,8 @@ public class AnalyticsReporterDelegator {
         final BidRequest bidRequest = auctionEvent.getAuctionContext().getBidRequest();
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        final ObjectNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
-        final Iterator<String> analyticsFieldNames = analytics != null && !analytics.isEmpty()
-                ? analytics.fieldNames() : null;
+        final JsonNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
+        final Iterator<String> analyticsFieldNames = isNotEmptyObjectNode(analytics) ? analytics.fieldNames() : null;
 
         if (analyticsFieldNames != null) {
             final List<String> unknownAdapterNames = StreamUtil.asStream(analyticsFieldNames)
@@ -130,6 +129,10 @@ public class AnalyticsReporterDelegator {
                                 unknownAdapterNames, refererUrl), 0.01);
             }
         }
+    }
+
+    private static boolean isNotEmptyObjectNode(JsonNode analytics) {
+        return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
     private static <T> T updateEvent(T event, String adapter) {
@@ -154,14 +157,14 @@ public class AnalyticsReporterDelegator {
     private static BidRequest updateBidRequest(BidRequest bidRequest, String adapterName) {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ObjectNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
+        final JsonNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
         ObjectNode preparedAnalytics = null;
-        if (analytics != null && !analytics.isEmpty()) {
-            preparedAnalytics = prepareAnalytics(analytics, adapterName);
+        if (isNotEmptyObjectNode(analytics)) {
+            preparedAnalytics = prepareAnalytics((ObjectNode) analytics, adapterName);
         }
-        final ExtRequest updatedExtRequest = preparedAnalytics != null ? ExtRequest.of(extPrebid.toBuilder()
-                .analytics(preparedAnalytics)
-                .build()) : null;
+        final ExtRequest updatedExtRequest = preparedAnalytics != null
+                ? ExtRequest.of(extPrebid.toBuilder().analytics(preparedAnalytics).build())
+                : null;
 
         if (updatedExtRequest != null) {
             updatedExtRequest.addProperties(requestExt.getProperties());

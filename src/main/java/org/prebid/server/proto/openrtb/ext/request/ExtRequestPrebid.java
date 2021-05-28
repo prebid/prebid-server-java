@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
@@ -21,6 +22,11 @@ public class ExtRequestPrebid {
      */
     @JsonDeserialize(using = IntegerFlagDeserializer.class)
     Integer debug;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.trace
+     */
+    TraceLevel trace;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.aliases
@@ -120,5 +126,5 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.analytics
      */
-    ObjectNode analytics;
+    JsonNode analytics;
 }
