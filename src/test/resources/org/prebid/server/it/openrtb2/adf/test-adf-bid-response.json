@@ -1,0 +1,18 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "test-bid-id-1",
+          "impid": "impId001",
+          "price": 10,
+          "adm": "test1",
+          "adomain": [],
+          "crid": "test-creative-id-1"
+        }
+      ]
+    }
+  ],
+  "cur": "EUR"
+}
