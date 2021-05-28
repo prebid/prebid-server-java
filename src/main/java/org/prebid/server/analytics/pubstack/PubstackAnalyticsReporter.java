@@ -1,6 +1,7 @@
 package org.prebid.server.analytics.pubstack;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -33,8 +34,10 @@ import java.util.stream.Collectors;
 
 public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializable {
 
-    private static final String EVENT_REPORT_ENDPOINT_PATH = "/intake";
     private static final Logger logger = LoggerFactory.getLogger(PubstackAnalyticsReporter.class);
+
+    private static final String EVENT_REPORT_ENDPOINT_PATH = "/intake";
+    private static final String CONFIG_URL_SUFFIX = "/bootstrap?scopeId=";
     private static final Map<String, EventType> CLASS_TO_EVENT_TYPE;
 
     static {
@@ -45,8 +48,6 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         CLASS_TO_EVENT_TYPE.put(SetuidEvent.class.getName(), EventType.setuid);
         CLASS_TO_EVENT_TYPE.put(CookieSyncEvent.class.getName(), EventType.cookiesync);
     }
-
-    private static final String CONFIG_URL_SUFFIX = "/bootstrap?scopeId=";
 
     private final long configurationRefreshDelay;
     private final long timeout;
@@ -93,11 +94,12 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + eventType.name());
     }
 
-    public <T> void processEvent(T event) {
+    public <T> Future<Void> processEvent(T event) {
         final EventType eventType = CLASS_TO_EVENT_TYPE.get(event.getClass().getName());
         if (eventType != null) {
             eventHandlers.get(eventType).handle(event);
         }
+        return Future.succeededFuture();
     }
 
     @Override
@@ -106,12 +108,17 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     @Override
+    public String name() {
+        return "pubstack";
+    }
+
+    @Override
     public void initialize() {
         vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
         fetchRemoteConfig();
     }
 
-    public void shutdown() {
+    void shutdown() {
         eventHandlers.values().forEach(PubstackEventHandler::reportEvents);
     }
 

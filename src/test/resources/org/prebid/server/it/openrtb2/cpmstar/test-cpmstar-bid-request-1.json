@@ -36,10 +36,11 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
@@ -88,12 +89,11 @@
         "includewinners": true,
         "includebidderkeys": true
       },
-      "cache":{
-        "bids":{
-
+      "cache": {
+        "bids": {
         },
-        "vastxml":{
-          "ttlseconds":120
+        "vastxml": {
+          "ttlseconds": 120
         }
       },
       "auctiontimestamp": 1000,

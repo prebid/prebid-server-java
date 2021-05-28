@@ -118,16 +118,30 @@ Removes and downloads file again if depending service cant process probably corr
 There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
-- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if PBS server provides GDPR support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-ccpa` - indicates if PBS server provides CCPA support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.modifying-vast-xml-allowed` - indicates if PBS server is allowed to modify VAST creatives received from this bidder.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
-- `adapters.<BIDDER_NAME>.aliases` - comma separated aliases of bidder.
+- `adapters.<BIDDER_NAME>.meta-info.maintainer-email` - specifies maintainer e-mail address that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.app-media-types` - specifies media types supported for app requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.site-media-types` - specifies media types supported for site requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.supported-vendors` - specifies viewability vendors supported by the bidder.
+- `adapters.<BIDDER_NAME>.meta-info.vendor-id` - specifies TCF vendor ID.
 - `adapters.<BIDDER_NAME>.usersync.url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
-But feel free to add additional bidder's specific options.
+In addition, each bidder could have arbitrary aliases configured that will look and act very much the same as the bidder itself.
+Aliases are configured by adding child configuration object at `adapters.<BIDDER_NAME>.aliases.<BIDDER_ALIAS>.`, aliases 
+support the same configuration options that their bidder counterparts support except `aliases` (i.e. it's not possible 
+to declare alias of an alias). Another restriction of aliases configuration is that they cannot declare support for media types 
+not supported by their bidders (however aliases could narrow down media types they support). For example: if the bidder 
+is written to not support native site requests, then an alias cannot magically decide to change that; however, if a bidder 
+supports native site requests, and the alias does not want to for some reason, it has the ability to remove that support.
+
+Also, each bidder could have its own bidder-specific options.
 
 ## Logging
 - `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
@@ -206,6 +220,9 @@ For `console` backend type available next options:
 - `metrics.console.enabled` - if equals to `true` then `console` will be used to submit metrics.
 - `metrics.console.interval` - interval in seconds between successive sending metrics.
 
+For `prometheus` backend type available next options:
+- `metrics.prometheus.port` - if a port is specified a prometheus reporter will start on that port 
+
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
 - `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`. Default is `none`.
@@ -261,6 +278,7 @@ For HTTP data source available next options:
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
 
 It is possible to specify default account configuration values that will be assumed if account config have them 
 unspecified or missing at all. Example:

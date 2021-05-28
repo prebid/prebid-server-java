@@ -6,9 +6,10 @@ import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.LogAnalyticsReporter;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.analytics.pubstack.PubstackAnalyticsReporter;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,12 +29,14 @@ public class AnalyticsConfiguration {
     AnalyticsReporterDelegator analyticsReporterDelegator(
             @Autowired(required = false) List<AnalyticsReporter> delegates,
             Vertx vertx,
-            PrivacyEnforcementService privacyEnforcementService) {
+            PrivacyEnforcementService privacyEnforcementService,
+            Metrics metrics) {
 
         return new AnalyticsReporterDelegator(
                 delegates != null ? delegates : Collections.emptyList(),
                 vertx,
-                privacyEnforcementService);
+                privacyEnforcementService,
+                metrics);
     }
 
     @Bean

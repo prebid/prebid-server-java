@@ -2,6 +2,8 @@ package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
+import lombok.Value;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
@@ -9,6 +11,7 @@ import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
@@ -20,11 +23,13 @@ import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Tcf2Service {
 
@@ -92,25 +97,59 @@ public class Tcf2Service {
         final PurposeOneTreatmentInterpretation mergedPurposeOneTreatmentInterpretation =
                 mergePurposeOneTreatmentInterpretation(accountGdprConfig);
 
+        final VendorPermissionsByType<VendorPermission> vendorPermissionsByType = toVendorPermissionsByType(
+                vendorPermissions, accountGdprConfig);
+
         return vendorListServiceV2.forVersion(tcfConsent.getVendorListVersion())
-                .map(vendorGvlPermissions -> wrapWithGVL(vendorPermissions, vendorGvlPermissions))
+                .map(vendorGvlPermissions -> wrapWithGVL(vendorPermissionsByType, vendorGvlPermissions))
 
                 .compose(gvlResult -> processSupportedPurposeStrategies(tcfConsent, gvlResult, mergedPurposes,
                         purposeOneTreatmentInterpretation),
-                        ignoredFailed -> processDowngradedSupportedPurposeStrategies(tcfConsent, vendorPermissions,
-                                mergedPurposes, mergedPurposeOneTreatmentInterpretation))
+                        ignoredFailed -> processDowngradedSupportedPurposeStrategies(tcfConsent,
+                                vendorPermissionsByType, mergedPurposes, mergedPurposeOneTreatmentInterpretation))
 
                 .map(changedVendorPermissions -> processSupportedSpecialFeatureStrategies(tcfConsent,
                         changedVendorPermissions, mergedSpecialFeatures));
-
     }
 
-    private static Collection<VendorPermissionWithGvl> wrapWithGVL(Collection<VendorPermission> vendorPermissions,
-                                                                   Map<Integer, VendorV2> vendorGvlPermissions) {
+    private static VendorPermissionsByType<VendorPermission> toVendorPermissionsByType(
+            Collection<VendorPermission> vendorPermissions,
+            AccountGdprConfig accountGdprConfig) {
 
-        return vendorPermissions.stream()
+        final List<String> basicEnforcedVendors = accountGdprConfig != null
+                ? accountGdprConfig.getBasicEnforcementVendors()
+                : null;
+        if (CollectionUtils.isEmpty(basicEnforcedVendors)) {
+            return VendorPermissionsByType.of(Collections.emptyList(), vendorPermissions);
+        }
+
+        final Map<Boolean, List<VendorPermission>> isBasicEnforcedToPermissions = vendorPermissions.stream()
+                .collect(Collectors.partitioningBy(vendorPermission ->
+                        basicEnforcedVendors.contains(vendorPermission.getBidderName())));
+
+        final List<VendorPermission> weakPermissions = isBasicEnforcedToPermissions.getOrDefault(true,
+                Collections.emptyList());
+
+        final List<VendorPermission> standardPermissions = isBasicEnforcedToPermissions.getOrDefault(false,
+                Collections.emptyList());
+
+        return VendorPermissionsByType.of(weakPermissions, standardPermissions);
+    }
+
+    private static VendorPermissionsByType<VendorPermissionWithGvl> wrapWithGVL(
+            VendorPermissionsByType<VendorPermission> vendorPermissionsByType,
+            Map<Integer, VendorV2> vendorGvlPermissions) {
+
+        final List<VendorPermissionWithGvl> weakPermissions = vendorPermissionsByType.getWeakPermissions().stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
                 .collect(Collectors.toList());
+
+        final List<VendorPermissionWithGvl> standardPermissions = vendorPermissionsByType.getStandardPermissions()
+                .stream()
+                .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
+                .collect(Collectors.toList());
+
+        return VendorPermissionsByType.of(weakPermissions, standardPermissions);
     }
 
     private static VendorPermissionWithGvl wrapWithGVL(VendorPermission vendorPermission,
@@ -126,38 +165,57 @@ public class Tcf2Service {
 
     private Future<Collection<VendorPermission>> processSupportedPurposeStrategies(
             TCString tcfConsent,
-            Collection<VendorPermissionWithGvl> vendorPermissionsWithGvl,
+            VendorPermissionsByType<VendorPermissionWithGvl> vendorPermissionsByType,
             Purposes purposes,
             PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation) {
 
         for (PurposeStrategy purposeStrategy : purposeStrategies) {
-            final org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose tcfPurpose = purposeStrategy.getPurpose();
+            final PurposeCode tcfPurpose = purposeStrategy.getPurpose();
             final Purpose purposeById = findPurposeByTcfPurpose(tcfPurpose, purposes);
-            processPurposeStrategy(tcfConsent, vendorPermissionsWithGvl, purposeById, purposeStrategy,
+            final Purpose weakPurpose = weakPurpose(purposeById);
+
+            final Collection<VendorPermissionWithGvl> standardPermissions = vendorPermissionsByType
+                    .getStandardPermissions();
+            final Collection<VendorPermissionWithGvl> weakPermissions = vendorPermissionsByType.getWeakPermissions();
+
+            processPurposeStrategy(tcfConsent, standardPermissions, purposeById, purposeStrategy,
                     purposeOneTreatmentInterpretation, false);
+            processPurposeStrategy(tcfConsent, weakPermissions, weakPurpose, purposeStrategy,
+                    purposeOneTreatmentInterpretation, true);
         }
 
-        return Future.succeededFuture(vendorPermissionsWithGvl.stream()
+        return Future.succeededFuture(vendorPermissionsByType.joinPermissions().stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
                 .collect(Collectors.toList()));
     }
 
     private Future<Collection<VendorPermission>> processDowngradedSupportedPurposeStrategies(
             TCString tcfConsent,
-            Collection<VendorPermission> vendorPermissions,
+            VendorPermissionsByType<VendorPermission> vendorPermissionsByType,
             Purposes purposes,
             PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation) {
 
-        final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = wrapWithEmptyGVL(vendorPermissions);
+        final VendorPermissionsByType<VendorPermissionWithGvl> vendorPermissionsWithGvlByType = wrapWithGVL(
+                vendorPermissionsByType, Collections.emptyMap());
 
         for (PurposeStrategy purposeStrategy : purposeStrategies) {
-            final org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose tcfPurpose = purposeStrategy.getPurpose();
-            final Purpose downgradedPurpose = downgradePurpose(findPurposeByTcfPurpose(tcfPurpose, purposes));
-            processPurposeStrategy(tcfConsent, vendorPermissionsWithGvl, downgradedPurpose, purposeStrategy,
+            final PurposeCode tcfPurpose = purposeStrategy.getPurpose();
+            final Purpose downgradedPurposeById = downgradePurpose(findPurposeByTcfPurpose(tcfPurpose, purposes));
+            final Purpose weakPurpose = weakPurpose(downgradedPurposeById);
+
+            final Collection<VendorPermissionWithGvl> standardPermissions = vendorPermissionsWithGvlByType
+                    .getStandardPermissions();
+            final Collection<VendorPermissionWithGvl> weakPermissions = vendorPermissionsWithGvlByType
+                    .getWeakPermissions();
+
+            processPurposeStrategy(tcfConsent, standardPermissions, downgradedPurposeById, purposeStrategy,
                     purposeOneTreatmentInterpretation, true);
+            processPurposeStrategy(tcfConsent, weakPermissions, weakPurpose, purposeStrategy,
+                    purposeOneTreatmentInterpretation, true);
+
         }
 
-        return Future.succeededFuture(vendorPermissions);
+        return Future.succeededFuture(vendorPermissionsByType.joinPermissions());
     }
 
     private void processPurposeStrategy(TCString tcfConsent,
@@ -167,7 +225,7 @@ public class Tcf2Service {
                                         PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation,
                                         boolean wasDowngraded) {
 
-        if (purposeStrategy.getPurpose() == org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE
+        if (purposeStrategy.getPurpose() == PurposeCode.ONE
                 && tcfConsent.getPurposeOneTreatment()) {
 
             processPurposeOneTreatment(
@@ -204,19 +262,22 @@ public class Tcf2Service {
         }
     }
 
-    private static List<VendorPermissionWithGvl> wrapWithEmptyGVL(Collection<VendorPermission> vendorPermissions) {
-        return vendorPermissions.stream()
-                .map(vendorPermission -> VendorPermissionWithGvl.of(vendorPermission,
-                        VendorV2.empty(vendorPermission.getVendorId())))
-                .collect(Collectors.toList());
-    }
-
     private static Purpose downgradePurpose(Purpose purpose) {
         final EnforcePurpose enforcePurpose = purpose.getEnforcePurpose();
 
         return enforcePurpose == null || Objects.equals(enforcePurpose, EnforcePurpose.full)
                 ? Purpose.of(EnforcePurpose.basic, purpose.getEnforceVendors(), purpose.getVendorExceptions())
                 : purpose;
+    }
+
+    private static Purpose weakPurpose(Purpose purpose) {
+        final EnforcePurpose enforcePurpose = purpose.getEnforcePurpose();
+        final EnforcePurpose downgradedEnforce =
+                enforcePurpose == null || Objects.equals(enforcePurpose, EnforcePurpose.full)
+                        ? EnforcePurpose.basic
+                        : enforcePurpose;
+
+        return Purpose.of(downgradedEnforce, false, purpose.getVendorExceptions());
     }
 
     private Collection<VendorPermission> processSupportedSpecialFeatureStrategies(
@@ -265,10 +326,7 @@ public class Tcf2Service {
                 .build();
     }
 
-    private Purpose findPurposeByTcfPurpose(
-            org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose tcfPurpose,
-            Purposes purposes) {
-
+    private Purpose findPurposeByTcfPurpose(PurposeCode tcfPurpose, Purposes purposes) {
         switch (tcfPurpose) {
             case ONE:
                 return purposes.getP1();
@@ -319,5 +377,18 @@ public class Tcf2Service {
 
     private static <T> T mergeItem(T prioritisedItem, T item) {
         return prioritisedItem == null ? item : prioritisedItem;
+    }
+
+    @Value(staticConstructor = "of")
+    private static class VendorPermissionsByType<T> {
+
+        Collection<T> weakPermissions;
+
+        Collection<T> standardPermissions;
+
+        public Collection<T> joinPermissions() {
+            return Stream.concat(weakPermissions.stream(), standardPermissions.stream())
+                    .collect(Collectors.toList());
+        }
     }
 }

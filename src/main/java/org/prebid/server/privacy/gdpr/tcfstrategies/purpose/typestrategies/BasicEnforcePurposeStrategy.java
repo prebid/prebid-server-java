@@ -6,7 +6,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
 import java.util.Collection;
 import java.util.List;
@@ -16,7 +16,7 @@ public class BasicEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
     private static final Logger logger = LoggerFactory.getLogger(BasicEnforcePurposeStrategy.class);
 
-    public Collection<VendorPermission> allowedByTypeStrategy(Purpose purpose,
+    public Collection<VendorPermission> allowedByTypeStrategy(PurposeCode purpose,
                                                               TCString vendorConsent,
                                                               Collection<VendorPermissionWithGvl> vendorsForPurpose,
                                                               Collection<VendorPermissionWithGvl> excludedVendors,

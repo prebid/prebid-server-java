@@ -19,7 +19,9 @@
         "ext": {
           "triplelift_pb": {
             "format": 2
-          }
+          },
+          "origbidcpm": 0.5,
+          "origbidcur": "USD"
         }
       }
     }

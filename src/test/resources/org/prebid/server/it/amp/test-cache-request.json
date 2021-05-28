@@ -20,7 +20,8 @@
                 ]
               }
             ]
-          }
+          },
+          "origbidcpm": 12.09
         }
       }
     },
@@ -47,7 +48,9 @@
             "bidder_id": 2,
             "bid_ad_type": 0,
             "ranking_price": 0.0
-          }
+          },
+          "origbidcpm": 5.5,
+          "origbidcur": "USD"
         }
       }
     }

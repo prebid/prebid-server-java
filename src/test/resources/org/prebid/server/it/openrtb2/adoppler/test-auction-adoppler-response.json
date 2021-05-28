@@ -37,6 +37,7 @@
                 }
               }
             },
+            "origbidcpm": 3.33,
             "bidder": {
               "ads": {
                 "video": {

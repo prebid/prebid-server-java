@@ -1,21 +1,21 @@
 {
   "id": "tid",
-  "imp":[
+  "imp": [
     {
-      "id":"impId002",
-      "video":{
-        "mimes":[
+      "id": "impId002",
+      "video": {
+        "mimes": [
           "video/mp4"
         ],
-        "protocols":[
+        "protocols": [
           2,
           5
         ],
-        "w":1024,
-        "h":576
+        "w": 1024,
+        "h": 576
       },
-      "ext":{
-        "bidder":{
+      "ext": {
+        "bidder": {
           "access_token": "test-token-1",
           "publisher_id": "test-publisher-1"
         }
@@ -23,10 +23,11 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

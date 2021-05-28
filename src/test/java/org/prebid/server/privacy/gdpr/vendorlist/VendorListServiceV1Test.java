@@ -43,8 +43,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
 public class VendorListServiceV1Test extends VertxTest {
 
