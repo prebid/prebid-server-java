@@ -73,6 +73,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -1264,12 +1265,17 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest firstResult = target.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest secondResult = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(result.getUser()).isEqualTo(User.builder()
+        final User expectedUser = User.builder()
                 .ext(ExtUser.builder().consent("should-remain").build())
-                .build());
+                .build();
+
+        assertThat(firstResult.getUser()).isEqualTo(expectedUser);
+        assertThat(secondResult.getUser()).isEqualTo(expectedUser);
+
     }
 
     @Test
@@ -1679,7 +1685,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willAnswer(invocationOnMock -> ((AuctionContext) invocationOnMock.getArguments()[0]).toBuilder()
                         .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
                         .build());
-        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
+        given(ortb2RequestFactory.fetchAccount(any(), anyBoolean())).willReturn(Future.succeededFuture());
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any())).willAnswer(
                 answerWithFirstArgument());

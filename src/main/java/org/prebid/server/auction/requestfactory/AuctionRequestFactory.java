@@ -82,7 +82,7 @@ public class AuctionRequestFactory {
                                 .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
                                 .with(requestTypeMetric(bidRequest))))
 
-                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext, true)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)

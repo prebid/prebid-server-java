@@ -145,7 +145,7 @@ public abstract class IntegrationTest extends VertxTest {
             final List<CacheObject> responseCacheObjects = new ArrayList<>();
             for (PutObject putItem : puts) {
                 final String id = putItem.getType().equals("json")
-                        ? putItem.getValue().get("id").textValue() + "@" + putItem.getValue().get("price")
+                        ? putItem.getValue().get("id").textValue() + "@" + resolvePriceForJsonMediaType(putItem)
                         : putItem.getValue().textValue();
 
                 final String uuid = jsonNodeMatcher.get(id).textValue();
@@ -155,6 +155,12 @@ public abstract class IntegrationTest extends VertxTest {
         } catch (IOException e) {
             throw new IOException("Error while matching cache ids");
         }
+    }
+
+    private static String resolvePriceForJsonMediaType(PutObject putItem) {
+        final JsonNode extObject = putItem.getValue().get("ext");
+        final JsonNode origBidCpm = extObject != null ? extObject.get("origbidcpm") : null;
+        return origBidCpm != null ? origBidCpm.toString() : putItem.getValue().get("price").toString();
     }
 
     /**

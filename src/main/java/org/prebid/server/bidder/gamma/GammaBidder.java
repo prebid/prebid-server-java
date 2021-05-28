@@ -204,14 +204,14 @@ public class GammaBidder implements Bidder<Void> {
         try {
             final GammaBidResponse bidResponse = mapper.decodeValue(body, GammaBidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
-            return Result.of(extractBidsAndFillErorrs(bidResponse, bidRequest, errors), errors);
+            return Result.of(extractBidsAndFillErrors(bidResponse, bidRequest, errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(
                     String.format("bad server response: %s", e.getMessage())));
         }
     }
 
-    private static List<BidderBid> extractBidsAndFillErorrs(GammaBidResponse bidResponse,
+    private static List<BidderBid> extractBidsAndFillErrors(GammaBidResponse bidResponse,
                                                             BidRequest bidRequest,
                                                             List<BidderError> errors) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
@@ -248,28 +248,29 @@ public class GammaBidder implements Bidder<Void> {
 
     private static Bid convertBid(GammaBid gammaBid, BidType bidType) {
         final boolean isVideo = BidType.video.equals(bidType);
-        if (!isVideo && StringUtils.isBlank(gammaBid.getAdm())) {
+        if (!isVideo && StringUtils.isBlank(gammaBid.getBid().getAdm())) {
             throw new PreBidException("Missing Ad Markup. Run with request.debug = 1 for more info");
         }
 
+        Bid bid = gammaBid.getBid();
         if (isVideo) {
             //Return inline VAST XML Document (Section 6.4.2)
             final String vastXml = gammaBid.getVastXml();
             if (StringUtils.isNotBlank(vastXml)) {
-                final Bid.BidBuilder<?, ?> bidBuilder = gammaBid.toBuilder().adm(vastXml);
+                final Bid.BidBuilder bidBuilder = gammaBid.getBid().toBuilder().adm(vastXml);
 
                 final String vastUrl = gammaBid.getVastUrl();
                 if (StringUtils.isNotBlank(vastUrl)) {
                     bidBuilder.nurl(vastUrl);
                 }
 
-                return bidBuilder.build();
+                bid = bidBuilder.build();
             } else {
                 throw new PreBidException("Missing Ad Markup. Run with request.debug = 1 for more info");
             }
         }
 
-        return gammaBid;
+        return bid;
     }
 }
 

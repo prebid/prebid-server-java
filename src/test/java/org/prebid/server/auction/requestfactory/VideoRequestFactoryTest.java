@@ -53,6 +53,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -285,7 +286,9 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
         verify(ortb2RequestFactory).createAuctionContext(any(), eq(MetricName.video));
         verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(0L));
-        verify(ortb2RequestFactory).fetchAccount(eq(AuctionContext.builder().bidRequest(bidRequest).build()));
+        verify(ortb2RequestFactory).fetchAccount(
+                eq(AuctionContext.builder().bidRequest(bidRequest).build()),
+                eq(false));
         verify(ortb2RequestFactory).validateRequest(bidRequest);
         verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver));
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
@@ -341,7 +344,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocationOnMock -> AuctionContext.builder()
                         .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
                         .build());
-        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
+        given(ortb2RequestFactory.fetchAccount(any(), anyBoolean())).willReturn(Future.succeededFuture());
 
         given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
         given(paramsResolver.resolve(any(), any(), any()))

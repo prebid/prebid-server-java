@@ -16,7 +16,8 @@ public class UsersyncInfoAssembler {
     public static UsersyncInfoAssembler from(Usersyncer.UsersyncMethod usersyncMethod) {
         final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
         usersyncInfoAssembler.usersyncUrl = usersyncMethod.getUsersyncUrl();
-        usersyncInfoAssembler.redirectUrl = ObjectUtils.defaultIfNull(usersyncMethod.getRedirectUrl(), "");
+        usersyncInfoAssembler.redirectUrl = UsersyncUtil.enrichUsersyncUrlWithFormat(
+                StringUtils.stripToEmpty(usersyncMethod.getRedirectUrl()), usersyncMethod.getType());
         usersyncInfoAssembler.type = usersyncMethod.getType();
         usersyncInfoAssembler.supportCORS = usersyncMethod.isSupportCORS();
         return usersyncInfoAssembler;

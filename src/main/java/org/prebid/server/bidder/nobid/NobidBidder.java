@@ -76,29 +76,25 @@ public class NobidBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> mapToBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
+                .map(bid -> toBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid mapToBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
-        final BidType bidType;
+    private static BidderBid toBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
         try {
-            bidType = getBidType(bid.getImpid(), imps);
+            return BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
-        return BidderBid.of(bid, bidType, currency);
+
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                if (imp.getBanner() == null && imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                return BidType.banner;
+                return imp.getBanner() == null && imp.getVideo() != null ? BidType.video : BidType.banner;
             }
         }
         throw new PreBidException(String.format("Failed to find impression %s", impId));

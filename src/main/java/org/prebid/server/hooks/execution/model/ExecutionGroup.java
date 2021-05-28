@@ -8,8 +8,6 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class ExecutionGroup {
 
-    Boolean synchronous;
-
     Long timeout;
 
     @JsonProperty("hook-sequence")

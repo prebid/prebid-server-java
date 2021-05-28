@@ -125,7 +125,7 @@ public class AmpRequestFactory {
                         .map(bidRequest -> ortb2RequestFactory.enrichAuctionContext(
                                 initialAuctionContext, httpRequest, bidRequest, startTime)))
 
-                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext, false)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
@@ -370,7 +370,7 @@ public class AmpRequestFactory {
             if (StringUtils.isNotBlank(canonicalUrl)) {
                 siteBuilder.page(canonicalUrl);
 
-                final String domain = HttpUtil.getDomainFromUrl(canonicalUrl);
+                final String domain = HttpUtil.getHostFromUrl(canonicalUrl);
                 if (StringUtils.isNotBlank(domain)) {
                     siteBuilder.domain(domain);
                 }

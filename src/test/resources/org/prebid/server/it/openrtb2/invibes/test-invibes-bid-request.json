@@ -1,10 +1,10 @@
 {
-  "BidParamsJson" :"{\"PlacementIds\":[\"plcId\"],\"BidVersion\":\"4\",\"Properties\":{\"plcId\":{\"Formats\":[{\"w\":300,\"h\":250}],\"ImpID\":\"impId001\"}}}",
-  "Location" :"http://www.example.com",
-  "Lid" : "IV-UID",
-  "IsTestBid" : false,
-  "GdprConsent" :"consentValue",
-  "Gdpr" : false,
-  "InvibBVLog" : false,
-  "VideoAdDebug" : false
+  "BidParamsJson": "{\"PlacementIds\":[\"plcId\"],\"BidVersion\":\"4\",\"Properties\":{\"plcId\":{\"Formats\":[{\"w\":300,\"h\":250}],\"ImpID\":\"impId001\"}}}",
+  "Location": "http://www.example.com",
+  "Lid": "IV-UID",
+  "IsTestBid": false,
+  "GdprConsent": "consentValue",
+  "Gdpr": false,
+  "InvibBVLog": false,
+  "VideoAdDebug": false
 }

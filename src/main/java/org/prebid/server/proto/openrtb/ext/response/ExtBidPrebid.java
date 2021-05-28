@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.seatbid.bid[i].ext.prebid
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class ExtBidPrebid {
 

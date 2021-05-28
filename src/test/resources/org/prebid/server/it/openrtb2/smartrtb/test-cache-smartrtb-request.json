@@ -8,7 +8,10 @@
         "crid": "test_banner_crid",
         "id": "1",
         "impid": "impId001",
-        "price": 0.01
+        "price": 0.01,
+        "ext": {
+          "origbidcpm": 0.01
+        }
       }
     }
   ]

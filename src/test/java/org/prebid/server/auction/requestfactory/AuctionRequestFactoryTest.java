@@ -51,6 +51,7 @@ import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -445,7 +446,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldCallOrtbFieldsResolver() {
         // given
-        givenValidBidRequest(defaultBidRequest);
+        givenValidBidRequest();
 
         // when
         target.fromRequest(routingContext, 0L).result();
@@ -458,7 +459,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfOrtb2RequestFactoryReturnedFailedFuture() {
         // given
         givenValidBidRequest(BidRequest.builder().build());
-        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.failedFuture("error"));
+        given(ortb2RequestFactory.fetchAccount(any(), anyBoolean())).willReturn(Future.failedFuture("error"));
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
@@ -499,7 +500,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void storedRequestProcessorShouldUseAccountIdFetchedByOrtb2RequestFactory() {
         // given
-        givenValidBidRequest(defaultBidRequest);
+        givenValidBidRequest();
 
         // when
         target.fromRequest(routingContext, 0L);
@@ -511,7 +512,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfProcessStoredRequestsFailed() {
         // given
-        givenValidBidRequest(defaultBidRequest);
+        givenValidBidRequest();
         given(storedRequestProcessor.processStoredRequests(any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
@@ -526,7 +527,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestValidationFailed() {
         // given
-        givenValidBidRequest(defaultBidRequest);
+        givenValidBidRequest();
 
         given(ortb2RequestFactory.validateRequest(any()))
                 .willThrow(new InvalidRequestException("errors"));
@@ -543,7 +544,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnAuctionContextWithExpectedParameters() {
         // given
-        givenValidBidRequest(defaultBidRequest);
+        givenValidBidRequest();
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
@@ -555,7 +556,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnModifiedBidRequestInAuctionContextWhenRequestWasPopulatedWithImplicitParams() {
         // given
-        givenValidBidRequest(defaultBidRequest);
+        givenValidBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
         given(paramsResolver.resolve(any(), any(), any())).willReturn(updatedBidRequest);
@@ -570,7 +571,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnPopulatedPrivacyContextAndGetWhenPrivacyEnforcementReturnContext() {
         // given
-        givenValidBidRequest(defaultBidRequest);
+        givenValidBidRequest();
 
         final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").city("found").build();
         final PrivacyContext privacyContext = PrivacyContext.of(
@@ -600,12 +601,16 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(defaultActionContext.toBuilder()
                         .bidRequest(bidRequest)
                         .build());
-        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture(account));
+        given(ortb2RequestFactory.fetchAccount(any(), anyBoolean())).willReturn(Future.succeededFuture(account));
     }
 
     private void givenProcessStoredRequest(BidRequest bidRequest) {
         given(storedRequestProcessor.processStoredRequests(any(), any()))
                 .willReturn(Future.succeededFuture(bidRequest));
+    }
+
+    private void givenValidBidRequest() {
+        givenValidBidRequest(defaultBidRequest);
     }
 
     private void givenValidBidRequest(BidRequest bidRequest) {

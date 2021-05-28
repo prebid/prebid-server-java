@@ -22,7 +22,7 @@ import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
-import org.prebid.server.auction.WinningBidComparator;
+import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -210,7 +210,9 @@ public class ServiceConfiguration {
             RequestValidator requestValidator,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
+            StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings,
+            IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -222,7 +224,9 @@ public class ServiceConfiguration {
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
+                storedRequestProcessor,
                 applicationSettings,
+                ipAddressHelper,
                 hookStageExecutor);
     }
 
@@ -491,7 +495,7 @@ public class ServiceConfiguration {
             VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            WinningBidComparator winningBidComparator,
+            WinningBidComparatorFactory winningBidComparatorFactory,
             IdGenerator bidIdGenerator,
             HookStageExecutor hookStageExecutor,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
@@ -504,7 +508,7 @@ public class ServiceConfiguration {
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
-                winningBidComparator,
+                winningBidComparatorFactory,
                 bidIdGenerator,
                 hookStageExecutor,
                 truncateAttrChars,
@@ -574,8 +578,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    WinningBidComparator winningBidComparator() {
-        return new WinningBidComparator();
+    WinningBidComparatorFactory winningBidComparatorFactory() {
+        return new WinningBidComparatorFactory();
     }
 
     @Bean
@@ -590,13 +594,21 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             PrivacyExtractor privacyExtractor,
             TcfDefinerService tcfDefinerService,
+            ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             @Value("${lmt.enforce}") boolean lmtEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce, lmtEnforce);
+                bidderCatalog,
+                privacyExtractor,
+                tcfDefinerService,
+                implicitParametersExtractor,
+                ipAddressHelper,
+                metrics,
+                ccpaEnforce,
+                lmtEnforce);
     }
 
     @Bean

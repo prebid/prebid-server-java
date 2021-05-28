@@ -195,6 +195,26 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithBadRequestStatusIfGdprConsentIsInvalid() {
+        // given
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
+
+        tcfContext = TcfContext.builder().gdpr("1").isConsentValid(false).build();
+        given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateUserSyncTcfInvalidMetric(RUBICON);
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
+    }
+
+    @Test
     public void shouldPassUnsuccessfulEventToAnalyticsReporterIfUidMissingInRequest() {
         // given
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))

@@ -8,6 +8,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -23,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,7 +34,7 @@ import java.util.stream.Collectors;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
-    private static final String VERSION = "1.1";
+    private static final String VERSION = "1.2";
     private static final String TYPE_CNN = "prebid";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
@@ -47,18 +49,13 @@ public class TappxBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    /**
-     * Makes the HTTP requests which should be made to fetch bids.
-     * <p>
-     * Creates POST http request with all parameters in url and headers with encoded request in body.
-     */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ExtImpTappx extImpTappx;
         final String url;
         try {
             extImpTappx = parseBidRequestToExtImpTappx(request);
-            url = buildEndpointUrl(extImpTappx, request.getTest());
+            url = resolveUrl(extImpTappx, request.getTest());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -91,7 +88,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     /**
      * Builds endpoint url based on adapter-specific pub settings from imp.ext.
      */
-    private String buildEndpointUrl(ExtImpTappx extImpTappx, Integer test) {
+    private String resolveUrl(ExtImpTappx extImpTappx, Integer test) {
         final String host = extImpTappx.getHost();
         if (StringUtils.isBlank(host)) {
             throw new PreBidException("Tappx host undefined");
@@ -107,22 +104,42 @@ public class TappxBidder implements Bidder<BidRequest> {
             throw new PreBidException("Tappx tappxkey undefined");
         }
 
-        String url = String.format("%s%s/%s?tappxkey=%s", endpointUrl, host, endpoint, tappxkey);
-        if (test != null && test == 0) {
-            int t = (int) System.nanoTime();
-            url += "&ts=" + t;
-        }
+        return buildUrl(host, endpoint, tappxkey, test);
+    }
 
-        url += "&v=" + VERSION;
-        url += "&type_cnn=" + TYPE_CNN;
-
+    private String buildUrl(String host, String endpoint, String tappxkey, Integer test) {
         try {
-            HttpUtil.validateUrl(url);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Not valid url: " + url, e);
-        }
+            final URIBuilder uriBuilder = new URIBuilder(resolveHost(host));
 
-        return url;
+            if (!StringUtils.containsIgnoreCase(host, endpoint)) {
+                final String path = buildUrlPath(uriBuilder.getPath(), endpoint);
+                uriBuilder.setPath(path);
+            }
+
+            uriBuilder.addParameter("tappxkey", tappxkey);
+            uriBuilder.addParameter("v", VERSION);
+            uriBuilder.addParameter("type_cnn", TYPE_CNN);
+
+            if (test != null && test == 0) {
+                final String ts = String.valueOf(System.nanoTime());
+                uriBuilder.addParameter("ts", ts);
+            }
+            return uriBuilder.build().toString();
+        } catch (URISyntaxException e) {
+            throw new PreBidException(String.format("Failed to build endpoint URL: %s", e.getMessage()));
+        }
+    }
+
+    private String resolveHost(String host) {
+        return StringUtils.startsWithAny(host.toLowerCase(), "http://", "https://")
+                ? host
+                : endpointUrl + host;
+    }
+
+    private static String buildUrlPath(String path, String endpoint) {
+        final String strippedPath = StringUtils.stripEnd(path, "/");
+        final String strippedEndpoint = StringUtils.stripStart(endpoint, "/");
+        return strippedPath + "/" + strippedEndpoint;
     }
 
     /**

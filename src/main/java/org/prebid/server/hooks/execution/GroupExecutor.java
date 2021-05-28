@@ -79,43 +79,15 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         for (final HookId hookId : group.getHookSequence()) {
             final Hook<PAYLOAD, CONTEXT> hook = hookProvider.apply(hookId);
 
-            groupFuture = executeHookAndChainResult(groupFuture, hook, hookId, initialGroupResult);
-        }
-
-        return groupFuture.recover(GroupExecutor::restoreResultFromRejection);
-    }
-
-    private Future<GroupResult<PAYLOAD>> executeHookAndChainResult(
-            Future<GroupResult<PAYLOAD>> groupFuture,
-            Hook<PAYLOAD, CONTEXT> hook,
-            HookId hookId,
-            GroupResult<PAYLOAD> initialGroupResult) {
-
-        if (!group.getSynchronous()) {
             final long startTime = clock.millis();
             final Future<InvocationResult<PAYLOAD>> invocationResult =
                     executeHook(hook, group.getTimeout(), initialGroupResult, hookId);
 
-            return groupFuture.compose(groupResult ->
-                    applyInvocationResult(
-                            invocationResult,
-                            hookId,
-                            startTime,
-                            groupResult));
+            groupFuture = groupFuture.compose(groupResult ->
+                    applyInvocationResult(invocationResult, hookId, startTime, groupResult));
         }
 
-        return groupFuture.compose(groupResult -> {
-            final long startTime = clock.millis();
-            return applyInvocationResult(
-                    executeHook(hook, hookTimeoutFromSyncGroup(group), groupResult, hookId),
-                    hookId,
-                    startTime,
-                    groupResult);
-        });
-    }
-
-    private static long hookTimeoutFromSyncGroup(ExecutionGroup group) {
-        return group.getTimeout() / group.getHookSequence().size();
+        return groupFuture.recover(GroupExecutor::restoreResultFromRejection);
     }
 
     private Future<InvocationResult<PAYLOAD>> executeHook(

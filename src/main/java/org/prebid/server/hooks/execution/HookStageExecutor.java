@@ -14,6 +14,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
+import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
@@ -43,33 +44,40 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
 import java.time.Clock;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class HookStageExecutor {
 
-    private final ExecutionPlan executionPlan;
+    private final ExecutionPlan hostExecutionPlan;
+    private final ExecutionPlan defaultAccountExecutionPlan;
     private final HookCatalog hookCatalog;
     private final TimeoutFactory timeoutFactory;
     private final Vertx vertx;
     private final Clock clock;
 
-    private HookStageExecutor(ExecutionPlan executionPlan,
+    private HookStageExecutor(ExecutionPlan hostExecutionPlan,
+                              ExecutionPlan defaultAccountExecutionPlan,
                               HookCatalog hookCatalog,
                               TimeoutFactory timeoutFactory,
                               Vertx vertx,
                               Clock clock) {
 
-        this.executionPlan = executionPlan;
+        this.hostExecutionPlan = hostExecutionPlan;
+        this.defaultAccountExecutionPlan = defaultAccountExecutionPlan;
         this.hookCatalog = hookCatalog;
         this.timeoutFactory = timeoutFactory;
         this.vertx = vertx;
         this.clock = clock;
     }
 
-    public static HookStageExecutor create(String executionPlan,
+    public static HookStageExecutor create(String hostExecutionPlan,
+                                           String defaultAccountExecutionPlan,
                                            HookCatalog hookCatalog,
                                            TimeoutFactory timeoutFactory,
                                            Vertx vertx,
@@ -77,7 +85,8 @@ public class HookStageExecutor {
                                            JacksonMapper mapper) {
 
         return new HookStageExecutor(
-                parseExecutionPlan(executionPlan, Objects.requireNonNull(mapper)),
+                parseExecutionPlan(hostExecutionPlan, Objects.requireNonNull(mapper)),
+                parseExecutionPlan(defaultAccountExecutionPlan, mapper),
                 Objects.requireNonNull(hookCatalog),
                 Objects.requireNonNull(timeoutFactory),
                 Objects.requireNonNull(vertx),
@@ -232,7 +241,7 @@ public class HookStageExecutor {
 
         return this.<PAYLOAD, CONTEXT>stageExecutor()
                 .withStage(stage)
-                .withExecutionPlan(planFor(account, endpoint, stage))
+                .withExecutionPlan(planForStage(account, endpoint, stage))
                 .withHookExecutionContext(context);
     }
 
@@ -249,14 +258,34 @@ public class HookStageExecutor {
     }
 
     private StageExecutionPlan planForEntrypointStage(Endpoint endpoint) {
-        return planFor(executionPlan, endpoint, Stage.entrypoint);
+        return effectiveStagePlanFrom(ExecutionPlan.empty(), endpoint, Stage.entrypoint);
     }
 
-    private StageExecutionPlan planFor(Account account, Endpoint endpoint, Stage stage) {
-        return planFor(effectiveExecutionPlanFor(account), endpoint, stage);
+    private StageExecutionPlan planForStage(Account account, Endpoint endpoint, Stage stage) {
+        return effectiveStagePlanFrom(effectiveExecutionPlanFor(account), endpoint, stage);
     }
 
-    private static StageExecutionPlan planFor(ExecutionPlan executionPlan, Endpoint endpoint, Stage stage) {
+    private StageExecutionPlan effectiveStagePlanFrom(
+            ExecutionPlan accountExecutionPlan, Endpoint endpoint, Stage stage) {
+
+        final StageExecutionPlan hostStageExecutionPlan = stagePlanFrom(hostExecutionPlan, endpoint, stage);
+        final StageExecutionPlan accountStageExecutionPlan = stagePlanFrom(accountExecutionPlan, endpoint, stage);
+
+        if (hostStageExecutionPlan.isEmpty()) {
+            return accountStageExecutionPlan;
+        } else if (accountStageExecutionPlan.isEmpty()) {
+            return hostStageExecutionPlan;
+        }
+
+        final List<ExecutionGroup> combinedGroups = Stream.of(hostStageExecutionPlan, accountStageExecutionPlan)
+                .map(StageExecutionPlan::getGroups)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        return StageExecutionPlan.of(combinedGroups);
+    }
+
+    private static StageExecutionPlan stagePlanFrom(ExecutionPlan executionPlan, Endpoint endpoint, Stage stage) {
         return executionPlan
                 .getEndpoints()
                 .getOrDefault(endpoint, EndpointExecutionPlan.empty())
@@ -269,7 +298,7 @@ public class HookStageExecutor {
         final ExecutionPlan accountExecutionPlan =
                 hooksAccountConfig != null ? hooksAccountConfig.getExecutionPlan() : null;
 
-        return accountExecutionPlan != null ? accountExecutionPlan : executionPlan;
+        return accountExecutionPlan != null ? accountExecutionPlan : defaultAccountExecutionPlan;
     }
 
     private InvocationContextProvider<InvocationContext> invocationContextProvider(Endpoint endpoint) {

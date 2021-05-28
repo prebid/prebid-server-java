@@ -13,8 +13,11 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
@@ -62,7 +65,9 @@ public class Ortb2RequestFactory {
     private final RequestValidator requestValidator;
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
+    private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
+    private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
@@ -71,7 +76,9 @@ public class Ortb2RequestFactory {
                                RequestValidator requestValidator,
                                TimeoutResolver timeoutResolver,
                                TimeoutFactory timeoutFactory,
+                               StoredRequestProcessor storedRequestProcessor,
                                ApplicationSettings applicationSettings,
+                               IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor) {
 
         this.enforceValidAccount = enforceValidAccount;
@@ -80,7 +87,9 @@ public class Ortb2RequestFactory {
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
     }
 
@@ -109,27 +118,14 @@ public class Ortb2RequestFactory {
                 .build();
     }
 
-    public Future<Account> fetchAccount(AuctionContext auctionContext) {
+    public Future<Account> fetchAccount(AuctionContext auctionContext, boolean isLookupStoredRequest) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Timeout timeout = auctionContext.getTimeout();
         final HttpRequestWrapper httpRequest = auctionContext.getHttpRequest();
 
-        final String accountId = accountIdFrom(bidRequest);
-        final boolean isAccountIdBlank = StringUtils.isBlank(accountId);
-
-        if (CollectionUtils.isNotEmpty(blacklistedAccounts)
-                && !isAccountIdBlank
-                && blacklistedAccounts.contains(accountId)) {
-            return Future.failedFuture(new BlacklistedAccountException(
-                    String.format("Prebid-server has blacklisted Account ID: %s, please "
-                            + "reach out to the prebid server host.", accountId)));
-        }
-
-        return isAccountIdBlank
-                ? responseForEmptyAccount(httpRequest)
-                : applicationSettings.getAccountById(accountId, timeout)
-                .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
+        return findAccountIdFrom(bidRequest, isLookupStoredRequest)
+                .map(this::validateIfAccountBlacklisted)
+                .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
 
     /**
@@ -239,6 +235,36 @@ public class Ortb2RequestFactory {
         return timeoutFactory.create(startTime, timeout);
     }
 
+    private Future<String> findAccountIdFrom(BidRequest bidRequest, boolean isLookupStoredRequest) {
+        final String accountId = accountIdFrom(bidRequest);
+        return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
+                ? Future.succeededFuture(accountId)
+                : storedRequestProcessor.processStoredRequests(accountId, bidRequest)
+                .map(this::accountIdFrom);
+    }
+
+    private String validateIfAccountBlacklisted(String accountId) {
+        if (CollectionUtils.isNotEmpty(blacklistedAccounts)
+                && StringUtils.isNotBlank(accountId)
+                && blacklistedAccounts.contains(accountId)) {
+
+            throw new BlacklistedAccountException(
+                    String.format("Prebid-server has blacklisted Account ID: %s, please "
+                            + "reach out to the prebid server host.", accountId));
+        }
+        return accountId;
+    }
+
+    private Future<Account> loadAccount(Timeout timeout,
+                                        HttpRequestWrapper httpRequest,
+                                        String accountId) {
+        return StringUtils.isBlank(accountId)
+                ? responseForEmptyAccount(httpRequest)
+                : applicationSettings.getAccountById(accountId, timeout)
+                .compose(this::ensureAccountActive,
+                        exception -> accountFallback(exception, accountId, httpRequest));
+    }
+
     /**
      * Extracts publisher id either from {@link BidRequest}.app.publisher or {@link BidRequest}.site.publisher.
      * If neither is present returns empty string.
@@ -339,21 +365,30 @@ public class Ortb2RequestFactory {
 
     private Device enrichDevice(Device device, PrivacyContext privacyContext) {
         final String ipAddress = privacyContext.getIpAddress();
-        final String country = getIfNotNull(privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+        final IpAddress ip = ipAddressHelper.toIpAddress(ipAddress);
 
-        final String ipAddressInRequest = getIfNotNull(device, Device::getIp);
+        final String ipV4InRequest = getIfNotNull(device, Device::getIp);
+        final String ipV4 = ip != null && ip.getVersion() == IpAddress.IP.v4 ? ipAddress : null;
+        final boolean shouldUpdateIpV4 = ipV4 != null && !Objects.equals(ipV4InRequest, ipV4);
+
+        final String ipV6InRequest = getIfNotNull(device, Device::getIpv6);
+        final String ipV6 = ip != null && ip.getVersion() == IpAddress.IP.v6 ? ipAddress : null;
+        final boolean shouldUpdateIpV6 = ipV6 != null && !Objects.equals(ipV6InRequest, ipV6);
 
         final Geo geo = getIfNotNull(device, Device::getGeo);
-        final String countryFromRequest = getIfNotNull(geo, Geo::getCountry);
+        final String countryInRequest = getIfNotNull(geo, Geo::getCountry);
+        final String country = getIfNotNull(privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+        final boolean shouldUpdateCountry = country != null && !Objects.equals(countryInRequest, country);
 
-        final boolean shouldUpdateIp = ipAddress != null && !Objects.equals(ipAddressInRequest, ipAddress);
-        final boolean shouldUpdateCountry = country != null && !Objects.equals(countryFromRequest, country);
-
-        if (shouldUpdateIp || shouldUpdateCountry) {
+        if (shouldUpdateIpV4 || shouldUpdateIpV6 || shouldUpdateCountry) {
             final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
 
-            if (shouldUpdateIp) {
-                deviceBuilder.ip(ipAddress);
+            if (shouldUpdateIpV4) {
+                deviceBuilder.ip(ipV4);
+            }
+
+            if (shouldUpdateIpV6) {
+                deviceBuilder.ipv6(ipV6);
             }
 
             if (shouldUpdateCountry) {
