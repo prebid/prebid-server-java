@@ -10,9 +10,13 @@ adapters:
     meta-info:
       maintainer-email: scope.sspp@adform.com
       app-media-types:
+        - banner
         - native
+        - video
       site-media-types:
+        - banner
         - native
+        - video
       supported-vendors:
       vendor-id: 50
     usersync:

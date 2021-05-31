@@ -13,7 +13,23 @@
           "mid": "1"
         }
       }
+    },
+    {
+      "id": "impId002",
+      "banner": {
+        "format": [{
+          "w": 300,
+          "h": 250
+        }]
+      },
+      "tagid": "2",
+      "ext": {
+        "bidder": {
+          "mid": "2"
+        }
+      }
     }
+
   ],
   "site": {
     "domain": "example.com",

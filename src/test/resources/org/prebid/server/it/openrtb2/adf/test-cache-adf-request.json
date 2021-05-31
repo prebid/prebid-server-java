@@ -3,6 +3,20 @@
     {
       "type": "json",
       "value": {
+        "id": "test-bid-id-2",
+        "impid": "impId002",
+        "price": 12.532,
+        "adomain": [],
+        "crid": "test-creative-id-2",
+        "ext": {
+          "origbidcpm": 11,
+          "origbidcur": "EUR"
+        }
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "test-bid-id-1",
         "impid": "impId001",
         "price": 11.393,

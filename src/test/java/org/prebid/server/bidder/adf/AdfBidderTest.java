@@ -26,7 +26,7 @@ import java.util.function.Function;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class AdfBidderTest extends VertxTest {
 
@@ -84,7 +84,10 @@ public class AdfBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBidByDefault() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
+                BidRequest.builder().imp(singletonList(Imp.builder().id("123").banner(Banner.builder()
+                        .w(1)
+                        .h(1)
+                        .build()).build())).build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -93,7 +96,7 @@ public class AdfBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     private static BidRequest givenBidRequest(

@@ -9,6 +9,12 @@
           "price": 10,
           "adomain": [],
           "crid": "test-creative-id-1"
+        }, {
+          "id": "test-bid-id-2",
+          "impid": "impId002",
+          "price": 11,
+          "adomain": [],
+          "crid": "test-creative-id-2"
         }
       ]
     }

@@ -35,6 +35,39 @@
             "origbidcpm": 10,
             "origbidcur": "EUR"
           }
+        },
+        {
+          "id": "test-bid-id-2",
+          "impid": "impId002",
+          "price": 12.532,
+          "adomain": [
+          ],
+          "crid": "test-creative-id-2",
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "12.50",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_bidder_adf": "adf",
+                "hb_bidder": "adf",
+                "hb_cache_id_adf": "9092799c-93b0-4e11-a232-2c0151d5d276",
+                "hb_cache_id": "9092799c-93b0-4e11-a232-2c0151d5d276",
+                "hb_cache_path_adf": "/cache",
+                "hb_cache_host_adf": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_pb_adf": "12.50"
+              }
+            },
+            "cache": {
+              "bids": {
+                "url": "{{ cache.resource_url }}9092799c-93b0-4e11-a232-2c0151d5d276",
+                "cacheId": "9092799c-93b0-4e11-a232-2c0151d5d276"
+              }
+            },
+            "origbidcpm": 11,
+            "origbidcur": "EUR"
+          }
         }
       ],
       "seat": "adf",
