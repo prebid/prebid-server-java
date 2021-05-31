@@ -258,8 +258,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                 .format(singletonList(Format.builder().w(100).h(300).build()))
                                 .build()),
                 requestBuilder -> requestBuilder
-                        .source(Source.builder()
-                                .ext(ExtSource.of(expectedSchain)).build())
+                        .source(Source.builder().ext(ExtSource.of(expectedSchain)).build())
         );
 
         // when
