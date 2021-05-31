@@ -23,6 +23,7 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -50,6 +51,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountStatus;
@@ -612,7 +614,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
-                .debugEnabled(false)
+                .debugContext(DebugContext.empty())
                 .requestRejected(false)
                 .build());
     }
@@ -622,6 +624,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .tmax(1000L)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .debug(1)
+                        .trace(TraceLevel.basic)
+                        .build()))
                 .build();
 
         final long resolvedTimeout = 200L;
@@ -633,8 +639,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
         given(uidsCookieService.parseFromRequest(any(HttpRequestWrapper.class))).willReturn(uidsCookie);
 
-        final ArrayList<String> errors = new ArrayList<>();
-
         // when
         final AuctionContext result = target.enrichAuctionContext(
                 AuctionContext.builder()
@@ -642,7 +646,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .prebidErrors(new ArrayList<>())
                         .debugWarnings(new ArrayList<>())
                         .hookExecutionContext(hookExecutionContext)
-                        .debugEnabled(false)
+                        .debugContext(DebugContext.empty())
                         .build(),
                 httpRequest,
                 bidRequest,
@@ -661,11 +665,46 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2app)
                 .timeout(timeout)
-                .prebidErrors(errors)
+                .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
-                .debugEnabled(false) // TODO: check that the flag is overridden
+                .debugContext(DebugContext.of(true, TraceLevel.basic))
                 .build());
+    }
+
+    @Test
+    public void enrichAuctionContextShouldSetDebugOnWhenTestIsOne() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .test(1)
+                .build();
+
+        // when
+        final AuctionContext result = target.enrichAuctionContext(
+                AuctionContext.builder()
+                        .debugContext(DebugContext.empty())
+                        .build(),
+                httpRequest,
+                bidRequest,
+                100);
+
+        // then
+        assertThat(result.getDebugContext()).isEqualTo(DebugContext.of(true, null));
+    }
+
+    @Test
+    public void enrichAuctionContextShouldSetDebugOff() {
+        // when
+        final AuctionContext result = target.enrichAuctionContext(
+                AuctionContext.builder()
+                        .debugContext(DebugContext.empty())
+                        .build(),
+                httpRequest,
+                BidRequest.builder().build(),
+                100);
+
+        // then
+        assertThat(result.getDebugContext()).isEqualTo(DebugContext.empty());
     }
 
     @Test

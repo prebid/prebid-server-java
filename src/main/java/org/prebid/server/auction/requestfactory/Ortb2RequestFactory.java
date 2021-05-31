@@ -17,6 +17,7 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -40,6 +41,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountStatus;
@@ -99,7 +101,7 @@ public class Ortb2RequestFactory {
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(HookExecutionContext.of(endpoint))
-                .debugEnabled(false)
+                .debugContext(DebugContext.empty())
                 .requestRejected(false)
                 .build();
     }
@@ -114,7 +116,7 @@ public class Ortb2RequestFactory {
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
                 .timeout(timeout(bidRequest, startTime))
-                .debugEnabled(debugEnabled(bidRequest))
+                .debugContext(debugContext(bidRequest))
                 .build();
     }
 
@@ -221,9 +223,15 @@ public class Ortb2RequestFactory {
         return stageResult.getPayload().bidRequest();
     }
 
-    private static boolean debugEnabled(BidRequest bidRequest) {
-        // FIXME: flesh out debug flag determination logic
-        return false;
+    private static DebugContext debugContext(BidRequest bidRequest) {
+        final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+
+        final boolean debugEnabled = Objects.equals(bidRequest.getTest(), 1)
+                || Objects.equals(getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
+
+        final TraceLevel traceLevel = getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
+
+        return DebugContext.of(debugEnabled, traceLevel);
     }
 
     /**
@@ -411,7 +419,7 @@ public class Ortb2RequestFactory {
 
         private final AuctionContext auctionContext;
 
-        public RejectedRequestException(AuctionContext auctionContext) {
+        RejectedRequestException(AuctionContext auctionContext) {
             this.auctionContext = auctionContext;
         }
 

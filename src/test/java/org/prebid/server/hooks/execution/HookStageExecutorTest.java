@@ -28,6 +28,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.execution.TimeoutFactory;
@@ -162,6 +163,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(bidRequest)
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1031,6 +1033,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(bidRequest)
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1086,6 +1089,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(bidRequest)
                         .account(account)
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1146,6 +1150,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1199,6 +1204,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1293,6 +1299,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1353,6 +1360,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1396,6 +1404,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(bidRequest)
                                 .account(Account.empty("accountId"))
                                 .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
                                 .build());
 
         // then
@@ -1453,6 +1462,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(bidRequest)
                                 .account(account)
                                 .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
                                 .build());
 
         // then
@@ -1514,6 +1524,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.empty("accountId"))
                                 .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
                                 .build());
 
         // then
@@ -1568,6 +1579,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
                                         .build())
                                 .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
                                 .build());
 
         // then
@@ -1663,6 +1675,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.empty("accountId"))
                                 .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
                                 .build());
 
         // then
@@ -1725,6 +1738,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.empty("accountId"))
                                 .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
                                 .build());
 
         // then
@@ -1782,6 +1796,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1827,6 +1842,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         null, singletonMap("module-alpha", mapper.createObjectNode())))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1918,6 +1934,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -1972,6 +1989,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         null, singletonMap("module-alpha", mapper.createObjectNode())))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -2059,6 +2077,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.empty("accountId"))
                                 .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
                                 .build());
 
         // then
@@ -2110,6 +2129,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                 null, singletonMap("module-alpha", mapper.createObjectNode())))
                                         .build())
                                 .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
                                 .build());
 
         // then
@@ -2154,6 +2174,7 @@ public class HookStageExecutorTest extends VertxTest {
                 AuctionContext.builder()
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -2211,6 +2232,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .bidRequest(BidRequest.builder().build())
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -2256,6 +2278,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         null, singletonMap("module-alpha", mapper.createObjectNode())))
                                 .build())
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then
@@ -2299,6 +2322,7 @@ public class HookStageExecutorTest extends VertxTest {
                 AuctionContext.builder()
                         .account(Account.empty("accountId"))
                         .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
                         .build());
 
         // then

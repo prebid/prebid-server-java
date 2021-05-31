@@ -44,7 +44,7 @@ public class AuctionContext {
 
     HookExecutionContext hookExecutionContext;
 
-    boolean debugEnabled;
+    DebugContext debugContext;
 
     boolean requestRejected;
 
