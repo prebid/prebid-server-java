@@ -189,7 +189,6 @@ public class ExchangeService {
         final BidderAliases aliases = aliases(bidRequest);
         final String publisherId = account.getId();
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
-        final boolean debugEnabled = isDebugEnabled(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
@@ -204,7 +203,6 @@ public class ExchangeService {
                                         context,
                                         bidderRequest,
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
-                                        debugEnabled,
                                         aliases))
                                 .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
@@ -218,8 +216,7 @@ public class ExchangeService {
                         bidderResponses,
                         context,
                         cacheInfo,
-                        bidderToMultiBid,
-                        debugEnabled))
+                        bidderToMultiBid))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                         context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
                 .compose(bidResponse -> invokeResponseHooks(context, bidResponse));
@@ -278,17 +275,6 @@ public class ExchangeService {
         }
 
         return BidRequestCacheInfo.noCache();
-    }
-
-    /**
-     * Determines debug flag from {@link BidRequest} or {@link ExtRequest}.
-     */
-    private static boolean isDebugEnabled(BidRequest bidRequest) {
-        if (Objects.equals(bidRequest.getTest(), 1)) {
-            return true;
-        }
-        final ExtRequestPrebid extRequestPrebid = extRequestPrebid(bidRequest);
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
     }
 
     private static ExtRequestPrebid extRequestPrebid(BidRequest bidRequest) {
@@ -998,10 +984,10 @@ public class ExchangeService {
     private Future<BidderResponse> invokeHooksAndRequestBids(AuctionContext auctionContext,
                                                              BidderRequest bidderRequest,
                                                              Timeout timeout,
-                                                             boolean debugEnabled,
                                                              BidderAliases aliases) {
 
         final MultiMap headers = auctionContext.getHttpRequest().getHeaders();
+        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
 
         return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(

@@ -169,8 +169,7 @@ public class BidResponseCreator {
     Future<BidResponse> create(List<BidderResponse> bidderResponses,
                                AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
-                               Map<String, MultiBidConfig> bidderToMultiBids,
-                               boolean debugEnabled) {
+                               Map<String, MultiBidConfig> bidderToMultiBids) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final List<Imp> imps = bidRequest.getImp();
@@ -193,8 +192,7 @@ public class BidResponseCreator {
                         auctionContext,
                         cacheInfo,
                         bidderToMultiBids,
-                        eventsContext,
-                        debugEnabled));
+                        eventsContext));
     }
 
     private List<BidderResponse> updateBids(List<BidderResponse> bidderResponses,
@@ -355,8 +353,7 @@ public class BidResponseCreator {
                                                            AuctionContext auctionContext,
                                                            BidRequestCacheInfo cacheInfo,
                                                            Map<String, MultiBidConfig> bidderToMultiBids,
-                                                           EventsContext eventsContext,
-                                                           boolean debugEnabled) {
+                                                           EventsContext eventsContext) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         if (isEmptyBidderResponses(bidderResponses)) {
@@ -371,7 +368,6 @@ public class BidResponseCreator {
                             CacheServiceResult.empty(),
                             VideoStoredDataResult.empty(),
                             eventsContext.getAuctionTimestamp(),
-                            debugEnabled,
                             null)))
                     .build());
         }
@@ -405,8 +401,7 @@ public class BidResponseCreator {
                                 cacheInfo,
                                 cacheResult,
                                 videoStoredDataResult,
-                                eventsContext,
-                                debugEnabled)));
+                                eventsContext)));
     }
 
     private static ExtRequestTargeting targeting(BidRequest bidRequest) {
@@ -566,10 +561,10 @@ public class BidResponseCreator {
                                             CacheServiceResult cacheResult,
                                             VideoStoredDataResult videoStoredDataResult,
                                             long auctionTimestamp,
-                                            boolean debugEnabled,
                                             Map<String, List<ExtBidderError>> bidErrors) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
+        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
 
         final ExtResponseDebug extResponseDebug = debugEnabled
                 ? ExtResponseDebug.of(toExtHttpCalls(bidderResponseInfos, cacheResult), bidRequest)
@@ -840,8 +835,7 @@ public class BidResponseCreator {
                                       BidRequestCacheInfo requestCacheInfo,
                                       CacheServiceResult cacheResult,
                                       VideoStoredDataResult videoStoredDataResult,
-                                      EventsContext eventsContext,
-                                      boolean debugEnabled) {
+                                      EventsContext eventsContext) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
@@ -870,7 +864,6 @@ public class BidResponseCreator {
                 cacheResult,
                 videoStoredDataResult,
                 auctionTimestamp,
-                debugEnabled,
                 bidErrors);
 
         return BidResponse.builder()
