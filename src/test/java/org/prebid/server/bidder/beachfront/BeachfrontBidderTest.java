@@ -269,17 +269,8 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontBannerRequest.class))
-                .containsExactly(BeachfrontBannerRequest.builder()
-                        .slots(singletonList(BeachfrontSlot.of("123", "appId", BigDecimal.ONE,
-                                singletonList(BeachfrontSize.of(100, 300)))))
-                        .adapterVersion("0.9.2")
-                        .secure(0)
-                        .isMobile(1)
-                        .adapterName("BF_PREBID_S2S")
-                        .requestId("153")
-                        .real204(true)
-                        .schain(expectedSchain)
-                        .build());
+                .extracting(BeachfrontBannerRequest::getSchain)
+                .containsExactly(expectedSchain);
     }
 
     @Test

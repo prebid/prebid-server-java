@@ -207,20 +207,13 @@ public class BeachfrontBidder implements Bidder<Void> {
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(bundle));
         }
 
-        ExtRequestPrebidSchainSchain schain = getSchain(bidRequest);
+        final ExtRequestPrebidSchainSchain schain = getSchain(bidRequest);
 
         if (schain != null) {
             requestBuilder.schain(schain);
         }
 
         return requestBuilder.build();
-    }
-
-    private static ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
-        final Source source = bidRequest.getSource();
-        final ExtSource extSource = source != null ? source.getExt() : null;
-
-        return extSource != null ? extSource.getSchain() : null;
     }
 
     private ExtImpBeachfront parseImpExt(Imp imp) {
@@ -302,6 +295,13 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private static int getSecure(String page) {
         return StringUtils.contains(page, "https") ? 1 : 0;
+    }
+
+    private static ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
+        final Source source = bidRequest.getSource();
+        final ExtSource extSource = source != null ? source.getExt() : null;
+
+        return extSource != null ? extSource.getSchain() : null;
     }
 
     private List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest, List<Imp> videoImps,
