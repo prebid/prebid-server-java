@@ -256,15 +256,11 @@ public class BeachfrontBidderTest extends VertxTest {
                         .video(null)
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(100).h(300).build()))
-                                .build())
-                        .secure(1),
+                                .build()),
                 requestBuilder -> requestBuilder
                         .source(Source.builder()
-                                .ext(ExtSource.of(
-                                        expectedSchain
-                                )).build())
-                        .user(User.builder().id("userId").buyeruid("buid").build())
-                        .device(Device.builder().model("3310").os("nokia").build()));
+                                .ext(ExtSource.of(expectedSchain)).build())
+        );
 
         // when
         final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
@@ -273,15 +269,12 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontBannerRequest.class))
-                .containsOnly(BeachfrontBannerRequest.builder()
+                .containsExactly(BeachfrontBannerRequest.builder()
                         .slots(singletonList(BeachfrontSlot.of("123", "appId", BigDecimal.ONE,
                                 singletonList(BeachfrontSize.of(100, 300)))))
-                        .secure(1)
-                        .deviceModel("3310")
-                        .deviceOs("nokia")
-                        .isMobile(1)
-                        .user(User.builder().id("userId").buyeruid("buid").build())
                         .adapterVersion("0.9.2")
+                        .secure(0)
+                        .isMobile(1)
                         .adapterName("BF_PREBID_S2S")
                         .requestId("153")
                         .real204(true)

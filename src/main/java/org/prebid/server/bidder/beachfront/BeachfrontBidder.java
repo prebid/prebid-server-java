@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -33,6 +34,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -205,15 +207,20 @@ public class BeachfrontBidder implements Bidder<Void> {
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(bundle));
         }
 
-        if (bidRequest.getSource() != null && bidRequest.getSource().getExt() != null) {
-            requestBuilder.schain(getSchain(bidRequest));
+        ExtRequestPrebidSchainSchain schain = getSchain(bidRequest);
+
+        if (schain != null) {
+            requestBuilder.schain(schain);
         }
 
         return requestBuilder.build();
     }
 
-    private ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
-        return bidRequest.getSource().getExt().getSchain();
+    private static ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
+        final Source source = bidRequest.getSource();
+        final ExtSource extSource = source != null ? source.getExt() : null;
+
+        return extSource != null ? extSource.getSchain() : null;
     }
 
     private ExtImpBeachfront parseImpExt(Imp imp) {
