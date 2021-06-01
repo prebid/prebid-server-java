@@ -11,7 +11,10 @@
         "cid": "cid001",
         "crid": "crid001",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 7.77
+        }
       }
     },
     {
@@ -24,10 +27,14 @@
           "psacentral.org"
         ],
         "nurl": "https://example.com/nurl",
+        "adm": "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[https://example.com/nurl]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>",
         "cid": "cid002",
         "crid": "crid002",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 9.99
+        }
       }
     },
     {

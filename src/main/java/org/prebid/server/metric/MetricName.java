@@ -43,6 +43,14 @@ public enum MetricName {
     cookiesync,
     setuid,
 
+    // event types
+    event_auction("auction"),
+    event_amp("amp"),
+    event_video("video"),
+    event_notification("event"),
+    event_cookie_sync("cookie_sync"),
+    event_setuid("setuid"),
+    event_unknown("unknown"),
 
     // request and adapter statuses
     ok,

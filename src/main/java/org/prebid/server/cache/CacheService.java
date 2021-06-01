@@ -252,7 +252,7 @@ public class CacheService {
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final Integer bidTtl = bid.getExp();
         final Imp correspondingImp = bidInfo.getCorrespondingImp();
-        final Integer impTtl = correspondingImp.getExp();
+        final Integer impTtl = correspondingImp != null ? correspondingImp.getExp() : null;
         final Integer accountMediaTypeTtl = isVideoBid
                 ? accountCacheTtl.getVideoCacheTtl()
                 : accountCacheTtl.getBannerCacheTtl();
@@ -282,7 +282,7 @@ public class CacheService {
         final String accountId = account.getId();
         final List<CachedCreative> cachedCreatives = Stream.concat(
                 bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
-                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, accountId, eventsContext)))
+                videoBids.stream().map(this::createXmlPutObjectOpenrtb))
                 .collect(Collectors.toList());
 
         if (cachedCreatives.isEmpty()) {
@@ -403,18 +403,10 @@ public class CacheService {
     /**
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid,
-                                                     String accountId,
-                                                     EventsContext eventsContext) {
+    private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
-        final String vastXml = vastModifier.createBidVastXml(
-                bidInfo.getBidder(),
-                bid.getAdm(),
-                bid.getNurl(),
-                bidInfo.getBidId(),
-                accountId,
-                eventsContext);
+        final String vastXml = bid.getAdm();
 
         final PutObject payload = PutObject.builder()
                 .type("xml")

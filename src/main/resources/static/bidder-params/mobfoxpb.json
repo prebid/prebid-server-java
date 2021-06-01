@@ -8,9 +8,23 @@
       "type": "string",
       "minLength": 1,
       "description": "An ID which identifies the mobfox ad tag"
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "An ID which identifies the mobfox adexchange partner"
     }
   },
-  "required": [
-    "TagID"
+  "oneOf": [
+    {
+      "required": [
+        "TagID"
+      ]
+    },
+    {
+      "required": [
+        "key"
+      ]
+    }
   ]
 }

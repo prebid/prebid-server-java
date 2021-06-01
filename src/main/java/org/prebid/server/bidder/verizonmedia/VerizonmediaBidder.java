@@ -170,13 +170,13 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        final List<SeatBid> seatbid = bidResponse != null ? bidResponse.getSeatbid() : null;
-        if (seatbid == null) {
+        final List<SeatBid> seatBids = bidResponse != null ? bidResponse.getSeatbid() : null;
+        if (seatBids == null) {
             return Collections.emptyList();
         }
 
-        if (seatbid.isEmpty()) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", seatbid.size()));
+        if (seatBids.isEmpty()) {
+            throw new PreBidException(String.format("Invalid SeatBids count: %d", seatBids.size()));
         }
         return bidsFromResponse(bidResponse, bidRequest.getImp());
     }

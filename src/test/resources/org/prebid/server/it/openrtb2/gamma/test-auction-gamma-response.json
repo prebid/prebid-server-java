@@ -39,7 +39,9 @@
                   "cacheId": "7e703396-6b75-4a10-9ef3-bc61ca7ce437"
                 }
               }
-            }
+            },
+            "origbidcpm": 0.5,
+            "origbidcur": "USD"
           }
         }
       ],
