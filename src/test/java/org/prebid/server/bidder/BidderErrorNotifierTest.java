@@ -75,7 +75,7 @@ public class BidderErrorNotifierTest {
                 .body("{}")
                 .build());
 
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
 
         // when
@@ -100,7 +100,7 @@ public class BidderErrorNotifierTest {
                 .body("{}")
                 .build());
 
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, null)));
 
         // when
@@ -123,7 +123,7 @@ public class BidderErrorNotifierTest {
                 .body("{}")
                 .build());
 
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
 
         // when
