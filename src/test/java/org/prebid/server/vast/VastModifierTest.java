@@ -101,12 +101,9 @@ public class VastModifierTest {
                 INTEGRATION);
 
         // then
-        final String modifiedVast = "<VAST version=\"3.0\"><Ad><Wrapper>"
-                + "<Impression><!"
-                + "[CDATA[http://external-url/event]]>"
-                + "</Impression><AdSystem>"
-                + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>"
-                + "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>";
+        final String modifiedVast = "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>"
+                + "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives>"
+                + "<Impression><![CDATA[http://external-url/event]]></Impression></Wrapper></Ad></VAST>";
 
         assertThat(result).isEqualTo(new TextNode(modifiedVast));
     }
@@ -152,8 +149,8 @@ public class VastModifierTest {
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
 
-        assertThat(result).isEqualTo("<Wrapper><Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression>"
-                + "<Impression>http:/test.com</Impression></Wrapper>");
+        assertThat(result).isEqualTo("<Wrapper><Impression>http:/test.com</Impression>"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></Wrapper>");
     }
 
     @Test

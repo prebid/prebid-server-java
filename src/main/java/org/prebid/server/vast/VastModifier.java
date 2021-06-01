@@ -15,7 +15,9 @@ import java.util.Set;
 public class VastModifier {
 
     private static final String IN_LINE_TAG = "<InLine>";
+    private static final String IN_LINE_CLOSE_TAG = "</InLine>";
     private static final String WRAPPER_TAG = "<Wrapper>";
+    private static final String WRAPPER_CLOSE_TAG = "</Wrapper>";
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
 
@@ -87,7 +89,7 @@ public class VastModifier {
         if (inLineTagIndex != -1) {
             return appendTrackingUrlForInlineType(vastXml, vastUrlTracking);
         } else if (wrapperTagIndex != -1) {
-            return appendTrackingUrlForWrapperType(vastXml, vastUrlTracking, wrapperTagIndex);
+            return appendTrackingUrl(vastXml, vastUrlTracking, false);
         }
 
         return vastXml;
@@ -102,15 +104,13 @@ public class VastModifier {
             return vastXml;
         }
 
-        final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
-        final String inlineCloseTag = IN_LINE_TAG.replace("<", "</");
-
-        return vastXml.replace(inlineCloseTag, impressionTag + inlineCloseTag);
+        return appendTrackingUrl(vastXml, vastUrlTracking, true);
     }
 
-    private String appendTrackingUrlForWrapperType(String vastXml, String vastUrlTracking, Integer wrapperTagIndex) {
+    private String appendTrackingUrl(String vastXml, String vastUrlTracking, boolean inline) {
+        final String closeTag = inline ? IN_LINE_CLOSE_TAG : WRAPPER_CLOSE_TAG;
         final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
 
-        return vastXml.replaceFirst(WRAPPER_TAG, WRAPPER_TAG + impressionTag);
+        return vastXml.replace(closeTag, impressionTag + closeTag);
     }
 }
