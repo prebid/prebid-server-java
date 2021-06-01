@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -1099,7 +1098,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRejectBidIfCurrencyIsNotValid() throws JsonProcessingException {
+    public void shouldRejectBidIfCurrencyIsNotValid() {
         // given
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
                 givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build(),
@@ -1123,7 +1122,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        final ExtBidResponse ext = bidResponse.getExt();
         assertThat(ext.getErrors()).hasSize(1)
                 .containsOnly(entry("bidder1", bidderErrors));
         assertThat(bidResponse.getSeatbid())
@@ -2828,6 +2827,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldReturnEmptyBidResponseWhenRequestIsRejected() {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
+                .debugContext(DebugContext.empty())
                 .requestRejected(true)
                 .build();
 
@@ -2992,7 +2992,7 @@ public class ExchangeServiceTest extends VertxTest {
     private static BidResponse givenBidResponseWithError(Map<String, List<ExtBidderError>> errors) {
         return BidResponse.builder()
                 .seatbid(emptyList())
-                .ext(mapper.valueToTree(ExtBidResponse.of(null, errors, null, null, null, null, null)))
+                .ext(ExtBidResponse.of(null, errors, null, null, null, null, null))
                 .build();
     }
 

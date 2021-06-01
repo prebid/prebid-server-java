@@ -362,13 +362,13 @@ public class BidResponseCreator {
                     .cur(bidRequest.getCur().get(0))
                     .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
-                    .ext(mapper.mapper().valueToTree(toExtBidResponse(
+                    .ext(toExtBidResponse(
                             bidderResponses,
                             auctionContext,
                             CacheServiceResult.empty(),
                             VideoStoredDataResult.empty(),
                             eventsContext.getAuctionTimestamp(),
-                            null)))
+                            null))
                     .build());
         }
 
@@ -578,7 +578,7 @@ public class BidResponseCreator {
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
         return ExtBidResponse.of(extResponseDebug, errors, warnings, responseTimeMillis, bidRequest.getTmax(), null,
-                ExtBidResponsePrebid.of(auctionTimestamp));
+                ExtBidResponsePrebid.of(auctionTimestamp, null));
     }
 
     /**
@@ -870,7 +870,7 @@ public class BidResponseCreator {
                 .id(bidRequest.getId())
                 .cur(bidRequest.getCur().get(0))
                 .seatbid(seatBids)
-                .ext(mapper.mapper().valueToTree(extBidResponse))
+                .ext(extBidResponse)
                 .build();
     }
 

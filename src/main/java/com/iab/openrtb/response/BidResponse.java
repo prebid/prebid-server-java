@@ -1,8 +1,8 @@
 package com.iab.openrtb.response;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 
 import java.util.List;
 
@@ -59,5 +59,5 @@ public class BidResponse {
     /**
      * Placeholder for bidder-specific extensions to OpenRTB.
      */
-    ObjectNode ext;
+    ExtBidResponse ext;
 }

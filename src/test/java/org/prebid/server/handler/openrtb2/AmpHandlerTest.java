@@ -404,9 +404,9 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(auctionContext));
 
         given(exchangeService.holdAuction(any()))
-                .willReturn(givenBidResponseWithExt(mapper.valueToTree(
+                .willReturn(givenBidResponseWithExt(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null, null, ExtBidResponsePrebid.of(1000L)))));
+                                null, null, ExtBidResponsePrebid.of(1000L, null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -427,9 +427,9 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(auctionContext));
 
         given(exchangeService.holdAuction(any()))
-                .willReturn(givenBidResponseWithExt(mapper.valueToTree(
+                .willReturn(givenBidResponseWithExt(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null, null, ExtBidResponsePrebid.of(1000L)))));
+                                null, null, ExtBidResponsePrebid.of(1000L, null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -770,7 +770,7 @@ public class AmpHandlerTest extends VertxTest {
                 .build());
     }
 
-    private static Future<BidResponse> givenBidResponseWithExt(ObjectNode extBidResponse) {
+    private static Future<BidResponse> givenBidResponseWithExt(ExtBidResponse extBidResponse) {
         return Future.succeededFuture(BidResponse.builder()
                 .ext(extBidResponse)
                 .build());

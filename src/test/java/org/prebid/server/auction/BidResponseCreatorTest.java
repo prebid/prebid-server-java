@@ -575,9 +575,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponse responseWithExpectedFields = BidResponse.builder()
                 .id("123")
                 .cur("USD")
-                .ext(mapper.valueToTree(
-                        ExtBidResponse.of(null, null, null, singletonMap("bidder1", 100), 1000L, null,
-                                ExtBidResponsePrebid.of(1000L))))
+                .ext(ExtBidResponse.of(null, null, null, singletonMap("bidder1", 100), 1000L, null,
+                        ExtBidResponsePrebid.of(1000L, null)))
                 .build();
 
         assertThat(bidResponse)
@@ -2054,7 +2053,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldPopulateBidResponseExtension() throws JsonProcessingException {
+    public void shouldPopulateBidResponseExtension() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .cur(singletonList("USD"))
@@ -2079,7 +2078,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS).result();
 
         // then
-        final ExtBidResponse responseExt = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        final ExtBidResponse responseExt = bidResponse.getExt();
 
         assertThat(responseExt.getDebug()).isNull();
         assertThat(responseExt.getWarnings()).isNull();
@@ -2218,14 +2217,14 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(storedRequestProcessor).videoStoredDataResult(any(), eq(singletonList(imp1)), anyList(), eq(timeout));
 
         assertThat(result.result().getExt()).isEqualTo(
-                mapper.valueToTree(ExtBidResponse.of(null,
+                ExtBidResponse.of(null,
                         singletonMap("prebid",
                                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "Bad timeout"))),
                         null,
                         singletonMap("bidder1", 100),
                         1000L,
                         null,
-                        ExtBidResponsePrebid.of(1000L))));
+                        ExtBidResponsePrebid.of(1000L, null)));
     }
 
     @Test
@@ -2250,7 +2249,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getExt()).isEqualTo(
-                mapper.valueToTree(ExtBidResponse.of(null,
+                ExtBidResponse.of(null,
                         singletonMap(invalidBidderName,
                                 singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
                                         "invalid has been deprecated and is no longer available. Use valid instead."))),
@@ -2258,7 +2257,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         singletonMap("bidder1", 100),
                         1000L,
                         null,
-                        ExtBidResponsePrebid.of(1000L))));
+                        ExtBidResponsePrebid.of(1000L, null)));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2281,17 +2280,17 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         assertThat(result.result().getExt()).isEqualTo(
-                mapper.valueToTree(ExtBidResponse.of(null,
+                ExtBidResponse.of(null,
                         singletonMap("prebid",
                                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
                                         "privacy error"))),
                         null,
                         singletonMap("bidder1", 100), 1000L, null,
-                        ExtBidResponsePrebid.of(1000L))));
+                        ExtBidResponsePrebid.of(1000L, null)));
     }
 
     @Test
-    public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabled() throws JsonProcessingException {
+    public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabled() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp());
         final List<String> warnings = asList("warning1", "warning2");
@@ -2321,7 +2320,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS).result();
 
         // then
-        final ExtBidResponse responseExt = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        final ExtBidResponse responseExt = bidResponse.getExt();
 
         assertThat(responseExt.getDebug()).isNotNull();
         assertThat(responseExt.getDebug().getHttpcalls()).hasSize(2)
