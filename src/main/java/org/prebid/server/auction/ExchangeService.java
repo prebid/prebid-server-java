@@ -29,6 +29,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
@@ -43,7 +44,12 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
@@ -69,7 +75,13 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtModule;
+import org.prebid.server.proto.openrtb.ext.response.ExtModuleTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceGroup;
+import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceInvocationResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceStage;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -85,6 +97,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -1341,8 +1354,87 @@ public class ExchangeService {
     }
 
     private BidResponse enrichWithHooksDebugInfo(BidResponse bidResponse, AuctionContext context) {
-        // TODO: add actual enrichment
-        return bidResponse;
+        final DebugContext debugContext = context.getDebugContext();
+        final boolean debugEnabled = debugContext.isDebugEnabled();
+        final TraceLevel traceLevel = debugContext.getTraceLevel();
+
+        if (!debugEnabled && traceLevel == null) {
+            return bidResponse;
+        }
+
+        final HookExecutionContext hookExecutionContext = context.getHookExecutionContext();
+
+        final ExtModule extModule = ExtModule.of(
+                debugEnabled ? toHookMessages(hookExecutionContext, HookExecutionOutcome::getErrors) : null,
+                debugEnabled ? toHookMessages(hookExecutionContext, HookExecutionOutcome::getWarnings) : null,
+                traceLevel != null ? toHookTrace(hookExecutionContext, traceLevel) : null);
+
+        return bidResponse.toBuilder()
+//                .ext()
+                .build();
+    }
+
+    private static Map<String, List<String>> toHookMessages(
+            HookExecutionContext hookExecutionContext,
+            Function<HookExecutionOutcome, List<String>> messagesGetter) {
+
+        final Map<String, List<HookExecutionOutcome>> hookOutcomesByModule =
+                hookExecutionContext.getStageOutcomes().values().stream()
+                        .flatMap(stageOutcome -> stageOutcome.getGroups().stream())
+                        .flatMap(groupOutcome -> groupOutcome.getHooks().stream())
+                        .collect(Collectors.groupingBy(
+                                hookOutcome -> hookOutcome.getHookId().getModuleCode()));
+
+        return hookOutcomesByModule.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(messagesGetter)
+                                .filter(Objects::nonNull)
+                                .flatMap(Collection::stream)
+                                .collect(Collectors.toList())));
+    }
+
+    private static ExtModuleTrace toHookTrace(HookExecutionContext hookExecutionContext, TraceLevel level) {
+        final List<ExtModuleTraceStage> stages = hookExecutionContext.getStageOutcomes().entrySet().stream()
+                .map(stageOutcome -> toTraceStage(stageOutcome.getKey(), stageOutcome.getValue(), level))
+                .collect(Collectors.toList());
+
+        return ExtModuleTrace.of(
+                stages.stream().mapToLong(ExtModuleTraceStage::getExecutionTime).sum(),
+                stages);
+    }
+
+    private static ExtModuleTraceStage toTraceStage(Stage stage, StageExecutionOutcome stageOutcome, TraceLevel level) {
+        final List<ExtModuleTraceGroup> groups = stageOutcome.getGroups().stream()
+                .map(group -> toTraceGroup(group, level))
+                .collect(Collectors.toList());
+
+        return ExtModuleTraceStage.of(
+                stage,
+                groups.stream().mapToLong(ExtModuleTraceGroup::getExecutionTime).sum(),
+                groups);
+    }
+
+    private static ExtModuleTraceGroup toTraceGroup(GroupExecutionOutcome group, TraceLevel level) {
+        final List<ExtModuleTraceInvocationResult> invocationResults = group.getHooks().stream()
+                .map(hook -> toTraceInvocationResult(hook, level))
+                .collect(Collectors.toList());
+
+        return ExtModuleTraceGroup.of(
+                invocationResults.stream().mapToLong(ExtModuleTraceInvocationResult::getExecutionTime).sum(),
+                invocationResults);
+    }
+
+    private static ExtModuleTraceInvocationResult toTraceInvocationResult(HookExecutionOutcome hook, TraceLevel level) {
+        return ExtModuleTraceInvocationResult.builder()
+                .hookId(hook.getHookId())
+                .executionTime(hook.getExecutionTime())
+                .status(hook.getStatus())
+                .message(hook.getMessage())
+                .action(hook.getAction())
+                .debugMessages(level == TraceLevel.verbose ? hook.getDebugMessages() : null)
+                .build();
     }
 
     private <T> List<T> nullIfEmpty(List<T> value) {

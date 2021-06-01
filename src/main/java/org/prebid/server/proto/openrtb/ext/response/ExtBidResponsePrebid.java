@@ -15,4 +15,8 @@ public class ExtBidResponsePrebid {
      */
     Long auctiontimestamp;
 
+    /**
+     * Defines the contract for bidresponse.ext.prebid.module
+     */
+    ExtModule module;
 }
