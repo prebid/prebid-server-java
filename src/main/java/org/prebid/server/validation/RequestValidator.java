@@ -465,6 +465,10 @@ public class RequestValidator {
                 throw new ValidationException(String.format(
                         "request.ext.prebid.aliases.%s refers to unknown bidder: %s", alias, coreBidder));
             }
+            if (!bidderCatalog.isActive(coreBidder)) {
+                throw new ValidationException(String.format(
+                        "request.ext.prebid.aliases.%s refers to disabled bidder: %s", alias, coreBidder));
+            }
             if (alias.equals(coreBidder)) {
                 throw new ValidationException(String.format("request.ext.prebid.aliases.%s defines a no-op alias. "
                         + "Choose a different alias, or remove this entry", alias));
