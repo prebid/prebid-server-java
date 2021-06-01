@@ -30,11 +30,8 @@ public class AdfTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/adf/test-cache-adf-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/adf/test-cache-matcher-adf.json")));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/adf/test-cache-adf-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adf/test-cache-matcher-adf.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -52,7 +49,6 @@ public class AdfTest extends IntegrationTest {
                 "openrtb2/adf/test-auction-adf-response.json",
                 response, singletonList("adf"));
 
-        System.out.println(response.getBody().prettyPrint());
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
