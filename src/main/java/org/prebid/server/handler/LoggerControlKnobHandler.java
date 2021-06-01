@@ -3,8 +3,11 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.log.LoggerControlKnob;
 
 import java.time.Duration;
@@ -15,6 +18,8 @@ import java.util.Objects;
 import java.util.Set;
 
 public class LoggerControlKnobHandler implements Handler<RoutingContext> {
+
+    private static final Logger logger = LoggerFactory.getLogger(LoggerControlKnobHandler.class);
 
     private static final String LEVEL_PARAMETER = "level";
     private static final String DURATION_PARAMETER = "duration";
@@ -31,17 +36,17 @@ public class LoggerControlKnobHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        final MultiMap parameters = context.request().params();
-
+    public void handle(RoutingContext routingContext) {
+        final HttpResponseSender responseSender = HttpResponseSender.from(routingContext, logger);
         try {
+            final MultiMap parameters = routingContext.request().params();
             loggerControlKnob.changeLogLevel(readLevel(parameters), readDuration(parameters));
         } catch (InvalidRequestException e) {
-            context.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(e.getMessage());
-            return;
+            responseSender
+                    .status(HttpResponseStatus.BAD_REQUEST)
+                    .body(e.getMessage());
         }
-
-        context.response().end();
+        responseSender.send();
     }
 
     private String readLevel(MultiMap parameters) {

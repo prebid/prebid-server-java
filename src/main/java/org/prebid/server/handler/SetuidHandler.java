@@ -23,6 +23,7 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedUidsException;
+import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
@@ -101,9 +102,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        toSetuidContext(context)
-                .setHandler(setuidContextResult -> handleSetuidContextResult(setuidContextResult, context));
+    public void handle(RoutingContext routingContext) {
+        toSetuidContext(routingContext)
+                .setHandler(setuidContextResult -> handleSetuidContextResult(setuidContextResult, routingContext));
     }
 
     private Future<SetuidContext> toSetuidContext(RoutingContext routingContext) {
@@ -216,9 +217,15 @@ public class SetuidHandler implements Handler<RoutingContext> {
             } else {
                 metrics.updateUserSyncTcfBlockedMetric(bidderCookieName);
 
-                final int status = UNAVAILABLE_FOR_LEGAL_REASONS;
-                respondWith(routingContext, status, "The gdpr_consent param prevents cookies from being saved");
-                analyticsDelegator.processEvent(SetuidEvent.error(status), tcfContext);
+                final HttpResponseStatus status = new HttpResponseStatus(UNAVAILABLE_FOR_LEGAL_REASONS,
+                        "Unavailable for legal reasons");
+
+                HttpResponseSender.from(routingContext, logger)
+                        .status(status)
+                        .body("The gdpr_consent param prevents cookies from being saved")
+                        .send();
+
+                analyticsDelegator.processEvent(SetuidEvent.error(status.code()), tcfContext);
             }
 
         } else {
@@ -251,18 +258,23 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
         addCookie(routingContext, cookie);
 
-        final int status = HttpResponseStatus.OK.code();
+        final HttpResponseStatus status = HttpResponseStatus.OK;
 
         final String format = routingContext.request().getParam(UsersyncUtil.FORMAT_PARAMETER);
         if (shouldRespondWithPixel(format, setuidContext.getSyncType())) {
-            routingContext.response().sendFile(PIXEL_FILE_PATH);
+            HttpResponseSender.from(routingContext, logger)
+                    .sendFile(PIXEL_FILE_PATH);
         } else {
-            respondWith(routingContext, status, null);
+            HttpResponseSender.from(routingContext, logger)
+                    .status(status)
+                    .addHeader(HttpHeaders.CONTENT_LENGTH, "0")
+                    .addHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
+                    .send();
         }
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         analyticsDelegator.processEvent(SetuidEvent.builder()
-                .status(status)
+                .status(status.code())
                 .bidder(bidder)
                 .uid(uid)
                 .success(successfullyUpdated)
@@ -277,50 +289,36 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
         final String message = error.getMessage();
-        final int status;
+        final HttpResponseStatus status;
         final String body;
         if (error instanceof InvalidRequestException) {
             metrics.updateUserSyncBadRequestMetric();
-            status = HttpResponseStatus.BAD_REQUEST.code();
+            status = HttpResponseStatus.BAD_REQUEST;
             body = String.format("Invalid request format: %s", message);
-
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
-            status = HttpResponseStatus.UNAUTHORIZED.code();
+            status = HttpResponseStatus.UNAUTHORIZED;
             body = String.format("Unauthorized: %s", message);
         } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             body = String.format("Unexpected setuid processing error: %s", message);
             logger.warn(body, error);
         }
 
-        respondWith(routingContext, status, body);
+        HttpResponseSender.from(routingContext, logger)
+                .status(status)
+                .body(body)
+                .send();
+
+        final SetuidEvent setuidEvent = SetuidEvent.error(status.code());
         if (tcfContext == null) {
-            analyticsDelegator.processEvent(SetuidEvent.error(status));
+            analyticsDelegator.processEvent(setuidEvent);
         } else {
-            analyticsDelegator.processEvent(SetuidEvent.error(status), tcfContext);
+            analyticsDelegator.processEvent(setuidEvent, tcfContext);
         }
     }
 
-    private void addCookie(RoutingContext context, Cookie cookie) {
-        context.response().headers().add(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie));
-    }
-
-    private static void respondWith(RoutingContext context, int status, String body) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            return;
-        }
-
-        context.response().setStatusCode(status);
-        if (body != null) {
-            context.response().end(body);
-        } else {
-            context.response()
-                    .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
-                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
-                    .end();
-        }
+    private void addCookie(RoutingContext routingContext, Cookie cookie) {
+        routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie));
     }
 }

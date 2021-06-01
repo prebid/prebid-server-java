@@ -6,6 +6,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.json.JacksonMapper;
 
@@ -27,21 +28,20 @@ public class StatusHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            return;
-        }
-
+    public void handle(RoutingContext routingContext) {
+        final HttpResponseStatus status;
+        final String body;
         if (CollectionUtils.isEmpty(healthCheckers)) {
-            context.response()
-                    .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-                    .end();
+            status = HttpResponseStatus.NO_CONTENT;
+            body = null;
         } else {
-            context.response()
-                    .end(mapper.encode(new TreeMap<>(healthCheckers.stream()
-                            .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status)))));
+            status = HttpResponseStatus.OK;
+            body = mapper.encode(new TreeMap<>(healthCheckers.stream()
+                    .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status))));
         }
+        HttpResponseSender.from(routingContext, logger)
+                .status(status)
+                .body(body)
+                .send();
     }
 }

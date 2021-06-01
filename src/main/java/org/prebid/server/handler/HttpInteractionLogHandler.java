@@ -3,8 +3,11 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.model.HttpLogSpec;
 
@@ -12,6 +15,8 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class HttpInteractionLogHandler implements Handler<RoutingContext> {
+
+    private static final Logger logger = LoggerFactory.getLogger(HttpInteractionLogHandler.class);
 
     private static final String ENDPOINT_PARAMETER = "endpoint";
     private static final String STATUS_CODE_PARAMETER = "statusCode";
@@ -27,9 +32,10 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        final MultiMap parameters = context.request().params();
+    public void handle(RoutingContext routingContext) {
+        final MultiMap parameters = routingContext.request().params();
 
+        final HttpResponseSender responseSender = HttpResponseSender.from(routingContext, logger);
         try {
             httpInteractionLogger.setSpec(HttpLogSpec.of(
                     readEndpoint(parameters),
@@ -37,11 +43,11 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
                     readAccount(parameters),
                     readLimit(parameters)));
         } catch (InvalidRequestException e) {
-            context.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(e.getMessage());
-            return;
+            responseSender
+                    .status(HttpResponseStatus.BAD_REQUEST)
+                    .body(e.getMessage());
         }
-
-        context.response().end();
+        responseSender.send();
     }
 
     private HttpLogSpec.Endpoint readEndpoint(MultiMap parameters) {

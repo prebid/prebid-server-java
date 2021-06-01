@@ -159,6 +159,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).closed();
         verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).setStatusMessage(anyString());
         verify(httpResponse).end("Invalid request format: Request has no body");
         verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
@@ -182,6 +183,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).closed();
         verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).setStatusMessage(anyString());
         verify(httpResponse).end("Invalid request format: Request body cannot be parsed");
         verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
@@ -208,6 +210,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).closed();
         verify(httpResponse).setStatusCode(401);
+        verify(httpResponse).setStatusMessage(anyString());
         verify(httpResponse).end("Unauthorized: Sync is not allowed for this uids");
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
 
@@ -231,6 +234,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).closed();
         verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).setStatusMessage(anyString());
         verify(httpResponse).end("Invalid request format: gdpr_consent is required if gdpr is 1");
         verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);

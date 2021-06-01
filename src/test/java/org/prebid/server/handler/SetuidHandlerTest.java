@@ -109,6 +109,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
+        given(httpResponse.closed()).willReturn(false);
 
         given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("test", "test"));
 

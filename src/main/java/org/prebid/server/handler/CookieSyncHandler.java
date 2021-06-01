@@ -2,12 +2,10 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.util.AsciiString;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -31,6 +29,7 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedUidsException;
+import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
@@ -68,7 +67,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
     private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
 
-    private static final Map<CharSequence, AsciiString> JSON_HEADERS_MAP = Collections.singletonMap(
+    private static final Map<CharSequence, CharSequence> HEADERS = Collections.singletonMap(
             HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
@@ -438,7 +437,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         updateCookieSyncTcfMetrics(bidders, rejectedBidders.getRejectedByTcf());
 
-        final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
                 .map(bidder -> bidderStatusFor(bidder, cookieSyncContext, rejectedBidders))
@@ -449,18 +447,23 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final List<BidderUsersyncStatus> updatedBidderStatuses =
                 trimBiddersToLimit(bidderStatuses, resolveLimit(cookieSyncContext));
-        final String status = uidsCookie.hasLiveUids() ? "ok" : "no_cookie";
+        final String cookieSyncStatus = uidsCookie.hasLiveUids() ? "ok" : "no_cookie";
 
-        final CookieSyncResponse response = CookieSyncResponse.of(status, updatedBidderStatuses);
+        final HttpResponseStatus status = HttpResponseStatus.OK;
+        final CookieSyncResponse response = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
 
-        final String body = mapper.encode(response);
-        respondWith(routingContext, HttpResponseStatus.OK.code(), body, JSON_HEADERS_MAP);
+        HttpResponseSender.from(cookieSyncContext.getRoutingContext(), logger)
+                .status(status)
+                .headers(HEADERS)
+                .body(mapper.encode(response))
+                .send();
 
-        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-        analyticsDelegator.processEvent(CookieSyncEvent.builder()
-                .status(HttpResponseStatus.OK.code())
+        final CookieSyncEvent event = CookieSyncEvent.builder()
+                .status(status.code())
                 .bidderStatus(updatedBidderStatuses)
-                .build(), tcfContext);
+                .build();
+        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
+        analyticsDelegator.processEvent(event, tcfContext);
     }
 
     private void updateCookieSyncTcfMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
@@ -544,12 +547,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * <p>
      * 3. Host-bidder uid value in uids cookie should not exist or be different from host-cookie uid value.
      */
-    private String resolveUidFromHostCookie(RoutingContext context, String cookieFamilyName) {
+    private String resolveUidFromHostCookie(RoutingContext routingContext, String cookieFamilyName) {
         if (!Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
             return null;
         }
 
-        final Map<String, String> cookies = HttpUtil.cookiesAsMap(context);
+        final Map<String, String> cookies = HttpUtil.cookiesAsMap(routingContext);
         final String hostCookieUid = uidsCookieService.parseHostCookie(cookies);
 
         if (hostCookieUid == null) {
@@ -637,48 +640,37 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
         final String message = error.getMessage();
-        final int status;
+        final HttpResponseStatus status;
         final String body;
+
         if (error instanceof InvalidRequestException) {
-            metrics.updateUserSyncBadRequestMetric();
-            status = HttpResponseStatus.BAD_REQUEST.code();
+            status = HttpResponseStatus.BAD_REQUEST;
             body = String.format("Invalid request format: %s", message);
+
+            metrics.updateUserSyncBadRequestMetric();
             BAD_REQUEST_LOGGER.info(message, 0.01);
         } else if (error instanceof UnauthorizedUidsException) {
-            metrics.updateUserSyncOptoutMetric();
-            status = HttpResponseStatus.UNAUTHORIZED.code();
+            status = HttpResponseStatus.UNAUTHORIZED;
             body = String.format("Unauthorized: %s", message);
+
+            metrics.updateUserSyncOptoutMetric();
         } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             body = String.format("Unexpected setuid processing error: %s", message);
+
             logger.warn(body, error);
         }
 
-        respondWith(routingContext, status, body, Collections.emptyMap());
+        HttpResponseSender.from(routingContext, logger)
+                .status(status)
+                .body(body)
+                .send();
+
+        final CookieSyncEvent cookieSyncEvent = CookieSyncEvent.error(status.code(), body);
         if (tcfContext == null) {
-            analyticsDelegator.processEvent(CookieSyncEvent.error(status, body));
+            analyticsDelegator.processEvent(cookieSyncEvent);
         } else {
-            analyticsDelegator.processEvent(CookieSyncEvent.error(status, body), tcfContext);
-        }
-    }
-
-    private static void respondWith(RoutingContext context,
-                                    int status,
-                                    String body,
-                                    Map<CharSequence, AsciiString> headers) {
-        // don't send the response if client has gone
-        final HttpServerResponse response = context.response();
-        if (response.closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            return;
-        }
-
-        response.setStatusCode(status);
-        if (body != null) {
-            headers.forEach(response::putHeader);
-            response.end(body);
-        } else {
-            response.end();
+            analyticsDelegator.processEvent(cookieSyncEvent, tcfContext);
         }
     }
 

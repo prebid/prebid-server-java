@@ -5,9 +5,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.util.HttpUtil;
@@ -21,6 +24,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class BidderDetailsHandler implements Handler<RoutingContext> {
+
+    private static final Logger logger = LoggerFactory.getLogger(BidderDetailsHandler.class);
+
+    private static final Map<CharSequence, CharSequence> HEADERS = Collections.singletonMap(
+            HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
     private static final String BIDDER_NAME_PARAM = "bidderName";
     private static final String ALL_PARAM_VALUE = "all";
@@ -36,8 +44,8 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
 
     private static void validateAliases(BidderCatalog bidderCatalog) {
         if (bidderCatalog.names().contains(ALL_PARAM_VALUE)) {
-            throw new IllegalArgumentException(String.format(
-                    "There is '%s' bidder or alias configured which is unacceptable.", ALL_PARAM_VALUE));
+            throw new IllegalArgumentException(
+                    String.format("There is '%s' bidder or alias configured which is unacceptable.", ALL_PARAM_VALUE));
         }
     }
 
@@ -50,8 +58,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
                 .filter(bidderCatalog::isActive)
                 .collect(Collectors.toMap(Function.identity(), name -> bidderNode(bidderCatalog, name)));
 
-        final Map<String, ObjectNode> allToInfos = Collections.singletonMap(
-                ALL_PARAM_VALUE, allInfos(nameToInfo));
+        final Map<String, ObjectNode> allToInfos = Collections.singletonMap(ALL_PARAM_VALUE, allInfos(nameToInfo));
 
         return Stream.of(nameToInfo, allToInfos)
                 .flatMap(map -> map.entrySet().stream())
@@ -74,18 +81,19 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        final String bidderName = context.request().getParam(BIDDER_NAME_PARAM);
+    public void handle(RoutingContext routingContext) {
+        final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
 
+        final HttpResponseSender responseSender = HttpResponseSender.from(routingContext, logger);
         if (bidderInfos.containsKey(bidderName)) {
-            context.response()
-                    .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                    .end(bidderInfos.get(bidderName));
+            responseSender
+                    .headers(HEADERS)
+                    .body(bidderInfos.get(bidderName));
         } else {
-            context.response()
-                    .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-                    .end();
+            responseSender
+                    .status(HttpResponseStatus.NOT_FOUND);
         }
+        responseSender.send();
     }
 
     @Value(staticConstructor = "of")
@@ -98,7 +106,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         @JsonProperty("aliasOf")
         String aliasOf;
 
-        static BidderInfoResponseModel from(BidderInfo bidderInfo) {
+        private static BidderInfoResponseModel from(BidderInfo bidderInfo) {
             return of(bidderInfo.getMaintainer(), bidderInfo.getCapabilities(), bidderInfo.getAliasOf());
         }
     }

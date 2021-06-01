@@ -9,6 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
 
 /**
@@ -37,12 +38,20 @@ public class VersionHandler implements Handler<RoutingContext> {
      * Responds with commit revision.
      */
     @Override
-    public void handle(RoutingContext context) {
+    public void handle(RoutingContext routingContext) {
+        final HttpResponseStatus status;
+        final String body;
         if (StringUtils.isNotBlank(revisionResponseBody)) {
-            context.response().end(revisionResponseBody);
+            status = HttpResponseStatus.OK;
+            body = revisionResponseBody;
         } else {
-            context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
+            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+            body = null;
         }
+        HttpResponseSender.from(routingContext, logger)
+                .status(status)
+                .body(body)
+                .send();
     }
 
     @AllArgsConstructor(staticName = "of")

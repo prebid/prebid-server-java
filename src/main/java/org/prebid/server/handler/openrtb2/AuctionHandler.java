@@ -13,15 +13,16 @@ import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
@@ -121,14 +122,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
-        final int status;
+        final HttpResponseStatus status;
         final String body;
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
-            status = HttpResponseStatus.OK.code();
+            status = HttpResponseStatus.OK;
             routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
             body = mapper.encode(responseResult.result().getLeft());
         } else {
@@ -145,7 +146,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 conditionalLogger.info(String.format("%s, Referer: %s", message,
                         routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
 
-                status = HttpResponseStatus.BAD_REQUEST.code();
+                status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
@@ -153,7 +154,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 conditionalLogger.info(message, 100);
                 errorMessages = Collections.singletonList(message);
 
-                status = HttpResponseStatus.UNAUTHORIZED.code();
+                status = HttpResponseStatus.UNAUTHORIZED;
                 body = message;
                 final String accountId = ((UnauthorizedAccountException) exception).getAccountId();
                 metrics.updateAccountRequestRejectedMetrics(accountId);
@@ -165,7 +166,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
-                status = HttpResponseStatus.FORBIDDEN.code();
+                status = HttpResponseStatus.FORBIDDEN;
                 body = message;
             } else {
                 metricRequestStatus = MetricName.err;
@@ -174,35 +175,36 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 final String message = exception.getMessage();
                 errorMessages = Collections.singletonList(message);
 
-                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
 
-        final AuctionEvent auctionEvent = auctionEventBuilder.status(status).errors(errorMessages).build();
+        final AuctionEvent auctionEvent = auctionEventBuilder.status(status.code()).errors(errorMessages).build();
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
         respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent,
                 tcfContext);
 
-        httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status, body);
+        httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status.code(), body);
     }
 
-    private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,
-                             MetricName metricRequestStatus, AuctionEvent event, TcfContext tcfContext) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
-        } else {
-            context.response()
-                    .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
-                    .setStatusCode(status)
-                    .end(body);
+    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
+                             MetricName requestType, MetricName metricRequestStatus, AuctionEvent event,
+                             TcfContext tcfContext) {
 
+        final boolean responseSent = HttpResponseSender.from(routingContext, logger)
+                .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
+                .status(status)
+                .body(body)
+                .send();
+
+        if (responseSent) {
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
+        } else {
+            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
         }
     }
 
