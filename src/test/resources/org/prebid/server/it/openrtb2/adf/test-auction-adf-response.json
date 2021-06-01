@@ -47,7 +47,7 @@
       "adf": "{{ adf.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
     },
-    "tmaxrequest": 5000,
+    "tmaxrequest": 2000,
     "prebid": {
       "auctiontimestamp": 1000
     }
