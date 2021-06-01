@@ -19,11 +19,6 @@
       }
     }
   ],
-  "at": 1,
-  "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
   "ext": {
     "prebid": {
       "targeting": {

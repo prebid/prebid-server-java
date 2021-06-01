@@ -5,7 +5,6 @@ import lombok.Value;
 
 /**
  * Algorix Ext Imp
- * @author xunyunbo@algorix.co
  */
 @AllArgsConstructor(staticName = "of")
 @Value

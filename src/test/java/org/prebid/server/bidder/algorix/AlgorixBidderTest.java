@@ -37,7 +37,6 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 /**
  * AlgoriX Bidder Test
- * @author xunyunbo@algorix.co
  */
 public class AlgorixBidderTest extends VertxTest {
 

@@ -20,7 +20,6 @@ import static java.util.Collections.singletonList;
 
 /**
  * Algorix Test in org.prebid.server.it
- * @author xunyunbo@algorix.co
  */
 @RunWith(SpringRunner.class)
 public class AlgorixTest extends IntegrationTest {
@@ -31,6 +30,7 @@ public class AlgorixTest extends IntegrationTest {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/algorix-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/algorix/test-algorix-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/algorix/test-algorix-bid-response.json"))));
 

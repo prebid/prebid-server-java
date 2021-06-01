@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 
 /**
  * AlgoriX (@link Bidder) implementation.
- * @author xunyunbo@algorix.co
  */
 public class AlgorixBidder implements Bidder<BidRequest> {
 
@@ -123,7 +122,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * check Integer Size Value is Valid(not null and no zero)
+     * Check Integer Size Value is Valid(not null and no zero)
      * @param value Integer size value
      * @return true or false
      */
@@ -132,7 +131,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * update Imp for transform banner Size
+     * Update Imp for transform banner Size
      * @param imp imp
      * @return new imp
      */

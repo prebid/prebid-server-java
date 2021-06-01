@@ -39,7 +39,7 @@
     "buyeruid" : "BTW-UID"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": 2000,
   "cur": [
     "USD"
   ],
