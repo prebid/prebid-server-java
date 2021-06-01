@@ -100,37 +100,6 @@ public class AlgorixBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Resolve Url
-     * @param endpoint endpoint Url
-     * @param extImp Algorix Ext Imp
-     * @return target Url
-     */
-    private static String resolveUrl(String endpoint, ExtImpAlgorix extImp) {
-        return endpoint
-                .replace(URL_SID_MACRO, extImp.getSid())
-                .replace(URL_TOKEN_MACRO, extImp.getToken());
-    }
-
-    /**
-     * Resolve Headers
-     * @return headers
-     */
-    private static MultiMap resolveHeaders() {
-        final MultiMap headers = HttpUtil.headers();
-        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
-        return headers;
-    }
-
-    /**
-     * Check Integer Size Value is Valid(not null and no zero)
-     * @param value Integer size value
-     * @return true or false
-     */
-    private static boolean isValidSizeValue(Integer value) {
-        return value != null && value > 0;
-    }
-
-    /**
      * Update Imp for transform banner Size
      * @param imp imp
      * @return new imp
@@ -150,6 +119,37 @@ public class AlgorixBidder implements Bidder<BidRequest> {
             }
         }
         return imp;
+    }
+
+    /**
+     * Check Integer Size Value is Valid(not null and no zero)
+     * @param value Integer size value
+     * @return true or false
+     */
+    private static boolean isValidSizeValue(Integer value) {
+        return value != null && value > 0;
+    }
+
+    /**
+     * Replace url macro
+     * @param endpoint endpoint Url
+     * @param extImp Algorix Ext Imp
+     * @return target Url
+     */
+    private static String resolveUrl(String endpoint, ExtImpAlgorix extImp) {
+        return endpoint
+                .replace(URL_SID_MACRO, extImp.getSid())
+                .replace(URL_TOKEN_MACRO, extImp.getToken());
+    }
+
+    /**
+     * Add openrtb version header 2.5
+     * @return headers
+     */
+    private static MultiMap resolveHeaders() {
+        final MultiMap headers = HttpUtil.headers();
+        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+        return headers;
     }
 
     @Override
