@@ -1,6 +1,5 @@
 package org.prebid.server.auction.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
@@ -20,15 +19,12 @@ import java.util.Map;
 @Value
 public class AuctionContext {
 
-    @JsonIgnore
     RoutingContext routingContext;
 
-    @JsonIgnore
     UidsCookie uidsCookie;
 
     BidRequest bidRequest;
 
-    @JsonIgnore
     Timeout timeout;
 
     Account account;
@@ -37,9 +33,22 @@ public class AuctionContext {
 
     List<String> prebidErrors;
 
+    List<String> debugWarnings;
+
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 
     PrivacyContext privacyContext;
 
     GeoInfo geoInfo;
+
+    public AuctionContext with(BidRequest bidRequest) {
+        return this.toBuilder().bidRequest(bidRequest).build();
+    }
+
+    public AuctionContext with(PrivacyContext privacyContext) {
+        return this.toBuilder()
+                .privacyContext(privacyContext)
+                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                .build();
+    }
 }

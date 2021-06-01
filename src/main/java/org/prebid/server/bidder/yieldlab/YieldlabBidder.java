@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.ObjectUtils;
@@ -91,7 +90,7 @@ public class YieldlabBidder implements Bidder<Void> {
                 .filter(Objects::nonNull)
                 .flatMap(map -> map.entrySet().stream())
                 .filter(entry -> entry.getKey() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (channel1, channel2) -> channel1));
 
         final String adSlotIdsParams = adSlotIds.stream().sorted().collect(Collectors.joining(AD_SLOT_ID_SEPARATOR));
         return ExtImpYieldlab.builder().adslotId(adSlotIdsParams).targeting(targeting).build();
@@ -228,11 +227,6 @@ public class YieldlabBidder implements Bidder<Void> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         final List<YieldlabResponse> yieldlabResponses;
         try {
             yieldlabResponses = decodeBodyToBidList(httpCall);

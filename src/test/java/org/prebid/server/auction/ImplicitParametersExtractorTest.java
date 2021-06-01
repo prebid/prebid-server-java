@@ -14,8 +14,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.MalformedURLException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.BDDMockito.given;
@@ -86,30 +84,27 @@ public class ImplicitParametersExtractorTest {
     }
 
     @Test
-    public void domainFromShouldFailIfUrlCouldNotBeParsed() {
-        assertThatCode(() -> extractor.domainFrom("httpP://non_an_url"))
+    public void domainFromShouldFailIfHostIsNull() {
+        assertThatCode(() -> extractor.domainFrom(null))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'httpP://non_an_url': unknown protocol: httpp")
-                .hasCauseInstanceOf(MalformedURLException.class);
+                .hasMessage("Host is not defined or can not be derived from request");
     }
 
     @Test
-    public void domainFromShouldFailIfUrlDoesNotContainHost() {
-        assertThatCode(() -> extractor.domainFrom("http:/path"))
+    public void domainFromShouldFailIfDomainCouldNotBeDerivedFromHost() {
+        assertThatCode(() -> extractor.domainFrom("domain"))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Host not found from URL 'http:/path'");
+                .hasMessage("Cannot derive eTLD+1 for host domain");
     }
 
     @Test
-    public void domainFromShouldFailIfDomainCouldNotBeDerivedFromUrl() {
-        assertThatCode(() -> extractor.domainFrom("http://domain"))
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'domain': cannot derive eTLD+1 for domain domain");
+    public void domainFromShouldDeriveDomainFromHost() {
+        assertThat(extractor.domainFrom("example.com")).isEqualTo("example.com");
     }
 
     @Test
-    public void domainFromShouldDeriveDomainFromUrl() {
-        assertThat(extractor.domainFrom("http://example.com")).isEqualTo("example.com");
+    public void domainFromShouldDeriveDomainFromHostWithSubdomain() {
+        assertThat(extractor.domainFrom("subdomain.example.com")).isEqualTo("example.com");
     }
 
     @Test

@@ -31,7 +31,7 @@
       },
       "ext": {
         "gumgum": {
-          "zone": "second_zone"
+          "pubId": 737
         }
       }
     },
@@ -55,7 +55,8 @@
       },
       "ext": {
         "gumgum": {
-          "zone": "third_zone"
+          "zone": "third_zone",
+          "irisid": "iris_6f9285823a48bne5"
         }
       }
     }
@@ -103,13 +104,9 @@
     }
   },
   "user": {
+    "buyeruid": "GUM-UID",
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {

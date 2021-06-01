@@ -21,10 +21,11 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
@@ -39,13 +40,8 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "AV-UID",
+    "buyeruid": "AV-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },
@@ -66,10 +62,6 @@
   "ext": {
     "prebid": {
       "debug": 1,
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

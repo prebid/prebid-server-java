@@ -6,6 +6,8 @@ import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
+import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.izettle.metrics.influxdb.InfluxDbHttpSender;
 import com.izettle.metrics.influxdb.InfluxDbReporter;
 import com.izettle.metrics.influxdb.InfluxDbSender;
@@ -20,7 +22,6 @@ import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.metric.AccountMetricsVerbosity;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
@@ -107,13 +108,21 @@ public class MetricsConfiguration {
 
     @Bean
     Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
-                    AccountMetricsVerbosity accountMetricsVerbosity, BidderCatalog bidderCatalog) {
-        return new Metrics(metricRegistry, counterType, accountMetricsVerbosity, bidderCatalog);
+                    AccountMetricsVerbosity accountMetricsVerbosity) {
+        return new Metrics(metricRegistry, counterType, accountMetricsVerbosity);
     }
 
     @Bean
     MetricRegistry metricRegistry() {
-        return SharedMetricRegistries.getOrCreate(METRIC_REGISTRY_NAME);
+        final boolean alreadyExists = SharedMetricRegistries.names().contains(METRIC_REGISTRY_NAME);
+        final MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(METRIC_REGISTRY_NAME);
+
+        if (!alreadyExists) {
+            metricRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
+            metricRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
+        }
+
+        return metricRegistry;
     }
 
     @Bean

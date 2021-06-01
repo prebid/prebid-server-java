@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -195,11 +194,6 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
@@ -222,14 +216,11 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Resolves the media type for the bid.
-     */
-    private static BidType getType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getVideo() != null) {
                 return BidType.video;

@@ -25,7 +25,7 @@
       },
       "ext": {
         "engagebdr": {
-          "sspid":"88888"
+          "sspid": "88888"
         }
       }
     }
@@ -74,12 +74,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {

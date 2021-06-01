@@ -5,10 +5,12 @@ import lombok.Value;
 
 import java.util.List;
 
-@Value
+@Value(staticConstructor = "of")
 public class BidderInfo {
 
     boolean enabled;
+
+    String aliasOf;
 
     MaintainerInfo maintainer;
 
@@ -22,16 +24,26 @@ public class BidderInfo {
 
     boolean modifyingVastXmlAllowed;
 
-    public static BidderInfo create(boolean enabled, String maintainerEmail, List<String> appMediaTypes,
-                                    List<String> siteMediaTypes, List<String> supportedVendors, int vendorId,
-                                    boolean enforceGdpr, boolean ccpaEnforced, boolean modifyingVastXmlAllowed) {
-        final MaintainerInfo maintainer = new MaintainerInfo(maintainerEmail);
-        final CapabilitiesInfo capabilities = new CapabilitiesInfo(platformInfo(appMediaTypes),
-                platformInfo(siteMediaTypes));
-        final GdprInfo gdpr = new GdprInfo(vendorId, enforceGdpr);
+    public static BidderInfo create(boolean enabled,
+                                    String aliasOf,
+                                    String maintainerEmail,
+                                    List<String> appMediaTypes,
+                                    List<String> siteMediaTypes,
+                                    List<String> supportedVendors,
+                                    int vendorId,
+                                    boolean enforceGdpr,
+                                    boolean ccpaEnforced,
+                                    boolean modifyingVastXmlAllowed) {
 
-        return new BidderInfo(
-                enabled, maintainer, capabilities, supportedVendors, gdpr, ccpaEnforced, modifyingVastXmlAllowed);
+        return of(
+                enabled,
+                aliasOf,
+                new MaintainerInfo(maintainerEmail),
+                new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),
+                supportedVendors,
+                new GdprInfo(vendorId, enforceGdpr),
+                ccpaEnforced,
+                modifyingVastXmlAllowed);
     }
 
     private static PlatformInfo platformInfo(List<String> mediaTypes) {
@@ -65,8 +77,8 @@ public class BidderInfo {
         /**
          * GDPR Vendor ID in the IAB Global Vendor List which refers to this Bidder.
          * <p>
-         * The Global Vendor list can be found here: https://vendorlist.consensu.org/vendorlist.json
-         * Bidders can register for the list here: https://register.consensu.org/
+         * The Global Vendor list can be found at https://iabeurope.eu/
+         * Bidders can be registered to the list at https://register.consensu.org/
          * <p>
          * If you're not on the list, this should return 0. If cookie sync requests have GDPR consent info,
          * or the Prebid Server host company configures its deploy to be "cautious" when no GDPR info exists

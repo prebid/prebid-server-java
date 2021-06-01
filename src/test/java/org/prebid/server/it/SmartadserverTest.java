@@ -5,12 +5,12 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,7 +24,8 @@ public class SmartadserverTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromSmartadserver() throws IOException, JSONException {
         // given
         // Smartadserver bid response for imp 001
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-exchange/api/bid"))
+                .withQueryParam("callerId", equalTo("5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-request-1.json")))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-response-1.json"))));
@@ -51,6 +52,6 @@ public class SmartadserverTest extends IntegrationTest {
                 "openrtb2/smartadserver/test-auction-smartadserver-response.json",
                 response, singletonList("smartadserver"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }

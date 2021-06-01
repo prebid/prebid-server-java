@@ -187,20 +187,6 @@ public class AdgenerationBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()

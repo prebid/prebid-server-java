@@ -6,7 +6,6 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -65,6 +64,6 @@ public class YieldlabTest extends IntegrationTest {
                 response, singletonList("yieldlab"));
 
         final String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, openrtbCacheDebugComparator());
     }
 }

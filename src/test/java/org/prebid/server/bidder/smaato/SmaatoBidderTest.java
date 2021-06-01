@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -185,6 +186,25 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldModifyRequestAppPublisherId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.app(App.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getPublisher)
+                .extracting(Publisher::getId)
+                .containsOnly("publisherId");
+    }
+
+    @Test
     public void makeHttpRequestsShouldModifyRequestUser() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -250,6 +270,21 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnErrorIfNoBidAdm() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.id("test").impid("123"))), null);
+
+        // when
+        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Empty ad markup in bid with id: test"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfNotSupportedMarkupType() throws JsonProcessingException {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "anyType");
@@ -257,7 +292,7 @@ public class SmaatoBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))), headers);
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm("adm"))), headers);
 
         // when
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
@@ -284,6 +319,25 @@ public class SmaatoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput("Invalid ad markup adm"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfAdmIsInvalid() throws JsonProcessingException {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm("{\"image\": invalid"))), headers);
+
+        // when
+        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Invalid ad markup {\"image\": invalid"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -354,6 +408,41 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnCorrectBidIfAdMarkTypeIsImgAndParametersAreEmpty() throws JsonProcessingException {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Img");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm("{\"image\":{\"img\":{\"url\":\""
+                                + "//prebid-test.smaatolabs.net/img/320x50.jpg\",\"ctaurl\":\""
+                                + "//prebid-test.smaatolabs.net/track/ctaurl/1\"},\"impressiontrackers\":[\""
+                                + "//prebid-test.smaatolabs.net/track/imp/1\",\"//prebid-test.smaatolabs.net/track/"
+                                + "imp/2\"],\"clicktrackers\":[\"//prebid-test.smaatolabs.net/track/click/1\",\""
+                                + "//prebid-test.smaatolabs.net/track/click/2\"]}}"))), headers);
+
+        // when
+        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+
+        // then
+        final Bid expectedBid = Bid.builder()
+                .impid("123")
+                .adm("<div style=\"cursor:pointer\" onclick=\"fetch(decodeURIComponent('%2F%2Fprebid-test.smaatolabs."
+                        + "net%2Ftrack%2Fclick%2F1'.replace(/\\+/g, ' ')), {cache: 'no-cache'});fetch"
+                        + "(decodeURIComponent('%2F%2Fprebid-test.smaatolabs.net%2Ftrack%2Fclick%2F2'.replace(/\\+/g,"
+                        + " ' ')), {cache: 'no-cache'});;window.open(decodeURIComponent('%2F%2Fprebid-test.smaatolabs."
+                        + "net%2Ftrack%2Fctaurl%2F1'.replace(/\\+/g, ' ')));\"><img src=\"//prebid-test.smaatolabs.net"
+                        + "/img/320x50.jpg\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/"
+                        + "track/imp/1\" alt=\"\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/"
+                        + "track/imp/2\" alt=\"\" width=\"0\" height=\"0\"/></div>")
+                .build();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnCorrectBidIfAdMarkTypeIsVideo() throws JsonProcessingException {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Video");
@@ -391,20 +480,6 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
@@ -421,8 +496,12 @@ public class SmaatoBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpSmaato.of("publisherId", "adspaceId")))))
+                .banner(Banner.builder()
+                        .id("banner_id")
+                        .w(300)
+                        .h(500)
+                        .build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of("publisherId", "adspaceId")))))
                 .build();
     }
 

@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -277,11 +276,6 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<InvibesBidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final InvibesBidderResponse bidResponse =
                     mapper.decodeValue(httpCall.getResponse().getBody(), InvibesBidderResponse.class);

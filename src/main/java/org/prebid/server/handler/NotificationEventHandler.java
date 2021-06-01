@@ -12,6 +12,7 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.events.EventRequest;
@@ -38,16 +39,16 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private static final long DEFAULT_TIMEOUT = 1000L;
 
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
     private final TrackingPixel trackingPixel;
 
-    public NotificationEventHandler(AnalyticsReporter analyticsReporter,
+    public NotificationEventHandler(AnalyticsReporterDelegator analyticsDelegator,
                                     TimeoutFactory timeoutFactory,
                                     ApplicationSettings applicationSettings) {
 
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
 
@@ -131,7 +132,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         .integration(eventRequest.getIntegration())
                         .httpContext(HttpContext.from(context))
                         .build();
-                analyticsReporter.processEvent(notificationEvent);
+                analyticsDelegator.processEvent(notificationEvent);
 
                 respondWithOkStatus(context, eventRequest.getFormat() == EventRequest.Format.image);
             } else {

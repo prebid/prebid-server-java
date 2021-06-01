@@ -17,6 +17,7 @@
           "crid": "29681110",
           "w": 1024,
           "h": 576,
+          "exp": 120,
           "ext": {
             "bidder": {
               "avocet": {
@@ -26,6 +27,8 @@
             "prebid": {
               "type": "video",
               "targeting": {
+                "hb_uuid_avocet": "ce120de7-25d0-4384-8983-8a9462149c8c",
+                "hb_uuid": "ce120de7-25d0-4384-8983-8a9462149c8c",
                 "hb_pb": "0.50",
                 "hb_bidder_avocet": "avocet",
                 "hb_cache_path_avocet": "{{ cache.path }}",
@@ -43,9 +46,14 @@
                 "bids": {
                   "url": "{{ cache.resource_url }}78f9a6dd-d08c-4b80-ba0f-0159b9add9bf",
                   "cacheId": "78f9a6dd-d08c-4b80-ba0f-0159b9add9bf"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}ce120de7-25d0-4384-8983-8a9462149c8c",
+                  "cacheId": "ce120de7-25d0-4384-8983-8a9462149c8c"
                 }
               }
-            }
+            },
+            "origbidcpm": 0.5
           }
         }
       ],
@@ -60,15 +68,15 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"api\":1,\"w\":1024,\"h\":576,\"ext\":{\"avocet\":{\"duration\":30}}}}]}",
-            "responsebody": "{\"responses\":[{\"uuid\":\"78f9a6dd-d08c-4b80-ba0f-0159b9add9bf\"}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"api\":1,\"w\":1024,\"h\":576,\"ext\":{\"avocet\":{\"duration\":30},\"origbidcpm\":0.5}}},{\"type\":\"xml\",\"value\":\"some-test-ad\",\"expiry\":120}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"78f9a6dd-d08c-4b80-ba0f-0159b9add9bf\"},{\"uuid\":\"ce120de7-25d0-4384-8983-8a9462149c8c\"}]}",
             "status": 200
           }
         ],
         "avocet": [
           {
             "uri": "{{ avocet.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"test-imp-banner-id\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":500,\"h\":400},\"ext\":{\"bidder\":{\"placement\":\"5ea9601ac865f911007f1b6a\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"AV-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"debug\":1,\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"auctiontimestamp\":1000,\"channel\":{\"name\":\"web\"}}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"test-imp-banner-id\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":500,\"h\":400},\"ext\":{\"bidder\":{\"placement\":\"5ea9601ac865f911007f1b6a\"}}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\",\"domain\":\"example.com\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"AV-UID\",\"ext\":{\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"debug\":1,\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"auctiontimestamp\":1000,\"channel\":{\"name\":\"web\"}}}}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"h\":576,\"w\":1024,\"api\":1,\"ext\":{\"avocet\":{\"duration\":30}}}]}]}",
             "status": 200
           }
@@ -90,17 +98,22 @@
               "h": 400
             },
             "ext": {
-              "avocet": {
-                "placement": "5ea9601ac865f911007f1b6a"
+              "prebid": {
+                "bidder": {
+                  "avocet": {
+                    "placement": "5ea9601ac865f911007f1b6a"
+                  }
+                }
               }
             }
           }
         ],
         "site": {
-          "domain": "example.com",
+          "domain": "www.example.com",
           "page": "http://www.example.com",
           "publisher": {
-            "id": "publisherId"
+            "id": "publisherId",
+            "domain": "example.com"
           },
           "ext": {
             "amp": 0
@@ -116,11 +129,6 @@
         },
         "user": {
           "ext": {
-            "digitrust": {
-              "id": "id",
-              "keyv": 123,
-              "pref": 0
-            },
             "consent": "consentValue"
           }
         },
@@ -141,10 +149,6 @@
         "ext": {
           "prebid": {
             "debug": 1,
-            "aliases": {
-              "appnexusAlias": "appnexus",
-              "conversantAlias": "conversant"
-            },
             "targeting": {
               "pricegranularity": {
                 "precision": 2,

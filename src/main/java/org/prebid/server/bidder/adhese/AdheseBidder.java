@@ -4,19 +4,22 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adhese.model.AdheseBid;
 import org.prebid.server.bidder.adhese.model.AdheseOriginData;
+import org.prebid.server.bidder.adhese.model.AdheseRequestBody;
 import org.prebid.server.bidder.adhese.model.AdheseResponseExt;
 import org.prebid.server.bidder.adhese.model.Cpm;
 import org.prebid.server.bidder.adhese.model.CpmValues;
@@ -42,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 /**
  * Adhese {@link Bidder} implementation.
@@ -53,9 +55,10 @@ public class AdheseBidder implements Bidder<Void> {
             new TypeReference<ExtPrebid<?, ExtImpAdhese>>() {
             };
 
-    private static final String ORIGIN = "JERLICIA";
-    private static final String QUERY_PARAMETER_GDPR = "/xt";
-    private static final String QUERY_PARAMETER_REFERER = "/xf";
+    private static final String ORIGIN_BID = "JERLICIA";
+    private static final String GDPR_QUERY_PARAMETER = "xt";
+    private static final String REFERER_QUERY_PARAMETER = "xf";
+    private static final String IFA_QUERY_PARAMETER = "xz";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -78,15 +81,25 @@ public class AdheseBidder implements Bidder<Void> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = buildUrl(request, endpointUrl, extImpAdhese);
+        final String uri = getUrl(extImpAdhese);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
-                        .method(HttpMethod.GET)
+                        .method(HttpMethod.POST)
                         .uri(uri)
-                        .headers(HttpUtil.headers())
+                        .body(mapper.encode(buildBody(request, extImpAdhese)))
+                        .headers(replaceHeaders(request.getDevice()))
                         .build()),
                 Collections.emptyList());
+    }
+
+    private MultiMap replaceHeaders(Device device) {
+        MultiMap headers = HttpUtil.headers();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.createOptimized("X-Real-IP"), device.getIp());
+        }
+        return headers;
     }
 
     private ExtImpAdhese parseImpExt(Imp imp) {
@@ -97,61 +110,68 @@ public class AdheseBidder implements Bidder<Void> {
         }
     }
 
-    private String buildUrl(BidRequest request, String endpointUrl, ExtImpAdhese extImpAdhese) {
-        final String uri = endpointUrl.replace("{{AccountId}}", extImpAdhese.getAccount());
-        final String slotParameter = String.format("/sl%s-%s", HttpUtil.encodeUrl(extImpAdhese.getLocation()),
+    private AdheseRequestBody buildBody(BidRequest request, ExtImpAdhese extImpAdhese) {
+        final Map<String, List<String>> parameterMap = new TreeMap<>();
+        parameterMap.putAll(getTargetParameters(extImpAdhese));
+        parameterMap.putAll(getGdprParameter(request.getUser()));
+        parameterMap.putAll(getRefererParameter(request.getSite()));
+        parameterMap.putAll(getIfaParameter(request.getDevice()));
+
+        return AdheseRequestBody.builder()
+                .slots(Collections.singletonList(
+                        AdheseRequestBody.Slot.builder()
+                                .slotname(getSlotParameter(extImpAdhese))
+                                .build()))
+                .parameters(parameterMap)
+                .build();
+    }
+
+    private String getUrl(ExtImpAdhese extImpAdhese) {
+        return endpointUrl.replace("{{AccountId}}", extImpAdhese.getAccount());
+    }
+
+    private static String getSlotParameter(ExtImpAdhese extImpAdhese) {
+        return String.format("%s-%s",
+                HttpUtil.encodeUrl(extImpAdhese.getLocation()),
                 HttpUtil.encodeUrl(extImpAdhese.getFormat()));
-
-        return String.format("%s%s%s%s%s", uri, slotParameter, getTargetParameters(extImpAdhese),
-                getGdprParameter(request.getUser()), getRefererParameter(request.getSite()));
     }
 
-    private String getTargetParameters(ExtImpAdhese extImpAdhese) {
-        final JsonNode keywords = extImpAdhese.getKeywords();
-        if (keywords == null || keywords.isNull()) {
-            return "";
-        }
-
-        final Map<String, List<String>> targetParameters = parseTargetParametersAndSort(keywords);
-        return targetParameters.entrySet().stream()
-                .map(entry -> createPartOrUrl(entry.getKey(), entry.getValue()))
-                .collect(Collectors.joining());
+    private Map<String, List<String>> getTargetParameters(ExtImpAdhese extImpAdhese) {
+        final JsonNode targets = extImpAdhese.getTargets();
+        return targets == null || targets.isEmpty() ? Collections.emptyMap() : parseTargetParametersAndSort(targets);
     }
 
-    private Map<String, List<String>> parseTargetParametersAndSort(JsonNode keywords) {
+    private Map<String, List<String>> parseTargetParametersAndSort(JsonNode targets) {
         return new TreeMap<>(
-                mapper.mapper().convertValue(keywords, new TypeReference<Map<String, List<String>>>() {
+                mapper.mapper().convertValue(targets, new TypeReference<Map<String, List<String>>>() {
                 }));
     }
 
-    private static String createPartOrUrl(String key, List<String> values) {
-        final String formattedValues = String.join(";", values);
-        return String.format("/%s%s", HttpUtil.encodeUrl(key), formattedValues);
-    }
-
-    private static String getGdprParameter(User user) {
+    private static Map<String, List<String>> getGdprParameter(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         return StringUtils.isNotBlank(consent)
-                ? String.format("%s%s", QUERY_PARAMETER_GDPR, consent)
-                : "";
+                ? Collections.singletonMap(GDPR_QUERY_PARAMETER, Collections.singletonList(consent))
+                : Collections.emptyMap();
     }
 
-    private static String getRefererParameter(Site site) {
+    private static Map<String, List<String>> getRefererParameter(Site site) {
         final String page = site != null ? site.getPage() : null;
         return StringUtils.isNotBlank(page)
-                ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(page))
-                : "";
+                ? Collections.singletonMap(REFERER_QUERY_PARAMETER, Collections.singletonList(page))
+                : Collections.emptyMap();
+    }
+
+    private static Map<String, List<String>> getIfaParameter(Device device) {
+        final String ifa = device != null ? device.getIfa() : null;
+        return StringUtils.isNotBlank(ifa)
+                ? Collections.singletonMap(IFA_QUERY_PARAMETER, Collections.singletonList(ifa))
+                : Collections.emptyMap();
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
-
-        final int statusCode = httpResponse.getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
 
         final JsonNode bodyNode;
         try {
@@ -175,7 +195,7 @@ public class AdheseBidder implements Bidder<Void> {
         }
 
         final Bid bid;
-        if (Objects.equals(adheseBid.getOrigin(), ORIGIN)) {
+        if (Objects.equals(adheseBid.getOrigin(), ORIGIN_BID)) {
             final AdheseResponseExt responseExt;
             final AdheseOriginData originData;
             try {

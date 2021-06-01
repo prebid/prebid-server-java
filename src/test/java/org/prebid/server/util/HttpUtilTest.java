@@ -27,16 +27,6 @@ public class HttpUtilTest {
     private RoutingContext routingContext;
 
     @Test
-    public void isSafariShouldReturnTrue() {
-        assertThat(HttpUtil.isSafari("Useragent with Safari browser and AppleWebKit built-in.")).isTrue();
-    }
-
-    @Test
-    public void isSafariShouldReturnFalse() {
-        assertThat(HttpUtil.isSafari("Useragent with Safari browser but Chromium forked by.")).isFalse();
-    }
-
-    @Test
     public void validateUrlShouldFailOnInvalidUrl() {
         // when and then
         assertThatIllegalArgumentException()
@@ -104,21 +94,21 @@ public class HttpUtilTest {
     }
 
     @Test
-    public void getDomainFromUrlShouldReturnDomain() {
+    public void getHostFromUrlShouldReturnDomain() {
         // given and when
-        final String domain = HttpUtil.getDomainFromUrl("http://rubicon.com/ad");
+        final String host = HttpUtil.getHostFromUrl("http://www.rubicon.com/ad");
 
         // then
-        assertThat(domain).isEqualTo("rubicon.com");
+        assertThat(host).isEqualTo("www.rubicon.com");
     }
 
     @Test
-    public void getDomainFromUrlShouldReturnNullIfUrlIsMalformed() {
+    public void getHostFromUrlShouldReturnNullIfUrlIsMalformed() {
         // given and when
-        final String domain = HttpUtil.getDomainFromUrl("rubicon.com");
+        final String host = HttpUtil.getHostFromUrl("www.rubicon.com");
 
         // then
-        assertThat(domain).isNull();
+        assertThat(host).isNull();
     }
 
     @Test

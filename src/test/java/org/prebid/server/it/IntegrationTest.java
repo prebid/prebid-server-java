@@ -21,6 +21,7 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONCompare;
@@ -52,6 +53,7 @@ public abstract class IntegrationTest extends VertxTest {
     public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(options()
             .port(WIREMOCK_PORT)
             .gzipDisabled(true)
+            .jettyStopTimeout(5000L)
             .extensions(IntegrationTest.CacheResponseTransformer.class));
 
     @Rule
@@ -81,13 +83,6 @@ public abstract class IntegrationTest extends VertxTest {
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
     }
 
-    static String legacyAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
-            throws IOException {
-
-        return auctionResponseFrom(templatePath, response,
-                "bidder_status.find { it.bidder == '%s' }.response_time_ms", bidders);
-    }
-
     static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
             throws IOException {
 
@@ -104,7 +99,8 @@ public abstract class IntegrationTest extends VertxTest {
                 .replaceAll("\\{\\{ cache.endpoint }}", cacheEndpoint)
                 .replaceAll("\\{\\{ cache.resource_url }}", cacheEndpoint + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", hostAndPort)
-                .replaceAll("\\{\\{ cache.path }}", cachePath);
+                .replaceAll("\\{\\{ cache.path }}", cachePath)
+                .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
 
         for (final String bidder : bidders) {
             result = result.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
@@ -146,7 +142,7 @@ public abstract class IntegrationTest extends VertxTest {
             final List<CacheObject> responseCacheObjects = new ArrayList<>();
             for (PutObject putItem : puts) {
                 final String id = putItem.getType().equals("json")
-                        ? putItem.getValue().get("id").textValue() + "@" + putItem.getValue().get("price")
+                        ? putItem.getValue().get("id").textValue() + "@" + resolvePriceForJsonMediaType(putItem)
                         : putItem.getValue().textValue();
 
                 final String uuid = jsonNodeMatcher.get(id).textValue();
@@ -156,6 +152,12 @@ public abstract class IntegrationTest extends VertxTest {
         } catch (IOException e) {
             throw new IOException("Error while matching cache ids");
         }
+    }
+
+    private static String resolvePriceForJsonMediaType(PutObject putItem) {
+        final JsonNode extObject = putItem.getValue().get("ext");
+        final JsonNode origBidCpm = extObject != null ? extObject.get("origbidcpm") : null;
+        return origBidCpm != null ? origBidCpm.toString() : putItem.getValue().get("price").toString();
     }
 
     /**
@@ -182,6 +184,10 @@ public abstract class IntegrationTest extends VertxTest {
                 new Customization("ext.debug.httpcalls.cache", arrayValueMatcher));
     }
 
+    static BidCacheRequestPattern equalToBidCacheRequest(String json) {
+        return new BidCacheRequestPattern(json);
+    }
+
     public static class CacheResponseTransformer extends ResponseTransformer {
 
         @Override
@@ -191,7 +197,8 @@ public abstract class IntegrationTest extends VertxTest {
 
             final String newResponse;
             try {
-                newResponse = cacheResponseFromRequestJson(request.getBodyAsString(),
+                newResponse = cacheResponseFromRequestJson(
+                        request.getBodyAsString(),
                         parameters.getString("matcherName"));
             } catch (IOException e) {
                 return com.github.tomakehurst.wiremock.http.Response.response()

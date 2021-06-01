@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -112,6 +113,60 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
+    public void constructExtImpShouldWorkWithDuplicateKeysTargeting() {
+        // given
+        final Map<String, String> targeting = new HashMap<>();
+        targeting.put("key1", "value1");
+
+        final List<Imp> imps = new ArrayList<Imp>();
+        imps.add(Imp.builder()
+                .banner(Banner.builder().w(1).h(1).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpYieldlab.builder()
+                                .adslotId("1")
+                                .supplyId("2")
+                                .adSize("adSize")
+                                .targeting(targeting)
+                                .extId("extId")
+                                .build())))
+                .build()
+        );
+        imps.add(Imp.builder()
+                .banner(Banner.builder().w(1).h(1).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpYieldlab.builder()
+                                .adslotId("2")
+                                .supplyId("2")
+                                .adSize("adSize")
+                                .targeting(targeting)
+                                .extId("extId")
+                                .build())))
+                .build()
+        );
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(imps)
+                .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
+                .regs(Regs.of(1, ExtRegs.of(1, "usPrivacy")))
+                .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
+                .site(Site.builder().page("http://www.example.com").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .allSatisfy(uri -> {
+                    assertThat(uri).startsWith("https://test.endpoint.com/1,2?content=json&pvid=true&ts=");
+                    assertThat(uri).endsWith("&t=key1%3Dvalue1&ids=buyeruid&yl_rtb_ifa&"
+                            + "yl_rtb_devicetype=1&gdpr=1&consent=consent");
+                });
+
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
@@ -123,20 +178,6 @@ public class YieldlabBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
                 && error.getMessage().startsWith("Unrecognized token 'invalid"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-        // given
-        final HttpCall<Void> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 

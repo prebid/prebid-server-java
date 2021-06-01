@@ -70,8 +70,11 @@ public class LunamediaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -84,8 +87,7 @@ public class LunamediaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No pubid value provided"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No pubid value provided"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -98,8 +100,7 @@ public class LunamediaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No pubid value provided"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No pubid value provided"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -113,8 +114,8 @@ public class LunamediaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Expected at least one banner.format entry or explicit w/h"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Expected at least one banner.format entry or explicit w/h"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -140,7 +141,7 @@ public class LunamediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(5)
-                .containsOnly(BidderError.badInput("No pubid value provided"),
+                .containsExactlyInAnyOrder(BidderError.badInput("No pubid value provided"),
                         BidderError.badInput("No pubid value provided"),
                         BidderError.badInput("Expected at least one banner.format entry or explicit w/h"),
                         BidderError.badInput("Expected at least one banner.format entry or explicit w/h"),
@@ -157,8 +158,8 @@ public class LunamediaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Unsupported impression has been received"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Unsupported impression has been received"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -172,12 +173,12 @@ public class LunamediaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
+        assertThat(result.getValue()).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns("http://test/get?pubid=pubid", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
@@ -201,10 +202,10 @@ public class LunamediaBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsOnly(expectedImp);
+                .containsExactly(expectedImp);
     }
 
     @Test
@@ -227,9 +228,9 @@ public class LunamediaBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsOnly(expectedImp);
+                .containsExactly(expectedImp);
     }
 
     @Test
@@ -247,10 +248,10 @@ public class LunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .flatExtracting(Imp::getBanner)
-                .containsOnly(Banner.builder()
+                .containsExactly(Banner.builder()
                         .format(emptyList())
                         .w(300).h(250).build());
     }
@@ -272,10 +273,10 @@ public class LunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .flatExtracting(Imp::getBanner)
-                .containsOnly(Banner.builder()
+                .containsExactly(Banner.builder()
                         .format(singletonList(Format.builder().w(400).h(200).build()))
                         .w(300).h(250).build());
     }
@@ -297,9 +298,9 @@ public class LunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
-                .containsOnly(Site.builder().publisher(null).domain("").build());
+                .containsExactly(Site.builder().publisher(null).domain("").build());
     }
 
     @Test
@@ -318,9 +319,9 @@ public class LunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getApp)
-                .containsOnly(App.builder().publisher(null).build());
+                .containsExactly(App.builder().publisher(null).build());
     }
 
     @Test
@@ -332,9 +333,11 @@ public class LunamediaBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = lunamediaBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -382,7 +385,7 @@ public class LunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -400,7 +403,7 @@ public class LunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     private static BidRequest givenBidRequest(

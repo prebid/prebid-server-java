@@ -118,7 +118,7 @@ public class YieldoneBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
-        final Result<List<BidderBid>> result = yieldoneBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yieldoneBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
@@ -196,7 +196,7 @@ public class YieldoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Failed to find impression 123"));
+                .containsOnly(BidderError.badInput("Unknown impression type with id 123"));
         assertThat(result.getValue()).isEmpty();
     }
 

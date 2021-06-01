@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -114,10 +113,6 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
@@ -143,10 +138,10 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
     }
 
     private static BidderBid mapBidToBidderBid(Bid bid, List<Imp> imps, String currency) {
-        final BidType mediaType = getBidType(bid.getImpid(), imps);
+        final BidType bidType = getBidType(bid.getImpid(), imps);
 
-        if (mediaType == BidType.banner || mediaType == BidType.video) {
-            return BidderBid.of(bid, mediaType, currency);
+        if (bidType == BidType.banner || bidType == BidType.video) {
+            return BidderBid.of(bid, bidType, currency);
         }
         return null;
     }
@@ -155,7 +150,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    break;
+                    return BidType.banner;
                 }
                 if (imp.getVideo() != null) {
                     return BidType.video;

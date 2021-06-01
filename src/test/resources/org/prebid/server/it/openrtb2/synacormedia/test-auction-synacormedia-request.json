@@ -29,8 +29,8 @@
         ]
       },
       "ext": {
-        "synacormedia":{
-          "seatId":"1987",
+        "synacormedia": {
+          "seatId": "1987",
           "tagId": "demo1"
         }
       }
@@ -80,12 +80,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "regs": {

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.adgeneration;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
@@ -8,7 +9,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -129,10 +129,9 @@ public class AdgenerationBidder implements Bidder<Void> {
     }
 
     private String getAdSize(Imp imp) {
-        final List<Format> formats = imp.getBanner() == null ? null : imp.getBanner().getFormat();
-        return CollectionUtils.isEmpty(formats)
-                ? null
-                : formats.stream()
+        final Banner banner = imp.getBanner();
+        final List<Format> formats = banner != null ? banner.getFormat() : null;
+        return CollectionUtils.emptyIfNull(formats).stream()
                 .map(format -> String.format("%sx%s", format.getW(), format.getH()))
                 .collect(Collectors.joining(","));
     }
@@ -164,11 +163,6 @@ public class AdgenerationBidder implements Bidder<Void> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final AdgenerationResponse adgenerationResponse = decodeBodyToBidResponse(httpCall.getResponse());
             if (CollectionUtils.isEmpty(adgenerationResponse.getResults())) {

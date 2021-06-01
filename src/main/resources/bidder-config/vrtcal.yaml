@@ -6,14 +6,14 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: support@vrtcal.com
       app-media-types:
         - banner
       site-media-types:
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 706
     usersync:
       url:
       redirect-url:

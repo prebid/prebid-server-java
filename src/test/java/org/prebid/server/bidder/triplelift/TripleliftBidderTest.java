@@ -115,7 +115,7 @@ public class TripleliftBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyBidFloorFromImpExtWhenFloorIsPresent() {
         // given
-        final BigDecimal floor = new BigDecimal(12f);
+        final BigDecimal floor = BigDecimal.valueOf(12.32);
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .bidfloor(new BigDecimal(1))
@@ -155,8 +155,7 @@ public class TripleliftBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(null));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
@@ -169,7 +168,8 @@ public class TripleliftBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -201,6 +201,23 @@ public class TripleliftBidderTest extends VertxTest {
     public void makeBidsShouldReturnTypeBannerWhenTripleliftResponseExtIsEmpty() throws JsonProcessingException {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(null));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                null,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
+
+        // when
+        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnTypeBannerWhenTripleliftInnerExtIsNull() throws JsonProcessingException {
+        // given
+        final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(null)));
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));

@@ -11,7 +11,10 @@
         "cid": "cid001",
         "crid": "crid001",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 3.33
+        }
       }
     },
     {
@@ -25,7 +28,10 @@
         "cid": "cid002",
         "crid": "crid002",
         "w": 640,
-        "h": 480
+        "h": 480,
+        "ext": {
+          "origbidcpm": 6.66
+        }
       }
     },
     {
@@ -34,10 +40,13 @@
         "id": "bid003",
         "impid": "impId003",
         "price": 9.99,
-        "adm": "adm003",
+        "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
         "adid": "adid003",
         "cid": "cid003",
-        "crid": "crid003"
+        "crid": "crid003",
+        "ext": {
+          "origbidcpm": 9.99
+        }
       }
     },
     {

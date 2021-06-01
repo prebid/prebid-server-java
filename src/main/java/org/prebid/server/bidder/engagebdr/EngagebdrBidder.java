@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -107,10 +106,6 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse, bidRequest));
@@ -131,12 +126,11 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getMediaTypes(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getMediaTypes(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getVideo() != null) {

@@ -3,12 +3,9 @@ package org.prebid.server.bidder.adform;
 import com.iab.openrtb.request.Regs;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.bidder.adform.model.AdformDigitrust;
-import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 
@@ -23,8 +20,6 @@ import java.util.Map;
  * {@link org.prebid.server.bidder.adform.AdformAdapter} to retrieve data from request.
  */
 class AdformRequestUtil {
-
-    private static final int DIGITRUST_VERSION = 1;
 
     /**
      * Retrieves gdpr from regs.ext.gdpr and in case of any exception or invalid values returns empty string.
@@ -42,20 +37,6 @@ class AdformRequestUtil {
     String getConsent(ExtUser extUser) {
         final String gdprConsent = extUser != null ? extUser.getConsent() : "";
         return ObjectUtils.defaultIfNull(gdprConsent, "");
-    }
-
-    /**
-     * Creates {@link AdformDigitrust} from user.extUser.digitrust, if something wrong, returns null.
-     */
-    AdformDigitrust getAdformDigitrust(ExtUser extUser) {
-        final ExtUserDigiTrust extUserDigiTrust = extUser != null ? extUser.getDigitrust() : null;
-        return extUserDigiTrust != null
-                ? AdformDigitrust.of(
-                extUserDigiTrust.getId(),
-                DIGITRUST_VERSION,
-                extUserDigiTrust.getKeyv(),
-                AdformDigitrustPrivacy.of(extUserDigiTrust.getPref() != 0))
-                : null;
     }
 
     /**

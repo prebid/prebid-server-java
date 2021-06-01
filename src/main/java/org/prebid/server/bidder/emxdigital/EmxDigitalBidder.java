@@ -1,12 +1,14 @@
 package org.prebid.server.bidder.emxdigital;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -41,7 +43,8 @@ import java.util.stream.Collectors;
 
 public class EmxDigitalBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String USD_CURRENCY = "USD";
+    private static final Integer PROTOCOL_VAST_40 = 7;
 
     private static final TypeReference<ExtPrebid<?, ExtImpEmxDigital>> EMXDIGITAL_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpEmxDigital>>() {
@@ -79,7 +82,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
     // Handle request errors and formatting to be sent to EMX
     private BidRequest makeBidRequest(BidRequest request) {
-        final boolean isSecure = isSecure(request.getSite());
+        final boolean isSecure = resolveUrl(request).startsWith("https");
 
         final List<Imp> modifiedImps = request.getImp().stream()
                 .map(imp -> modifyImp(imp, isSecure, unpackImpExt(imp)))
@@ -90,10 +93,21 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static boolean isSecure(Site site) {
-        return site != null
-                && StringUtils.isNotBlank(site.getPage())
-                && site.getPage().startsWith("https");
+    private static String resolveUrl(BidRequest request) {
+        final Site site = request.getSite();
+        final String page = site != null ? site.getPage() : null;
+        if (StringUtils.isNotBlank(page)) {
+            return page;
+        }
+        final App app = request.getApp();
+        if (app != null) {
+            if (StringUtils.isNotBlank(app.getDomain())) {
+                return app.getDomain();
+            } else if (StringUtils.isNotBlank(app.getStoreurl())) {
+                return app.getStoreurl();
+            }
+        }
+        return "";
     }
 
     private ExtImpEmxDigital unpackImpExt(Imp imp) {
@@ -122,13 +136,16 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, boolean isSecure, ExtImpEmxDigital extImpEmxDigital) {
-        final Banner banner = modifyImpBanner(imp.getBanner());
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(extImpEmxDigital.getTagid())
-                .secure(BooleanUtils.toInteger(isSecure))
-                .banner(banner)
-                .ext(null);
+                .secure(BooleanUtils.toInteger(isSecure));
+        final Video video = imp.getVideo();
+        if (video != null) {
+            impBuilder.video(modifyImpVideo(video));
+        } else {
+            impBuilder.banner(modifyImpBanner(imp.getBanner()));
+        }
 
         final String stringBidfloor = extImpEmxDigital.getBidfloor();
         if (StringUtils.isBlank(stringBidfloor)) {
@@ -144,8 +161,34 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
         return impBuilder
                 .bidfloor(bidfloor)
-                .bidfloorcur(DEFAULT_BID_CURRENCY)
+                .bidfloorcur(USD_CURRENCY)
                 .build();
+    }
+
+    private static Video modifyImpVideo(Video video) {
+        if (CollectionUtils.isEmpty(video.getMimes())) {
+            throw new PreBidException("Video: missing required field mimes");
+        }
+        if (isNotPresentSize(video.getH()) && isNotPresentSize(video.getW())) {
+            throw new PreBidException("Video: Need at least one size to build request");
+        }
+        if (CollectionUtils.isNotEmpty(video.getProtocols())) {
+            final List<Integer> updatedProtocols = removeVast40Protocols(video.getProtocols());
+            return video.toBuilder().protocols(updatedProtocols).build();
+        }
+
+        return video;
+    }
+
+    private static boolean isNotPresentSize(Integer size) {
+        return Objects.isNull(size) || size == 0;
+    }
+
+    // not supporting VAST protocol 7 (VAST 4.0);
+    private static List<Integer> removeVast40Protocols(List<Integer> protocols) {
+        return protocols.stream()
+                .filter(protocol -> !protocol.equals(PROTOCOL_VAST_40))
+                .collect(Collectors.toList());
     }
 
     private static Banner modifyImpBanner(Banner banner) {
@@ -186,8 +229,9 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         }
 
         final Site site = request.getSite();
-        if (site != null && StringUtils.isNotBlank(site.getPage())) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
+        final String page = site != null ? site.getPage() : null;
+        if (StringUtils.isNotBlank(page)) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, page);
         }
 
         return headers;
@@ -241,8 +285,13 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(modifyBid(bid), BidType.banner, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(modifyBid(bid), getBidType(bid.getAdm()), bidResponse.getCur()))
                 .collect(Collectors.toList());
+    }
+
+    private static BidType getBidType(String bidAdm) {
+        return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
+                ? BidType.video : BidType.banner;
     }
 
     private static Bid modifyBid(Bid bid) {

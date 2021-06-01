@@ -22,35 +22,37 @@
         ]
       },
       "ext": {
-        "rubicon": {
-          "accountId": 2001,
-          "siteId": 3001,
-          "zoneId": 4001,
-          "inventory": {
-            "rating": [
-              "5-star"
-            ],
-            "prodtype": [
-              "tech"
-            ]
-          },
-          "visitor": {
-            "ucat": [
-              "new"
-            ],
-            "search": [
-              "iphone"
-            ]
-          },
-          "video": {
-            "size_id": 15,
-            "playerWidth": 780,
-            "playerHeight": "438",
-            "skip": 5,
-            "skipdelay": 1
-          }
-        },
         "prebid": {
+          "bidder": {
+            "rubicon": {
+              "accountId": 2001,
+              "siteId": 3001,
+              "zoneId": 4001,
+              "inventory": {
+                "rating": [
+                  "5-star"
+                ],
+                "prodtype": [
+                  "tech"
+                ]
+              },
+              "visitor": {
+                "ucat": [
+                  "new"
+                ],
+                "search": [
+                  "iphone"
+                ]
+              },
+              "video": {
+                "size_id": 15,
+                "playerWidth": 780,
+                "playerHeight": "438",
+                "skip": 5,
+                "skipdelay": 1
+              }
+            }
+          },
           "is_rewarded_inventory": 1
         }
       }
@@ -79,49 +81,57 @@
         ]
       },
       "ext": {
-        "appnexus": {
-          "member": "103",
-          "inv_code": "abc",
-          "reserve": 1.0,
-          "position": "below",
-          "traffic_source_code": "trafficSource",
-          "keywords": [
-            {
-              "key": "foo",
-              "value": [
-                "bar",
-                "baz"
+        "prebid": {
+          "bidder": {
+            "appnexus": {
+              "member": "103",
+              "inv_code": "abc",
+              "reserve": 1.0,
+              "position": "below",
+              "traffic_source_code": "trafficSource",
+              "keywords": [
+                {
+                  "key": "foo",
+                  "value": [
+                    "bar",
+                    "baz"
+                  ]
+                }
+              ]
+            },
+            "appnexusAlias": {
+              "member": "104",
+              "inv_code": "abc",
+              "reserve": 1.0,
+              "position": "above",
+              "traffic_source_code": "trafficSourceAlias",
+              "keywords": [
+                {
+                  "key": "foo",
+                  "value": [
+                    "barAlias",
+                    "bazAlias"
+                  ]
+                }
               ]
             }
-          ]
-        },
-        "appnexusAlias": {
-          "member": "104",
-          "inv_code": "abc",
-          "reserve": 1.0,
-          "position": "above",
-          "traffic_source_code": "trafficSourceAlias",
-          "keywords": [
-            {
-              "key": "foo",
-              "value": [
-                "barAlias",
-                "bazAlias"
-              ]
-            }
-          ]
+          }
         }
       }
     },
     {
       "id": "impId131",
       "native": {
-        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}},{\"required\":1,\"img\":{\"type\":3,\"wmin\":1,\"hmin\":1}},{\"required\":0,\"data\":{\"len\":200}},{\"required\":0,\"data\":{\"type\":2,\"len\":15000}},{\"required\":0,\"data\":{\"len\":40}},{\"required\":0,\"data\":{\"type\":11}}]}",
+        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}},{\"required\":1,\"img\":{\"type\":3,\"wmin\":1,\"hmin\":1}},{\"required\":0,\"data\":{\"type\":4,\"len\":200}},{\"required\":0,\"data\":{\"type\":2,\"len\":15000}},{\"required\":0,\"data\":{\"len\":40}},{\"required\":0,\"data\":{\"type\":11}}]}",
         "ver": "1.1"
       },
       "ext": {
-        "appnexus": {
-          "placement_id": 9880618
+        "prebid": {
+          "bidder": {
+            "appnexus": {
+              "placement_id": 9880618
+            }
+          }
         }
       }
     },
@@ -133,8 +143,12 @@
         ]
       },
       "ext": {
-        "appnexus": {
-          "placement_id": 10433394
+        "prebid": {
+          "bidder": {
+            "appnexus": {
+              "placement_id": 10433394
+            }
+          }
         }
       }
     },
@@ -152,25 +166,6 @@
         "prebid": {
           "storedauctionresponse": {
             "id": "test-stored-auction-response"
-          }
-        }
-      }
-    },
-    {
-      "id": "impStoredBidResponse",
-      "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
-      },
-      "ext": {
-        "prebid": {
-          "storedbidresponse": {
-            "bidder": "rubicon",
-            "id": "test-stored-bid-response"
           }
         }
       }
@@ -276,12 +271,23 @@
     }
   },
   "user": {
+    "data": [
+      {
+        "ext": {
+          "segtax": 3
+        },
+        "segment": [
+          {
+            "id": "segmentId1"
+          },
+          {
+            "id": "segmentId2"
+          }
+        ]
+      }
+    ],
     "ext": {
       "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123
-      },
       "eids": [
         {
           "source": "adserver.org",

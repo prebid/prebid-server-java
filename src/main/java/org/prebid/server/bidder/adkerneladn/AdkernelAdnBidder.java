@@ -12,6 +12,8 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -26,8 +28,6 @@ import org.prebid.server.proto.openrtb.ext.request.adkerneladn.ExtImpAdkernelAdn
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,6 +45,9 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>> ADKERNELADN_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>>() {
             };
+    private static final String DEFAULT_DOMAIN = "tag.adkernel.com";
+    private static final String URL_HOST_MACRO = "{{Host}}";
+    private static final String URL_PUBLISHER_ID_MACRO = "{{PublisherID}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -56,39 +59,36 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<Imp> imps = bidRequest.getImp();
-
+        final List<Imp> validImps = bidRequest.getImp();
         final List<BidderError> errors = new ArrayList<>();
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-        try {
-            final List<ExtImpAdkernelAdn> impExts = getAndValidateImpExt(imps);
-            final Map<ExtImpAdkernelAdn, List<Imp>> pubToImps = dispatchImpressions(imps, impExts);
-            httpRequests.addAll(buildAdapterRequests(bidRequest, pubToImps, endpointUrl));
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
+
+        final Map<Imp, ExtImpAdkernelAdn> impWithExts = getAndValidateImpExt(validImps, errors);
+        final Map<ExtImpAdkernelAdn, List<Imp>> pubToImps = dispatchImpressions(impWithExts, errors);
+        if (MapUtils.isEmpty(pubToImps)) {
+            return Result.withErrors(errors);
         }
 
-        return Result.of(httpRequests, errors);
+        return Result.of(buildAdapterRequests(bidRequest, pubToImps), errors);
     }
 
-    private static MultiMap headers() {
-        return HttpUtil.headers()
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+    private Map<Imp, ExtImpAdkernelAdn> getAndValidateImpExt(List<Imp> imps, List<BidderError> errors) {
+        final Map<Imp, ExtImpAdkernelAdn> validImpsWithExts = new HashMap<>();
+        for (Imp imp : imps) {
+            try {
+                validateImp(imp);
+                validImpsWithExts.put(imp, parseAndValidateAdkernelAdnExt(imp));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+        return validImpsWithExts;
     }
 
-    private List<ExtImpAdkernelAdn> getAndValidateImpExt(List<Imp> imps) {
-        return imps.stream()
-                .map(AdkernelAdnBidder::validateImp)
-                .map(this::parseAndValidateAdkernelAdnExt)
-                .collect(Collectors.toList());
-    }
-
-    private static Imp validateImp(Imp imp) {
+    private static void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(String.format("Invalid imp with id=%s. Expected imp.banner or imp.video",
                     imp.getId()));
         }
-        return imp;
     }
 
     private ExtImpAdkernelAdn parseAndValidateAdkernelAdnExt(Imp imp) {
@@ -105,41 +105,42 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return adkernelAdnExt;
     }
 
-    /**
-     * Group impressions by AdKernel-specific parameters `pubId` & `host`.
-     */
-    private static Map<ExtImpAdkernelAdn, List<Imp>> dispatchImpressions(List<Imp> imps,
-                                                                         List<ExtImpAdkernelAdn> impExts) {
+    private static Map<ExtImpAdkernelAdn, List<Imp>> dispatchImpressions(Map<Imp, ExtImpAdkernelAdn> impsWithExts,
+                                                                         List<BidderError> errors) {
         final Map<ExtImpAdkernelAdn, List<Imp>> result = new HashMap<>();
 
-        for (int i = 0; i < imps.size(); i++) {
-            final Imp imp = compatImpression(imps.get(i));
-            final ExtImpAdkernelAdn impExt = impExts.get(i);
+        for (Imp key : impsWithExts.keySet()) {
+            final Imp imp;
+            try {
+                imp = compatImpression(key);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+                continue;
+            }
+            final ExtImpAdkernelAdn impExt = impsWithExts.get(key);
             result.putIfAbsent(impExt, new ArrayList<>());
             result.get(impExt).add(imp);
         }
+
         return result;
     }
 
-    /**
-     * Alter impression info to comply with adkernel platform requirements.
-     */
     private static Imp compatImpression(Imp imp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
-        impBuilder.ext(null); // do not forward ext to adkernel platform
+        impBuilder.ext(null);
 
         final Banner banner = imp.getBanner();
         if (banner != null) {
-            return compatBannerImpression(impBuilder, banner);
+            compatBannerImpression(impBuilder, banner);
         }
-        return impBuilder.audio(null)
+        return impBuilder
+                .audio(null)
                 .xNative(null)
                 .build();
     }
 
-    private static Imp compatBannerImpression(Imp.ImpBuilder impBuilder, Banner compatBanner) {
+    private static void compatBannerImpression(Imp.ImpBuilder impBuilder, Banner compatBanner) {
         if (compatBanner.getW() == null && compatBanner.getH() == null) {
-            // As banner.w/h are required fields for adkernel adn platform - take the first format entry
             final List<Format> compatBannerFormat = compatBanner.getFormat();
 
             if (CollectionUtils.isEmpty(compatBannerFormat)) {
@@ -161,30 +162,30 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             impBuilder.banner(bannerBuilder.build());
         }
 
-        return impBuilder.video(null)
-                .audio(null)
-                .xNative(null)
-                .build();
+        impBuilder.video(null);
     }
 
     private List<HttpRequest<BidRequest>> buildAdapterRequests(BidRequest preBidRequest,
-                                                               Map<ExtImpAdkernelAdn, List<Imp>> pubToImps,
-                                                               String endpointUrl) {
+                                                               Map<ExtImpAdkernelAdn, List<Imp>> pubToImps) {
         final List<HttpRequest<BidRequest>> result = new ArrayList<>();
 
         for (Map.Entry<ExtImpAdkernelAdn, List<Imp>> entry : pubToImps.entrySet()) {
-            final BidRequest outgoingRequest = createBidRequest(preBidRequest, entry.getValue());
-            final String body = mapper.encode(outgoingRequest);
-            result.add(HttpRequest.<BidRequest>builder()
-                    .method(HttpMethod.POST)
-                    .uri(buildEndpoint(entry.getKey(), endpointUrl))
-                    .body(body)
-                    .headers(headers())
-                    .payload(outgoingRequest)
-                    .build());
+            result.add(createRequest(entry.getKey(), entry.getValue(), preBidRequest));
         }
 
         return result;
+    }
+
+    private HttpRequest<BidRequest> createRequest(ExtImpAdkernelAdn extImp, List<Imp> imps, BidRequest preBidRequest) {
+        final BidRequest outgoingRequest = createBidRequest(preBidRequest, imps);
+        final String body = mapper.encode(outgoingRequest);
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(buildEndpoint(extImp))
+                .body(body)
+                .headers(headers())
+                .payload(outgoingRequest)
+                .build();
     }
 
     private static BidRequest createBidRequest(BidRequest preBidRequest, List<Imp> imps) {
@@ -203,27 +204,18 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return bidRequestBuilder.build();
     }
 
-    /**
-     * Builds endpoint url based on adapter-specific pub settings from imp.ext.
-     */
-    private static String buildEndpoint(ExtImpAdkernelAdn impExt, String endpointUrl) {
-        final String updatedEndpointUrl;
+    private String buildEndpoint(ExtImpAdkernelAdn impExt) {
+        final String impHost = impExt.getHost();
+        final String host = StringUtils.isNotBlank(impHost) ? impHost : DEFAULT_DOMAIN;
 
-        if (impExt.getHost() != null) {
-            final URL url;
-            try {
-                url = new URL(endpointUrl);
-            } catch (MalformedURLException e) {
-                throw new PreBidException(
-                        String.format("Error occurred while parsing AdkernelAdn endpoint url: %s", endpointUrl), e);
-            }
-            final String currentHostAndPort = url.getHost() + (url.getPort() == -1 ? "" : ":" + url.getPort());
-            updatedEndpointUrl = endpointUrl.replace(currentHostAndPort, impExt.getHost());
-        } else {
-            updatedEndpointUrl = endpointUrl;
-        }
+        return endpointUrl
+                .replace(URL_HOST_MACRO, host)
+                .replace(URL_PUBLISHER_ID_MACRO, impExt.getPubId().toString());
+    }
 
-        return String.format("%s%s", updatedEndpointUrl, impExt.getPubId());
+    private static MultiMap headers() {
+        return HttpUtil.headers()
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
     }
 
     @Override
@@ -249,14 +241,13 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Figures out which media type this bid is for.
-     */
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getBanner() != null) {

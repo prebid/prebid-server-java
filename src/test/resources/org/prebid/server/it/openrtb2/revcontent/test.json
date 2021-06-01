@@ -1,0 +1,58 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "randomid",
+          "impid": "test-imp-id",
+          "price": 0.5,
+          "adm": "<div id='rtb-widget",
+          "adid": "12345678",
+          "cid": "987",
+          "crid": "12345678",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_cache_path_revcontent": "/cache",
+                "hb_pb_revcontent": "0.50",
+                "hb_cache_id": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                "hb_cache_host_revcontent": "localhost:8090",
+                "hb_bidder_revcontent": "revcontent",
+                "hb_pb": "0.50",
+                "hb_cache_path": "/cache",
+                "hb_size": "300x250",
+                "hb_bidder": "revcontent",
+                "hb_cache_host": "localhost:8090",
+                "hb_cache_id_revcontent": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                "hb_size_revcontent": "300x250"
+              },
+              "cache": {
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                  "cacheId": "a5d3a873-d06e-4f2f-8556-120e05d62b28"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "revcontent",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "revcontent": 128,
+      "cache": 8
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}

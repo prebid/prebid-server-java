@@ -27,7 +27,8 @@
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "my-seatcode"
+      "id": "my-seatcode",
+      "domain" : "example.com"
     },
     "ext": {
       "amp": 0
@@ -44,12 +45,7 @@
   "user": {
     "buyeruid": "TL-UID",
     "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+      "consent": "consentValue"
     }
   },
   "at": 1,

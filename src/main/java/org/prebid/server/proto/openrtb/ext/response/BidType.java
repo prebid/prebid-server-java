@@ -8,5 +8,9 @@ public enum BidType {
     video,
     audio,
     @JsonProperty("native")
-    xNative
+    xNative;
+
+    public String getName() {
+        return this == xNative ? "native" : this.name();
+    }
 }

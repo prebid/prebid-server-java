@@ -11,14 +11,13 @@
           }
         ],
         "w": 300,
-        "h": 250
+        "h": 600
       },
       "tagid": "456",
       "ext": {
         "bidder": {
-          "cp": 123,
-          "ct": 456,
-          "cf": "300x250"
+          "cp": 321,
+          "ct": 456
         }
       }
     },
@@ -31,24 +30,24 @@
             "h": 200
           }
         ],
-        "w": 120,
-        "h": 180
+        "w": 400,
+        "h": 200
       },
       "tagid": "654",
       "ext": {
         "bidder": {
           "cp": 321,
-          "ct": 654,
-          "cf": "120x180"
+          "ct": 654
         }
       }
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "321"
+      "id": "321",
+      "domain" : "example.com"
     },
     "ext": {
       "amp": 0
@@ -65,11 +64,6 @@
   "user": {
     "buyeruid": "PP-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },

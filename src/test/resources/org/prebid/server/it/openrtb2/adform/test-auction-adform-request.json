@@ -38,7 +38,7 @@
   "at": 1,
   "tmax": 5000,
   "cur": [
-    "USD"
+    "CZK"
   ],
   "source": {
     "fd": 1,
@@ -68,11 +68,6 @@
   },
   "user": {
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },

@@ -10,7 +10,7 @@
           "adid": "adid003",
           "crid": "crid003",
           "cid": "cid003",
-          "adm": "adm003"
+          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}"
         }
       ]
     }

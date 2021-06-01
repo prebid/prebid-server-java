@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -47,21 +46,33 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final ExtImpMobilefuse firstExtImpMobilefuse = request.getImp().stream()
-                .map(this::parseImpExt)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+        ExtImpMobilefuse firstExtImpMobilefuse = null;
+        for (Imp imp : request.getImp()) {
+            final ExtImpMobilefuse impExt = parseImpExt(imp);
+            if (impExt != null) {
+                firstExtImpMobilefuse = impExt;
+                break;
+            }
+        }
 
         if (firstExtImpMobilefuse == null) {
             return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
         }
 
-        final List<Imp> imps = request.getImp().stream()
-                .map(imp -> modifyImp(imp, firstExtImpMobilefuse))
-                .collect(Collectors.toList());
+        Imp requestImp = null;
+        for (Imp imp : request.getImp()) {
+            final Imp modifiedImp = modifyImp(imp, firstExtImpMobilefuse);
+            if (modifiedImp != null) {
+                requestImp = modifiedImp;
+                break;
+            }
+        }
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
+        if (requestImp == null) {
+            return Result.withError(BidderError.badInput("No valid imps"));
+        }
+
+        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(requestImp)).build();
         final String body = mapper.encode(outgoingRequest);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
@@ -77,38 +88,36 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), MOBILEFUSE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            return null;
         }
     }
 
     private Imp modifyImp(Imp imp, ExtImpMobilefuse extImpMobilefuse) {
-        Imp.ImpBuilder impBuilder = imp.toBuilder();
 
         if (imp.getBanner() != null || imp.getVideo() != null) {
+            final Imp.ImpBuilder impBuilder = imp.toBuilder();
             if (imp.getBanner() != null && imp.getVideo() != null) {
                 impBuilder.video(null);
             }
 
-            impBuilder
-                    .tagid(String.valueOf(extImpMobilefuse.getPlacementId()))
-                    .ext(null);
+            return impBuilder
+                    .tagid(Objects.toString(extImpMobilefuse.getPlacementId(), "0"))
+                    .ext(null)
+                    .build();
         }
-        return impBuilder.build();
+        return null;
     }
 
     private String makeUrl(ExtImpMobilefuse extImpMobilefuse) {
-        final String baseUrl = String.format("%s%s", endpointUrl, extImpMobilefuse.getPublisherId());
-        return Objects.equals(extImpMobilefuse.getTagidSrc(), "ext")
+        final String baseUrl = String.format("%s%s", endpointUrl,
+                Objects.toString(extImpMobilefuse.getPublisherId(), "0"));
+        return "ext".equals(extImpMobilefuse.getTagidSrc())
                 ? String.format("%s%s", baseUrl, "&tagid_src=ext")
                 : baseUrl;
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -135,6 +144,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
     }
 
     protected BidType getBidType(List<Imp> imps) {
-        return imps.get(0).getVideo() != null ? BidType.video : BidType.banner;
+        return CollectionUtils.isNotEmpty(imps)
+                && imps.get(0).getVideo() != null ? BidType.video : BidType.banner;
     }
 }

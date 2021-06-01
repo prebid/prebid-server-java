@@ -5,8 +5,9 @@ adapters:
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
+    generate-bid-id: true
     deprecated-names:
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: CNVR_PublisherIntegration@conversantmedia.com
       app-media-types:

@@ -12,7 +12,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.codec.binary.Hex;
@@ -280,13 +279,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final HttpResponse response = httpCall.getResponse();
-        final int statusCode = response.getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            final String message = response.getHeaders().get("x-fb-an-errors");
-            return Result.withError(BidderError.badInput(
-                    String.format("Unexpected status code %d with error message '%s'", statusCode, message)));
-        }
-
         try {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
@@ -325,10 +317,12 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 throw new PreBidException(String.format("bid %s missing 'bid_id' in 'adm'", bid.getId()));
             }
 
-            bid.setAdid(bidId);
-            bid.setCrid(bidId);
+            final Bid modifiedBid = bid.toBuilder()
+                    .adid(bidId)
+                    .crid(bidId)
+                    .build();
 
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
+            return BidderBid.of(modifiedBid, getBidType(modifiedBid.getImpid(), imps), currency);
 
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
@@ -336,7 +330,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidType resolveBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 final BidType bidType = resolveImpType(imp);
@@ -361,16 +355,13 @@ public class FacebookBidder implements Bidder<BidRequest> {
         final App app = bidRequest.getApp();
         final Publisher publisher = app != null ? app.getPublisher() : null;
         final String publisherId = publisher != null ? publisher.getId() : null;
-
         if (StringUtils.isEmpty(publisherId)) {
             return null;
         }
 
-        final String url = String.format(timeoutNotificationUrlTemplate, this.platformId, publisherId, requestId);
-
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(url)
+                .uri(String.format(timeoutNotificationUrlTemplate, platformId, publisherId, requestId))
                 .build();
     }
 }

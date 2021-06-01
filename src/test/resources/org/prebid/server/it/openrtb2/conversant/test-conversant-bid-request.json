@@ -14,7 +14,7 @@
         "h": 600
       },
       "displaymanager": "prebid-s2s",
-      "displaymanagerver": "1.0.1",
+      "displaymanagerver": "2.0.0",
       "ext": {
         "bidder": {
           "site_id": "siteId"
@@ -31,7 +31,7 @@
         "h": 600
       },
       "displaymanager": "prebid-s2s",
-      "displaymanagerver": "1.0.1",
+      "displaymanagerver": "2.0.0",
       "ext": {
         "bidder": {
           "site_id": "siteId"
@@ -41,10 +41,11 @@
   ],
   "site": {
     "id": "siteId",
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
@@ -61,11 +62,6 @@
   "user": {
     "buyeruid": "CV-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },

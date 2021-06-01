@@ -36,10 +36,11 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
@@ -56,11 +57,6 @@
   "user": {
     "buyeruid": "MM-UID",
     "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
       "consent": "consentValue"
     }
   },
