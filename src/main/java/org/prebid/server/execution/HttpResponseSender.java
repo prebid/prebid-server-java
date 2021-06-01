@@ -91,7 +91,7 @@ public class HttpResponseSender {
             return respondWith(bodyAsBuffer, routingContext.response()::end);
         }
 
-        return respondWith(null, null);
+        return respondWith(null, emptyConsumer());
     }
 
     /**
@@ -141,5 +141,10 @@ public class HttpResponseSender {
         }
 
         return connectionClosed;
+    }
+
+    private static Consumer<Object> emptyConsumer() {
+        return ignored -> {
+        };
     }
 }
