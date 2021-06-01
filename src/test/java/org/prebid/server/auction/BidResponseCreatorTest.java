@@ -575,8 +575,11 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponse responseWithExpectedFields = BidResponse.builder()
                 .id("123")
                 .cur("USD")
-                .ext(ExtBidResponse.of(null, null, null, singletonMap("bidder1", 100), 1000L, null,
-                        ExtBidResponsePrebid.of(1000L, null)))
+                .ext(ExtBidResponse.builder()
+                        .responsetimemillis(singletonMap("bidder1", 100))
+                        .tmaxrequest(1000L)
+                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .build())
                 .build();
 
         assertThat(bidResponse)
@@ -2217,14 +2220,13 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(storedRequestProcessor).videoStoredDataResult(any(), eq(singletonList(imp1)), anyList(), eq(timeout));
 
         assertThat(result.result().getExt()).isEqualTo(
-                ExtBidResponse.of(null,
-                        singletonMap("prebid",
-                                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "Bad timeout"))),
-                        null,
-                        singletonMap("bidder1", 100),
-                        1000L,
-                        null,
-                        ExtBidResponsePrebid.of(1000L, null)));
+                ExtBidResponse.builder()
+                        .errors(singletonMap("prebid",
+                                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "Bad timeout"))))
+                        .responsetimemillis(singletonMap("bidder1", 100))
+                        .tmaxrequest(1000L)
+                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .build());
     }
 
     @Test
@@ -2249,15 +2251,14 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getExt()).isEqualTo(
-                ExtBidResponse.of(null,
-                        singletonMap(invalidBidderName,
+                ExtBidResponse.builder()
+                        .errors(singletonMap(invalidBidderName,
                                 singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
-                                        "invalid has been deprecated and is no longer available. Use valid instead."))),
-                        null,
-                        singletonMap("bidder1", 100),
-                        1000L,
-                        null,
-                        ExtBidResponsePrebid.of(1000L, null)));
+                                        "invalid has been deprecated and is no longer available. Use valid instead."))))
+                        .responsetimemillis(singletonMap("bidder1", 100))
+                        .tmaxrequest(1000L)
+                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2280,13 +2281,14 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         assertThat(result.result().getExt()).isEqualTo(
-                ExtBidResponse.of(null,
-                        singletonMap("prebid",
-                                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                                        "privacy error"))),
-                        null,
-                        singletonMap("bidder1", 100), 1000L, null,
-                        ExtBidResponsePrebid.of(1000L, null)));
+                ExtBidResponse.builder()
+                        .errors(singletonMap(
+                                "prebid",
+                                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "privacy error"))))
+                        .responsetimemillis(singletonMap("bidder1", 100))
+                        .tmaxrequest(1000L)
+                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .build());
     }
 
     @Test

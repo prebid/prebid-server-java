@@ -2992,7 +2992,9 @@ public class ExchangeServiceTest extends VertxTest {
     private static BidResponse givenBidResponseWithError(Map<String, List<ExtBidderError>> errors) {
         return BidResponse.builder()
                 .seatbid(emptyList())
-                .ext(ExtBidResponse.of(null, errors, null, null, null, null, null))
+                .ext(ExtBidResponse.builder()
+                        .errors(errors)
+                        .build())
                 .build();
     }
 

@@ -577,8 +577,14 @@ public class BidResponseCreator {
                 : null;
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
-        return ExtBidResponse.of(extResponseDebug, errors, warnings, responseTimeMillis, bidRequest.getTmax(), null,
-                ExtBidResponsePrebid.of(auctionTimestamp, null));
+        return ExtBidResponse.builder()
+                .debug(extResponseDebug)
+                .errors(errors)
+                .warnings(warnings)
+                .responsetimemillis(responseTimeMillis)
+                .tmaxrequest(bidRequest.getTmax())
+                .prebid(ExtBidResponsePrebid.of(auctionTimestamp, null))
+                .build();
     }
 
     /**

@@ -310,8 +310,9 @@ public class AuctionHandlerTest extends VertxTest {
                 .build();
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
-                        .ext(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
-                                null, null, null, null, null, null))
+                        .ext(ExtBidResponse.builder()
+                                .debug(ExtResponseDebug.of(null, resolvedRequest))
+                                .build())
                         .build()));
 
         // when
