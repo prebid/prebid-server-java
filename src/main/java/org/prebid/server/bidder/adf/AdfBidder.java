@@ -2,6 +2,7 @@ package org.prebid.server.bidder.adf;
 
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
@@ -10,6 +11,9 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
 
+/**
+ * Adf {@link Bidder} implementation.
+ */
 public class AdfBidder extends OpenrtbBidder<ExtImpAdf> {
 
     public AdfBidder(String endpointUrl, JacksonMapper mapper) {
