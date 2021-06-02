@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -138,12 +139,24 @@ public class ConversantBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VER)
-                .bidfloor(impExt.getBidfloor())
+                .bidfloor(getBidFloor(imp, impExt))
                 .tagid(impExt.getTagId())
                 .secure(getSecure(imp, impExt))
                 .banner(modifyBanner(banner, impExt.getPosition()))
                 .video(video != null && banner == null ? modifyVideo(video, impExt) : video)
                 .build();
+    }
+
+    private static BigDecimal getBidFloor(Imp imp, ExtImpConversant impExt) {
+        BigDecimal impBidFloor = imp.getBidfloor() == null ? new BigDecimal(0.00) : imp.getBidfloor();
+
+        if (impExt.getBidfloor() != null
+                && impBidFloor.compareTo(BigDecimal.ZERO) <= 0
+                && impExt.getBidfloor().compareTo(BigDecimal.ZERO) > 0) {
+            return impExt.getBidfloor();
+        }
+
+        return null;
     }
 
     private static Integer getSecure(Imp imp, ExtImpConversant impExt) {
