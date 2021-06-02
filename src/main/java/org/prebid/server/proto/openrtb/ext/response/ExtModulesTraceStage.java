@@ -7,12 +7,12 @@ import org.prebid.server.hooks.execution.model.Stage;
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class ExtModuleTraceStage {
+public class ExtModulesTraceStage {
 
     Stage stage;
 
     @JsonProperty("executiontimemillis")
     Long executionTime;
 
-    List<ExtModuleTraceGroup> groups;
+    List<ExtModulesTraceGroup> groups;
 }

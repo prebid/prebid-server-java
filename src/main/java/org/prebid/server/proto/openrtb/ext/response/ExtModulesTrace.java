@@ -6,10 +6,10 @@ import lombok.Value;
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class ExtModuleTrace {
+public class ExtModulesTrace {
 
     @JsonProperty("executiontimemillis")
     Long executionTime;
 
-    List<ExtModuleTraceStage> stages;
+    List<ExtModulesTraceStage> stages;
 }

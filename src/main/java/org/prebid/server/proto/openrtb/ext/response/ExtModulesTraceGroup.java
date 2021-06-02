@@ -6,11 +6,11 @@ import lombok.Value;
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class ExtModuleTraceGroup {
+public class ExtModulesTraceGroup {
 
     @JsonProperty("executiontimemillis")
     Long executionTime;
 
     @JsonProperty("invocationresults")
-    List<ExtModuleTraceInvocationResult> invocationResults;
+    List<ExtModulesTraceInvocationResult> invocationResults;
 }

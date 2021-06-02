@@ -8,9 +8,9 @@ import java.util.Map;
 @Value(staticConstructor = "of")
 public class ExtModules {
 
-    Map<String, List<String>> errors;
+    Map<String, Map<String, List<String>>> errors;
 
-    Map<String, List<String>> warnings;
+    Map<String, Map<String, List<String>>> warnings;
 
-    ExtModuleTrace trace;
+    ExtModulesTrace trace;
 }

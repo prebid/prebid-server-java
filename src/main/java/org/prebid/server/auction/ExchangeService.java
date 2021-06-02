@@ -29,7 +29,6 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
@@ -79,10 +78,10 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
-import org.prebid.server.proto.openrtb.ext.response.ExtModuleTrace;
-import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceGroup;
-import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceInvocationResult;
-import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceStage;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -1373,24 +1372,16 @@ public class ExchangeService {
     }
 
     private static ExtModules toExtModules(AuctionContext context) {
-        if (!shouldGenerateExtModules(context)) {
-            return null;
-        }
-
-        final Map<String, List<String>> errors = toHookMessages(context, HookExecutionOutcome::getErrors);
-        final Map<String, List<String>> warnings = toHookMessages(context, HookExecutionOutcome::getWarnings);
-        final ExtModuleTrace trace = toHookTrace(context);
+        final Map<String, Map<String, List<String>>> errors =
+                toHookMessages(context, HookExecutionOutcome::getErrors);
+        final Map<String, Map<String, List<String>>> warnings =
+                toHookMessages(context, HookExecutionOutcome::getWarnings);
+        final ExtModulesTrace trace = toHookTrace(context);
 
         return ObjectUtils.anyNotNull(errors, warnings, trace) ? ExtModules.of(errors, warnings, trace) : null;
     }
 
-    private static boolean shouldGenerateExtModules(AuctionContext context) {
-        final DebugContext debugContext = context.getDebugContext();
-
-        return debugContext.isDebugEnabled() || debugContext.getTraceLevel() != null;
-    }
-
-    private static Map<String, List<String>> toHookMessages(
+    private static Map<String, Map<String, List<String>>> toHookMessages(
             AuctionContext context,
             Function<HookExecutionOutcome, List<String>> messagesGetter) {
 
@@ -1406,27 +1397,32 @@ public class ExchangeService {
                         .collect(Collectors.groupingBy(
                                 hookOutcome -> hookOutcome.getHookId().getModuleCode()));
 
-        final Map<String, List<String>> messagesByModule = hookOutcomesByModule.entrySet().stream()
+        final Map<String, Map<String, List<String>>> messagesByModule = hookOutcomesByModule.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        entry -> entry.getValue().stream()
-                                .map(messagesGetter)
-                                .filter(Objects::nonNull)
-                                .flatMap(Collection::stream)
-                                .collect(Collectors.toList())));
-
+                        outcomes -> outcomes.getValue().stream()
+                                .collect(Collectors.groupingBy(
+                                        hookOutcome -> hookOutcome.getHookId().getHookImplCode()))
+                                .entrySet().stream()
+                                .collect(Collectors.toMap(
+                                        Map.Entry::getKey,
+                                        messagesLists -> messagesLists.getValue().stream()
+                                                .map(messagesGetter)
+                                                .filter(Objects::nonNull)
+                                                .flatMap(Collection::stream)
+                                                .collect(Collectors.toList())))));
 
         return !messagesByModule.isEmpty() ? messagesByModule : null;
     }
 
-    private static ExtModuleTrace toHookTrace(AuctionContext context) {
+    private static ExtModulesTrace toHookTrace(AuctionContext context) {
         final TraceLevel traceLevel = context.getDebugContext().getTraceLevel();
 
         if (traceLevel == null) {
             return null;
         }
 
-        final List<ExtModuleTraceStage> stages = context.getHookExecutionContext().getStageOutcomes()
+        final List<ExtModulesTraceStage> stages = context.getHookExecutionContext().getStageOutcomes()
                 .entrySet().stream()
                 .map(stageOutcome -> toTraceStage(stageOutcome.getKey(), stageOutcome.getValue(), traceLevel))
                 .filter(Objects::nonNull)
@@ -1436,13 +1432,14 @@ public class ExchangeService {
             return null;
         }
 
-        return ExtModuleTrace.of(
-                stages.stream().mapToLong(ExtModuleTraceStage::getExecutionTime).sum(),
+        return ExtModulesTrace.of(
+                stages.stream().mapToLong(ExtModulesTraceStage::getExecutionTime).sum(),
                 stages);
     }
 
-    private static ExtModuleTraceStage toTraceStage(Stage stage, StageExecutionOutcome stageOutcome, TraceLevel level) {
-        final List<ExtModuleTraceGroup> groups = stageOutcome.getGroups().stream()
+    private static ExtModulesTraceStage toTraceStage(Stage stage, StageExecutionOutcome stageOutcome,
+                                                     TraceLevel level) {
+        final List<ExtModulesTraceGroup> groups = stageOutcome.getGroups().stream()
                 .map(group -> toTraceGroup(group, level))
                 .collect(Collectors.toList());
 
@@ -1450,24 +1447,25 @@ public class ExchangeService {
             return null;
         }
 
-        return ExtModuleTraceStage.of(
+        return ExtModulesTraceStage.of(
                 stage,
-                groups.stream().mapToLong(ExtModuleTraceGroup::getExecutionTime).sum(),
+                groups.stream().mapToLong(ExtModulesTraceGroup::getExecutionTime).sum(),
                 groups);
     }
 
-    private static ExtModuleTraceGroup toTraceGroup(GroupExecutionOutcome group, TraceLevel level) {
-        final List<ExtModuleTraceInvocationResult> invocationResults = group.getHooks().stream()
+    private static ExtModulesTraceGroup toTraceGroup(GroupExecutionOutcome group, TraceLevel level) {
+        final List<ExtModulesTraceInvocationResult> invocationResults = group.getHooks().stream()
                 .map(hook -> toTraceInvocationResult(hook, level))
                 .collect(Collectors.toList());
 
-        return ExtModuleTraceGroup.of(
-                invocationResults.stream().mapToLong(ExtModuleTraceInvocationResult::getExecutionTime).sum(),
+        return ExtModulesTraceGroup.of(
+                invocationResults.stream().mapToLong(ExtModulesTraceInvocationResult::getExecutionTime).sum(),
                 invocationResults);
     }
 
-    private static ExtModuleTraceInvocationResult toTraceInvocationResult(HookExecutionOutcome hook, TraceLevel level) {
-        return ExtModuleTraceInvocationResult.builder()
+    private static ExtModulesTraceInvocationResult toTraceInvocationResult(HookExecutionOutcome hook,
+                                                                           TraceLevel level) {
+        return ExtModulesTraceInvocationResult.builder()
                 .hookId(hook.getHookId())
                 .executionTime(hook.getExecutionTime())
                 .status(hook.getStatus())

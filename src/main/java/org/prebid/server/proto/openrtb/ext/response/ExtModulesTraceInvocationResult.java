@@ -11,7 +11,7 @@ import java.util.List;
 
 @Builder
 @Value
-public class ExtModuleTraceInvocationResult {
+public class ExtModulesTraceInvocationResult {
 
     @JsonProperty("hookid")
     HookId hookId;
