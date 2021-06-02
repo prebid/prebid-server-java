@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.ext
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class ExtBidResponse {
 

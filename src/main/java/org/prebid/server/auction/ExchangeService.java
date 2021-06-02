@@ -45,7 +45,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
@@ -77,6 +76,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModule;
 import org.prebid.server.proto.openrtb.ext.response.ExtModuleTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceGroup;
@@ -1354,38 +1355,58 @@ public class ExchangeService {
     }
 
     private BidResponse enrichWithHooksDebugInfo(BidResponse bidResponse, AuctionContext context) {
-        final DebugContext debugContext = context.getDebugContext();
-        final boolean debugEnabled = debugContext.isDebugEnabled();
-        final TraceLevel traceLevel = debugContext.getTraceLevel();
+        final ExtModule extModule = toExtModule(context);
 
-        if (!debugEnabled && traceLevel == null) {
+        if (extModule == null) {
             return bidResponse;
         }
 
-        final HookExecutionContext hookExecutionContext = context.getHookExecutionContext();
-
-        final ExtModule extModule = ExtModule.of(
-                debugEnabled ? toHookMessages(hookExecutionContext, HookExecutionOutcome::getErrors) : null,
-                debugEnabled ? toHookMessages(hookExecutionContext, HookExecutionOutcome::getWarnings) : null,
-                traceLevel != null ? toHookTrace(hookExecutionContext, traceLevel) : null);
+        final ExtBidResponse ext = bidResponse.getExt();
 
         return bidResponse.toBuilder()
-//                .ext()
+                .ext(ext.toBuilder()
+                        .prebid(ExtBidResponsePrebid.of(
+                                ext.getPrebid().getAuctiontimestamp(),
+                                extModule))
+                        .build())
                 .build();
     }
 
+    private static ExtModule toExtModule(AuctionContext context) {
+        if (!shouldGenerateExtModule(context)) {
+            return null;
+        }
+
+        final Map<String, List<String>> errors = toHookMessages(context, HookExecutionOutcome::getErrors);
+        final Map<String, List<String>> warnings = toHookMessages(context, HookExecutionOutcome::getWarnings);
+        final ExtModuleTrace trace = toHookTrace(context);
+
+        return ObjectUtils.anyNotNull(errors, warnings, trace) ? ExtModule.of(errors, warnings, trace) : null;
+    }
+
+    private static boolean shouldGenerateExtModule(AuctionContext context) {
+        final DebugContext debugContext = context.getDebugContext();
+
+        return debugContext.isDebugEnabled() || debugContext.getTraceLevel() != null;
+    }
+
     private static Map<String, List<String>> toHookMessages(
-            HookExecutionContext hookExecutionContext,
+            AuctionContext context,
             Function<HookExecutionOutcome, List<String>> messagesGetter) {
 
+        if (!context.getDebugContext().isDebugEnabled()) {
+            return null;
+        }
+
         final Map<String, List<HookExecutionOutcome>> hookOutcomesByModule =
-                hookExecutionContext.getStageOutcomes().values().stream()
+                context.getHookExecutionContext().getStageOutcomes().values().stream()
                         .flatMap(stageOutcome -> stageOutcome.getGroups().stream())
                         .flatMap(groupOutcome -> groupOutcome.getHooks().stream())
+                        .filter(hookOutcome -> CollectionUtils.isNotEmpty(messagesGetter.apply(hookOutcome)))
                         .collect(Collectors.groupingBy(
                                 hookOutcome -> hookOutcome.getHookId().getModuleCode()));
 
-        return hookOutcomesByModule.entrySet().stream()
+        final Map<String, List<String>> messagesByModule = hookOutcomesByModule.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> entry.getValue().stream()
@@ -1393,12 +1414,27 @@ public class ExchangeService {
                                 .filter(Objects::nonNull)
                                 .flatMap(Collection::stream)
                                 .collect(Collectors.toList())));
+
+
+        return !messagesByModule.isEmpty() ? messagesByModule : null;
     }
 
-    private static ExtModuleTrace toHookTrace(HookExecutionContext hookExecutionContext, TraceLevel level) {
-        final List<ExtModuleTraceStage> stages = hookExecutionContext.getStageOutcomes().entrySet().stream()
-                .map(stageOutcome -> toTraceStage(stageOutcome.getKey(), stageOutcome.getValue(), level))
+    private static ExtModuleTrace toHookTrace(AuctionContext context) {
+        final TraceLevel traceLevel = context.getDebugContext().getTraceLevel();
+
+        if (traceLevel == null) {
+            return null;
+        }
+
+        final List<ExtModuleTraceStage> stages = context.getHookExecutionContext().getStageOutcomes()
+                .entrySet().stream()
+                .map(stageOutcome -> toTraceStage(stageOutcome.getKey(), stageOutcome.getValue(), traceLevel))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+
+        if (stages.isEmpty()) {
+            return null;
+        }
 
         return ExtModuleTrace.of(
                 stages.stream().mapToLong(ExtModuleTraceStage::getExecutionTime).sum(),
@@ -1409,6 +1445,10 @@ public class ExchangeService {
         final List<ExtModuleTraceGroup> groups = stageOutcome.getGroups().stream()
                 .map(group -> toTraceGroup(group, level))
                 .collect(Collectors.toList());
+
+        if (groups.isEmpty()) {
+            return null;
+        }
 
         return ExtModuleTraceStage.of(
                 stage,
