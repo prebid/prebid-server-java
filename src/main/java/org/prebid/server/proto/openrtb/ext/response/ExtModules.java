@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 @Value(staticConstructor = "of")
-public class ExtModule {
+public class ExtModules {
 
     Map<String, List<String>> errors;
 

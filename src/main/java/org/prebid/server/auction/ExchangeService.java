@@ -78,7 +78,7 @@ import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtModule;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModuleTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceGroup;
 import org.prebid.server.proto.openrtb.ext.response.ExtModuleTraceInvocationResult;
@@ -1355,9 +1355,9 @@ public class ExchangeService {
     }
 
     private BidResponse enrichWithHooksDebugInfo(BidResponse bidResponse, AuctionContext context) {
-        final ExtModule extModule = toExtModule(context);
+        final ExtModules extModules = toExtModules(context);
 
-        if (extModule == null) {
+        if (extModules == null) {
             return bidResponse;
         }
 
@@ -1367,13 +1367,13 @@ public class ExchangeService {
                 .ext(ext.toBuilder()
                         .prebid(ExtBidResponsePrebid.of(
                                 ext.getPrebid().getAuctiontimestamp(),
-                                extModule))
+                                extModules))
                         .build())
                 .build();
     }
 
-    private static ExtModule toExtModule(AuctionContext context) {
-        if (!shouldGenerateExtModule(context)) {
+    private static ExtModules toExtModules(AuctionContext context) {
+        if (!shouldGenerateExtModules(context)) {
             return null;
         }
 
@@ -1381,10 +1381,10 @@ public class ExchangeService {
         final Map<String, List<String>> warnings = toHookMessages(context, HookExecutionOutcome::getWarnings);
         final ExtModuleTrace trace = toHookTrace(context);
 
-        return ObjectUtils.anyNotNull(errors, warnings, trace) ? ExtModule.of(errors, warnings, trace) : null;
+        return ObjectUtils.anyNotNull(errors, warnings, trace) ? ExtModules.of(errors, warnings, trace) : null;
     }
 
-    private static boolean shouldGenerateExtModule(AuctionContext context) {
+    private static boolean shouldGenerateExtModules(AuctionContext context) {
         final DebugContext debugContext = context.getDebugContext();
 
         return debugContext.isDebugEnabled() || debugContext.getTraceLevel() != null;
