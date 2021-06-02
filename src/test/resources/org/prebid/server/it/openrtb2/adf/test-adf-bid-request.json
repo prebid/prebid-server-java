@@ -1,0 +1,67 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "native": {
+        "request": "{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}",
+        "ver": "1.2"
+      },
+      "tagid": "1",
+      "ext": {
+        "bidder": {
+          "mid": "1"
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": 2000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "includewinners": true,
+        "includebidderkeys": true
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {}
+      },
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      }
+    }
+  }
+}
