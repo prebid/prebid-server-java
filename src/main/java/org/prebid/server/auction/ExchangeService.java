@@ -1361,13 +1361,17 @@ public class ExchangeService {
         }
 
         final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+
+        final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.of(
+                extPrebid != null ? extPrebid.getAuctiontimestamp() : null,
+                extModules);
+        final ExtBidResponse updatedExt = (ext != null ? ext.toBuilder() : ExtBidResponse.builder())
+                .prebid(updatedExtPrebid)
+                .build();
 
         return bidResponse.toBuilder()
-                .ext(ext.toBuilder()
-                        .prebid(ExtBidResponsePrebid.of(
-                                ext.getPrebid().getAuctiontimestamp(),
-                                extModules))
-                        .build())
+                .ext(updatedExt)
                 .build();
     }
 
@@ -1408,7 +1412,6 @@ public class ExchangeService {
                                         Map.Entry::getKey,
                                         messagesLists -> messagesLists.getValue().stream()
                                                 .map(messagesGetter)
-                                                .filter(Objects::nonNull)
                                                 .flatMap(Collection::stream)
                                                 .collect(Collectors.toList())))));
 
