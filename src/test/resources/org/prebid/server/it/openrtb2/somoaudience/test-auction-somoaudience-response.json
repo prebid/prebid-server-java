@@ -119,7 +119,7 @@
           "id": "bidId04",
           "impid": "impId19",
           "price": 10.0,
-          "adm": "{\"assets\":[{\"id\": 0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}],\"jstracker\":\"<script src=\\\"http://www.dummyurl.js\\\"></script>\"}",
+          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}],\"jstracker\":\"<script src=\\\"http://www.dummyurl.js\\\"></script>\"}",
           "adid": "adid19",
           "adomain": [
             "appnexus.com"

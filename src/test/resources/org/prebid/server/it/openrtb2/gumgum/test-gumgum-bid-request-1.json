@@ -68,10 +68,11 @@
   ],
   "site": {
     "id": "third_zone",
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "737"
+      "id": "737",
+      "domain" : "example.com"
     },
     "ext": {
       "amp": 0

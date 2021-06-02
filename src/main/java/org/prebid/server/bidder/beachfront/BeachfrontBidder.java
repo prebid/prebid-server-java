@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -32,6 +33,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -191,7 +194,7 @@ public class BeachfrontBidder implements Bidder<Void> {
 
             requestBuilder.page(page);
             requestBuilder.domain(StringUtils.isBlank(site.getDomain())
-                    ? HttpUtil.getDomainFromUrl(page) : site.getDomain());
+                    ? HttpUtil.getHostFromUrl(page) : site.getDomain());
             requestBuilder.isMobile(0);
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(page));
         } else {
@@ -202,6 +205,12 @@ public class BeachfrontBidder implements Bidder<Void> {
             requestBuilder.domain(app.getDomain());
             requestBuilder.isMobile(1);
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(bundle));
+        }
+
+        final ExtRequestPrebidSchainSchain schain = getSchain(bidRequest);
+
+        if (schain != null) {
+            requestBuilder.schain(schain);
         }
 
         return requestBuilder.build();
@@ -288,6 +297,13 @@ public class BeachfrontBidder implements Bidder<Void> {
         return StringUtils.contains(page, "https") ? 1 : 0;
     }
 
+    private static ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
+        final Source source = bidRequest.getSource();
+        final ExtSource extSource = source != null ? source.getExt() : null;
+
+        return extSource != null ? extSource.getSchain() : null;
+    }
+
     private List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest, List<Imp> videoImps,
                                                           List<BidderError> errors) {
         final List<BeachfrontVideoRequest> videoRequests = new ArrayList<>();
@@ -321,7 +337,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             int secure = 0;
             final Site site = bidRequest.getSite();
             if (site != null && StringUtils.isBlank(site.getDomain()) && StringUtils.isNotBlank(site.getPage())) {
-                bidRequestBuilder.site(site.toBuilder().domain(HttpUtil.getDomainFromUrl(site.getPage())).build());
+                bidRequestBuilder.site(site.toBuilder().domain(HttpUtil.getHostFromUrl(site.getPage())).build());
 
                 secure = getSecure(site.getPage());
             }
@@ -421,7 +437,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             return mapper.mapper().readValue(
                     responseBody,
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, BeachfrontResponseSlot.class));
-        } catch (IOException ex) {
+        } catch (IOException e) {
             throw new PreBidException("server response failed to unmarshal "
                     + "as valid rtb. Run with request.debug = 1 for more info");
         }

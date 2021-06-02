@@ -29,7 +29,8 @@
     "domain": "google.com",
     "page": "https://google.com",
     "publisher": {
-      "id": "accountId"
+      "id": "accountId",
+      "domain": "google.com"
     },
     "ext": {
       "amp": 1
