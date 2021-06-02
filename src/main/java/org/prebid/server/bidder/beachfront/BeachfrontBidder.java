@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -32,6 +33,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -204,6 +207,12 @@ public class BeachfrontBidder implements Bidder<Void> {
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(bundle));
         }
 
+        final ExtRequestPrebidSchainSchain schain = getSchain(bidRequest);
+
+        if (schain != null) {
+            requestBuilder.schain(schain);
+        }
+
         return requestBuilder.build();
     }
 
@@ -286,6 +295,13 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private static int getSecure(String page) {
         return StringUtils.contains(page, "https") ? 1 : 0;
+    }
+
+    private static ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
+        final Source source = bidRequest.getSource();
+        final ExtSource extSource = source != null ? source.getExt() : null;
+
+        return extSource != null ? extSource.getSchain() : null;
     }
 
     private List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest, List<Imp> videoImps,
