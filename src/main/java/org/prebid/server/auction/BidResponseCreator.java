@@ -163,13 +163,13 @@ public class BidResponseCreator {
                                AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids,
-                               List<String> debugWarnings,
                                boolean debugEnabled) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final List<Imp> imps = bidRequest.getImp();
         final long auctionTimestamp = auctionTimestamp(auctionContext);
         final Account account = auctionContext.getAccount();
+        final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
         final EventsContext eventsContext = EventsContext.builder()
                 .enabledForAccount(eventsEnabledForAccount(auctionContext))

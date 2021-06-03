@@ -179,7 +179,7 @@ public class ExchangeServiceTest extends VertxTest {
     @SuppressWarnings("unchecked")
     @Before
     public void setUp() {
-        given(bidResponseCreator.create(anyList(), any(), any(), any(), anyList(), anyBoolean()))
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenBidResponseWithBids(singletonList(givenBid(identity())))));
 
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
@@ -681,7 +681,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(bidResponseCreator.create(anyList(), any(), any(), any(), anyList(), anyBoolean()))
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
                         .seatbid(asList(
                                 givenSeatBid(singletonList(givenBid(identity())), identity()),
@@ -780,7 +780,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ArgumentCaptor<List<BidderResponse>> captor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(captor.capture(), eq(expectedAuctionContext), eq(expectedCacheInfo),
-                eq(expectedMultiBidMap), anyList(), eq(false));
+                eq(expectedMultiBidMap), eq(false));
 
         final ObjectNode expectedBidExt = mapper.createObjectNode().put("origbidcpm", new BigDecimal("7.89"));
         final Bid expectedThirdBid = Bid.builder()
@@ -826,7 +826,6 @@ public class ExchangeServiceTest extends VertxTest {
                 auctionContextArgumentCaptor.capture(),
                 eq(BidRequestCacheInfo.builder().doCaching(true).shouldCacheWinningBidsOnly(true).build()),
                 eq(emptyMap()),
-                eq(emptyList()),
                 eq(false));
 
         assertThat(singletonList(auctionContextArgumentCaptor.getValue().getBidRequest()))
@@ -866,7 +865,6 @@ public class ExchangeServiceTest extends VertxTest {
                 any(),
                 eq(BidRequestCacheInfo.builder().build()),
                 eq(emptyMap()),
-                anyList(),
                 anyBoolean());
     }
 
@@ -891,7 +889,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(bidResponseCreator).create(anyList(), any(), any(), eq(emptyMap()), anyList(), eq(true));
+        verify(bidResponseCreator).create(anyList(), any(), any(), eq(emptyMap()), eq(true));
     }
 
     @Test
@@ -918,7 +916,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(bidResponseCreator).create(anyList(), any(), any(), any(), anyList(), eq(true));
+        verify(bidResponseCreator).create(anyList(), any(), any(), any(), eq(true));
     }
 
     @Test
@@ -986,7 +984,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<BidderResponse>> bidderResponsesCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator)
-                .create(bidderResponsesCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+                .create(bidderResponsesCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderResponse> bidderResponses = bidderResponsesCaptor.getValue();
 
         assertThat(bidderResponses)
@@ -1026,7 +1024,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<BidderResponse>> bidderResponsesCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator)
-                .create(bidderResponsesCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+                .create(bidderResponsesCaptor.capture(), any(), any(), any(), anyBoolean());
         final List<BidderResponse> bidderResponses = bidderResponsesCaptor.getValue();
 
         assertThat(bidderResponses)
@@ -2123,7 +2121,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(httpBidderRequester).requestBids(any(), any(), timeoutCaptor.capture(), any(), anyBoolean());
         assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(400L);
-        verify(bidResponseCreator).create(anyList(), any(), any(), any(), anyList(), anyBoolean());
+        verify(bidResponseCreator).create(anyList(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -2192,7 +2190,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyBoolean());
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
@@ -2229,7 +2227,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyBoolean());
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
@@ -2265,7 +2263,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyBoolean());
         verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(bidRequest), any(), eq("CUR1"));
         verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(bidRequest), any(), eq("CUR2"));
 
@@ -2310,7 +2308,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyBoolean());
         verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(bidRequest), eq("BAD"), eq("USD"));
         verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(bidRequest), eq("BAD"), eq("CUR"));
 
@@ -2354,7 +2352,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyBoolean());
         verify(currencyService).convertCurrency(eq(bidderPrice), eq(bidRequest), eq("CUR1"), eq("USD"));
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
@@ -2399,7 +2397,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), anyBoolean());
         verify(currencyService).convertCurrency(eq(bidder1Price), eq(bidRequest), eq("USD"), eq("EUR"));
         verify(currencyService).convertCurrency(eq(bidder2Price), eq(bidRequest), eq("USD"), eq("GBP"));
         verify(currencyService).convertCurrency(eq(bidder3Price), eq(bidRequest), eq("USD"), eq("USD"));
@@ -2767,7 +2765,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private List<BidderResponse> captureBidResponses() {
         final ArgumentCaptor<List<BidderResponse>> bidderResponseCaptor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(bidderResponseCaptor.capture(), any(), any(), any(), anyList(), anyBoolean());
+        verify(bidResponseCreator).create(bidderResponseCaptor.capture(), any(), any(), any(), anyBoolean());
         return bidderResponseCaptor.getValue();
     }
 
@@ -2864,12 +2862,12 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private void givenBidResponseCreator(List<Bid> bids) {
-        given(bidResponseCreator.create(anyList(), any(), any(), any(), anyList(), anyBoolean()))
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenBidResponseWithBids(bids)));
     }
 
     private void givenBidResponseCreator(Map<String, List<ExtBidderError>> errors) {
-        given(bidResponseCreator.create(anyList(), any(), any(), any(), anyList(), anyBoolean()))
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenBidResponseWithError(errors)));
     }
 
