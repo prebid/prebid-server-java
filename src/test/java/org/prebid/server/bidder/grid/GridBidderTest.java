@@ -241,9 +241,7 @@ public class GridBidderTest extends VertxTest {
                 .gridExtImpData(GridExtImpData.of(null, GridExtImpDataAdServer.of("name", "adslot")))
                 .build();
 
-        Imp imp = Imp.builder()
-                .ext(mapper.valueToTree(gridExtImp))
-                .build();
+        final Imp imp = Imp.builder().ext(mapper.valueToTree(gridExtImp)).build();
 
         // when
         final Imp modifiedImp = gridBidder.modifyImp(imp, ExtImpGrid.of(1));

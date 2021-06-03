@@ -6,6 +6,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
 import org.prebid.server.bidder.grid.model.GridExtImp;
+import org.prebid.server.bidder.grid.model.GridExtImpData;
+import org.prebid.server.bidder.grid.model.GridExtImpDataAdServer;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -23,14 +25,12 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
         if (impExt.getUid() == null || impExt.getUid() == 0) {
             throw new PreBidException("uid is empty");
         }
-        final GridExtImp gridExtImp = mapper.mapper().convertValue(
-                imp.getExt(),
-                GridExtImp.class
-        );
 
-        String adSlot = getAdSlot(gridExtImp);
-
-        if (adSlot != null) {
+        final GridExtImp gridExtImp = mapper.mapper().convertValue(imp.getExt(), GridExtImp.class);
+        final GridExtImpData extImpData = gridExtImp != null ? gridExtImp.getGridExtImpData() : null;
+        final GridExtImpDataAdServer adServer = extImpData != null ? extImpData.getAdServer() : null;
+        final String adSlot = adServer != null ? adServer.getAdSlot() : null;
+        if (StringUtils.isNotEmpty(adSlot)) {
 
             final GridExtImp modifiedGridExtImp = gridExtImp.toBuilder()
                     .gpid(adSlot)
@@ -57,16 +57,5 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
             }
         }
         throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
-    }
-
-    private static String getAdSlot(GridExtImp gridExtImp) {
-        if (gridExtImp != null
-                && gridExtImp.getGridExtImpData() != null
-                && gridExtImp.getGridExtImpData().getAdServer() != null
-                && StringUtils.isNotEmpty(gridExtImp.getGridExtImpData().getAdServer().getAdSlot())) {
-            return gridExtImp.getGridExtImpData().getAdServer().getAdSlot();
-        }
-
-        return null;
     }
 }
