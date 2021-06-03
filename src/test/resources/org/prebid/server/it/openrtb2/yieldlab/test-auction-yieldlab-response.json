@@ -153,6 +153,7 @@
           }
         },
         "site": {
+          "domain": "localhost",
           "ext": {
             "amp": 0
           },

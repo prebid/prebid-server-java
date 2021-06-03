@@ -245,7 +245,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder()
-                        .bidders(emptyList())
+                        .bidders(singletonList(RUBICON))
                         .gdpr(1)
                         .gdprConsent("invalid")
                         .build()));
@@ -258,6 +258,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
+        verify(metrics).updateUserSyncTcfInvalidMetric();
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
     }

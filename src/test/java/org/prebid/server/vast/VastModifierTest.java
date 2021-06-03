@@ -12,6 +12,8 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,8 +43,9 @@ public class VastModifierTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-
     private EventsService eventsService;
+    @Mock
+    private Metrics metrics;
 
     private VastModifier target;
 
@@ -53,7 +56,7 @@ public class VastModifierTest {
 
         given(bidderCatalog.isModifyingVastXmlAllowed(any())).willReturn(true);
 
-        target = new VastModifier(bidderCatalog, eventsService);
+        target = new VastModifier(bidderCatalog, eventsService, metrics);
     }
 
     @Test
@@ -198,6 +201,7 @@ public class VastModifierTest {
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
         assertThat(result).isEqualTo(adm);
         assertThat(warnings).containsExactly("VastXml does not contain neither InLine nor Wrapper for bidder response");
+        verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
     }
 
     @Test

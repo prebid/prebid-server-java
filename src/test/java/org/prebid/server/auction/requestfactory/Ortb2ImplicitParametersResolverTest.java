@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -58,6 +59,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class Ortb2ImplicitParametersResolverTest extends VertxTest {
@@ -117,6 +119,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result.getSite()).isEqualTo(Site.builder()
                 .page("http://example.com")
                 .domain("example.com")
+                .publisher(Publisher.builder().domain("example.com").build())
                 .ext(ExtSite.of(0, null))
                 .build());
         assertThat(result.getDevice())
@@ -141,6 +144,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result.getSite()).isEqualTo(Site.builder()
                 .page("http://example.com")
                 .domain("example.com")
+                .publisher(Publisher.builder().domain("example.com").build())
                 .ext(ExtSite.of(0, null))
                 .build());
         assertThat(result.getDevice())
@@ -164,6 +168,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result.getSite()).isEqualTo(Site.builder()
                 .page("http://example.com")
                 .domain("example.com")
+                .publisher(Publisher.builder().domain("example.com").build())
                 .ext(ExtSite.of(0, null))
                 .build());
         assertThat(result.getDevice())
@@ -193,6 +198,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result.getSite()).isEqualTo(Site.builder()
                 .page("http://example.com")
                 .domain("example.com")
+                .publisher(Publisher.builder().domain("example.com").build())
                 .ext(ExtSite.of(0, null))
                 .build());
         assertThat(result.getDevice())
@@ -223,10 +229,28 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThat(result.getSite()).isEqualTo(Site.builder()
                 .page("http://example.com")
                 .domain("example.com")
+                .publisher(Publisher.builder().domain("example.com").build())
                 .ext(ExtSite.of(0, null))
                 .build());
         assertThat(result.getDevice())
                 .isEqualTo(Device.builder().ipv6("2001:0db8:85a3:0000::").ua("UnitTest").build());
+    }
+
+    @Test
+    public void shouldNotImplicitlyResolveIpIfIpv6IsPassed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334").build())
+                .build();
+
+        given(ipAddressHelper.toIpAddress(eq("2001:0db8:85a3:0000:0000:8a2e:0370:7334")))
+                .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.v6));
+
+        // when
+        target.resolve(bidRequest, routingContext, timeoutResolver);
+
+        // then
+        verify(paramsExtractor, never()).ipFrom(any());
     }
 
     @Test
@@ -1021,8 +1045,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void shouldNotSetFieldsFromHeadersIfRequestFieldsNotEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("test.com").page("http://test.com")
-                        .ext(ExtSite.of(0, null)).build())
+                .site(Site.builder()
+                        .page("http://test.com")
+                        .domain("test.com")
+                        .publisher(Publisher.builder().domain("test.com").build())
+                        .ext(ExtSite.of(0, null))
+                        .build())
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
                 .cur(singletonList("USD"))
@@ -1079,8 +1107,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
 
         // then
-        assertThat(result.getSite()).isEqualTo(
-                Site.builder().ext(ExtSite.of(0, null)).build());
+        assertThat(result.getSite().getPage()).isNull();
     }
 
     @Test
@@ -1097,18 +1124,22 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
-        verify(paramsExtractor).domainFrom(eq("http://page.site.com/page1.html"));
+        verify(paramsExtractor).domainFrom(eq("page.site.com"));
 
         assertThat(singleton(result.getSite()))
-                .extracting(Site::getPage, Site::getDomain)
-                .containsOnly(tuple("http://page.site.com/page1.html", "site.com"));
+                .extracting(Site::getPage, Site::getDomain, site -> site.getPublisher().getDomain())
+                .containsOnly(tuple("http://page.site.com/page1.html", "page.site.com", "site.com"));
     }
 
     @Test
     public void shouldSetSiteExtAmpIfSiteHasNoExt() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .site(Site.builder()
+                        .page("http://test.com")
+                        .domain("test.com")
+                        .publisher(Publisher.builder().domain("test.com").build())
+                        .build())
                 .build();
         givenImplicitParams(
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
@@ -1118,16 +1149,24 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // then
         assertThat(result.getSite()).isEqualTo(
-                Site.builder().domain("test.com").page("http://test.com")
-                        .ext(ExtSite.of(0, null)).build());
+                Site.builder()
+                        .page("http://test.com")
+                        .domain("test.com")
+                        .publisher(Publisher.builder().domain("test.com").build())
+                        .ext(ExtSite.of(0, null))
+                        .build());
     }
 
     @Test
     public void shouldSetSiteExtAmpIfSiteExtHasNoAmp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("test.com").page("http://test.com")
-                        .ext(ExtSite.of(null, null)).build())
+                .site(Site.builder()
+                        .page("http://test.com")
+                        .domain("test.com")
+                        .publisher(Publisher.builder().domain("test.com").build())
+                        .ext(ExtSite.of(null, null))
+                        .build())
                 .build();
         givenImplicitParams(
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
@@ -1136,9 +1175,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
 
         // then
-        assertThat(result.getSite()).isEqualTo(
-                Site.builder().domain("test.com").page("http://test.com")
-                        .ext(ExtSite.of(0, null)).build());
+        assertThat(result.getSite()).isEqualTo(Site.builder()
+                .page("http://test.com")
+                .domain("test.com")
+                .publisher(Publisher.builder().domain("test.com").build())
+                .ext(ExtSite.of(0, null))
+                .build());
     }
 
     @Test

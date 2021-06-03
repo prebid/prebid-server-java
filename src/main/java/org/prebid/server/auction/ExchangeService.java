@@ -20,6 +20,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -157,6 +158,7 @@ public class ExchangeService {
         final UidsCookie uidsCookie = context.getUidsCookie();
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
+        final RoutingContext routingContext = context.getRoutingContext();
         final Account account = context.getAccount();
         final List<String> debugWarnings = context.getDebugWarnings();
 
@@ -178,6 +180,7 @@ public class ExchangeService {
                                 .map(bidderRequest -> requestBids(
                                         bidderRequest,
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
+                                        routingContext,
                                         debugEnabled,
                                         aliases))
                                 .collect(Collectors.toList())))
@@ -196,7 +199,7 @@ public class ExchangeService {
                         debugWarnings,
                         debugEnabled))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
-                        context.getRoutingContext(), uidsCookie, bidRequest, bidResponse, account));
+                        routingContext, uidsCookie, bidRequest, bidResponse, account));
     }
 
     private BidderAliases aliases(BidRequest bidRequest) {
@@ -975,6 +978,7 @@ public class ExchangeService {
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest,
                                                Timeout timeout,
+                                               RoutingContext routingContext,
                                                boolean debugEnabled,
                                                BidderAliases aliases) {
 
@@ -982,7 +986,7 @@ public class ExchangeService {
         final Bidder<?> bidder = bidderCatalog.bidderByName(aliases.resolveBidder(bidderName));
         final long startTime = clock.millis();
 
-        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, debugEnabled)
+        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, debugEnabled)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 

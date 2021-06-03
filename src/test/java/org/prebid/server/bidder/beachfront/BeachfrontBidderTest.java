@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -27,6 +28,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -237,6 +241,35 @@ public class BeachfrontBidderTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(
                         tuple(HttpUtil.COOKIE_HEADER.toString(), "__io_cid=4125"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedBannerRequestWithSchain() {
+        // given
+        final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
+                "pbshostcompany.com", "00001", null, null, null, null, null);
+        final ExtRequestPrebidSchainSchain expectedSchain = ExtRequestPrebidSchainSchain.of(
+                null, null, singletonList(globalNode), null);
+
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .video(null)
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(100).h(300).build()))
+                                .build()),
+                requestBuilder -> requestBuilder
+                        .source(Source.builder().ext(ExtSource.of(expectedSchain)).build())
+        );
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontBannerRequest.class))
+                .extracting(BeachfrontBannerRequest::getSchain)
+                .containsExactly(expectedSchain);
     }
 
     @Test

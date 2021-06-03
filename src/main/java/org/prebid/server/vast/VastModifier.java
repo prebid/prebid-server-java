@@ -8,6 +8,8 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 
 import java.util.List;
 import java.util.Objects;
@@ -21,10 +23,12 @@ public class VastModifier {
     private static final String WRAPPER_CLOSE_TAG = "</Wrapper>";
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
+    private final Metrics metrics;
 
-    public VastModifier(BidderCatalog bidderCatalog, EventsService eventsService) {
+    public VastModifier(BidderCatalog bidderCatalog, EventsService eventsService, Metrics metrics) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     public JsonNode modifyVastXml(Boolean isEventsEnabled,
@@ -95,7 +99,7 @@ public class VastModifier {
         } else if (wrapperTagIndex != -1) {
             return appendTrackingUrl(vastXml, vastUrlTracking, false);
         }
-
+        metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
         if (debugWarnings != null) {
             debugWarnings.add(
                     String.format("VastXml does not contain neither InLine nor Wrapper for %s response", bidder));
