@@ -14,6 +14,12 @@
       "ext": {
         "grid": {
           "uid": 1
+        },
+        "data": {
+          "adserver": {
+            "name": "some_name",
+            "adslot": "some_slot"
+          }
         }
       }
     }
@@ -39,6 +45,12 @@
     "tid": "tid"
   },
   "ext": {
+    "data": {
+      "adserver": {
+        "name": "some_name",
+        "adslot": "some_slot"
+      }
+    },
     "prebid": {
       "targeting": {
         "pricegranularity": {

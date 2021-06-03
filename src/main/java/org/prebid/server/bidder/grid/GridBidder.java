@@ -1,8 +1,11 @@
 package org.prebid.server.bidder.grid;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.grid.model.ExtImp;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
@@ -21,6 +24,28 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
         if (impExt.getUid() == null || impExt.getUid() == 0) {
             throw new PreBidException("uid is empty");
         }
+        ExtImp extImp = mapper.mapper().convertValue(
+                imp.getExt(),
+                ExtImp.class
+        );
+
+        if (extImp != null
+                && extImp.getExtImpData() != null
+                && extImp.getExtImpData().getAdServer() != null
+                && StringUtils.isNotEmpty(extImp.getExtImpData().getAdServer().getAdSlot())) {
+
+            ExtImp modifiedExtImp = ExtImp.of(extImp.getPrebid(),
+                    extImp.getBidder(),
+                    extImp.getExtImpData(),
+                    extImp.getExtImpData().getAdServer().getAdSlot());
+
+            ObjectNode modifiedExt = mapper.mapper().valueToTree(
+                    modifiedExtImp
+            );
+
+            return imp.toBuilder().ext(modifiedExt).build();
+        }
+
         return imp;
     }
 
