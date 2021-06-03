@@ -12,7 +12,13 @@ import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseVideoTargeting;
+import org.prebid.server.proto.response.ExtAmpVideoPrebid;
+import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.proto.response.VideoResponse;
 
 import java.util.Arrays;
@@ -20,7 +26,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class VideoResponseFactoryTest extends VertxTest {
@@ -59,11 +67,23 @@ public class VideoResponseFactoryTest extends VertxTest {
                                 mapper.createObjectNode())))
                 .build();
 
+        final ExtBidResponse extResponse = ExtBidResponse.builder()
+                .prebid(ExtBidResponsePrebid.of(
+                        1000L,
+                        ExtModules.of(
+                                singletonMap(
+                                        "module1", singletonMap("hook1", singletonList("error1"))),
+                                singletonMap(
+                                        "module1", singletonMap("hook1", singletonList("warning1"))),
+                                ExtModulesTrace.of(2L, emptyList()))))
+                .build();
+
         final BidResponse bidResponse = BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .seat("bidder1")
                         .bid(Arrays.asList(bid0, bid1, bid2))
                         .build()))
+                .ext(extResponse)
                 .build();
 
         final PodError podError = PodError.of(3, 1, singletonList("Error"));
@@ -85,8 +105,10 @@ public class VideoResponseFactoryTest extends VertxTest {
         final List<ExtAdPod> expectedAdPodResponse = Arrays.asList(expectedExtAdPod0, expectedExtAdPod1,
                 expectedErrorExtAdPod3);
 
-        final VideoResponse videoResponse = VideoResponse.of(expectedAdPodResponse, null, null, null);
-
-        assertThat(result).isEqualTo(videoResponse);
+        assertThat(result).isEqualTo(VideoResponse.of(
+                expectedAdPodResponse,
+                null,
+                null,
+                ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extResponse.getPrebid().getModules()))));
     }
 }

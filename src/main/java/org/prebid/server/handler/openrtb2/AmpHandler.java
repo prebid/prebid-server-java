@@ -45,9 +45,13 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.AmpResponse;
+import org.prebid.server.proto.response.ExtAmpVideoPrebid;
+import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -190,7 +194,7 @@ public class AmpHandler implements Handler<RoutingContext> {
             errors = null;
         }
 
-        return AmpResponse.of(targeting, extResponseDebug, errors);
+        return AmpResponse.of(targeting, extResponseDebug, errors, extResponseFrom(bidResponse));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -238,6 +242,14 @@ public class AmpHandler implements Handler<RoutingContext> {
         } else {
             return Collections.emptyMap();
         }
+    }
+
+    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
+        final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+
+        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
     }
 
     private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,

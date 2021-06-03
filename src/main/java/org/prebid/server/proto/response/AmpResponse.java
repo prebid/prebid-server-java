@@ -16,4 +16,6 @@ public class AmpResponse {
     ExtResponseDebug debug;
 
     Map<String, List<ExtBidderError>> errors;
+
+    ExtAmpVideoResponse ext;
 }

@@ -47,6 +47,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
 
@@ -417,6 +419,38 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(eq(
                 "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000}}}"));
+    }
+
+    @Test
+    public void shouldRespondWithHooksDebugAndTraceOutput() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(identity());
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+
+        given(exchangeService.holdAuction(any()))
+                .willReturn(givenBidResponseWithExt(
+                        ExtBidResponse.builder()
+                                .prebid(ExtBidResponsePrebid.of(
+                                        1000L,
+                                        ExtModules.of(
+                                                singletonMap(
+                                                        "module1", singletonMap("hook1", singletonList("error1"))),
+                                                singletonMap(
+                                                        "module1", singletonMap("hook1", singletonList("warning1"))),
+                                                ExtModulesTrace.of(2L, emptyList()))))
+                                .build()));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(eq(
+                "{\"targeting\":{},"
+                        + "\"ext\":{\"prebid\":{\"modules\":{"
+                        + "\"errors\":{\"module1\":{\"hook1\":[\"error1\"]}},"
+                        + "\"warnings\":{\"module1\":{\"hook1\":[\"warning1\"]}},"
+                        + "\"trace\":{\"executiontimemillis\":2,\"stages\":[]}}}}}"));
     }
 
     @Test

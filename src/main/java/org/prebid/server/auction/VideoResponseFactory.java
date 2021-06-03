@@ -15,9 +15,13 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseVideoTargeting;
+import org.prebid.server.proto.response.ExtAmpVideoPrebid;
+import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.proto.response.VideoResponse;
 
 import java.util.ArrayList;
@@ -67,7 +71,7 @@ public class VideoResponseFactory {
             extResponseDebug = null;
             errors = null;
         }
-        return VideoResponse.of(adPods, extResponseDebug, errors, null);
+        return VideoResponse.of(adPods, extResponseDebug, errors, extResponseFrom(bidResponse));
     }
 
     private static List<Bid> bidsFrom(BidResponse bidResponse) {
@@ -143,4 +147,11 @@ public class VideoResponseFactory {
                 .collect(Collectors.toList());
     }
 
+    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
+        final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+
+        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
+    }
 }
