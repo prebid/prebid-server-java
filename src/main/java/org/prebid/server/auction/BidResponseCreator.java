@@ -163,6 +163,7 @@ public class BidResponseCreator {
                                AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids,
+                               List<String> debugWarnings,
                                boolean debugEnabled) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final List<Imp> imps = bidRequest.getImp();
@@ -177,7 +178,7 @@ public class BidResponseCreator {
                 .build();
 
         final List<BidderResponseInfo> bidderResponseInfos = toBidderResponseInfos(bidderResponses, imps, account,
-                eventsContext);
+                eventsContext, debugWarnings);
 
         if (isEmptyBidderResponses(bidderResponseInfos)) {
             return Future.succeededFuture(BidResponse.builder()
@@ -217,7 +218,8 @@ public class BidResponseCreator {
     private List<BidderResponseInfo> toBidderResponseInfos(List<BidderResponse> bidderResponses,
                                                            List<Imp> imps,
                                                            Account account,
-                                                           EventsContext eventsContext) {
+                                                           EventsContext eventsContext,
+                                                           List<String> debugWarnings) {
         final List<BidderResponseInfo> result = new ArrayList<>();
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
@@ -228,7 +230,8 @@ public class BidResponseCreator {
             for (BidderBid bidderBid : seatBid.getBids()) {
                 final Bid bid = bidderBid.getBid();
                 final BidType type = bidderBid.getType();
-                final BidInfo bidInfo = toBidInfoWithGeneratedAdm(bid, type, imps, bidder, account, eventsContext);
+                final BidInfo bidInfo = toBidInfoWithGeneratedAdm(bid, type, imps, bidder, account,
+                        eventsContext, debugWarnings);
                 bidInfos.add(bidInfo);
             }
 
@@ -248,14 +251,15 @@ public class BidResponseCreator {
                                               List<Imp> imps,
                                               String bidder,
                                               Account account,
-                                              EventsContext eventsContext) {
+                                              EventsContext eventsContext,
+                                              List<String> debugWarnings) {
         final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
                 ? bidIdGenerator.generateId()
                 : null;
 
         final String bidId = bid.getId();
         final String eventBidId = generatedBidId == null ? bidId : generatedBidId;
-        final Bid modifiedBid = modifyBidAdm(bid, type, bidder, account, eventsContext, eventBidId);
+        final Bid modifiedBid = modifyBidAdm(bid, type, bidder, account, eventsContext, eventBidId, debugWarnings);
 
         return BidInfo.builder()
                 .generatedBidId(generatedBidId)
@@ -271,7 +275,8 @@ public class BidResponseCreator {
                              String bidder,
                              Account account,
                              EventsContext eventsContext,
-                             String eventBidId) {
+                             String eventBidId,
+                             List<String> debugWarnings) {
         if (BidType.video.equals(bidType)) {
             final String adm = vastModifier.createBidVastXml(
                     bidder,
@@ -279,7 +284,8 @@ public class BidResponseCreator {
                     bid.getNurl(),
                     eventBidId,
                     account.getId(),
-                    eventsContext);
+                    eventsContext,
+                    debugWarnings);
 
             return bid.toBuilder().adm(adm).build();
         }

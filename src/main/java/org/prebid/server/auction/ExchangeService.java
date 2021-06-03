@@ -193,6 +193,7 @@ public class ExchangeService {
                         context,
                         cacheInfo,
                         bidderToMultiBid,
+                        debugWarnings,
                         debugEnabled))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                         context.getRoutingContext(), uidsCookie, bidRequest, bidResponse, account));

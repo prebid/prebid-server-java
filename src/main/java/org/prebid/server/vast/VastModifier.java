@@ -9,6 +9,7 @@ import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -42,7 +43,8 @@ public class VastModifier {
                     putObject.getTimestamp(),
                     integration);
 
-            final String vastXml = appendTrackingUrlToVastXml(value.asText(), vastUrlTracking);
+            final String vastXml = appendTrackingUrlToVastXml(value.asText(), vastUrlTracking,
+                    null, bidder);
             return new TextNode(vastXml);
         }
 
@@ -54,7 +56,8 @@ public class VastModifier {
                                    String bidNurl,
                                    String eventBidId,
                                    String accountId,
-                                   EventsContext eventsContext) {
+                                   EventsContext eventsContext,
+                                   List<String> debugWarnings) {
         if (!bidderCatalog.isModifyingVastXmlAllowed(bidder)) {
             return bidAdm;
         }
@@ -67,9 +70,9 @@ public class VastModifier {
         final Long auctionTimestamp = eventsContext.getAuctionTimestamp();
         final String integration = eventsContext.getIntegration();
 
-        final String vastUrl = eventsService.vastUrlTracking(eventBidId, bidder, accountId, auctionTimestamp,
-                integration);
-        return appendTrackingUrlToVastXml(vastXml, vastUrl);
+        final String vastUrl = eventsService.vastUrlTracking(eventBidId, bidder,
+                accountId, auctionTimestamp, integration);
+        return appendTrackingUrlToVastXml(vastXml, vastUrl, debugWarnings, bidder);
     }
 
     private static String resolveVastXmlFrom(String bidAdm, String bidNurl) {
@@ -82,7 +85,8 @@ public class VastModifier {
                 : bidAdm;
     }
 
-    private String appendTrackingUrlToVastXml(String vastXml, String vastUrlTracking) {
+    private String appendTrackingUrlToVastXml(String vastXml, String vastUrlTracking,
+                                              List<String> debugWarnings, String bidder) {
         final int inLineTagIndex = StringUtils.indexOfIgnoreCase(vastXml, IN_LINE_TAG);
         final int wrapperTagIndex = StringUtils.indexOfIgnoreCase(vastXml, WRAPPER_TAG);
 
@@ -92,6 +96,10 @@ public class VastModifier {
             return appendTrackingUrl(vastXml, vastUrlTracking, false);
         }
 
+        if (debugWarnings != null) {
+            debugWarnings.add(
+                    String.format("VastXml does not contain neither InLine nor Wrapper for %s response", bidder));
+        }
         return vastXml;
     }
 
