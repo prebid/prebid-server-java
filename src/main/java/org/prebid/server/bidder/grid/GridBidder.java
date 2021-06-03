@@ -1,12 +1,11 @@
 package org.prebid.server.bidder.grid;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
-import org.prebid.server.bidder.grid.model.ExtImp;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
+import org.prebid.server.bidder.grid.model.GridExtImp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -24,26 +23,20 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
         if (impExt.getUid() == null || impExt.getUid() == 0) {
             throw new PreBidException("uid is empty");
         }
-        ExtImp extImp = mapper.mapper().convertValue(
+        final GridExtImp gridExtImp = mapper.mapper().convertValue(
                 imp.getExt(),
-                ExtImp.class
+                GridExtImp.class
         );
 
-        if (extImp != null
-                && extImp.getExtImpData() != null
-                && extImp.getExtImpData().getAdServer() != null
-                && StringUtils.isNotEmpty(extImp.getExtImpData().getAdServer().getAdSlot())) {
+        String adSlot = getAdSlot(gridExtImp);
 
-            ExtImp modifiedExtImp = ExtImp.of(extImp.getPrebid(),
-                    extImp.getBidder(),
-                    extImp.getExtImpData(),
-                    extImp.getExtImpData().getAdServer().getAdSlot());
+        if (adSlot != null) {
 
-            ObjectNode modifiedExt = mapper.mapper().valueToTree(
-                    modifiedExtImp
-            );
+            final GridExtImp modifiedGridExtImp = gridExtImp.toBuilder()
+                    .gpid(adSlot)
+                    .build();
 
-            return imp.toBuilder().ext(modifiedExt).build();
+            return imp.toBuilder().ext(mapper.mapper().valueToTree(modifiedGridExtImp)).build();
         }
 
         return imp;
@@ -64,5 +57,16 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
             }
         }
         throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
+    }
+
+    private static String getAdSlot(GridExtImp gridExtImp) {
+        if (gridExtImp != null
+                && gridExtImp.getGridExtImpData() != null
+                && gridExtImp.getGridExtImpData().getAdServer() != null
+                && StringUtils.isNotEmpty(gridExtImp.getGridExtImpData().getAdServer().getAdSlot())) {
+            return gridExtImp.getGridExtImpData().getAdServer().getAdSlot();
+        }
+
+        return null;
     }
 }

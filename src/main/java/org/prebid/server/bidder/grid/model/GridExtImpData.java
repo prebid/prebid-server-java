@@ -6,11 +6,11 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtImpData {
+public class GridExtImpData {
 
     @JsonProperty("pbadslot")
     String pbAdSlot;
 
     @JsonProperty("adserver")
-    ExtImpDataAdServer adServer;
+    GridExtImpDataAdServer adServer;
 }

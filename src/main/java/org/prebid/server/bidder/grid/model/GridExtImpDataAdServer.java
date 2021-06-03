@@ -6,7 +6,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtImpDataAdServer {
+public class GridExtImpDataAdServer {
 
     String name;
 
