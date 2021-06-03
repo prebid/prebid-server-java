@@ -139,24 +139,27 @@ public class ConversantBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VER)
-                .bidfloor(getBidFloor(imp, impExt))
-                .tagid(impExt.getTagId())
+                .bidfloor(getBidFloor(imp.getBidfloor(), impExt.getBidfloor()))
+                .tagid(getTagId(imp.getTagid(), impExt.getTagId()))
                 .secure(getSecure(imp, impExt))
                 .banner(modifyBanner(banner, impExt.getPosition()))
                 .video(video != null && banner == null ? modifyVideo(video, impExt) : video)
                 .build();
     }
 
-    private static BigDecimal getBidFloor(Imp imp, ExtImpConversant impExt) {
-        BigDecimal impBidFloor = imp.getBidfloor() == null ? new BigDecimal(0.00) : imp.getBidfloor();
+    private static String getTagId(String tagId, String impExtTagId) {
+        return StringUtils.isNotEmpty(impExtTagId) ? impExtTagId : tagId;
+    }
 
-        if (impExt.getBidfloor() != null
-                && impBidFloor.compareTo(BigDecimal.ZERO) <= 0
-                && impExt.getBidfloor().compareTo(BigDecimal.ZERO) > 0) {
-            return impExt.getBidfloor();
-        }
+    private static BigDecimal getBidFloor(BigDecimal impBidFloor, BigDecimal impExtBidFloor) {
 
-        return null;
+        return isValidBidFloor(impExtBidFloor) && !isValidBidFloor(impBidFloor)
+                ? impExtBidFloor
+                : impBidFloor;
+    }
+
+    private static boolean isValidBidFloor(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private static Integer getSecure(Imp imp, ExtImpConversant impExt) {
