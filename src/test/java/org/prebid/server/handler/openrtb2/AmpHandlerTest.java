@@ -29,6 +29,7 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -43,8 +44,6 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
@@ -399,7 +398,9 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithDebugInfoIncludedIfTestFlagIsTrue() {
         // given
-        final AuctionContext auctionContext = givenAuctionContext(builder -> builder.id("reqId1").test(1));
+        final AuctionContext auctionContext = givenAuctionContext(builder -> builder.id("reqId1")).toBuilder()
+                .debugContext(DebugContext.of(true, null))
+                .build();
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
 
@@ -415,33 +416,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(eq(
-                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1,"
-                        + "\"tmax\":5000}}}"));
-    }
-
-    @Test
-    public void shouldRespondWithDebugInfoIncludedIfExtPrebidDebugIsOn() {
-        // given
-        final AuctionContext auctionContext = givenAuctionContext(builder -> builder
-                .id("reqId1")
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(1).build())));
-        given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(auctionContext));
-
-        given(exchangeService.holdAuction(any()))
-                .willReturn(givenBidResponseWithExt(
-                        ExtBidResponse.builder()
-                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest()))
-                                .prebid(ExtBidResponsePrebid.of(1000L, null))
-                                .build()));
-
-        // when
-        ampHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).end(
-                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000,"
-                        + "\"ext\":{\"prebid\":{\"debug\":1}}}}}"));
+                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000}}}"));
     }
 
     @Test
@@ -761,6 +736,7 @@ public class AmpHandlerTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.amp)
                 .timeout(timeout)
+                .debugContext(DebugContext.empty())
                 .build();
     }
 

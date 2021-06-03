@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -8,6 +7,8 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -68,7 +69,11 @@ public class VideoResponseFactoryTest extends VertxTest {
         final PodError podError = PodError.of(3, 1, singletonList("Error"));
 
         // when
-        final VideoResponse result = target.toVideoResponse(BidRequest.builder().build(), bidResponse,
+        final VideoResponse result = target.toVideoResponse(
+                AuctionContext.builder()
+                        .debugContext(DebugContext.empty())
+                        .build(),
+                bidResponse,
                 singletonList(podError));
 
         // then

@@ -43,8 +43,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -69,9 +67,6 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
-            };
-    private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
-            new TypeReference<ExtBidResponse>() {
             };
     private static final MetricName REQUEST_TYPE_METRIC = MetricName.amp;
 
@@ -134,7 +129,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         Tuple3.of(
                                 result.getLeft(),
                                 result.getRight(),
-                                toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
+                                toAmpResponse(result.getRight(), result.getLeft())))
 
                 .compose((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(
@@ -169,7 +164,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         return context;
     }
 
-    private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private AmpResponse toAmpResponse(AuctionContext auctionContext, BidResponse bidResponse) {
         // Fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
@@ -185,11 +180,11 @@ public class AmpHandler implements Handler<RoutingContext> {
         final ExtResponseDebug extResponseDebug;
         final Map<String, List<ExtBidderError>> errors;
         // Fetch debug and errors information from response if requested
-        if (isDebugEnabled(bidRequest)) {
-            final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
+        if (auctionContext.getDebugContext().isDebugEnabled()) {
+            final ExtBidResponse extBidResponse = bidResponse.getExt();
 
-            extResponseDebug = extResponseDebugFrom(extBidResponse);
-            errors = errorsFrom(extBidResponse);
+            extResponseDebug = extBidResponse != null ? extBidResponse.getDebug() : null;
+            errors = extBidResponse != null ? extBidResponse.getErrors() : null;
         } else {
             extResponseDebug = null;
             errors = null;
@@ -243,35 +238,6 @@ public class AmpHandler implements Handler<RoutingContext> {
         } else {
             return Collections.emptyMap();
         }
-    }
-
-    /**
-     * Determines debug flag from {@link BidRequest}.
-     */
-    private boolean isDebugEnabled(BidRequest bidRequest) {
-        if (Objects.equals(bidRequest.getTest(), 1)) {
-            return true;
-        }
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
-    }
-
-    private ExtBidResponse extResponseFrom(BidResponse bidResponse) {
-        try {
-            return mapper.mapper().convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
-        }
-    }
-
-    private static ExtResponseDebug extResponseDebugFrom(ExtBidResponse extBidResponse) {
-        return extBidResponse != null ? extBidResponse.getDebug() : null;
-    }
-
-    private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
-        return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
 
     private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,
