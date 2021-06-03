@@ -43,6 +43,26 @@ public class LoopmeBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldMakeOneRequestWithAllImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(Arrays.asList(
+                        givenImp(identity()),
+                        givenImp(identity()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = loopmeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(2);
+    }
+
+    @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -111,26 +131,6 @@ public class LoopmeBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldMakeOneRequestWithAllImps() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                requestBuilder -> requestBuilder.imp(Arrays.asList(
-                        givenImp(identity()),
-                        givenImp(identity()))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = loopmeBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .hasSize(2);
     }
 
     @Test
