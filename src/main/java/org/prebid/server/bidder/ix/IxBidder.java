@@ -206,7 +206,9 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> toBidderBid(bid, bidRequest, bidResponse))
                 .collect(Collectors.toList());
@@ -214,29 +216,26 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse) {
         final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-
-        final ExtBidPrebid bidExt = parseBidExt(bid.getExt());
+        final ObjectNode bidExt = bid.getExt();
+        final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : null;
+        final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
         final boolean bidHasNoSizes = bid.getH() == null || bid.getW() == null;
         final Banner banner = bidRequest.getImp().get(0).getBanner();
-        if ((bidHasNoSizes && banner != null) || (bidExt != null && bidExt.getVideo() != null)) {
+
+        if ((bidHasNoSizes && banner != null) || (extVideo != null)) {
             final Bid.BidBuilder bidBuilder = bid.toBuilder();
 
-            if (bidType == BidType.banner) {
-                if (bidHasNoSizes && banner != null) {
-                    bidBuilder
-                            .w(banner.getW())
-                            .h(banner.getH())
-                            .build();
-                }
+            if (bidType == BidType.banner && bidHasNoSizes && banner != null) {
+                bidBuilder
+                        .w(banner.getW())
+                        .h(banner.getH())
+                        .build();
             }
 
-            if (bidType == BidType.video) {
-                if (bidExt != null && bidExt.getVideo() != null) {
-                    final ExtBidPrebidVideo video = bidExt.getVideo();
-                    bidBuilder.ext(toBidExt(video));
-                    if (CollectionUtils.isEmpty(bid.getCat())) {
-                        bidBuilder.cat(Collections.singletonList(video.getPrimaryCategory())).build();
-                    }
+            if (bidType == BidType.video && extVideo != null) {
+                bidBuilder.ext(resolveBidExt(extVideo.getDuration()));
+                if (CollectionUtils.isEmpty(bid.getCat())) {
+                    bidBuilder.cat(Collections.singletonList(extVideo.getPrimaryCategory())).build();
                 }
             }
             bid = bidBuilder.build();
@@ -264,14 +263,15 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private ExtBidPrebid parseBidExt(ObjectNode bidExt) {
         try {
-            return bidExt == null ? null : mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
+            return mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
-    private ObjectNode toBidExt(ExtBidPrebidVideo extBidVideo) {
-        return mapper.mapper().valueToTree(ExtBidPrebidVideo.of(extBidVideo.getDuration(), null));
+    private ObjectNode resolveBidExt(Integer duration) {
+        return mapper.mapper().valueToTree(ExtBidPrebid.builder()
+                .video(ExtBidPrebidVideo.of(duration, null))
+                .build());
     }
-
 }

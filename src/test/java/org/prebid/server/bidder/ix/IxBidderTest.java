@@ -23,6 +23,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 
 public class IxBidderTest extends VertxTest {
 
@@ -387,7 +389,9 @@ public class IxBidderTest extends VertxTest {
                         givenBidResponse(
                                 bidBuilder -> bidBuilder
                                         .impid("123")
-                                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtBidPrebidVideo.of(1, "cat")))))));
+                                        .ext(mapper.valueToTree(ExtBidPrebid.builder()
+                                                .video(ExtBidPrebidVideo.of(1, "cat"))
+                                                .build())))));
 
         // when
         final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
@@ -397,7 +401,10 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
-                .containsExactly(mapper.valueToTree(ExtPrebid.of(null, ExtBidPrebidVideo.of(1, "cat"))));
+                .extracting(node -> mapper.treeToValue(node, ExtBidPrebid.class))
+                .extracting(ExtBidPrebid::getVideo)
+                .extracting(ExtBidPrebidVideo::getDuration, ExtBidPrebidVideo::getPrimaryCategory)
+                .containsExactly(tuple(1, null));
     }
 
     private static BidRequest givenBidRequest(
