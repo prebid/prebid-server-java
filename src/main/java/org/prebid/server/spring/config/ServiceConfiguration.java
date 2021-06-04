@@ -115,8 +115,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService) {
-        return new VastModifier(bidderCatalog, eventsService);
+    VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService, Metrics metrics) {
+        return new VastModifier(bidderCatalog, eventsService, metrics);
     }
 
     @Bean
