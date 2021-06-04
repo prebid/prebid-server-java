@@ -26,8 +26,14 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
             throw new PreBidException("uid is empty");
         }
 
-        final GridExtImp gridExtImp = mapper.mapper().convertValue(imp.getExt(), GridExtImp.class);
-        final GridExtImpData extImpData = gridExtImp != null ? gridExtImp.getGridExtImpData() : null;
+        final GridExtImp gridExtImp;
+        try {
+            gridExtImp = mapper.mapper().convertValue(imp.getExt(), GridExtImp.class);
+        } catch (Exception e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        final GridExtImpData extImpData = gridExtImp != null ? gridExtImp.getData() : null;
         final GridExtImpDataAdServer adServer = extImpData != null ? extImpData.getAdServer() : null;
         final String adSlot = adServer != null ? adServer.getAdSlot() : null;
         if (StringUtils.isNotEmpty(adSlot)) {

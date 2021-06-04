@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.grid.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
@@ -14,8 +13,7 @@ public class GridExtImp {
 
     JsonNode bidder;
 
-    @JsonProperty("data")
-    GridExtImpData gridExtImpData;
+    GridExtImpData data;
 
     String gpid;
 }

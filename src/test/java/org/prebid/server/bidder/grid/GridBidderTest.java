@@ -238,7 +238,7 @@ public class GridBidderTest extends VertxTest {
     public void modifyImpShouldChangeImpExt() {
         // given
         final GridExtImp gridExtImp = GridExtImp.builder()
-                .gridExtImpData(GridExtImpData.of(null, GridExtImpDataAdServer.of("name", "adslot")))
+                .data(GridExtImpData.of(null, GridExtImpDataAdServer.of("name", "adslot")))
                 .build();
 
         final Imp imp = Imp.builder().ext(mapper.valueToTree(gridExtImp)).build();
@@ -248,7 +248,7 @@ public class GridBidderTest extends VertxTest {
 
         // then
         assertThat(mapper.convertValue(modifiedImp.getExt(), GridExtImp.class).getGpid())
-                .isEqualTo(gridExtImp.getGridExtImpData().getAdServer().getAdSlot());
+                .isEqualTo(gridExtImp.getData().getAdServer().getAdSlot());
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
