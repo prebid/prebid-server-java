@@ -11,7 +11,7 @@ public class ExceptionHandler implements Handler<Throwable> {
 
     private static final Logger logger = LoggerFactory.getLogger(ExceptionHandler.class);
 
-    private Metrics metrics;
+    private final Metrics metrics;
 
     public ExceptionHandler(Metrics metrics) {
         this.metrics = Objects.requireNonNull(metrics);
@@ -23,7 +23,7 @@ public class ExceptionHandler implements Handler<Throwable> {
 
     @Override
     public void handle(Throwable exception) {
-        logger.warn("Error while establishing HTTP connection", exception);
+        logger.warn("Generic error handler: {0}, cause: {1}", exception.getMessage(), exception.getCause());
         metrics.updateConnectionAcceptErrors();
     }
 }
