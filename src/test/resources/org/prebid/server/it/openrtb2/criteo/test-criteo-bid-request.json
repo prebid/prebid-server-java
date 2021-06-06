@@ -12,7 +12,7 @@
     "cookieuid": "CR-UID",
     "ip": "91.199.242.236",
     "ua": "userAgent",
-    "usp_iab": "1YNN"
+    "uspIab": "1YNN"
   },
   "gdprconsent": {
     "gdprapplies": false,
@@ -20,7 +20,6 @@
   },
   "slots": [
     {
-      "slotid": "e77e016a-091d-4cdb-a759-29d57a1ffa48",
       "impid": "test-imp-id",
       "zoneid": 123456,
       "networkid": 78910,

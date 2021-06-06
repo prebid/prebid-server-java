@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
@@ -20,7 +21,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.criteo.model.CriteoGdprConsent;
 import org.prebid.server.bidder.criteo.model.CriteoPublisher;
 import org.prebid.server.bidder.criteo.model.CriteoRequest;
-import org.prebid.server.bidder.criteo.model.CriteoRequestSlot;
 import org.prebid.server.bidder.criteo.model.CriteoResponse;
 import org.prebid.server.bidder.criteo.model.CriteoResponseSlot;
 import org.prebid.server.bidder.criteo.model.CriteoUser;
@@ -36,7 +36,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import io.vertx.core.MultiMap;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -65,36 +64,13 @@ public class CriteoBidderTest extends VertxTest {
     @Before
     public void setUp() {
         given(idGenerator.generateId()).willReturn("00000000-0000-0000-0000");
-        criteoBidder = new CriteoBidder(ENDPOINT_URL, jacksonMapper, idGenerator);
+        criteoBidder = new CriteoBidder(ENDPOINT_URL, jacksonMapper, false);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         Assertions.assertThatIllegalArgumentException().isThrownBy(() ->
-                new CriteoBidder("invalid_url", jacksonMapper, idGenerator));
-    }
-
-    @Test
-    public void makeHttpRequestShouldBuildCorrectCriteoSlot() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-
-        // when
-        final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(CriteoRequest::getSlots)
-                .containsExactly(
-                        CriteoRequestSlot.builder()
-                                .slotId("00000000-0000-0000-0000")
-                                .impId("imp_id")
-                                .zoneId(1)
-                                .networkId(1)
-                                .sizes(singletonList("300x300"))
-                                .build());
+                new CriteoBidder("invalid_url", jacksonMapper, false));
     }
 
     @Test
@@ -306,7 +282,7 @@ public class CriteoBidderTest extends VertxTest {
                                         .height(300)
                                         .networkId(1)
                                         .zoneId(1)
-                                        .cpm(0.05)
+                                        .cpm(BigDecimal.valueOf(0.05))
                                         .creative("creative")
                                         .creativeId("creative-id")
                                         .currency("USD")

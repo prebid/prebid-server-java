@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 @Builder
 @Value
 public class CriteoResponseSlot {
@@ -19,7 +21,7 @@ public class CriteoResponseSlot {
     @JsonProperty("networkid")
     Integer networkId;
 
-    Double cpm;
+    BigDecimal cpm;
 
     String currency;
 

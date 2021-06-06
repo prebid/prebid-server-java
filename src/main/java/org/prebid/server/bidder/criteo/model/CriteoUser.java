@@ -30,5 +30,6 @@ public class CriteoUser {
     @JsonProperty("ua")
     String userAgent;
 
+    @JsonProperty("uspIab")
     String uspIab;
 }
