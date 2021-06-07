@@ -52,6 +52,8 @@ import static org.assertj.core.api.Assertions.tuple;
 public class CriteoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String UUID_REGEX = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
+            + "-[0-9a-fA-F]{12}";
 
     private CriteoBidder criteoBidder;
 
@@ -131,6 +133,24 @@ public class CriteoBidderTest extends VertxTest {
                 .flatExtracting(CriteoRequest::getSlots)
                 .flatExtracting(CriteoRequestSlot::getSizes)
                 .containsExactly("222x333");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldGenerateSlotIdIfGenerateIdPropertyIsTrue() {
+        // given
+        criteoBidder = new CriteoBidder(ENDPOINT_URL, jacksonMapper, true);
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(CriteoRequest::getSlots)
+                .extracting(CriteoRequestSlot::getSlotId)
+                .allSatisfy(slotId -> assertThat(slotId).matches(UUID_REGEX));
     }
 
     @Test
