@@ -66,7 +66,7 @@ public class ResponseBidValidator {
 
         try {
             validateCommonFields(bid);
-            validateTypeSpecific(bidderBid);
+            validateTypeSpecific(bidderBid, bidder);
             validateCurrency(bidderBid.getBidCurrency());
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
@@ -113,11 +113,12 @@ public class ResponseBidValidator {
         }
     }
 
-    private static void validateTypeSpecific(BidderBid bidderBid) throws ValidationException {
+    private void validateTypeSpecific(BidderBid bidderBid, String bidder) throws ValidationException {
         final Bid bid = bidderBid.getBid();
         final boolean isVastSpecificAbsent = bid.getAdm() == null && bid.getNurl() == null;
 
         if (Objects.equals(bidderBid.getType(), BidType.video) && isVastSpecificAbsent) {
+            metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
             throw new ValidationException("Bid \"%s\" with video type missing adm and nurl", bid.getId());
         }
     }
