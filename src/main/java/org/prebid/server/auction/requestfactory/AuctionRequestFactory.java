@@ -13,7 +13,6 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -21,7 +20,6 @@ import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.settings.model.Account;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -68,7 +66,6 @@ public class AuctionRequestFactory {
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        final List<String> errors = new ArrayList<>();
         final String body;
         try {
             body = extractAndValidateBody(routingContext);
@@ -76,18 +73,17 @@ public class AuctionRequestFactory {
             return Future.failedFuture(e);
         }
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                Endpoint.openrtb2_auction, MetricName.openrtb2web);
 
-        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
-                .compose(httpRequestWrapper -> parseBidRequest(httpRequestWrapper, errors)
-                        .compose(bidRequest -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
-                                httpRequestWrapper,
-                                bidRequest,
-                                requestTypeMetric(bidRequest),
-                                true,
-                                startTime,
-                                hookExecutionContext,
-                                errors)))
+        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
+                .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
+                        .map(bidRequest -> ortb2RequestFactory
+                                .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
+                                .with(requestTypeMetric(bidRequest))))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext, true)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
@@ -99,13 +95,12 @@ public class AuctionRequestFactory {
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(
-                                auctionContext.getBidRequest(),
-                                auctionContext.getAccount(),
-                                auctionContext.getPrivacyContext())))
+                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
-                        .map(auctionContext::with));
+                        .map(auctionContext::with))
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
     private String extractAndValidateBody(RoutingContext context) {

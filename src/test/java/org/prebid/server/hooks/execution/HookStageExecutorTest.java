@@ -25,8 +25,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.execution.TimeoutFactory;
@@ -157,9 +159,12 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final BidRequest bidRequest = BidRequest.builder().build();
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
-                bidRequest,
-                Account.empty("accountId"),
-                HookExecutionContext.of(Endpoint.openrtb2_auction));
+                AuctionContext.builder()
+                        .bidRequest(bidRequest)
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         assertThat(future).isSucceeded();
@@ -1024,9 +1029,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
-                bidRequest,
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(bidRequest)
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1077,9 +1085,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
-                bidRequest,
-                account,
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(bidRequest)
+                        .account(account)
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1135,9 +1146,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
-                BidRequest.builder().build(),
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1184,11 +1198,14 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
-                BidRequest.builder().build(),
-                Account.builder()
-                        .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
-                        .build(),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.builder()
+                                .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1278,9 +1295,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
-                BidRequest.builder().build(),
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1336,9 +1356,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
-                BidRequest.builder().build(),
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1377,9 +1400,12 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
                 executor.executeProcessedAuctionRequestStage(
-                        bidRequest,
-                        Account.empty("accountId"),
-                        hookExecutionContext);
+                        AuctionContext.builder()
+                                .bidRequest(bidRequest)
+                                .account(Account.empty("accountId"))
+                                .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
+                                .build());
 
         // then
         final Async async = context.async();
@@ -1432,9 +1458,12 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
                 executor.executeProcessedAuctionRequestStage(
-                        bidRequest,
-                        account,
-                        hookExecutionContext);
+                        AuctionContext.builder()
+                                .bidRequest(bidRequest)
+                                .account(account)
+                                .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
+                                .build());
 
         // then
         final Async async = context.async();
@@ -1491,9 +1520,12 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
                 executor.executeProcessedAuctionRequestStage(
-                        BidRequest.builder().build(),
-                        Account.empty("accountId"),
-                        hookExecutionContext);
+                        AuctionContext.builder()
+                                .bidRequest(BidRequest.builder().build())
+                                .account(Account.empty("accountId"))
+                                .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
+                                .build());
 
         // then
         final Async async = context.async();
@@ -1541,11 +1573,14 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
                 executor.executeProcessedAuctionRequestStage(
-                        BidRequest.builder().build(),
-                        Account.builder()
-                                .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
-                                .build(),
-                        hookExecutionContext);
+                        AuctionContext.builder()
+                                .bidRequest(BidRequest.builder().build())
+                                .account(Account.builder()
+                                        .hooks(AccountHooksConfiguration.of(null, accountModulesConfiguration))
+                                        .build())
+                                .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
+                                .build());
 
         // then
         final Async async = context.async();
@@ -1636,9 +1671,12 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
                 executor.executeProcessedAuctionRequestStage(
-                        BidRequest.builder().build(),
-                        Account.empty("accountId"),
-                        hookExecutionContext);
+                        AuctionContext.builder()
+                                .bidRequest(BidRequest.builder().build())
+                                .account(Account.empty("accountId"))
+                                .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
+                                .build());
 
         // then
         final Async async = context.async();
@@ -1696,9 +1734,12 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
                 executor.executeProcessedAuctionRequestStage(
-                        BidRequest.builder().build(),
-                        Account.empty("accountId"),
-                        hookExecutionContext);
+                        AuctionContext.builder()
+                                .bidRequest(BidRequest.builder().build())
+                                .account(Account.empty("accountId"))
+                                .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
+                                .build());
 
         // then
         final Async async = context.async();
@@ -1751,8 +1792,12 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
                 BidderRequest.of("bidder1", null, BidRequest.builder().build()),
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1790,11 +1835,15 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
                 BidderRequest.of("bidder1", null, BidRequest.builder().build()),
-                Account.builder()
-                        .hooks(AccountHooksConfiguration.of(
-                                null, singletonMap("module-alpha", mapper.createObjectNode())))
-                        .build(),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.builder()
+                                .hooks(AccountHooksConfiguration.of(
+                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1881,9 +1930,12 @@ public class HookStageExecutorTest extends VertxTest {
                                 emptyList(),
                                 emptyList()),
                         0),
-                BidRequest.builder().build(),
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -1930,12 +1982,15 @@ public class HookStageExecutorTest extends VertxTest {
                                 emptyList(),
                                 emptyList()),
                         0),
-                BidRequest.builder().build(),
-                Account.builder()
-                        .hooks(AccountHooksConfiguration.of(
-                                null, singletonMap("module-alpha", mapper.createObjectNode())))
-                        .build(),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.builder()
+                                .hooks(AccountHooksConfiguration.of(
+                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -2018,9 +2073,12 @@ public class HookStageExecutorTest extends VertxTest {
                 executor.executeProcessedBidderResponseStage(
                         singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
                         "bidder1",
-                        BidRequest.builder().build(),
-                        Account.empty("accountId"),
-                        hookExecutionContext);
+                        AuctionContext.builder()
+                                .bidRequest(BidRequest.builder().build())
+                                .account(Account.empty("accountId"))
+                                .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
+                                .build());
 
         // then
         final Async async = context.async();
@@ -2064,12 +2122,15 @@ public class HookStageExecutorTest extends VertxTest {
                 executor.executeProcessedBidderResponseStage(
                         singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
                         "bidder1",
-                        BidRequest.builder().build(),
-                        Account.builder()
-                                .hooks(AccountHooksConfiguration.of(
-                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
-                                .build(),
-                        hookExecutionContext);
+                        AuctionContext.builder()
+                                .bidRequest(BidRequest.builder().build())
+                                .account(Account.builder()
+                                        .hooks(AccountHooksConfiguration.of(
+                                                null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                        .build())
+                                .hookExecutionContext(hookExecutionContext)
+                                .debugContext(DebugContext.empty())
+                                .build());
 
         // then
         final Async async = context.async();
@@ -2110,8 +2171,11 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
                 BidderRequest.of("bidder1", null, BidRequest.builder().build()),
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -2164,9 +2228,12 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
                 BidResponse.builder().build(),
-                BidRequest.builder().build(),
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -2204,12 +2271,15 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
                 BidResponse.builder().build(),
-                BidRequest.builder().build(),
-                Account.builder()
-                        .hooks(AccountHooksConfiguration.of(
-                                null, singletonMap("module-alpha", mapper.createObjectNode())))
-                        .build(),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .bidRequest(BidRequest.builder().build())
+                        .account(Account.builder()
+                                .hooks(AccountHooksConfiguration.of(
+                                        null, singletonMap("module-alpha", mapper.createObjectNode())))
+                                .build())
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();
@@ -2249,9 +2319,11 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
                 BidResponse.builder().build(),
-                BidRequest.builder().build(),
-                Account.empty("accountId"),
-                hookExecutionContext);
+                AuctionContext.builder()
+                        .account(Account.empty("accountId"))
+                        .hookExecutionContext(hookExecutionContext)
+                        .debugContext(DebugContext.empty())
+                        .build());
 
         // then
         final Async async = context.async();

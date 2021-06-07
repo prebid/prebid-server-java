@@ -27,9 +27,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
@@ -117,51 +115,47 @@ public class AmpRequestFactory {
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_amp);
-
         final String body = routingContext.getBodyAsString();
-        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
-                .compose(httpRequest -> createBidRequest(httpRequest)
-                        .compose(bidRequestWithErrors -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
-                                httpRequest,
-                                bidRequestWithErrors.getLeft(),
-                                MetricName.amp,
-                                false,
-                                startTime,
-                                hookExecutionContext,
-                                bidRequestWithErrors.getRight())))
+
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                Endpoint.openrtb2_amp, MetricName.amp);
+
+        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
+                .compose(httpRequest -> createBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
+                        .map(bidRequest -> ortb2RequestFactory.enrichAuctionContext(
+                                initialAuctionContext, httpRequest, bidRequest, startTime)))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext, false)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(
-                                auctionContext.getBidRequest(),
-                                auctionContext.getAccount(),
-                                auctionContext.getPrivacyContext())))
+                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
-                        .map(auctionContext::with));
+                        .map(auctionContext::with))
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
     /**
      * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<Tuple2<BidRequest, List<String>>> createBidRequest(HttpRequestWrapper httpRequest) {
+    private Future<BidRequest> createBidRequest(HttpRequestWrapper httpRequest, List<String> errors) {
         final String tagId = httpRequest.getQueryParams().get(TAG_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(tagId)) {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
         }
 
-        final List<String> errors = new ArrayList<>();
         return storedRequestProcessor.processAmpRequest(httpRequest.getQueryParams().get(ACCOUNT_REQUEST_PARAM), tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, httpRequest))
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, errors))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver))
-                .map(ortb2RequestFactory::validateRequest)
-                .map(bidRequest -> Tuple2.of(bidRequest, errors));
+                .map(ortb2RequestFactory::validateRequest);
     }
 
     /**

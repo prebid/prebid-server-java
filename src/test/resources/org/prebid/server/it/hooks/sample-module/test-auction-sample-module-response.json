@@ -100,7 +100,132 @@
     },
     "tmaxrequest": 5000,
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "modules": {
+        "trace": {
+          "stages": [
+            {
+              "stage": "entrypoint",
+              "groups": [
+                {
+                  "invocationresults": [
+                    {
+                      "hookid": {
+                        "module-code": "sample-it-module",
+                        "hook-impl-code": "entrypoint"
+                      },
+                      "status": "success",
+                      "action": "update"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "raw-auction-request",
+              "groups": [
+                {
+                  "invocationresults": [
+                    {
+                      "hookid": {
+                        "module-code": "sample-it-module",
+                        "hook-impl-code": "raw-auction-request"
+                      },
+                      "status": "success",
+                      "action": "update"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "processed-auction-request",
+              "groups": [
+                {
+                  "invocationresults": [
+                    {
+                      "hookid": {
+                        "module-code": "sample-it-module",
+                        "hook-impl-code": "processed-auction-request"
+                      },
+                      "status": "success",
+                      "action": "update"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "bidder-request",
+              "groups": [
+                {
+                  "invocationresults": [
+                    {
+                      "hookid": {
+                        "module-code": "sample-it-module",
+                        "hook-impl-code": "bidder-request"
+                      },
+                      "status": "success",
+                      "action": "update"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "raw-bidder-response",
+              "groups": [
+                {
+                  "invocationresults": [
+                    {
+                      "hookid": {
+                        "module-code": "sample-it-module",
+                        "hook-impl-code": "raw-bidder-response"
+                      },
+                      "status": "success",
+                      "action": "update"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "processed-bidder-response",
+              "groups": [
+                {
+                  "invocationresults": [
+                    {
+                      "hookid": {
+                        "module-code": "sample-it-module",
+                        "hook-impl-code": "processed-bidder-response"
+                      },
+                      "status": "success",
+                      "action": "update"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "auction-response",
+              "groups": [
+                {
+                  "invocationresults": [
+                    {
+                      "hookid": {
+                        "module-code": "sample-it-module",
+                        "hook-impl-code": "auction-response"
+                      },
+                      "status": "success",
+                      "action": "update"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   }
 }

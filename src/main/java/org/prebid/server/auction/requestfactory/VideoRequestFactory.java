@@ -20,7 +20,6 @@ import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -80,32 +79,30 @@ public class VideoRequestFactory {
         }
 
         final List<PodError> podErrors = new ArrayList<>();
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_video);
 
-        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, hookExecutionContext)
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                Endpoint.openrtb2_video, MetricName.video);
+
+        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest)
-                        .compose(bidRequestWithErrors -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
-                                httpRequest,
-                                bidRequestWithErrors.getData(),
-                                MetricName.video,
-                                false,
-                                startTime,
-                                hookExecutionContext,
-                                new ArrayList<>())
-                                .map(auctionContext -> populatePodErrors(bidRequestWithErrors.getPodErrors(), podErrors,
-                                        auctionContext))))
+                        .map(bidRequestWithErrors -> populatePodErrors(
+                                bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
+                        .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
+                                initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext, false)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(
-                                auctionContext.getBidRequest(),
-                                auctionContext.getAccount(),
-                                auctionContext.getPrivacyContext())))
+                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection)
 
                 .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
     }
@@ -223,7 +220,7 @@ public class VideoRequestFactory {
         return Collections.emptySet();
     }
 
-    private AuctionContext populatePodErrors(List<PodError> from, List<PodError> to, AuctionContext returnObject) {
+    private static <T> T populatePodErrors(List<PodError> from, List<PodError> to, T returnObject) {
         to.addAll(from);
         return returnObject;
     }

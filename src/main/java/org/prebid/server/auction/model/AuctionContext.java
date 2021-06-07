@@ -44,6 +44,14 @@ public class AuctionContext {
 
     HookExecutionContext hookExecutionContext;
 
+    DebugContext debugContext;
+
+    boolean requestRejected;
+
+    public AuctionContext with(Account account) {
+        return this.toBuilder().account(account).build();
+    }
+
     public AuctionContext with(BidRequest bidRequest) {
         return this.toBuilder().bidRequest(bidRequest).build();
     }
@@ -52,6 +60,18 @@ public class AuctionContext {
         return this.toBuilder()
                 .privacyContext(privacyContext)
                 .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                .build();
+    }
+
+    public AuctionContext with(MetricName requestTypeMetric) {
+        return this.toBuilder()
+                .requestTypeMetric(requestTypeMetric)
+                .build();
+    }
+
+    public AuctionContext withRequestRejected() {
+        return this.toBuilder()
+                .requestRejected(true)
                 .build();
     }
 }

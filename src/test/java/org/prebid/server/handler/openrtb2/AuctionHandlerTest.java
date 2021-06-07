@@ -29,7 +29,6 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -240,21 +239,6 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithEmptyResponseIfRequestIsRejected() {
-        // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new RejectedRequestException(null)));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verifyZeroInteractions(exchangeService);
-        verify(httpResponse).setStatusCode(eq(200));
-        verify(httpResponse).end(eq("{\"seatbid\":[]}"));
-    }
-
-    @Test
     public void shouldRespondWithInternalServerErrorIfAuctionFails() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
@@ -326,8 +310,9 @@ public class AuctionHandlerTest extends VertxTest {
                 .build();
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
-                        .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
-                                null, null, null, null, null, null)))
+                        .ext(ExtBidResponse.builder()
+                                .debug(ExtResponseDebug.of(null, resolvedRequest))
+                                .build())
                         .build()));
 
         // when
@@ -578,19 +563,6 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateAccountRequestRejectedMetrics(eq("1"));
-    }
-
-    @Test
-    public void shouldIncrementOkOpenrtb2WebRequestMetricIfRequestIsRejected() {
-        // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new RejectedRequestException(null)));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.ok));
     }
 
     @Test

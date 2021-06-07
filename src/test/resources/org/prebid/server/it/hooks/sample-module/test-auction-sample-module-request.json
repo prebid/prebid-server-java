@@ -55,6 +55,7 @@
   "ext": {
     "prebid": {
       "debug": 1,
+      "trace": "verbose",
       "auctiontimestamp": 1000
     }
   }

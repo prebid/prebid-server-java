@@ -25,7 +25,6 @@ import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -165,21 +164,6 @@ public class VideoHandlerTest extends VertxTest {
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
         verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
-    }
-
-    @Test
-    public void shouldRespondWithEmptyResponseIfRequestIsRejected() {
-        // given
-        given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new RejectedRequestException(null)));
-
-        // when
-        videoHandler.handle(routingContext);
-
-        // then
-        verifyZeroInteractions(exchangeService);
-        verify(httpResponse).setStatusCode(eq(200));
-        verify(httpResponse).end(eq("{\"adPods\":[]}"));
     }
 
     @Test

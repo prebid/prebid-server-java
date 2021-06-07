@@ -43,8 +43,11 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
-import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
+import org.prebid.server.hooks.execution.model.Stage;
+import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
@@ -70,7 +73,15 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -86,6 +97,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -163,6 +175,23 @@ public class ExchangeService {
      * response containing returned bids and additional information in extensions.
      */
     public Future<BidResponse> holdAuction(AuctionContext context) {
+        return processAuctionRequest(context)
+                .map(bidResponse -> enrichWithHooksDebugInfo(bidResponse, context));
+    }
+
+    private Future<BidResponse> processAuctionRequest(AuctionContext context) {
+        return context.isRequestRejected()
+                ? Future.succeededFuture(emptyResponse())
+                : runAuction(context);
+    }
+
+    private static BidResponse emptyResponse() {
+        return BidResponse.builder()
+                .seatbid(Collections.emptyList())
+                .build();
+    }
+
+    private Future<BidResponse> runAuction(AuctionContext context) {
         final UidsCookie uidsCookie = context.getUidsCookie();
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
@@ -173,7 +202,6 @@ public class ExchangeService {
         final BidderAliases aliases = aliases(bidRequest);
         final String publisherId = account.getId();
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
-        final boolean debugEnabled = isDebugEnabled(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
@@ -188,7 +216,6 @@ public class ExchangeService {
                                         context,
                                         bidderRequest,
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
-                                        debugEnabled,
                                         aliases))
                                 .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
@@ -202,8 +229,7 @@ public class ExchangeService {
                         bidderResponses,
                         context,
                         cacheInfo,
-                        bidderToMultiBid,
-                        debugEnabled))
+                        bidderToMultiBid))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                         context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
                 .compose(bidResponse -> invokeResponseHooks(context, bidResponse));
@@ -262,17 +288,6 @@ public class ExchangeService {
         }
 
         return BidRequestCacheInfo.noCache();
-    }
-
-    /**
-     * Determines debug flag from {@link BidRequest} or {@link ExtRequest}.
-     */
-    private static boolean isDebugEnabled(BidRequest bidRequest) {
-        if (Objects.equals(bidRequest.getTest(), 1)) {
-            return true;
-        }
-        final ExtRequestPrebid extRequestPrebid = extRequestPrebid(bidRequest);
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
     }
 
     private static ExtRequestPrebid extRequestPrebid(BidRequest bidRequest) {
@@ -982,19 +997,16 @@ public class ExchangeService {
     private Future<BidderResponse> invokeHooksAndRequestBids(AuctionContext auctionContext,
                                                              BidderRequest bidderRequest,
                                                              Timeout timeout,
-                                                             boolean debugEnabled,
                                                              BidderAliases aliases) {
 
-        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Account account = auctionContext.getAccount();
         final MultiMap headers = auctionContext.getHttpRequest().getHeaders();
+        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
 
-        return hookStageExecutor.executeBidderRequestStage(bidderRequest, account, hookExecutionContext)
+        return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, timeout, headers, debugEnabled, aliases))
                 .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
-                        bidderResponse, bidRequest, account, hookExecutionContext)
+                        bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
     }
 
@@ -1009,11 +1021,11 @@ public class ExchangeService {
         return hookStageResult.isShouldReject()
                 ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
                 : requestBids(
-                        bidderRequest.with(hookStageResult.getPayload().bidRequest()),
-                        timeout,
-                        requestHeaders,
-                        debugEnabled,
-                        aliases);
+                bidderRequest.with(hookStageResult.getPayload().bidRequest()),
+                timeout,
+                requestHeaders,
+                debugEnabled,
+                aliases);
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
@@ -1312,11 +1324,7 @@ public class ExchangeService {
     }
 
     private Future<BidResponse> invokeResponseHooks(AuctionContext auctionContext, BidResponse bidResponse) {
-        return hookStageExecutor.executeAuctionResponseStage(
-                bidResponse,
-                auctionContext.getBidRequest(),
-                auctionContext.getAccount(),
-                auctionContext.getHookExecutionContext())
+        return hookStageExecutor.executeAuctionResponseStage(bidResponse, auctionContext)
                 .map(stageResult -> stageResult.getPayload().bidResponse());
     }
 
@@ -1343,6 +1351,131 @@ public class ExchangeService {
                 errorMetric = MetricName.unknown_error;
         }
         return errorMetric;
+    }
+
+    private BidResponse enrichWithHooksDebugInfo(BidResponse bidResponse, AuctionContext context) {
+        final ExtModules extModules = toExtModules(context);
+
+        if (extModules == null) {
+            return bidResponse;
+        }
+
+        final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+
+        final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.of(
+                extPrebid != null ? extPrebid.getAuctiontimestamp() : null,
+                extModules);
+        final ExtBidResponse updatedExt = (ext != null ? ext.toBuilder() : ExtBidResponse.builder())
+                .prebid(updatedExtPrebid)
+                .build();
+
+        return bidResponse.toBuilder()
+                .ext(updatedExt)
+                .build();
+    }
+
+    private static ExtModules toExtModules(AuctionContext context) {
+        final Map<String, Map<String, List<String>>> errors =
+                toHookMessages(context, HookExecutionOutcome::getErrors);
+        final Map<String, Map<String, List<String>>> warnings =
+                toHookMessages(context, HookExecutionOutcome::getWarnings);
+        final ExtModulesTrace trace = toHookTrace(context);
+
+        return ObjectUtils.anyNotNull(errors, warnings, trace) ? ExtModules.of(errors, warnings, trace) : null;
+    }
+
+    private static Map<String, Map<String, List<String>>> toHookMessages(
+            AuctionContext context,
+            Function<HookExecutionOutcome, List<String>> messagesGetter) {
+
+        if (!context.getDebugContext().isDebugEnabled()) {
+            return null;
+        }
+
+        final Map<String, List<HookExecutionOutcome>> hookOutcomesByModule =
+                context.getHookExecutionContext().getStageOutcomes().values().stream()
+                        .flatMap(stageOutcome -> stageOutcome.getGroups().stream())
+                        .flatMap(groupOutcome -> groupOutcome.getHooks().stream())
+                        .filter(hookOutcome -> CollectionUtils.isNotEmpty(messagesGetter.apply(hookOutcome)))
+                        .collect(Collectors.groupingBy(
+                                hookOutcome -> hookOutcome.getHookId().getModuleCode()));
+
+        final Map<String, Map<String, List<String>>> messagesByModule = hookOutcomesByModule.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        outcomes -> outcomes.getValue().stream()
+                                .collect(Collectors.groupingBy(
+                                        hookOutcome -> hookOutcome.getHookId().getHookImplCode()))
+                                .entrySet().stream()
+                                .collect(Collectors.toMap(
+                                        Map.Entry::getKey,
+                                        messagesLists -> messagesLists.getValue().stream()
+                                                .map(messagesGetter)
+                                                .flatMap(Collection::stream)
+                                                .collect(Collectors.toList())))));
+
+        return !messagesByModule.isEmpty() ? messagesByModule : null;
+    }
+
+    private static ExtModulesTrace toHookTrace(AuctionContext context) {
+        final TraceLevel traceLevel = context.getDebugContext().getTraceLevel();
+
+        if (traceLevel == null) {
+            return null;
+        }
+
+        final List<ExtModulesTraceStage> stages = context.getHookExecutionContext().getStageOutcomes()
+                .entrySet().stream()
+                .map(stageOutcome -> toTraceStage(stageOutcome.getKey(), stageOutcome.getValue(), traceLevel))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (stages.isEmpty()) {
+            return null;
+        }
+
+        return ExtModulesTrace.of(
+                stages.stream().mapToLong(ExtModulesTraceStage::getExecutionTime).sum(),
+                stages);
+    }
+
+    private static ExtModulesTraceStage toTraceStage(Stage stage, StageExecutionOutcome stageOutcome,
+                                                     TraceLevel level) {
+        final List<ExtModulesTraceGroup> groups = stageOutcome.getGroups().stream()
+                .map(group -> toTraceGroup(group, level))
+                .collect(Collectors.toList());
+
+        if (groups.isEmpty()) {
+            return null;
+        }
+
+        return ExtModulesTraceStage.of(
+                stage,
+                groups.stream().mapToLong(ExtModulesTraceGroup::getExecutionTime).sum(),
+                groups);
+    }
+
+    private static ExtModulesTraceGroup toTraceGroup(GroupExecutionOutcome group, TraceLevel level) {
+        final List<ExtModulesTraceInvocationResult> invocationResults = group.getHooks().stream()
+                .map(hook -> toTraceInvocationResult(hook, level))
+                .collect(Collectors.toList());
+
+        return ExtModulesTraceGroup.of(
+                invocationResults.stream().mapToLong(ExtModulesTraceInvocationResult::getExecutionTime).sum(),
+                invocationResults);
+    }
+
+    private static ExtModulesTraceInvocationResult toTraceInvocationResult(HookExecutionOutcome hook,
+                                                                           TraceLevel level) {
+        return ExtModulesTraceInvocationResult.builder()
+                .hookId(hook.getHookId())
+                .executionTime(hook.getExecutionTime())
+                .status(hook.getStatus())
+                .message(hook.getMessage())
+                .action(hook.getAction())
+                .debugMessages(level == TraceLevel.verbose ? hook.getDebugMessages() : null)
+                .build();
     }
 
     private <T> List<T> nullIfEmpty(List<T> value) {

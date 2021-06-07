@@ -17,12 +17,12 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.exception.RejectedRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -34,12 +34,14 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestWrapper;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountStatus;
@@ -93,26 +95,39 @@ public class Ortb2RequestFactory {
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
     }
 
-    public Future<AuctionContext> fetchAccountAndCreateAuctionContext(HttpRequestWrapper httpRequest,
-                                                                      BidRequest bidRequest,
-                                                                      MetricName requestTypeMetric,
-                                                                      boolean isLookupStoredRequest,
-                                                                      long startTime,
-                                                                      HookExecutionContext hookExecutionContext,
-                                                                      List<String> errors) {
-        final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
-        return accountFrom(bidRequest, timeout, httpRequest, isLookupStoredRequest)
-                .map(account -> AuctionContext.builder()
-                        .httpRequest(httpRequest)
-                        .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
-                        .bidRequest(bidRequest)
-                        .requestTypeMetric(requestTypeMetric)
-                        .timeout(timeout)
-                        .account(account)
-                        .hookExecutionContext(hookExecutionContext)
-                        .prebidErrors(errors)
-                        .debugWarnings(new ArrayList<>())
-                        .build());
+    public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
+        return AuctionContext.builder()
+                .requestTypeMetric(requestTypeMetric)
+                .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
+                .hookExecutionContext(HookExecutionContext.of(endpoint))
+                .debugContext(DebugContext.empty())
+                .requestRejected(false)
+                .build();
+    }
+
+    public AuctionContext enrichAuctionContext(AuctionContext auctionContext,
+                                               HttpRequestWrapper httpRequest,
+                                               BidRequest bidRequest,
+                                               long startTime) {
+
+        return auctionContext.toBuilder()
+                .httpRequest(httpRequest)
+                .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
+                .bidRequest(bidRequest)
+                .timeout(timeout(bidRequest, startTime))
+                .debugContext(debugContext(bidRequest))
+                .build();
+    }
+
+    public Future<Account> fetchAccount(AuctionContext auctionContext, boolean isLookupStoredRequest) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Timeout timeout = auctionContext.getTimeout();
+        final HttpRequestWrapper httpRequest = auctionContext.getHttpRequest();
+
+        return findAccountIdFrom(bidRequest, isLookupStoredRequest)
+                .map(this::validateIfAccountBlacklisted)
+                .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
 
     /**
@@ -126,9 +141,10 @@ public class Ortb2RequestFactory {
         return bidRequest;
     }
 
-    public BidRequest enrichBidRequestWithAccountAndPrivacyData(BidRequest bidRequest,
-                                                                Account account,
-                                                                PrivacyContext privacyContext) {
+    public BidRequest enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Account account = auctionContext.getAccount();
+        final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
 
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequest enrichedRequestExt = enrichExtRequest(requestExt, account);
@@ -148,49 +164,42 @@ public class Ortb2RequestFactory {
 
     public Future<HttpRequestWrapper> executeEntrypointHooks(RoutingContext routingContext,
                                                              String body,
-                                                             HookExecutionContext hookExecutionContext) {
+                                                             AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
                 routingContext.queryParams(),
                 routingContext.request().headers(),
                 body,
-                hookExecutionContext)
-                .map(stageResult -> toHttpRequest(stageResult, routingContext, hookExecutionContext));
+                auctionContext.getHookExecutionContext())
+                .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
     public Future<BidRequest> executeRawAuctionRequestHooks(AuctionContext auctionContext) {
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Account account = auctionContext.getAccount();
-        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
-
-        return hookStageExecutor.executeRawAuctionRequestStage(bidRequest, account, hookExecutionContext)
-                .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
+        return hookStageExecutor.executeRawAuctionRequestStage(auctionContext)
+                .map(stageResult -> toBidRequest(stageResult, auctionContext));
     }
 
     public Future<BidRequest> executeProcessedAuctionRequestHooks(AuctionContext auctionContext) {
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Account account = auctionContext.getAccount();
-        final HookExecutionContext hookExecutionContext = auctionContext.getHookExecutionContext();
-
-        return hookStageExecutor.executeProcessedAuctionRequestStage(bidRequest, account, hookExecutionContext)
-                .map(stageResult -> toBidRequest(stageResult, hookExecutionContext));
+        return hookStageExecutor.executeProcessedAuctionRequestStage(auctionContext)
+                .map(stageResult -> toBidRequest(stageResult, auctionContext));
     }
 
-    private BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
-                                    HookExecutionContext hookExecutionContext) {
-        if (stageResult.isShouldReject()) {
-            throw new RejectedRequestException(hookExecutionContext);
+    public Future<AuctionContext> restoreResultFromRejection(Throwable throwable) {
+        if (throwable instanceof RejectedRequestException) {
+            final AuctionContext auctionContext = ((RejectedRequestException) throwable).getAuctionContext();
+
+            return Future.succeededFuture(auctionContext.withRequestRejected());
         }
 
-        return stageResult.getPayload().bidRequest();
+        return Future.failedFuture(throwable);
     }
 
-    private HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
-                                             RoutingContext routingContext,
-                                             HookExecutionContext hookExecutionContext) {
+    private static HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
+                                                    RoutingContext routingContext,
+                                                    AuctionContext auctionContext) {
 
         if (stageResult.isShouldReject()) {
-            throw new RejectedRequestException(hookExecutionContext);
+            throw new RejectedRequestException(auctionContext);
         }
 
         return HttpRequestWrapper.builder()
@@ -204,28 +213,34 @@ public class Ortb2RequestFactory {
                 .build();
     }
 
-    /**
-     * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
-     */
-    private Timeout timeout(BidRequest bidRequest, long startTime, TimeoutResolver timeoutResolver) {
-        final long resolvedRequestTimeout = timeoutResolver.resolve(bidRequest.getTmax());
-        final long timeout = timeoutResolver.adjustTimeout(resolvedRequestTimeout);
-        return timeoutFactory.create(startTime, timeout);
+    private static BidRequest toBidRequest(HookStageExecutionResult<AuctionRequestPayload> stageResult,
+                                           AuctionContext auctionContext) {
+
+        if (stageResult.isShouldReject()) {
+            throw new RejectedRequestException(auctionContext);
+        }
+
+        return stageResult.getPayload().bidRequest();
+    }
+
+    private static DebugContext debugContext(BidRequest bidRequest) {
+        final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+
+        final boolean debugEnabled = Objects.equals(bidRequest.getTest(), 1)
+                || Objects.equals(getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
+
+        final TraceLevel traceLevel = getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
+
+        return DebugContext.of(debugEnabled, traceLevel);
     }
 
     /**
-     * Make lookup for storedRequest if isLookupStoredRequest is true
-     * and account id is not found in original {@link BidRequest}.
-     * <p>
-     * Returns {@link Account} fetched by {@link ApplicationSettings}.
+     * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
-    private Future<Account> accountFrom(BidRequest bidRequest,
-                                        Timeout timeout,
-                                        HttpRequestWrapper httpRequest,
-                                        boolean isLookupStoredRequest) {
-        return findAccountIdFrom(bidRequest, isLookupStoredRequest)
-                .map(this::validateIfAccountBlacklisted)
-                .compose(accountId -> fetchAccount(timeout, httpRequest, accountId));
+    private Timeout timeout(BidRequest bidRequest, long startTime) {
+        final long resolvedRequestTimeout = timeoutResolver.resolve(bidRequest.getTmax());
+        final long timeout = timeoutResolver.adjustTimeout(resolvedRequestTimeout);
+        return timeoutFactory.create(startTime, timeout);
     }
 
     private Future<String> findAccountIdFrom(BidRequest bidRequest, boolean isLookupStoredRequest) {
@@ -233,7 +248,7 @@ public class Ortb2RequestFactory {
         return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
                 ? Future.succeededFuture(accountId)
                 : storedRequestProcessor.processStoredRequests(accountId, bidRequest)
-                        .map(this::accountIdFrom);
+                .map(this::accountIdFrom);
     }
 
     private String validateIfAccountBlacklisted(String accountId) {
@@ -248,14 +263,14 @@ public class Ortb2RequestFactory {
         return accountId;
     }
 
-    private Future<Account> fetchAccount(Timeout timeout,
-                                         HttpRequestWrapper httpRequest,
-                                         String accountId) {
+    private Future<Account> loadAccount(Timeout timeout,
+                                        HttpRequestWrapper httpRequest,
+                                        String accountId) {
         return StringUtils.isBlank(accountId)
                 ? responseForEmptyAccount(httpRequest)
                 : applicationSettings.getAccountById(accountId, timeout)
-                        .compose(this::ensureAccountActive,
-                                exception -> accountFallback(exception, accountId, httpRequest));
+                .compose(this::ensureAccountActive,
+                        exception -> accountFallback(exception, accountId, httpRequest));
     }
 
     /**
@@ -398,5 +413,18 @@ public class Ortb2RequestFactory {
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
         return target != null ? getter.apply(target) : null;
+    }
+
+    static class RejectedRequestException extends RuntimeException {
+
+        private final AuctionContext auctionContext;
+
+        RejectedRequestException(AuctionContext auctionContext) {
+            this.auctionContext = auctionContext;
+        }
+
+        public AuctionContext getAuctionContext() {
+            return auctionContext;
+        }
     }
 }
