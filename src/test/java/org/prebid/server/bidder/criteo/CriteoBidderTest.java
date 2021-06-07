@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -21,10 +22,12 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.criteo.model.CriteoGdprConsent;
 import org.prebid.server.bidder.criteo.model.CriteoPublisher;
 import org.prebid.server.bidder.criteo.model.CriteoRequest;
+import org.prebid.server.bidder.criteo.model.CriteoRequestSlot;
 import org.prebid.server.bidder.criteo.model.CriteoResponse;
 import org.prebid.server.bidder.criteo.model.CriteoResponseSlot;
 import org.prebid.server.bidder.criteo.model.CriteoUser;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
@@ -78,42 +81,63 @@ public class CriteoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest =
                 BidRequest.builder()
-                        .id("request-id")
-                        .imp(
-                                Arrays.asList(
-                                        Imp.builder()
-                                                .id("imp_1_id")
-                                                .banner(Banner.builder()
-                                                        .id("banner_1_id")
-                                                        .h(300)
-                                                        .w(300)
-                                                        .build()
-                                                )
-                                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 1))))
-                                                .build(),
-                                        Imp.builder()
-                                                .id("imp_2_id")
-                                                .banner(Banner.builder()
-                                                        .id("banner_2_id")
-                                                        .h(350)
-                                                        .w(350)
-                                                        .build()
-                                                )
-                                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 2))))
-                                                .build()
-                                )
-                        )
-                        .regs(Regs.of(null, ExtRegs.of(1, null)))
+                        .imp(Arrays.asList(
+                                Imp.builder()
+                                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 1))))
+                                        .build(),
+                                Imp.builder()
+                                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 2))))
+                                        .build()))
                         .build();
 
         // when
         final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .isEqualTo("Bid request has slots coming with several network IDs which is not allowed");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.badInput("Bid request has slots coming with several "
+                        + "network IDs which is not allowed"));
         assertThat(result.getValue()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        // when
+        final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors())
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance of");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldResolveSlotSizesFromBannerFormat() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().format(singletonList(Format.builder()
+                        .w(222)
+                        .h(333)
+                        .build()))
+                        .build()));
+
+        // when
+        final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(CriteoRequest::getSlots)
+                .flatExtracting(CriteoRequestSlot::getSizes)
+                .containsExactly("222x333");
     }
 
     @Test
@@ -134,6 +158,44 @@ public class CriteoBidderTest extends VertxTest {
                         .url("www.criteo.com")
                         .networkId(1)
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateSpecificForAndroidDeviceId() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().os("android").build()).build();
+
+        // when
+        final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(CriteoRequest::getUser)
+                .extracting(CriteoUser::getDeviceOs, CriteoUser::getDeviceIdType)
+                .containsExactly(tuple("android", "gaid"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateSpecificForUnknownDeviceId() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().os("somethingNew").build()).build();
+
+        // when
+        final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(CriteoRequest::getUser)
+                .extracting(CriteoUser::getDeviceOs, CriteoUser::getDeviceIdType)
+                .containsExactly(tuple("somethingNew", "unknown"));
     }
 
     @Test
@@ -216,6 +278,26 @@ public class CriteoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final HttpCall<CriteoRequest> httpCall = HttpCall.success(
+                HttpRequest.<CriteoRequest>builder().payload(null).build(),
+                HttpResponse.of(200, null, "invalid"),
+                null);
+
+        // when
+        final Result<List<BidderBid>> result = criteoBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnCorrectBidderBids() throws JsonProcessingException {
         // given
         final HttpCall<CriteoRequest> httpCall = givenHttpCall(identity());
@@ -274,7 +356,7 @@ public class CriteoBidderTest extends VertxTest {
         final CriteoResponse.CriteoResponseBuilder responseBuilder =
                 CriteoResponse.builder()
                         .id("response-id")
-                        .slots(Arrays.asList(
+                        .slots(singletonList(
                                 CriteoResponseSlot.builder()
                                         .id("slot_id")
                                         .impId("imp_id")
