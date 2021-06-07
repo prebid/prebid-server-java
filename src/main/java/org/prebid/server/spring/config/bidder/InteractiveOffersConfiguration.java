@@ -41,7 +41,7 @@ public class InteractiveOffersConfiguration {
     }
 
     @Bean
-    BidderDeps adfBidderDeps() {
+    BidderDeps interactiveoffersBidderDeps() {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)

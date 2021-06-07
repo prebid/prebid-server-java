@@ -14,7 +14,7 @@ adapters:
       site-media-types:
         - banner
       supported-vendors:
-        vendor-id: 0
+      vendor-id: 0
     usersync:
       url:
       redirect-url:

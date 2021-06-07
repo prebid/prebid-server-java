@@ -1,33 +1,124 @@
 package org.prebid.server.bidder.interactiveoffers;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.Bid;
-import org.prebid.server.bidder.OpenrtbBidder;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.interactiveoffers.ExtImpInteractiveoffers;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-public class InteractiveOffersBidder extends OpenrtbBidder<ExtImpInteractiveoffers> {
+public class InteractiveOffersBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpInteractiveoffers>> INTERACTIVEOFFERS_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpInteractiveoffers>>() {
+            };
+
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
 
     public InteractiveOffersBidder(String endpointUrl, JacksonMapper mapper) {
-        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpInteractiveoffers.class, mapper);
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = mapper;
     }
 
     @Override
-    protected Imp modifyImp(Imp imp, ExtImpInteractiveoffers impExt) {
-        if (impExt.getPubId() == null) {
-            throw new PreBidException("pubid is empty");
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<Imp> modifiedImps = new ArrayList<>();
+
+        for (Imp imp : request.getImp()) {
+            try {
+                final ExtImpInteractiveoffers impExt = parseImpExt(imp);
+
+                if (impExt.getPubId() == null) {
+                    throw new PreBidException("The pubid must be present");
+                }
+
+                modifiedImps.add(imp.toBuilder().ext(impExtToObjectNode(impExt)).build());
+            } catch (PreBidException e) {
+                return Result.withError(BidderError.badInput(e.getMessage()));
+            }
         }
-        return imp;
+
+        BidRequest outgoingRequest = request.toBuilder().imp(modifiedImps).build();
+
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(HttpUtil.headers())
+                .payload(outgoingRequest)
+                .body(mapper.encode(outgoingRequest))
+                .build()
+        );
     }
 
-
     @Override
-    protected BidType getBidType(Bid bid, List<Imp> imps) {
-        final String impId = bid.getImpid();
+    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private ObjectNode impExtToObjectNode(ExtImpInteractiveoffers interactiveOffersBidder) {
+        final ObjectNode impExt;
+        try {
+            impExt = mapper.mapper().valueToTree(ExtPrebid.of(null, interactiveOffersBidder));
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
+        }
+        return impExt;
+    }
+
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+        return bidsFromResponse(bidRequest, bidResponse);
+    }
+
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .collect(Collectors.toList());
+    }
+
+    private ExtImpInteractiveoffers parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), INTERACTIVEOFFERS_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
