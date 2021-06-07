@@ -6,10 +6,14 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.EventTracker;
+import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -145,21 +149,73 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> createBid(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
+    }
+
+    private BidderBid createBid(Bid bid, BidType bidType, String cur) {
+        if (!bidType.equals(BidType.xNative)
+                || StringUtils.isEmpty(bid.getAdm())) {
+            return BidderBid.of(bid, bidType, cur);
+        }
+
+        String adm = bid.getAdm();
+
+        Bid updatedBid = bid.toBuilder().adm(getUpdatedAdm(adm)).build();
+
+        return BidderBid.of(updatedBid, bidType, cur);
+    }
+
+    private String getUpdatedAdm(String adm) {
+        final Response response;
+        try {
+            response = mapper.decodeValue(adm, Response.class);
+        } catch (Exception e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        final List<EventTracker> eventtrackers = response.getEventtrackers();
+        final List<String> imptrackers = response.getImptrackers() == null
+                ? new ArrayList<>()
+                : response.getImptrackers();
+
+        final StringBuilder jstracker = new StringBuilder(StringUtils.isEmpty(response.getJstracker())
+                ? ""
+                : response.getJstracker());
+
+        if (CollectionUtils.isEmpty(eventtrackers)) {
+            return adm;
+        }
+
+        for (EventTracker eventTracker : eventtrackers) {
+            if (!eventTracker.getEvent().equals(1)) {
+                continue;
+            }
+            if (eventTracker.getMethod().equals(1)) {
+                imptrackers.add(eventTracker.getUrl());
+            } else if (eventTracker.getMethod().equals(2)) {
+                jstracker.append(String.format("<script src=\"%s\"></script>", eventTracker.getUrl()));
+            }
+        }
+
+        return mapper.encode(response.toBuilder()
+                .eventtrackers(null)
+                .jstracker(jstracker.toString())
+                .imptrackers(imptrackers)
+                .build());
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
