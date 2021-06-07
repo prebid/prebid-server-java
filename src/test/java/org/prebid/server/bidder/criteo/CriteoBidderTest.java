@@ -15,7 +15,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
@@ -32,7 +31,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpCriteo;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -50,7 +48,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.mockito.BDDMockito.given;
 
 public class CriteoBidderTest extends VertxTest {
 
@@ -61,12 +58,8 @@ public class CriteoBidderTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    private IdGenerator idGenerator;
-
     @Before
     public void setUp() {
-        given(idGenerator.generateId()).willReturn("00000000-0000-0000-0000");
         criteoBidder = new CriteoBidder(ENDPOINT_URL, jacksonMapper, false);
     }
 
