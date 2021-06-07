@@ -1,10 +1,12 @@
 package org.prebid.server.log;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.model.HttpLogSpec;
 import org.prebid.server.settings.model.Account;
 
@@ -16,7 +18,13 @@ public class HttpInteractionLogger {
     private static final String HTTP_INTERACTION_LOGGER_NAME = "http-interaction";
     private static final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
 
+    private final JacksonMapper mapper;
+
     private final AtomicReference<SpecWithCounter> specWithCounter = new AtomicReference<>();
+
+    public HttpInteractionLogger(JacksonMapper mapper) {
+        this.mapper = mapper;
+    }
 
     public void setSpec(HttpLogSpec spec) {
         specWithCounter.set(SpecWithCounter.of(spec));
@@ -31,7 +39,8 @@ public class HttpInteractionLogger {
             logger.info(
                     "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
                     routingContext.request().uri(),
-                    routingContext.getBody().toString(),
+                    // This creates string without new line and space symbols;
+                    mapper.encode(mapper.decodeValue(routingContext.getBody(), ObjectNode.class)),
                     statusCode,
                     responseBody);
 
