@@ -128,6 +128,18 @@ public class AnalyticsReporterDelegatorTest {
     }
 
     @Test
+    public void shouldTolerateWithMissingBidRequest() {
+        // given
+        final AuctionEvent givenAuctionEvent = AuctionEvent.builder().build();
+
+        // when
+        target.processEvent(givenAuctionEvent, TcfContext.empty());
+
+        // then
+        verify(vertx, times(2)).runOnContext(any());
+    }
+
+    @Test
     public void shouldPassOnlyAdapterRelatedEntriesToAnalyticReporters() {
         // given
         final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
