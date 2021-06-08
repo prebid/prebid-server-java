@@ -1,5 +1,6 @@
 package org.prebid.server.bidder;
 
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -29,6 +30,11 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -91,7 +97,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         timeout = timeoutFactory.create(500L);
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
-        httpBidderRequester = new HttpBidderRequester(httpClient, null, bidderErrorNotifier);
+        httpBidderRequester = new HttpBidderRequester(httpClient, null, bidderErrorNotifier, "1.00");
     }
 
     @Test
@@ -154,8 +160,43 @@ public class HttpBidderRequesterTest extends VertxTest {
         httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
 
         // then
-        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), argThat(new MultiMapMatcher(headers)),
+        final MultiMap expectedHeaders = new CaseInsensitiveHeaders();
+        expectedHeaders.addAll(headers);
+        expectedHeaders.add("x-prebid", "pbs-java/1.00");
+        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), argThat(new MultiMapMatcher(expectedHeaders)),
                 eq("requestBody"), eq(500L));
+    }
+
+    @Test
+    public void shouldCreateXPrebidHeaderForOutgoingRequest() {
+        // given
+        givenHttpClientReturnsResponse(200, null);
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri")
+                        .body("requestBody")
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
+                emptyList()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .channel(ExtRequestPrebidChannel.of("pbjs", "4.39"))
+                        .build()))
+                .app(App.builder()
+                        .ext(ExtApp.of(ExtAppPrebid.of("prebid-mobile", "1.2.3"), null))
+                        .build())
+                .build();
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+
+        // when
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
+
+        // then
+        final MultiMap expectedHeaders = new CaseInsensitiveHeaders();
+        expectedHeaders.add("x-prebid", "pbjs/4.39,prebid-mobile/1.2.3,pbs-java/1.00");
+        verify(httpClient).request(any(), any(), argThat(new MultiMapMatcher(expectedHeaders)), anyString(), anyLong());
     }
 
     @Test

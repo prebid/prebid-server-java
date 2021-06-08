@@ -462,9 +462,13 @@ public class ServiceConfiguration {
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
-            BidderErrorNotifier bidderErrorNotifier) {
+            BidderErrorNotifier bidderErrorNotifier,
+            VersionInfo versionInfo) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+        return new HttpBidderRequester(httpClient,
+                bidderRequestCompletionTrackerFactory,
+                bidderErrorNotifier,
+                versionInfo.getVersion());
     }
 
     @Bean

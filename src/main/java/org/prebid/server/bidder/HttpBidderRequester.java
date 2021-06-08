@@ -1,5 +1,6 @@
 package org.prebid.server.bidder;
 
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -21,6 +22,11 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -50,19 +56,22 @@ public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
-    private static final Set<CharSequence> HEADERS_TO_COPY = Collections.singleton(HttpUtil.SEC_GPC.toString());
+    private static final Set<CharSequence> HEADERS_TO_COPY = Collections.singleton(HttpUtil.SEC_GPC_HEADER.toString());
 
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
+    private final String pbsVersion;
 
     public HttpBidderRequester(HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
-                               BidderErrorNotifier bidderErrorNotifier) {
+                               BidderErrorNotifier bidderErrorNotifier,
+                               String pbsVersion) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
+        this.pbsVersion = pbsVersion;
     }
 
     /**
@@ -77,7 +86,8 @@ public class HttpBidderRequester {
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
-        final List<HttpRequest<T>> httpRequests = enrichRequests(httpRequestsWithErrors.getValue(), routingContext);
+        final List<HttpRequest<T>> httpRequests =
+                enrichRequests(httpRequestsWithErrors.getValue(), routingContext, bidRequest);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
@@ -108,16 +118,19 @@ public class HttpBidderRequester {
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
     }
 
-    private static <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
-                                                           RoutingContext routingContext) {
+    private <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
+                                                    RoutingContext routingContext,
+                                                    BidRequest bidRequest) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
-                .headers(enrichHeaders(httpRequest.getHeaders(), routingContext.request().headers()))
+                .headers(enrichHeaders(httpRequest.getHeaders(), routingContext.request().headers(), bidRequest))
                 .build())
                 .collect(Collectors.toList());
     }
 
-    private static MultiMap enrichHeaders(MultiMap bidderRequestHeaders, MultiMap originalRequestHeaders) {
+    private MultiMap enrichHeaders(MultiMap bidderRequestHeaders,
+                                   MultiMap originalRequestHeaders,
+                                   BidRequest bidRequest) {
         // some bidders has headers on class level, so we create copy to not affect them
         final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);
 
@@ -125,6 +138,7 @@ public class HttpBidderRequester {
                 .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey())
                         && !bidderRequestHeadersCopy.contains(entry.getKey()))
                 .forEach(entry -> bidderRequestHeadersCopy.add(entry.getKey(), entry.getValue()));
+        addXPrebidHeader(bidderRequestHeadersCopy, bidRequest);
         return bidderRequestHeadersCopy;
     }
 
@@ -134,6 +148,40 @@ public class HttpBidderRequester {
             source.forEach(entry -> copiedMultiMap.add(entry.getKey(), entry.getValue()));
         }
         return copiedMultiMap;
+    }
+
+    private void addXPrebidHeader(MultiMap headers, BidRequest bidRequest) {
+        final String channelRecord = resolveChannelVersionRecord(bidRequest.getExt());
+        final String sdkRecord = resolveSdkVersionRecord(bidRequest.getApp());
+        final String pbsRecord = createNameVersionRecord("pbs-java", pbsVersion);
+        final String value = Stream.of(channelRecord, sdkRecord, pbsRecord)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(","));
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_PREBID_HEADER, value);
+    }
+
+    private static String resolveChannelVersionRecord(ExtRequest extRequest) {
+        final ExtRequestPrebid extPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final ExtRequestPrebidChannel channel = extPrebid != null ? extPrebid.getChannel() : null;
+        final String channelName = channel != null ? channel.getName() : null;
+        final String channelVersion = channel != null ? channel.getVersion() : null;
+
+        return createNameVersionRecord(channelName, channelVersion);
+    }
+
+    private static String resolveSdkVersionRecord(App app) {
+        final ExtApp extApp = app != null ? app.getExt() : null;
+        final ExtAppPrebid extPrebid = extApp != null ? extApp.getPrebid() : null;
+        final String sdkSource = extPrebid != null ? extPrebid.getSource() : null;
+        final String sdkVersion = extPrebid != null ? extPrebid.getVersion() : null;
+
+        return createNameVersionRecord(sdkSource, sdkVersion);
+    }
+
+    private static String createNameVersionRecord(String name, String version) {
+        return StringUtils.isNotEmpty(name) && StringUtils.isNotEmpty(version)
+                ? String.format("%s/%s", name, version)
+                : null;
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
