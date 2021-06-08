@@ -128,7 +128,7 @@ public class AmpRequestFactory {
                 routingContext,
                 parsedBidRequest,
                 MetricName.amp,
-                false,
+                true,
                 startTime,
                 new ArrayList<>())
 
