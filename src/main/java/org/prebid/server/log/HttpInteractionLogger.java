@@ -10,6 +10,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.model.HttpLogSpec;
 import org.prebid.server.settings.model.Account;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -23,7 +24,7 @@ public class HttpInteractionLogger {
     private final AtomicReference<SpecWithCounter> specWithCounter = new AtomicReference<>();
 
     public HttpInteractionLogger(JacksonMapper mapper) {
-        this.mapper = mapper;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     public void setSpec(HttpLogSpec spec) {
