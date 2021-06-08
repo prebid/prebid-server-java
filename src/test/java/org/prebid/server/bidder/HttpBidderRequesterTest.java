@@ -1,6 +1,5 @@
 package org.prebid.server.bidder;
 
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -30,11 +29,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -51,8 +45,6 @@ import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyLong;
@@ -75,6 +67,8 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Mock
     private BidderErrorNotifier bidderErrorNotifier;
     @Mock
+    private HttpBidderRequestEnricher requestEnricher;
+    @Mock
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpServerRequest;
@@ -91,13 +85,14 @@ public class HttpBidderRequesterTest extends VertxTest {
         given(bidderErrorNotifier.processTimeout(any(), any())).will(invocation -> invocation.getArgument(0));
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(new CaseInsensitiveHeaders());
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
-        httpBidderRequester = new HttpBidderRequester(httpClient, null, bidderErrorNotifier, "1.00");
+        httpBidderRequester = new HttpBidderRequester(httpClient, null, bidderErrorNotifier, requestEnricher);
     }
 
     @Test
@@ -134,69 +129,6 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getHttpCalls()).isEmpty();
         assertThat(bidderSeatBid.getErrors())
                 .extracting(BidderError::getMessage).containsOnly("error1", "error2");
-    }
-
-    @Test
-    public void shouldSendPopulatedPostRequest() {
-        // given
-        givenHttpClientReturnsResponse(200, null);
-
-        final MultiMap headers = new CaseInsensitiveHeaders();
-        headers.add("header1", "value1");
-        headers.add("header2", "value2");
-
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri("uri")
-                        .body("requestBody")
-                        .headers(headers)
-                        .build()),
-                emptyList()));
-
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-
-        // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
-
-        // then
-        final MultiMap expectedHeaders = new CaseInsensitiveHeaders();
-        expectedHeaders.addAll(headers);
-        expectedHeaders.add("x-prebid", "pbs-java/1.00");
-        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), argThat(new MultiMapMatcher(expectedHeaders)),
-                eq("requestBody"), eq(500L));
-    }
-
-    @Test
-    public void shouldCreateXPrebidHeaderForOutgoingRequest() {
-        // given
-        givenHttpClientReturnsResponse(200, null);
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri("uri")
-                        .body("requestBody")
-                        .headers(new CaseInsensitiveHeaders())
-                        .build()),
-                emptyList()));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .channel(ExtRequestPrebidChannel.of("pbjs", "4.39"))
-                        .build()))
-                .app(App.builder()
-                        .ext(ExtApp.of(ExtAppPrebid.of("prebid-mobile", "1.2.3"), null))
-                        .build())
-                .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
-
-        // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
-
-        // then
-        final MultiMap expectedHeaders = new CaseInsensitiveHeaders();
-        expectedHeaders.add("x-prebid", "pbjs/4.39,prebid-mobile/1.2.3,pbs-java/1.00");
-        verify(httpClient).request(any(), any(), argThat(new MultiMapMatcher(expectedHeaders)), anyString(), anyLong());
     }
 
     @Test
@@ -428,57 +360,6 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
-    public void shouldAddSecGpcHeaderFromOriginalRequest() {
-        // given
-        givenHttpClientReturnsResponse(200, null);
-        given(httpServerRequest.headers()).willReturn(new CaseInsensitiveHeaders().add("Sec-GPC", "1"));
-
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri("uri")
-                        .body("requestBody")
-                        .headers(new CaseInsensitiveHeaders())
-                        .build()),
-                emptyList()));
-
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
-
-        // then
-        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), headerCaptor.capture(), eq("requestBody"), eq(500L));
-        assertThat(headerCaptor.getValue().contains("Sec-GPC")).isTrue();
-        assertThat(headerCaptor.getValue().get("Sec-GPC")).isEqualTo("1");
-    }
-
-    @Test
-    public void shouldNotOverrideHeadersFromBidRequest() {
-        // given
-        givenHttpClientReturnsResponse(200, null);
-        given(httpServerRequest.headers()).willReturn(new CaseInsensitiveHeaders().add("Sec-GPC", "1"));
-
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri("uri")
-                        .body("requestBody")
-                        .headers(new CaseInsensitiveHeaders().add("Sec-GPC", "0"))
-                        .build()),
-                emptyList()));
-
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, routingContext, false);
-
-        // then
-        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), headerCaptor.capture(), eq("requestBody"), eq(500L));
-        assertThat(headerCaptor.getValue().contains("Sec-GPC")).isTrue();
-        assertThat(headerCaptor.getValue().getAll("Sec-GPC")).hasSize(1);
-        assertThat(headerCaptor.getValue().get("Sec-GPC")).isEqualTo("0");
-    }
-
-    @Test
     public void shouldReturnFullDebugInfoIfDebugEnabledAndErrorStatus() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
@@ -617,6 +498,14 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(204, null, EMPTY)))
                 // simulate 200 status
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, EMPTY)));
+
+        given(requestEnricher.enrichHeaders(any(), any(), any()))
+                .willReturn(new CaseInsensitiveHeaders())
+                .willReturn(new CaseInsensitiveHeaders())
+                .willReturn(new CaseInsensitiveHeaders())
+                .willReturn(new CaseInsensitiveHeaders())
+                .willReturn(new CaseInsensitiveHeaders())
+                .willReturn(new CaseInsensitiveHeaders());
 
         given(bidder.makeBids(any(), any())).willReturn(
                 Result.of(singletonList(BidderBid.of(null, null, null)),
