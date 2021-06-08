@@ -41,6 +41,10 @@ import java.util.stream.Collectors;
  */
 public class OutbrainBidder implements Bidder<BidRequest> {
 
+    private static final int IMP_TRACKER_METHOD = 1;
+    private static final int JS_TRACKER_METHOD = 2;
+    private static final int EVENT_TRACKER_METHOD = 1;
+
     private static final TypeReference<ExtPrebid<?, ExtImpOutbrain>> OUTBRAIN_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpOutbrain>>() {
             };
@@ -162,28 +166,28 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> createBid(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> createBidderBid(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidderBid createBid(Bid bid, BidType bidType, String cur) {
+    private BidderBid createBidderBid(Bid bid, BidType bidType, String cur) {
         if (!bidType.equals(BidType.xNative)
                 || StringUtils.isEmpty(bid.getAdm())) {
             return BidderBid.of(bid, bidType, cur);
         }
 
-        String adm = bid.getAdm();
+        final String adm = bid.getAdm();
 
-        Bid updatedBid = bid.toBuilder().adm(getUpdatedAdm(adm)).build();
+        final Bid updatedBid = bid.toBuilder().adm(resolveBidAdm(adm)).build();
 
         return BidderBid.of(updatedBid, bidType, cur);
     }
 
-    private String getUpdatedAdm(String adm) {
+    private String resolveBidAdm(String adm) {
         final Response response;
         try {
             response = mapper.decodeValue(adm, Response.class);
-        } catch (Exception e) {
+        } catch (DecodeException e) {
             throw new PreBidException(e.getMessage());
         }
 
@@ -192,28 +196,30 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 ? new ArrayList<>()
                 : response.getImptrackers();
 
-        final StringBuilder jstracker = new StringBuilder(StringUtils.isEmpty(response.getJstracker())
+        String jstracker = StringUtils.isEmpty(response.getJstracker())
                 ? ""
-                : response.getJstracker());
+                : response.getJstracker();
 
         if (CollectionUtils.isEmpty(eventtrackers)) {
             return adm;
         }
 
         for (EventTracker eventTracker : eventtrackers) {
-            if (!eventTracker.getEvent().equals(1)) {
+            if (!Objects.equals(eventTracker.getEvent(), EVENT_TRACKER_METHOD)) {
                 continue;
             }
-            if (eventTracker.getMethod().equals(1)) {
+
+            Integer currentMethod = eventTracker.getMethod();
+            if (Objects.equals(currentMethod, IMP_TRACKER_METHOD)) {
                 imptrackers.add(eventTracker.getUrl());
-            } else if (eventTracker.getMethod().equals(2)) {
-                jstracker.append(String.format("<script src=\"%s\"></script>", eventTracker.getUrl()));
+            } else if (Objects.equals(currentMethod, JS_TRACKER_METHOD)) {
+                jstracker = String.format("<script src=\"%s\"></script>", eventTracker.getUrl());
             }
         }
 
         return mapper.encode(response.toBuilder()
                 .eventtrackers(null)
-                .jstracker(jstracker.toString())
+                .jstracker(jstracker)
                 .imptrackers(imptrackers)
                 .build());
     }

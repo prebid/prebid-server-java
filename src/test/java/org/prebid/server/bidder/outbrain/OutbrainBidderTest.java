@@ -26,12 +26,10 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.outbrains.ExtImpOutbrain;
 import org.prebid.server.proto.openrtb.ext.request.outbrains.ExtImpOutbrainPublisher;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,7 +57,7 @@ public class OutbrainBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateOneSingleRequestWithAllImps() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(givenImp(identity()), givenImp(identity())))
+                .imp(asList(givenImp(identity()), givenImp(identity())))
                 .build();
 
         // when
@@ -232,7 +230,6 @@ public class OutbrainBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidWithModifiedImpIfNativeIsPresent() throws JsonProcessingException {
         // given
-        final List<EventTracker> eventTrackers = new ArrayList<>();
         final String impUrl = "impUrl";
         final String jsUrl = "jsUrl";
         final EventTracker impTracker = EventTracker.builder()
@@ -246,31 +243,29 @@ public class OutbrainBidderTest extends VertxTest {
                 .url(jsUrl)
                 .build();
 
-        eventTrackers.add(impTracker);
-        eventTrackers.add(jsTracker);
+        final List<EventTracker> eventTrackers = asList(impTracker, jsTracker);
 
-        final Response response = Response.builder()
+        final Response nativeResponse = Response.builder()
                 .eventtrackers(eventTrackers)
                 .build();
 
-        final String expectedAdm = jacksonMapper.encode(Response.builder()
-                .eventtrackers(null)
-                .jstracker(String.format("<script src=\"%s\"></script>", jsUrl))
-                .imptrackers(Collections.singletonList(impUrl))
-                .build());
-
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build()))
-                        .build(),
+                        .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build())).build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                                .adm(jacksonMapper.encode(response)))));
+                                .adm(jacksonMapper.encode(nativeResponse)))));
 
         // when
         final Result<List<BidderBid>> result = outbrainBidder.makeBids(httpCall, null);
 
         // then
+        final String expectedAdm = jacksonMapper.encode(Response.builder()
+                .eventtrackers(null)
+                .jstracker(String.format("<script src=\"%s\"></script>", jsUrl))
+                .imptrackers(singletonList(impUrl))
+                .build());
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
