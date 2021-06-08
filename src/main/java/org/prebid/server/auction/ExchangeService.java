@@ -43,8 +43,11 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.execution.HookStageExecutor;
+import org.prebid.server.hooks.execution.model.ExecutionAction;
+import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
@@ -92,6 +95,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -176,7 +180,8 @@ public class ExchangeService {
      */
     public Future<BidResponse> holdAuction(AuctionContext context) {
         return processAuctionRequest(context)
-                .map(bidResponse -> enrichWithHooksDebugInfo(bidResponse, context));
+                .map(bidResponse -> enrichWithHooksDebugInfo(bidResponse, context))
+                .map(bidResponse -> updateHooksMetrics(context, bidResponse));
     }
 
     private Future<BidResponse> processAuctionRequest(AuctionContext context) {
@@ -1476,6 +1481,59 @@ public class ExchangeService {
                 .action(hook.getAction())
                 .debugMessages(level == TraceLevel.verbose ? hook.getDebugMessages() : null)
                 .build();
+    }
+
+    private <T> T updateHooksMetrics(AuctionContext context, T result) {
+        final EnumMap<Stage, StageExecutionOutcome> stageOutcomes =
+                context.getHookExecutionContext().getStageOutcomes();
+
+        final Account account = context.getAccount();
+
+        stageOutcomes.forEach((stage, outcome) -> updateHooksStageMetrics(account, stage, outcome));
+
+        // account might be null if request is rejected by the entrypoint hook
+        if (account != null) {
+            final String accountId = account.getId();
+
+            stageOutcomes.values().stream()
+                    .map(StageExecutionOutcome::getGroups)
+                    .flatMap(Collection::stream)
+                    .map(GroupExecutionOutcome::getHooks)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.groupingBy(
+                            outcome -> outcome.getHookId().getModuleCode(),
+                            Collectors.summingLong(HookExecutionOutcome::getExecutionTime)))
+                    .forEach((moduleCode, executionTime) ->
+                            metrics.updateAccountModuleDurationMetric(accountId, moduleCode, executionTime));
+        }
+
+        return result;
+    }
+
+    private void updateHooksStageMetrics(Account account, Stage stage, StageExecutionOutcome stageOutcome) {
+        stageOutcome.getGroups().stream()
+                .flatMap(groupOutcome -> groupOutcome.getHooks().stream())
+                .forEach(hookOutcome -> updateHookInvocationMetrics(account, stage, hookOutcome));
+    }
+
+    private void updateHookInvocationMetrics(Account account, Stage stage, HookExecutionOutcome hookOutcome) {
+        final HookId hookId = hookOutcome.getHookId();
+        final ExecutionStatus status = hookOutcome.getStatus();
+        final ExecutionAction action = hookOutcome.getAction();
+        final String moduleCode = hookId.getModuleCode();
+
+        metrics.updateHooksMetrics(
+                moduleCode,
+                stage,
+                hookId.getHookImplCode(),
+                status,
+                hookOutcome.getExecutionTime(),
+                action);
+
+        // account might be null if request is rejected by the entrypoint hook
+        if (account != null) {
+            metrics.updateAccountHooksMetrics(account.getId(), moduleCode, status, action);
+        }
     }
 
     private <T> List<T> nullIfEmpty(List<T> value) {

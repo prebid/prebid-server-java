@@ -2,6 +2,9 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.Imp;
+import org.prebid.server.hooks.execution.model.ExecutionAction;
+import org.prebid.server.hooks.execution.model.ExecutionStatus;
+import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
 import java.util.ArrayList;
@@ -48,6 +51,7 @@ public class Metrics extends UpdatableMetrics {
     private final TimeoutNotificationMetrics timeoutNotificationMetrics;
     private final CurrencyRatesMetrics currencyRatesMetrics;
     private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
+    private final HooksMetrics hooksMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType,
                    AccountMetricsVerbosity accountMetricsVerbosity) {
@@ -77,6 +81,7 @@ public class Metrics extends UpdatableMetrics {
         timeoutNotificationMetrics = new TimeoutNotificationMetrics(metricRegistry, counterType);
         currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
         settingsCacheMetrics = new HashMap<>();
+        hooksMetrics = new HooksMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -125,6 +130,10 @@ public class Metrics extends UpdatableMetrics {
 
     SettingsCacheMetrics forSettingsCacheType(MetricName type) {
         return settingsCacheMetrics.computeIfAbsent(type, settingsCacheMetricsCreator);
+    }
+
+    HooksMetrics hooks() {
+        return hooksMetrics;
     }
 
     public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, int numImps) {
@@ -503,5 +512,75 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateSettingsCacheEventMetric(MetricName cacheType, MetricName event) {
         forSettingsCacheType(cacheType).incCounter(event);
+    }
+
+    public void updateHooksMetrics(
+            String moduleCode,
+            Stage stage,
+            String hookImplCode,
+            ExecutionStatus status,
+            Long executionTime,
+            ExecutionAction action) {
+
+        final HookImplMetrics hookImplMetrics = hooks().module(moduleCode).stage(stage).hookImpl(hookImplCode);
+
+        hookImplMetrics.incCounter(MetricName.call);
+        if (status == ExecutionStatus.success) {
+            hookImplMetrics.success().incCounter(HookMetricMapper.fromAction(action));
+        } else {
+            hookImplMetrics.incCounter(HookMetricMapper.fromStatus(status));
+        }
+        hookImplMetrics.updateTimer(MetricName.duration, executionTime);
+    }
+
+    public void updateAccountHooksMetrics(
+            String accountId,
+            String moduleCode,
+            ExecutionStatus status,
+            ExecutionAction action) {
+
+        if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            final ModuleMetrics accountModuleMetrics = forAccount(accountId).hooks().module(moduleCode);
+
+            accountModuleMetrics.incCounter(MetricName.call);
+            if (status == ExecutionStatus.success) {
+                accountModuleMetrics.success().incCounter(HookMetricMapper.fromAction(action));
+            } else {
+                accountModuleMetrics.incCounter(MetricName.failure);
+            }
+        }
+    }
+
+    public void updateAccountModuleDurationMetric(String accountId, String moduleCode, Long executionTime) {
+        if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(accountId).hooks().module(moduleCode).updateTimer(MetricName.duration, executionTime);
+        }
+    }
+
+    private static class HookMetricMapper {
+
+        private static final EnumMap<ExecutionStatus, MetricName> STATUS_TO_METRIC =
+                new EnumMap<>(ExecutionStatus.class);
+        private static final EnumMap<ExecutionAction, MetricName> ACTION_TO_METRIC =
+                new EnumMap<>(ExecutionAction.class);
+
+        static {
+            STATUS_TO_METRIC.put(ExecutionStatus.failure, MetricName.failure);
+            STATUS_TO_METRIC.put(ExecutionStatus.timeout, MetricName.timeout);
+            STATUS_TO_METRIC.put(ExecutionStatus.invocation_failure, MetricName.execution_error);
+            STATUS_TO_METRIC.put(ExecutionStatus.execution_failure, MetricName.execution_error);
+
+            ACTION_TO_METRIC.put(ExecutionAction.no_action, MetricName.noop);
+            ACTION_TO_METRIC.put(ExecutionAction.update, MetricName.update);
+            ACTION_TO_METRIC.put(ExecutionAction.reject, MetricName.reject);
+        }
+
+        static MetricName fromStatus(ExecutionStatus status) {
+            return STATUS_TO_METRIC.getOrDefault(status, MetricName.unknown);
+        }
+
+        static MetricName fromAction(ExecutionAction action) {
+            return ACTION_TO_METRIC.getOrDefault(action, MetricName.unknown);
+        }
     }
 }
