@@ -24,18 +24,16 @@ public class HttpBidderRequestEnricher {
     private final String pbsRecord;
 
     public HttpBidderRequestEnricher(String pbsVersion) {
-        this.pbsRecord = createNameVersionRecord("pbs-java", Objects.requireNonNull(pbsVersion));
+        pbsRecord = createNameVersionRecord("pbs-java", Objects.requireNonNull(pbsVersion));
     }
 
     MultiMap enrichHeaders(MultiMap bidderRequestHeaders, MultiMap originalRequestHeaders, BidRequest bidRequest) {
         // some bidders has headers on class level, so we create copy to not affect them
         final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);
 
-        originalRequestHeaders.entries().stream()
-                .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey())
-                        && !bidderRequestHeadersCopy.contains(entry.getKey()))
-                .forEach(entry -> bidderRequestHeadersCopy.add(entry.getKey(), entry.getValue()));
+        addOriginalRequestHeaders(originalRequestHeaders, bidderRequestHeadersCopy);
         addXPrebidHeader(bidderRequestHeadersCopy, bidRequest);
+
         return bidderRequestHeadersCopy;
     }
 
@@ -45,6 +43,13 @@ public class HttpBidderRequestEnricher {
             source.forEach(entry -> copiedMultiMap.add(entry.getKey(), entry.getValue()));
         }
         return copiedMultiMap;
+    }
+
+    private static void addOriginalRequestHeaders(MultiMap originalHeaders, MultiMap bidderHeaders) {
+        originalHeaders.entries().stream()
+                .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey())
+                        && !bidderHeaders.contains(entry.getKey()))
+                .forEach(entry -> bidderHeaders.add(entry.getKey(), entry.getValue()));
     }
 
     private void addXPrebidHeader(MultiMap headers, BidRequest bidRequest) {
