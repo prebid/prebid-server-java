@@ -109,8 +109,9 @@ public class VastModifierTest {
 
         // then
         final String modifiedVast = "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>"
-                + "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives>"
-                + "<Impression><![CDATA[http://external-url/event]]></Impression></Wrapper></Ad></VAST>";
+                + "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>"
+                + "<Impression><![CDATA[http://external-url/event]]></Impression>"
+                + "<Creatives></Creatives></Wrapper></Ad></VAST>";
 
         assertThat(result).isEqualTo(new TextNode(modifiedVast));
     }
@@ -129,9 +130,19 @@ public class VastModifierTest {
     }
 
     @Test
-    public void createBidVastXmlShouldInjectBidNurlWhenBidAdmIsEmptyAndEventsDisabledByAccount() {
+    public void createBidVastXmlShouldInjectBidNurlWhenBidAdmIsNullAndEventsDisabledByAccount() {
         // when
         final String result = target.createBidVastXml(BIDDER, null, BID_NURL, BID_ID, ACCOUNT_ID,
+                givenEventsContext(false), emptyList());
+
+        // then
+        assertThat(result).isEqualTo(modifiedAdm(BID_NURL));
+    }
+
+    @Test
+    public void createBidVastXmlShouldInjectBidNurlWhenBidAdmIsEmptyAndEventsDisabledByAccount() {
+        // when
+        final String result = target.createBidVastXml(BIDDER, "", BID_NURL, BID_ID, ACCOUNT_ID,
                 givenEventsContext(false), emptyList());
 
         // then
@@ -163,9 +174,10 @@ public class VastModifierTest {
     }
 
     @Test
-    public void createBidVastXmlShouldBeModifiedWithNewImpressionAsALastChildForInLineType() {
+    public void createBidVastXmlShouldBeModifiedWithNewImpressionAfterExistingImpressionTags() {
         // when
-        final String bidAdm = "<InLine><Impression>http:/test.com</Impression></InLine>";
+        final String bidAdm = "<InLine><Impression>http:/test.com</Impression>"
+                + "<Impression>http:/test2.com</Impression><Creatives></Creatives></InLine>";
         final String result = target
                 .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
@@ -173,7 +185,8 @@ public class VastModifierTest {
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
 
         assertThat(result).isEqualTo("<InLine><Impression>http:/test.com</Impression>"
-                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></InLine>");
+                + "<Impression>http:/test2.com</Impression>"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression><Creatives></Creatives></InLine>");
     }
 
     @Test
