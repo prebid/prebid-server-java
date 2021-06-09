@@ -130,13 +130,17 @@ public class AnalyticsReporterDelegatorTest {
     @Test
     public void shouldTolerateWithMissingBidRequest() {
         // given
-        final AuctionEvent givenAuctionEvent = AuctionEvent.builder().build();
+        final AuctionEvent givenAuctionEventWithoutContext = AuctionEvent.builder().build();
+        final AuctionEvent givenAuctionEventWithoutBidRequest = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder().build())
+                .build();
 
         // when
-        target.processEvent(givenAuctionEvent, TcfContext.empty());
+        target.processEvent(givenAuctionEventWithoutContext, TcfContext.empty());
+        target.processEvent(givenAuctionEventWithoutBidRequest, TcfContext.empty());
 
         // then
-        verify(vertx, times(2)).runOnContext(any());
+        verify(vertx, times(4)).runOnContext(any());
     }
 
     @Test
