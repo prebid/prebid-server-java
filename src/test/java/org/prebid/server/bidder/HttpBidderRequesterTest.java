@@ -54,6 +54,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 public class HttpBidderRequesterTest extends VertxTest {
 
@@ -484,7 +485,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .headers(new CaseInsensitiveHeaders())
                         .build()),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
-
+        when(requestEnricher.enrichHeaders(any(), any(), any())).thenAnswer(invocation -> new CaseInsensitiveHeaders());
         given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
                 // simulate response error for the first request
                 .willReturn(Future.failedFuture(new RuntimeException("Response exception")))
@@ -498,14 +499,6 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(204, null, EMPTY)))
                 // simulate 200 status
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, EMPTY)));
-
-        given(requestEnricher.enrichHeaders(any(), any(), any()))
-                .willReturn(new CaseInsensitiveHeaders())
-                .willReturn(new CaseInsensitiveHeaders())
-                .willReturn(new CaseInsensitiveHeaders())
-                .willReturn(new CaseInsensitiveHeaders())
-                .willReturn(new CaseInsensitiveHeaders())
-                .willReturn(new CaseInsensitiveHeaders());
 
         given(bidder.makeBids(any(), any())).willReturn(
                 Result.of(singletonList(BidderBid.of(null, null, null)),
