@@ -177,6 +177,34 @@ public class VastModifierTest {
     }
 
     @Test
+    public void createBidVastXmlShouldModifyWrapperTagInCaseInsensitiveMode() {
+        // when
+        final String bidAdm = "<wrapper><Impression>http:/test.com</Impression></wrapper>";
+        final String result = target
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
+
+        assertThat(result).isEqualTo("<wrapper><Impression>http:/test.com</Impression>"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></wrapper>");
+    }
+
+    @Test
+    public void createBidVastXmlShouldModifyInlineTagInCaseInsensitiveMode() {
+        // when
+        final String bidAdm = "<Inline><Impression>http:/test.com</Impression></Inline>";
+        final String result = target
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
+
+        assertThat(result).isEqualTo("<Inline><Impression>http:/test.com</Impression>"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></Inline>");
+    }
+
+    @Test
     public void createBidVastXmlShouldNotBeModifiedIfInLineHasNoImpressionTags() {
         // when
         final String bidAdm = "<InLine></InLine>";
