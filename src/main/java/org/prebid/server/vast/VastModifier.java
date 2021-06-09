@@ -124,8 +124,10 @@ public class VastModifier {
 
     private String appendTrackingUrl(String vastXml, String vastUrlTracking, boolean inline) {
         final String closeTag = inline ? IN_LINE_CLOSE_TAG : WRAPPER_CLOSE_TAG;
+        final int indexOfCloseTag = StringUtils.indexOfIgnoreCase(vastXml, closeTag);
+        final String caseSpecificCloseTag = vastXml.substring(indexOfCloseTag, indexOfCloseTag + closeTag.length());
         final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
 
-        return vastXml.replace(closeTag, impressionTag + closeTag);
+        return vastXml.replace(caseSpecificCloseTag, impressionTag + caseSpecificCloseTag);
     }
 }
