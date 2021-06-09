@@ -19,7 +19,6 @@ import java.util.Set;
 public class VastModifier {
 
     private static final String IN_LINE_TAG = "<InLine>";
-    private static final String IN_LINE_CLOSE_TAG = "</InLine>";
     private static final String WRAPPER_TAG = "<Wrapper>";
     private static final String WRAPPER_CLOSE_TAG = "</Wrapper>";
     private static final String IMPRESSION_CLOSE_TAG = "</Impression>";
@@ -105,7 +104,7 @@ public class VastModifier {
         if (inLineTagIndex != -1) {
             return appendTrackingUrlForInlineType(vastXml, vastUrlTracking);
         } else if (wrapperTagIndex != -1) {
-            return appendTrackingUrl(vastXml, vastUrlTracking, false);
+            return appendTrackingUrl(vastXml, vastUrlTracking);
         }
         throw new PreBidException(
                 String.format("VastXml does not contain neither InLine nor Wrapper for %s response", bidder));
@@ -119,10 +118,10 @@ public class VastModifier {
             return vastXml;
         }
 
-        return appendTrackingUrl(vastXml, vastUrlTracking, true);
+        return appendTrackingUrl(vastXml, vastUrlTracking);
     }
 
-    private static String appendTrackingUrl(String vastXml, String vastUrlTracking, boolean inline) {
+    private static String appendTrackingUrl(String vastXml, String vastUrlTracking) {
         if (vastXml.contains(IMPRESSION_CLOSE_TAG)) {
             return insertAfterExistingImpressionTag(vastXml, vastUrlTracking);
         }
@@ -147,12 +146,5 @@ public class VastModifier {
         final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
 
         return vastXml.replace(caseSpecificCloseTag, impressionTag + caseSpecificCloseTag);
-    }
-
-    private static String resolveCloseTag(String vastXml, boolean inline) {
-        return vastXml.contains(IMPRESSION_CLOSE_TAG)
-                ? IMPRESSION_CLOSE_TAG
-                : inline
-                ? IN_LINE_CLOSE_TAG : WRAPPER_CLOSE_TAG;
     }
 }

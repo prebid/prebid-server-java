@@ -174,7 +174,7 @@ public class VastModifierTest {
     }
 
     @Test
-    public void createBidVastXmlShouldBeModifiedWithNewImpressionAsALastChildForInLineType() {
+    public void createBidVastXmlShouldBeModifiedWithNewImpressionAfterExistingImpressionTags() {
         // when
         final String bidAdm = "<InLine><Impression>http:/test.com</Impression>"
                 + "<Impression>http:/test2.com</Impression><Creatives></Creatives></InLine>";
