@@ -288,7 +288,7 @@ public class VastModifierTest {
         return "<VAST version=\"3.0\"><Ad><Wrapper>"
                 + "<AdSystem>prebid.org wrapper</AdSystem>"
                 + "<VASTAdTagURI><![CDATA[" + bidNurl + "]]></VASTAdTagURI>"
-                + "<Impression></Impression><Creatives></Creatives>"
+                + "<Creatives></Creatives>"
                 + "</Wrapper></Ad></VAST>";
     }
 
