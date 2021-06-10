@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.adocean;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -57,7 +56,7 @@ public class AdoceanBidder implements Bidder<Void> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdocean>> ADOCEAN_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdocean>>() {
             };
-    private static final String VERSION = "1.2.0";
+    private static final String VERSION = "1.1.0";
     private static final int MAX_URI_LENGTH = 8000;
     private static final String MEASUREMENT_CODE_TEMPLATE = " <script> +function() { "
             + "var wu = \"%s\"; "
@@ -189,14 +188,14 @@ public class AdoceanBidder implements Bidder<Void> {
 
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(buildUrl(imp.getId(), extImpAdocean, consentString, request, slaveSizes))
+                .uri(buildUrl(imp.getId(), extImpAdocean, consentString, request.getTest(), request.getUser(),
+                        slaveSizes))
                 .headers(getHeaders(request))
                 .build();
     }
 
-    private String buildUrl(String impid, ExtImpAdocean extImpAdocean, String consentString, BidRequest bidRequest,
+    private String buildUrl(String impid, ExtImpAdocean extImpAdocean, String consentString, Integer test, User user,
                             Map<String, String> slaveSizes) {
-        final Integer test = bidRequest.getTest();
         final String url = endpointUrl.replace("{{Host}}", Objects.toString(extImpAdocean.getEmitterDomain(), ""));
         final int randomizedPart = Objects.equals(test, 1) ? 10000000 : 10000000 + (int) (Math.random() * 89999999);
         final String updateUrl = String.format("%s/_%s/ad.json", url, randomizedPart);
@@ -213,31 +212,8 @@ public class AdoceanBidder implements Bidder<Void> {
             uriBuilder.addParameter("gdpr", "1");
         }
 
-        final User user = bidRequest.getUser();
         if (user != null && StringUtils.isNotEmpty(user.getBuyeruid())) {
             uriBuilder.addParameter("hcuserid", user.getBuyeruid());
-        }
-
-        final App app = bidRequest.getApp();
-        if (app != null) {
-            uriBuilder.addParameter("app", "1");
-            uriBuilder.addParameter("appname", app.getName());
-            uriBuilder.addParameter("appbundle", app.getBundle());
-            uriBuilder.addParameter("appdomain", app.getDomain());
-        }
-
-        final Device device = bidRequest.getDevice();
-        if (device != null) {
-            if (StringUtils.isNotEmpty(device.getIfa())) {
-                uriBuilder.addParameter("ifa", device.getIfa());
-            } else {
-                uriBuilder.addParameter("dpidmd5", device.getDidmd5());
-            }
-
-            uriBuilder.addParameter("devos", device.getOs());
-            uriBuilder.addParameter("devosv", device.getOsv());
-            uriBuilder.addParameter("devmodel", device.getModel());
-            uriBuilder.addParameter("devmake", device.getMake());
         }
 
         final List<String> sizeValues = setSlaveSizesParam(slaveSizes, Objects.equals(test, 1));
