@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Inmobi {@link Bidder} implementation.
+ * InteractiveOffers {@link Bidder} implementation.
  */
 public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
