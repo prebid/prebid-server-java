@@ -41,9 +41,9 @@ import java.util.stream.Collectors;
  */
 public class OutbrainBidder implements Bidder<BidRequest> {
 
-    private static final int IMP_TRACKER_METHOD = 1;
+    private static final int IMAGE_TRACKER_METHOD = 1;
     private static final int JS_TRACKER_METHOD = 2;
-    private static final int EVENT_TRACKER_METHOD = 1;
+    private static final int EVENT_TYPE_IMPRESSION = 1;
 
     private static final TypeReference<ExtPrebid<?, ExtImpOutbrain>> OUTBRAIN_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpOutbrain>>() {
@@ -171,14 +171,11 @@ public class OutbrainBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid createBidderBid(Bid bid, BidType bidType, String cur) {
-        if (!bidType.equals(BidType.xNative)
-                || StringUtils.isEmpty(bid.getAdm())) {
+        if (!bidType.equals(BidType.xNative) || StringUtils.isEmpty(bid.getAdm())) {
             return BidderBid.of(bid, bidType, cur);
         }
 
-        final String adm = bid.getAdm();
-
-        final Bid updatedBid = bid.toBuilder().adm(resolveBidAdm(adm)).build();
+        final Bid updatedBid = bid.toBuilder().adm(resolveBidAdm(bid.getAdm())).build();
 
         return BidderBid.of(updatedBid, bidType, cur);
     }
@@ -192,25 +189,25 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         }
 
         final List<EventTracker> eventtrackers = response.getEventtrackers();
-        final List<String> imptrackers = response.getImptrackers() == null
-                ? new ArrayList<>()
-                : response.getImptrackers();
+        List<String> imptrackers = response.getImptrackers();
 
-        String jstracker = StringUtils.isEmpty(response.getJstracker())
-                ? ""
-                : response.getJstracker();
+        if (imptrackers == null) {
+            imptrackers = new ArrayList<>();
+        }
+
+        String jstracker = response.getJstracker();
 
         if (CollectionUtils.isEmpty(eventtrackers)) {
             return adm;
         }
 
         for (EventTracker eventTracker : eventtrackers) {
-            if (!Objects.equals(eventTracker.getEvent(), EVENT_TRACKER_METHOD)) {
+            if (!Objects.equals(eventTracker.getEvent(), EVENT_TYPE_IMPRESSION)) {
                 continue;
             }
 
-            Integer currentMethod = eventTracker.getMethod();
-            if (Objects.equals(currentMethod, IMP_TRACKER_METHOD)) {
+            final Integer currentMethod = eventTracker.getMethod();
+            if (Objects.equals(currentMethod, IMAGE_TRACKER_METHOD)) {
                 imptrackers.add(eventTracker.getUrl());
             } else if (Objects.equals(currentMethod, JS_TRACKER_METHOD)) {
                 jstracker = String.format("<script src=\"%s\"></script>", eventTracker.getUrl());
