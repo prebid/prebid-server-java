@@ -83,6 +83,8 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpR
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
@@ -2516,6 +2518,76 @@ public class RubiconBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.id("impId")),
                 givenBidResponse(bidBuilder -> bidBuilder.price(ONE).impid("mismatched_impId")));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeBidsShouldSetSeatBuyerToMetaNetworkId() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .buyer("123")
+                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder().networkId(123).build())
+                        .build(), null));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
+    }
+
+    @Test
+    public void makeBidsShouldTolerateWithNotParsibleBuyerValue() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .buyer("canNotBeParsed")
+                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeBidsShouldTolerateWithNotIntegerBuyerValue() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .buyer("123.2")
+                                .bid(singletonList(givenBid(bid -> bid.price(ONE))))
+                                .build()))
+                        .build()));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));

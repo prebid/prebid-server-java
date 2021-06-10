@@ -37,6 +37,8 @@ public class SeatBid {
      */
     int group;
 
+    String buyer;
+
     /** Placeholder for bidder-specific extensions to OpenRTB. */
     ObjectNode ext;
 }

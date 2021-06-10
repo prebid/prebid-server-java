@@ -2,6 +2,7 @@
   "id": "tid",
   "seatbid": [
     {
+      "buyer" : "123",
       "bid": [
         {
           "id": "bid001",

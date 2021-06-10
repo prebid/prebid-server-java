@@ -86,6 +86,8 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -136,6 +138,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_ADSERVER_NAME_GAM = "gam";
     private static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String FPD_KEYWORDS_FIELD = "keywords";
+    private static final String PREBID_EXT = "prebid";
 
     private static final String PPUID_STYPE = "ppuid";
     private static final String SHA256EMAIL_STYPE = "sha256email";
@@ -148,6 +151,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
             DMP_STYPE));
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
+            };
+    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
             };
     private static final int PORTRAIT_MOBILE_SIZE_ID = 67;
     private static final int LANDSCAPE_MOBILE_SIZE_ID = 101;
@@ -1255,6 +1261,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
+                .map(this::updateSeatBids)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
@@ -1262,6 +1269,42 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(RubiconBidder::validatePrice)
                 .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
+    }
+
+    private SeatBid updateSeatBids(SeatBid seatBid) {
+        final String buyer = seatBid.getBuyer();
+
+        if (!StringUtils.isNumeric(buyer)) {
+            return seatBid;
+        }
+        final List<Bid> updatedBids = seatBid.getBid().stream()
+                .map(bid -> insertNetworkIdToMeta(Integer.parseInt(buyer), bid))
+                .collect(Collectors.toList());
+        return seatBid.toBuilder().bid(updatedBids).build();
+    }
+
+    private Bid insertNetworkIdToMeta(int networkId, Bid bid) {
+        final ObjectNode bidExt = bid.getExt();
+        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bid.getExt());
+        final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
+        final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
+
+        final ExtBidPrebidMeta updatedMeta = meta != null
+                ? meta.toBuilder().networkId(networkId).build()
+                : ExtBidPrebidMeta.builder().networkId(networkId).build();
+
+        final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
+                ? extBidPrebid.toBuilder().meta(updatedMeta).build()
+                : ExtBidPrebid.builder().meta(updatedMeta).build();
+
+        final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
+        updatedBidExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
+
+        return bid.toBuilder().ext(updatedBidExt).build();
+    }
+
+    private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt) {
+        return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
     }
 
     private static boolean validatePrice(Bid bid) {
