@@ -7,6 +7,7 @@ import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
+import org.prebid.server.hooks.v1.analytics.Tags;
 
 import java.util.List;
 
@@ -30,6 +31,8 @@ public class InvocationResultImpl<PAYLOAD> implements InvocationResult<PAYLOAD> 
     List<String> debugMessages;
 
     Object moduleContext;
+
+    Tags analyticsTags;
 
     public static <PAYLOAD> InvocationResult<PAYLOAD> succeeded(PayloadUpdate<PAYLOAD> payloadUpdate) {
         return InvocationResultImpl.<PAYLOAD>builder()

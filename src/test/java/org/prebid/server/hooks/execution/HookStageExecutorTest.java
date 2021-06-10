@@ -12,6 +12,7 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import lombok.Value;
+import lombok.experimental.Accessors;
 import lombok.experimental.NonFinal;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
@@ -54,6 +55,10 @@ import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.analytics.Activity;
+import org.prebid.server.hooks.v1.analytics.AppliedTo;
+import org.prebid.server.hooks.v1.analytics.Result;
+import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
@@ -895,6 +900,14 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.entrypoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
+        final TagsImpl analyticsTags = TagsImpl.of(singletonList(ActivityImpl.of(
+                "update",
+                "success",
+                singletonList(ResultImpl.of(
+                        "success",
+                        null,
+                        AppliedToImpl.of(null, null, true, false, null))))));
+
         givenEntrypointHook(
                 "module-alpha",
                 "hook-a",
@@ -906,6 +919,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .errors(singletonList("There have been some errors though"))
                         .warnings(singletonList("Not without warnings too"))
                         .debugMessages(singletonList("And chatty debug messages of course"))
+                        .analyticsTags(analyticsTags)
                         .build()));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
@@ -937,6 +951,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                         .containsOnly("Not without warnings too");
                                                 assertThat(hookOutcome.getDebugMessages())
                                                         .containsOnly("And chatty debug messages of course");
+                                                assertThat(hookOutcome.getAnalyticsTags()).isSameAs(analyticsTags);
                                             }));
 
             async.complete();
@@ -2639,5 +2654,49 @@ public class HookStageExecutorTest extends VertxTest {
         public String code() {
             return code;
         }
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class TagsImpl implements Tags {
+
+        List<Activity> activities;
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class ActivityImpl implements Activity {
+
+        String name;
+
+        String status;
+
+        List<Result> results;
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class ResultImpl implements Result {
+
+        String status;
+
+        ObjectNode values;
+
+        AppliedTo appliedTo;
+    }
+
+    @Accessors(fluent = true)
+    @Value(staticConstructor = "of")
+    private static class AppliedToImpl implements AppliedTo {
+
+        List<String> imp;
+
+        List<String> bidders;
+
+        boolean request;
+
+        boolean response;
+
+        List<String> bidId;
     }
 }
