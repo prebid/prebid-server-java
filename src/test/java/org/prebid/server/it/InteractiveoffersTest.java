@@ -44,7 +44,7 @@ public class InteractiveoffersTest extends IntegrationTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"interactiveoffers":"interactiveoffers-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7ImFkbWFuIjoiQUQtVUlEIn19")
+                .cookie("uids", "eyJpbnRlcmFjdGl2ZW9mZmVycyI6IklPLVVJRCJ9")
                 .body(jsonFrom("openrtb2/interactiveoffers/test-auction-interactiveoffers-request.json"))
                 .post("/openrtb2/auction");
 

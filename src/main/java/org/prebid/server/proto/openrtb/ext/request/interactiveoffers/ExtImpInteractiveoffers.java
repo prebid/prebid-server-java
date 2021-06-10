@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request.interactiveoffers;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -11,6 +10,5 @@ import lombok.Value;
 @Value
 public class ExtImpInteractiveoffers {
 
-    @JsonProperty("pubid")
-    Integer pubId;
+    Integer pubid;
 }

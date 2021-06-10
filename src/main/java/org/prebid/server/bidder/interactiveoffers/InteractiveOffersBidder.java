@@ -1,7 +1,5 @@
 package org.prebid.server.bidder.interactiveoffers;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -17,23 +15,19 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.interactiveoffers.ExtImpInteractiveoffers;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Inmobi {@link Bidder} implementation.
+ */
 public class InteractiveOffersBidder implements Bidder<BidRequest> {
-
-    private static final TypeReference<ExtPrebid<?, ExtImpInteractiveoffers>> INTERACTIVEOFFERS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpInteractiveoffers>>() {
-            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -45,30 +39,13 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> modifiedImps = new ArrayList<>();
-
-        for (Imp imp : request.getImp()) {
-            try {
-                final ExtImpInteractiveoffers impExt = parseImpExt(imp);
-
-                if (impExt.getPubId() == null) {
-                    throw new PreBidException("The pubid must be present");
-                }
-
-                modifiedImps.add(imp.toBuilder().ext(impExtToObjectNode(impExt)).build());
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
-            }
-        }
-
-        BidRequest outgoingRequest = request.toBuilder().imp(modifiedImps).build();
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .payload(request)
+                .body(mapper.encode(request))
                 .build()
         );
     }
@@ -81,16 +58,6 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
-
-    private ObjectNode impExtToObjectNode(ExtImpInteractiveoffers interactiveOffersBidder) {
-        final ObjectNode impExt;
-        try {
-            impExt = mapper.mapper().valueToTree(ExtPrebid.of(null, interactiveOffersBidder));
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
-        }
-        return impExt;
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
@@ -108,14 +75,6 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
-    }
-
-    private ExtImpInteractiveoffers parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), INTERACTIVEOFFERS_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

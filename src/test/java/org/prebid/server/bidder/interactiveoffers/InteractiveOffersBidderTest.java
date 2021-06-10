@@ -18,7 +18,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.onetag.OnetagBidder;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.interactiveoffers.ExtImpInteractiveoffers;
 
@@ -26,7 +25,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +44,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new OnetagBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new InteractiveOffersBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -86,28 +84,6 @@ public class InteractiveOffersBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCanNotBeParsed() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build(),
-                        givenImp(identity())))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = interactiveOffersBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
-                });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldUpdateImpExt() throws JsonProcessingException {
         // given
         final ObjectNode interactiveOffersExt = (ObjectNode) mapper.readTree("{\"bidder\":{\"pubid\":35}}");
@@ -127,23 +103,6 @@ public class InteractiveOffersBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(interactiveOffersExt);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfPubIdNotPresent() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of(null))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = interactiveOffersBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("The pubid must be present"));
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
