@@ -5,7 +5,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -22,7 +21,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -32,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,19 +47,20 @@ public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
-    private static final Set<CharSequence> HEADERS_TO_COPY = Collections.singleton(HttpUtil.SEC_GPC.toString());
-
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
+    private final HttpBidderRequestEnricher requestEnricher;
 
     public HttpBidderRequester(HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
-                               BidderErrorNotifier bidderErrorNotifier) {
+                               BidderErrorNotifier bidderErrorNotifier,
+                               HttpBidderRequestEnricher requestEnricher) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
+        this.requestEnricher = Objects.requireNonNull(requestEnricher);
     }
 
     /**
@@ -77,7 +75,8 @@ public class HttpBidderRequester {
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
-        final List<HttpRequest<T>> httpRequests = enrichRequests(httpRequestsWithErrors.getValue(), routingContext);
+        final List<HttpRequest<T>> httpRequests =
+                enrichRequests(httpRequestsWithErrors.getValue(), routingContext, bidRequest);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
@@ -108,32 +107,14 @@ public class HttpBidderRequester {
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
     }
 
-    private static <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
-                                                           RoutingContext routingContext) {
-
+    private <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
+                                                    RoutingContext routingContext,
+                                                    BidRequest bidRequest) {
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
-                .headers(enrichHeaders(httpRequest.getHeaders(), routingContext.request().headers()))
+                .headers(requestEnricher.enrichHeaders(httpRequest.getHeaders(),
+                        routingContext.request().headers(), bidRequest))
                 .build())
                 .collect(Collectors.toList());
-    }
-
-    private static MultiMap enrichHeaders(MultiMap bidderRequestHeaders, MultiMap originalRequestHeaders) {
-        // some bidders has headers on class level, so we create copy to not affect them
-        final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);
-
-        originalRequestHeaders.entries().stream()
-                .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey())
-                        && !bidderRequestHeadersCopy.contains(entry.getKey()))
-                .forEach(entry -> bidderRequestHeadersCopy.add(entry.getKey(), entry.getValue()));
-        return bidderRequestHeadersCopy;
-    }
-
-    private static MultiMap copyMultiMap(MultiMap source) {
-        final MultiMap copiedMultiMap = MultiMap.caseInsensitiveMultiMap();
-        if (source != null && !source.isEmpty()) {
-            source.forEach(entry -> copiedMultiMap.add(entry.getKey(), entry.getValue()));
-        }
-        return copiedMultiMap;
     }
 
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
