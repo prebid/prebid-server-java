@@ -1273,12 +1273,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private SeatBid updateSeatBids(SeatBid seatBid) {
         final String buyer = seatBid.getBuyer();
-
-        if (!StringUtils.isNumeric(buyer)) {
+        final int networkId = StringUtils.isNumeric(buyer) ? Integer.parseInt(buyer) : 0;
+        if (networkId <= 0) {
             return seatBid;
         }
         final List<Bid> updatedBids = seatBid.getBid().stream()
-                .map(bid -> insertNetworkIdToMeta(Integer.parseInt(buyer), bid))
+                .map(bid -> insertNetworkIdToMeta(networkId, bid))
                 .collect(Collectors.toList());
         return seatBid.toBuilder().bid(updatedBids).build();
     }
