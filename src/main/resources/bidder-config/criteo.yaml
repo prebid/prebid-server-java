@@ -1,0 +1,24 @@
+adapters:
+  criteo:
+    enabled: false
+    endpoint: https://bidder.criteo.com/cdb?profileId=230
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    generate-slot-id: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: pi-direct@criteo.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 91
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: criteo
+      type: redirect
+      support-cors: false
