@@ -215,12 +215,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestHasApp() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .imp(singletonList(Imp.builder().build()))
-                .build();
-        given(storedRequestProcessor.processAmpRequest(any(), anyString()))
-                .willReturn(Future.succeededFuture(bidRequest));
+        final Imp imp = Imp.builder().build();
+        givenBidRequest(builder -> builder.app(App.builder().build()), imp);
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
@@ -235,7 +231,9 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestHasNoExt() {
         // given
-        givenBidRequest(identity(), Imp.builder().build());
+        givenBidRequest(
+                builder -> builder.ext(null),
+                Imp.builder().build());
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
@@ -443,8 +441,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithDefaultIncludeBidderKeysIfStoredRequestExtTargetingHasNoIncludeBidderKeys() {
         // given
         givenBidRequest(
-                builder -> builder
-                        .ext(givenRequestExt(ExtRequestTargeting.builder().includewinners(false).build())),
+                builder -> builder.ext(givenRequestExt(ExtRequestTargeting.builder().includewinners(false).build())),
                 Imp.builder().build());
 
         // when
@@ -671,10 +668,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         routingContext.queryParams().add("curl", "");
 
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest(Function.identity(), Imp.builder().build());
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -782,9 +776,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("account", "accountId");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty())
-                        .site(Site.builder().build()),
+                Function.identity(),
                 Imp.builder().build());
 
         // when
@@ -809,8 +801,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "44x88,66x99");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -840,8 +831,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "50x60");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -871,8 +861,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "50x60");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -901,8 +890,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "50x60");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -930,8 +918,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("h", "40");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -958,8 +945,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("w", "30");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(asList(Format.builder().w(1).h(2).build(),
@@ -984,8 +970,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("h", "40");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(asList(Format.builder().w(1).h(2).build(),
@@ -1010,8 +995,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "44x88,66x99");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1038,8 +1022,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", ",");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1066,8 +1049,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", ",33x,44x77,abc,");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1094,8 +1076,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "900xZ");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1122,8 +1103,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "44x77, 0x0");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1150,8 +1130,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "33x,44x77");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1182,8 +1161,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("ms", "0x0");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1212,8 +1190,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("h", "200");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1309,8 +1286,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder().build());
 
         // when
@@ -1373,8 +1349,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder().build());
 
         // when
@@ -1400,8 +1375,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .set("data", mapper.createObjectNode().put("attr1", "value1").put("attr2", "value2"))));
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder().build());
 
         // when
@@ -1422,8 +1396,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         routingContext.queryParams().add("targeting", "[\"a\"]");
 
         givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
+                Function.identity(),
                 Imp.builder().build());
 
         // when
@@ -1671,18 +1644,20 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     private void givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> storedBidRequestBuilderCustomizer,
             Imp... imps) {
         final List<Imp> impList = imps.length > 0 ? asList(imps) : null;
 
-        final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(defaultBidRequest.toBuilder().imp(impList))
-                .build();
-
-        given(storedRequestProcessor.processAmpRequest(any(), anyString()))
-                .willReturn(Future.succeededFuture(bidRequest));
+        given(storedRequestProcessor.processAmpRequest(any(), anyString(), any()))
+                .willAnswer(invocation -> {
+                    final BidRequest argument = invocation.getArgument(2);
+                    return Future.succeededFuture(
+                            storedBidRequestBuilderCustomizer.apply(argument.toBuilder().imp(impList)).build());
+                });
 
         given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), anyLong()))
                 .willAnswer(invocationOnMock -> ((AuctionContext) invocationOnMock.getArguments()[0]).toBuilder()
+                        .httpRequest((HttpRequestWrapper) invocationOnMock.getArguments()[1])
                         .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
                         .build());
         given(ortb2RequestFactory.fetchAccount(any(), anyBoolean())).willReturn(Future.succeededFuture());

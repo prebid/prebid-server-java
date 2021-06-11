@@ -111,8 +111,9 @@ public class AnalyticsReporterDelegator {
     }
 
     private void logUnknownAdapters(AuctionEvent auctionEvent) {
-        final BidRequest bidRequest = auctionEvent.getAuctionContext().getBidRequest();
-        final ExtRequest extRequest = bidRequest.getExt();
+        final AuctionContext auctionContext = auctionEvent.getAuctionContext();
+        final BidRequest bidRequest = auctionContext != null ? auctionContext.getBidRequest() : null;
+        final ExtRequest extRequest = bidRequest != null ? bidRequest.getExt() : null;
         final ExtRequestPrebid extPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final JsonNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
         final Iterator<String> analyticsFieldNames = isNotEmptyObjectNode(analytics) ? analytics.fieldNames() : null;
@@ -149,13 +150,14 @@ public class AnalyticsReporterDelegator {
     }
 
     private static AuctionContext updateAuctionContextAdapter(AuctionContext context, String adapter) {
-        final BidRequest updatedBidRequest = updateBidRequest(context.getBidRequest(), adapter);
+        final BidRequest bidRequest = context != null ? context.getBidRequest() : null;
+        final BidRequest updatedBidRequest = updateBidRequest(bidRequest, adapter);
 
         return updatedBidRequest != null ? context.toBuilder().bidRequest(updatedBidRequest).build() : null;
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, String adapterName) {
-        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequest requestExt = bidRequest != null ? bidRequest.getExt() : null;
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
         final JsonNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
         ObjectNode preparedAnalytics = null;

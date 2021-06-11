@@ -1,0 +1,37 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "algorix": {
+          "sid": "testSid",
+          "token": "testToken"
+        }
+      }
+    }
+  ],
+  "ext": {
+    "prebid": {
+      "targeting": {
+      },
+      "cache": {
+        "bids": {}
+      },
+      "auctiontimestamp": 1000
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

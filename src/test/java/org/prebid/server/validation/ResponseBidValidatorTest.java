@@ -304,6 +304,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" with video type missing adm and nurl");
+        verify(metrics).updateAdapterRequestErrorMetric(BIDDER_NAME, MetricName.badserverresponse);
     }
 
     @Test

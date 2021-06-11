@@ -225,7 +225,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false).result();
 
         // then
-        verify(httpClient, times(2)).request(any(), anyString(), any(), any(), anyLong());
+        verify(httpClient, times(2)).request(any(), anyString(), any(), anyString(), anyLong());
     }
 
     @Test
@@ -247,7 +247,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), isNull(), anyLong());
+        verify(httpClient).request(any(), anyString(), any(), (String) isNull(), anyLong());
     }
 
     @Test
@@ -277,7 +277,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
 
         // then
-        verify(httpClient, times(2)).request(any(), anyString(), any(), any(), anyLong());
+        verify(httpClient, times(2)).request(any(), anyString(), any(), anyString(), anyLong());
     }
 
     @Test
@@ -518,7 +518,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(httpRequest), null));
 
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
                 // bidder request
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
 
@@ -580,7 +580,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .build()),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
 
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
                 // simulate response error for the first request
                 .willReturn(Future.failedFuture(new RuntimeException("Response exception")))
                 // simulate timeout for the second request
@@ -644,18 +644,18 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), (String) any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
                 .willReturn(Future.failedFuture(throwable));
     }
 
     private void givenHttpClientReturnsResponses(HttpClientResponse... httpClientResponses) {
         BDDMockito.BDDMyOngoingStubbing<Future<HttpClientResponse>> stubbing =
-                given(httpClient.request(any(), anyString(), any(), any(), anyLong()));
+                given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()));
 
         // setup multiple answers
         for (HttpClientResponse httpClientResponse : httpClientResponses) {

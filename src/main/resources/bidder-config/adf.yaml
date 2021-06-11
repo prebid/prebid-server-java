@@ -1,0 +1,27 @@
+adapters:
+  adf:
+    enabled: false
+    endpoint: https://adx.adform.net/adx/openrtb
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: scope.sspp@adform.com
+      app-media-types:
+        - banner
+        - native
+        - video
+      site-media-types:
+        - banner
+        - native
+        - video
+      supported-vendors:
+      vendor-id: 50
+    usersync:
+      url: https://cm.adform.net/cookie?redirect_url=
+      redirect-url: /setuid?bidder=adf&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: adf
+      type: redirect
+      support-cors: false

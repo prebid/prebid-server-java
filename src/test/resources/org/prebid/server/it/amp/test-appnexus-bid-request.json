@@ -84,6 +84,9 @@
         "includewinners": true,
         "includebidderkeys": true
       },
+      "storedrequest": {
+        "id": "test-amp-stored-request"
+      },
       "cache": {
         "bids": {}
       },
