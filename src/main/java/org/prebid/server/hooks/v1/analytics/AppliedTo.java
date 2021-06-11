@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface AppliedTo {
 
-    List<String> imp();
+    List<String> impIds();
 
     List<String> bidders();
 
@@ -12,5 +12,5 @@ public interface AppliedTo {
 
     boolean response();
 
-    List<String> bidId();
+    List<String> bidIds();
 }

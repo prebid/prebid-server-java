@@ -2689,7 +2689,7 @@ public class HookStageExecutorTest extends VertxTest {
     @Value(staticConstructor = "of")
     private static class AppliedToImpl implements AppliedTo {
 
-        List<String> imp;
+        List<String> impIds;
 
         List<String> bidders;
 
@@ -2697,6 +2697,6 @@ public class HookStageExecutorTest extends VertxTest {
 
         boolean response;
 
-        List<String> bidId;
+        List<String> bidIds;
     }
 }
