@@ -62,10 +62,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
             try {
                 validateImp(imp);
                 extImpBetween = parseImpExt(imp);
-                modifiedImps.add(imp.toBuilder()
-                        .banner(resolveBanner(imp.getBanner()))
-                        .secure(secure)
-                        .build());
+                modifiedImps.add(modifyImp(imp, secure));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -109,6 +106,15 @@ public class BetweenBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format(missingParamErrorMessage, "publisher_id", imp.getId()));
         }
         return extImpBetween;
+    }
+
+    private static Imp modifyImp(Imp imp, Integer secure) {
+        final Banner resolvedBanner = resolveBanner(imp.getBanner());
+
+        return imp.toBuilder()
+                .banner(resolvedBanner)
+                .secure(secure)
+                .build();
     }
 
     private static Banner resolveBanner(Banner banner) {
