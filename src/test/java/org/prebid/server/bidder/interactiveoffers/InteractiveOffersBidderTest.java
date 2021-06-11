@@ -182,9 +182,10 @@ public class InteractiveOffersBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = interactiveOffersBidder.makeBids(httpCall, null);
 
         // then
-        // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Failed to find impression 123"));
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getType)
+                .containsExactly(banner);
     }
 
     private static BidRequest givenBidRequest(
