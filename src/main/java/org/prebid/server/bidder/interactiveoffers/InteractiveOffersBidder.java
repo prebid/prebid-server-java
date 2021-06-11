@@ -33,20 +33,18 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
     public InteractiveOffersBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.mapper = mapper;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(request)
                 .body(mapper.encode(request))
-                .build()
-        );
+                .build());
     }
 
     @Override
@@ -60,10 +58,9 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Collections.emptyList();
-        }
-        return bidsFromResponse(bidResponse);
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Collections.emptyList()
+                : bidsFromResponse(bidResponse);
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {

@@ -8,7 +8,7 @@
     "pubId": {
       "type": "string",
       "minLength": 1,
-      "description": "The publisher’s ID provided by OneTag"
+      "description": "The publisher's ID provided by OneTag"
     },
     "ext": {
       "type": "object",

@@ -3,8 +3,8 @@
   "21521324@12.43": "07a81993-a3f4-4582-89c1-44a6935b192b",
   "7706636740145184841@5.5": "9ef753e9-e7b7-4309-b46a-65df40f75909",
   "222214214214@2": "c2da8624-f28a-4d01-bbd7-f348478c1185",
-  "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>": "e15f6dcb-7b3b-4c32-be95-9b9d6f8f9320",
-  "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression>": "d4f001de-4cc9-4857-9fad-70feff5c0dbc",
+  "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression></InLine>": "e15f6dcb-7b3b-4c32-be95-9b9d6f8f9320",
+  "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=b&int=]]></Impression></InLine>": "d4f001de-4cc9-4857-9fad-70feff5c0dbc",
   "some-test-ad1": "d71b6640-811b-480b-9f34-e6858ec80e40",
   "some-test-ad2": "5d7bfab8-69ea-416e-a5a1-a64db0bb218c"
 }
