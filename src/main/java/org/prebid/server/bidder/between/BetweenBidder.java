@@ -27,7 +27,6 @@ import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,7 +43,6 @@ public class BetweenBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpBetween>>() {
             };
     private static final String URL_HOST_MACRO = "{{Host}}";
-    private static final BigDecimal DEFAULT_BID_FLOOR = BigDecimal.valueOf(0.00001);
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -64,7 +62,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
             try {
                 validateImp(imp);
                 extImpBetween = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, secure, extImpBetween.getBidFloor(), extImpBetween.getBidFloorCur()));
+                modifiedImps.add(modifyImp(imp, secure));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -110,14 +108,12 @@ public class BetweenBidder implements Bidder<BidRequest> {
         return extImpBetween;
     }
 
-    private static Imp modifyImp(Imp imp, Integer secure, BigDecimal bidFloor, String bidFloorCur) {
+    private static Imp modifyImp(Imp imp, Integer secure) {
         final Banner resolvedBanner = resolveBanner(imp.getBanner());
 
         return imp.toBuilder()
                 .banner(resolvedBanner)
                 .secure(secure)
-                .bidfloor(bidFloor == null || bidFloor.compareTo(BigDecimal.ZERO) <= 0 ? DEFAULT_BID_FLOOR : bidFloor)
-                .bidfloorcur(StringUtils.isNotBlank(bidFloorCur) ? bidFloorCur : imp.getBidfloorcur())
                 .build();
     }
 
