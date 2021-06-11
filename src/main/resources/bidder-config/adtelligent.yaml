@@ -17,6 +17,16 @@ adapters:
           url:
           redirect-url:
           cookie-family-name: mediafuse
+      viewdoes:
+        enabled: false
+        endpoint: http://ghb.sync.viewdeos.com/pbs/ortb
+        meta-info:
+          maintainer-email: contact@viewdeos.com
+          vendor-id: 924
+        usersync:
+          url:
+          redirect-url:
+          cookie-family-name: viewdoes
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:
