@@ -197,7 +197,7 @@ public class BetweenBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldEnrichEveryImpWithSecureBidFlorAndBidFloorCurParams() {
+    public void makeHttpRequestsShouldEnrichEveryImpWithSecureBidFlor() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder().page("https://page.com").build()),
@@ -213,8 +213,8 @@ public class BetweenBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getSecure, Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsExactly(tuple(1, BigDecimal.ONE, "EUR"));
+                .extracting(Imp::getSecure)
+                .containsExactly(1);
     }
 
     @Test
@@ -225,7 +225,6 @@ public class BetweenBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId",
                                 BigDecimal.valueOf(-1), ""))))
-                        .bidfloor(BigDecimal.valueOf(12))
                         .bidfloorcur("USD"));
 
         // when
@@ -236,8 +235,8 @@ public class BetweenBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getSecure, Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsExactly(tuple(0, BigDecimal.valueOf(0.00001), "USD"));
+                .extracting(Imp::getSecure, Imp::getBidfloorcur)
+                .containsExactly(tuple(0, "USD"));
     }
 
     @Test
