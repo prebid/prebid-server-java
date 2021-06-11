@@ -145,47 +145,51 @@ public class OutbrainBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
+
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse, errors), errors);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidRequest, bidResponse, errors);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> createBidderBid(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> createBidderBid(bid, getBidType(bid.getImpid(),
+                        bidRequest.getImp()), bidResponse.getCur(), errors))
                 .collect(Collectors.toList());
     }
 
-    private BidderBid createBidderBid(Bid bid, BidType bidType, String cur) {
+    private BidderBid createBidderBid(Bid bid, BidType bidType, String cur, List<BidderError> errors) {
         if (!bidType.equals(BidType.xNative) || StringUtils.isEmpty(bid.getAdm())) {
             return BidderBid.of(bid, bidType, cur);
         }
 
-        final Bid updatedBid = bid.toBuilder().adm(resolveBidAdm(bid.getAdm())).build();
+        final Bid updatedBid = bid.toBuilder().adm(resolveBidAdm(bid.getAdm(), errors)).build();
 
         return BidderBid.of(updatedBid, bidType, cur);
     }
 
-    private String resolveBidAdm(String adm) {
+    private String resolveBidAdm(String adm, List<BidderError> errors) {
         final Response response;
         try {
             response = mapper.decodeValue(adm, Response.class);
         } catch (DecodeException e) {
-            throw new PreBidException(e.getMessage());
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return adm;
         }
 
         final List<EventTracker> eventtrackers = response.getEventtrackers();
