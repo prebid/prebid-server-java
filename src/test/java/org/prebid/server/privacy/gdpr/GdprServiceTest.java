@@ -23,11 +23,11 @@ import static java.util.Collections.singletonMap;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.FIVE;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.FOUR;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.THREE;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.FIVE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.FOUR;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.THREE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
 public class GdprServiceTest extends VertxTest {
 

@@ -9,9 +9,9 @@
         "h": 250
       },
       "tagid": "15",
-      "bidfloor" : 14.7,
-      "bidfloorcur" : "USD",
-      "secure" : 1,
+      "bidfloor": 14.7,
+      "bidfloorcur": "USD",
+      "secure": 1,
       "ext": {
         "bidder": {
           "networkId": 12,
@@ -25,7 +25,8 @@
     "domain": "example.com",
     "page": "https://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

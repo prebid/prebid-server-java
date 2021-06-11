@@ -4,7 +4,7 @@
     {
       "bid": [
         {
-          "id" : "test-imp-id1",
+          "id": "test-imp-id1",
           "impid": "impId021",
           "price": 9.81,
           "adid": "abcde-12345",

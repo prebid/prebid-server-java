@@ -13,4 +13,6 @@ public class ExtImpMobfoxpb {
 
     @JsonProperty("TagID")
     String tagId;
+
+    String key;
 }

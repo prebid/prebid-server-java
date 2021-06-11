@@ -9,7 +9,10 @@
         "adm": "adm16",
         "crid": "crid16",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "origbidcpm": 8.43
+        }
       }
     },
     {
@@ -21,7 +24,10 @@
         "adm": "adm17",
         "crid": "crid17",
         "w": 360,
-        "h": 240
+        "h": 240,
+        "ext": {
+          "origbidcpm": 7.99
+        }
       }
     },
     {
@@ -33,7 +39,10 @@
         "adm": "adm18",
         "crid": "crid18",
         "w": 1024,
-        "h": 576
+        "h": 576,
+        "ext": {
+          "origbidcpm": 9.99
+        }
       }
     },
     {
@@ -52,7 +61,10 @@
         "crid": "crid19",
         "cat": [
           "IAB3-1"
-        ]
+        ],
+        "ext": {
+          "origbidcpm": 10
+        }
       }
     },
     {

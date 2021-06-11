@@ -16,13 +16,13 @@ public class VendorV2 {
 
     Integer id;
 
-    EnumSet<Purpose> purposes;
+    EnumSet<PurposeCode> purposes;
 
     @JsonProperty("legIntPurposes")
-    EnumSet<Purpose> legIntPurposes;
+    EnumSet<PurposeCode> legIntPurposes;
 
     @JsonProperty("flexiblePurposes")
-    EnumSet<Purpose> flexiblePurposes;
+    EnumSet<PurposeCode> flexiblePurposes;
 
     @JsonProperty("specialPurposes")
     EnumSet<SpecialPurpose> specialPurposes;
@@ -36,9 +36,9 @@ public class VendorV2 {
     public static VendorV2 empty(Integer id) {
         return VendorV2.builder()
                 .id(id)
-                .purposes(EnumSet.noneOf(Purpose.class))
-                .legIntPurposes(EnumSet.noneOf(Purpose.class))
-                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .purposes(EnumSet.noneOf(PurposeCode.class))
+                .legIntPurposes(EnumSet.noneOf(PurposeCode.class))
+                .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
                 .features(EnumSet.noneOf(Feature.class))
                 .specialFeatures(EnumSet.noneOf(SpecialFeature.class))

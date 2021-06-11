@@ -11,19 +11,20 @@
         "h": 480
       },
       "tagid": "testAdUnitId",
-      "ext" : {
-        "bidder" : {
-          "tagId" : "testTagId",
-          "adUnitId" : "testAdUnitId"
+      "ext": {
+        "bidder": {
+          "tagId": "testTagId",
+          "adUnitId": "testAdUnitId"
         }
       }
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "testTagId"
+      "id": "testTagId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

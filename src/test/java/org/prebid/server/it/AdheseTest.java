@@ -20,11 +20,10 @@ public class AdheseTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdhese() throws IOException, JSONException {
 
-        WIRE_MOCK_RULE.stubFor(WireMock.post(WireMock.urlPathEqualTo("/adhese-exchange/sl_adhese_prebid_demo_-"
-                + "leaderboard/ag55/cigent;brussels/tlall/xtconsentValue/xfhttp%3A%2F%2Fwww.example.com/xzifaId"))
+        WIRE_MOCK_RULE.stubFor(WireMock.post(WireMock.urlPathEqualTo("/adhese-exchange"))
                 .withHeader("Accept", WireMock.equalTo("application/json"))
                 .withHeader("Content-Type", WireMock.equalTo("application/json;charset=UTF-8"))
-                .withRequestBody(WireMock.absent())
+                .withRequestBody(WireMock.equalToJson("{\"slots\":[{\"slotname\":\"_adhese_prebid_demo_-leaderboard\"}],\"parameters\":{\"ag\":[\"55\"],\"ci\":[\"gent\",\"brussels\"],\"tl\":[\"all\"],\"xt\":[\"consentValue\"],\"xf\":[\"http://www.example.com\"],\"xz\":[\"ifaId\"]}}"))
                 .willReturn(WireMock.aResponse().withBody(jsonFrom("openrtb2/adhese/test-adhese-bid-response.json"))));
 
         // pre-bid cache

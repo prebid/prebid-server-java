@@ -14,10 +14,10 @@
       },
       "ext": {
         "dmx": {
-            "dmxid": "1007",
-            "memberid": "123456",
-            "seller_id": "1008",
-            "publisher_id": "10400"
+          "dmxid": "1007",
+          "memberid": "123456",
+          "seller_id": "1008",
+          "publisher_id": "10400"
         }
       }
     },
@@ -39,10 +39,10 @@
       },
       "ext": {
         "dmx": {
-            "dmxid": "1007",
-            "memberid": "123456",
-            "seller_id": "1008",
-            "publisher_id": "10400"
+          "dmxid": "1007",
+          "memberid": "123456",
+          "seller_id": "1008",
+          "publisher_id": "10400"
         }
       }
     }
@@ -74,7 +74,6 @@
     "fd": 1,
     "tid": "tid"
   },
-
   "user": {
     "ext": {
       "consent": "consentValue",

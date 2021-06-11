@@ -157,7 +157,8 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private static Bid updateBid(Bid bid) {
-        bid.setAdm(HttpUtil.decodeUrl(bid.getAdm()));
-        return bid;
+        return bid.toBuilder()
+                .adm(HttpUtil.decodeUrl(bid.getAdm()))
+                .build();
     }
 }
