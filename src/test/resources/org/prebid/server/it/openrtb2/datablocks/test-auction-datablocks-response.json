@@ -8,7 +8,7 @@
           "impid": "impId002",
           "price": 9.99,
           "nurl": "https://example.com/nurl",
-          "adm": "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[https://example.com/nurl]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>",
+          "adm": "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[https://example.com/nurl]]></VASTAdTagURI><Creatives></Creatives></Wrapper></Ad></VAST>",
           "adomain": [
             "psacentral.org"
           ],
