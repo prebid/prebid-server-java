@@ -23,7 +23,7 @@ public class AdoceanTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdocean() throws IOException, JSONException {
 
         WIRE_MOCK_RULE.stubFor(get(WireMock.urlPathEqualTo("/adocean-exchange/_10000000/ad.json"))
-                .withQueryParam("pbsrv_v", equalTo("1.1.0"))
+                .withQueryParam("pbsrv_v", equalTo("1.2.0"))
                 .withQueryParam("id", equalTo("tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7"))
                 .withQueryParam("nc", equalTo("1"))
                 .withQueryParam("nosecure", equalTo("1"))
@@ -36,7 +36,6 @@ public class AdoceanTest extends IntegrationTest {
                 .withHeader("Content-Type", WireMock.equalTo("application/json;charset=UTF-8"))
                 .withHeader("Host", equalTo("localhost:8090"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
-                .withHeader("Referer", equalTo("http://www.example.com"))
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withRequestBody(WireMock.absent())
                 .willReturn(WireMock.aResponse()
@@ -50,7 +49,6 @@ public class AdoceanTest extends IntegrationTest {
 
         // when
         final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")

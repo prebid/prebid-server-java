@@ -10,6 +10,7 @@ adapters:
     meta-info:
       maintainer-email: aoteam@gemius.com
       app-media-types:
+        - banner
       site-media-types:
         - banner
       supported-vendors:
