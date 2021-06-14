@@ -29,6 +29,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ViewabilityVendors;
@@ -1278,7 +1279,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid) {
         final String buyer = seatBid.getBuyer();
-        final int networkId = StringUtils.isNumeric(buyer) ? Integer.parseInt(buyer) : 0;
+        final int networkId = NumberUtils.toInt(buyer, 0);
         if (networkId <= 0) {
             return seatBid;
         }

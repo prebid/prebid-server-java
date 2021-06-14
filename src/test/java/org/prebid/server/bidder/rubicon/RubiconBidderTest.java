@@ -2574,7 +2574,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
                 .containsNull();
@@ -2599,7 +2599,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
                 .containsNull();
@@ -2623,7 +2623,10 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsNull();
     }
 
     @Test
@@ -2644,7 +2647,10 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsNull();
     }
 
     @Test
