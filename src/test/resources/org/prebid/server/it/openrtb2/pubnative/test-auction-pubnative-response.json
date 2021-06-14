@@ -43,7 +43,8 @@
                   "cacheId": "88ec8e12-07cc-4c36-b7ab-8982b6ab104e"
                 }
               }
-            }
+            },
+            "origbidcpm": 6.66
           }
         },
         {
@@ -79,14 +80,15 @@
                   "cacheId": "f3518368-72c3-42db-99f5-44c249eb92d3"
                 }
               }
-            }
+            },
+            "origbidcpm": 3.33
           }
         },
         {
           "id": "bid003",
           "impid": "impId003",
           "price": 9.99,
-          "adm": "adm003",
+          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
           "adid": "adid003",
           "cid": "cid003",
           "crid": "crid003",
@@ -111,7 +113,8 @@
                   "cacheId": "4be8fb3d-18dc-4759-ac9f-aa633bced257"
                 }
               }
-            }
+            },
+            "origbidcpm": 9.99
           }
         }
       ],

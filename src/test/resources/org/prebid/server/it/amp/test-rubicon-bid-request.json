@@ -27,13 +27,20 @@
           "target": {
             "page": [
               "https://google.com"
+            ],
+            "gam-key1": [
+              "val1"
+            ],
+            "gam-key2": [
+              "val2"
             ]
           },
           "track": {
             "mint": "",
             "mint_version": ""
           }
-        }
+        },
+        "maxbids": 1
       }
     }
   ],

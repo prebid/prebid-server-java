@@ -9,7 +9,10 @@
         "adm": "adm001",
         "adid": "adid001",
         "cid": "cid001",
-        "crid": "crid001"
+        "crid": "crid001",
+        "ext": {
+          "origbidcpm": 1.25
+        }
       }
     },
     {
@@ -21,7 +24,10 @@
         "adm": "adm002",
         "adid": "adid002",
         "cid": "cid002",
-        "crid": "crid002"
+        "crid": "crid002",
+        "ext": {
+          "origbidcpm": 2
+        }
       }
     }
   ]

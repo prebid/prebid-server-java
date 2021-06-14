@@ -9,10 +9,12 @@
             "w": 300,
             "h": 250
           }
-        ]
+        ],
+        "w": 300,
+        "h": 250
       },
       "tagid": "1007",
-      "secure" : 1,
+      "secure": 1,
       "ext": {
         "bidder": {
           "dmxid": "1007",
@@ -38,13 +40,13 @@
         "skipafter": 0
       },
       "tagid": "1007",
-      "secure" : 1,
+      "secure": 1,
       "ext": {
         "bidder": {
           "dmxid": "1007",
           "memberid": "123456",
           "seller_id": "1008",
-          "publisher_id" : "10400"
+          "publisher_id": "10400"
         }
       }
     }
@@ -53,7 +55,8 @@
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id":"publisherId",
+      "id": "publisherId",
+      "domain": "example.com",
       "ext": {
         "dmx": {
           "id": "10400"

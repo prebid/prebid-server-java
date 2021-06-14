@@ -7,6 +7,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
@@ -49,26 +50,33 @@ public class HttpBidderRequester {
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
+    private final HttpBidderRequestEnricher requestEnricher;
 
     public HttpBidderRequester(HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
-                               BidderErrorNotifier bidderErrorNotifier) {
+                               BidderErrorNotifier bidderErrorNotifier,
+                               HttpBidderRequestEnricher requestEnricher) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
+        this.requestEnricher = Objects.requireNonNull(requestEnricher);
     }
 
     /**
      * Executes given request to a given bidder.
      */
-    public <T> Future<BidderSeatBid> requestBids(
-            Bidder<T> bidder, BidderRequest bidderRequest, Timeout timeout, boolean debugEnabled) {
+    public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
+                                                 BidderRequest bidderRequest,
+                                                 Timeout timeout,
+                                                 RoutingContext routingContext,
+                                                 boolean debugEnabled) {
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
-        final List<HttpRequest<T>> httpRequests = httpRequestsWithErrors.getValue();
+        final List<HttpRequest<T>> httpRequests =
+                enrichRequests(httpRequestsWithErrors.getValue(), routingContext, bidRequest);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
@@ -99,9 +107,17 @@ public class HttpBidderRequester {
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
     }
 
-    private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
-                                         String storedResponse,
-                                         String bidder) {
+    private <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
+                                                    RoutingContext routingContext,
+                                                    BidRequest bidRequest) {
+        return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
+                .headers(requestEnricher.enrichHeaders(httpRequest.getHeaders(),
+                        routingContext.request().headers(), bidRequest))
+                .build())
+                .collect(Collectors.toList());
+    }
+
+    private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests, String storedResponse, String bidder) {
         if (StringUtils.isBlank(storedResponse)) {
             return false;
         }
@@ -116,10 +132,11 @@ public class HttpBidderRequester {
         return true;
     }
 
-    final <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest,
-                                                     String storedResponse) {
-        return Future.succeededFuture(HttpCall.success(httpRequest, HttpResponse.of(HttpResponseStatus.OK.code(), null,
-                storedResponse), null));
+    private <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest, String storedResponse) {
+        return Future.succeededFuture(
+                HttpCall.success(httpRequest,
+                        HttpResponse.of(HttpResponseStatus.OK.code(), null, storedResponse),
+                        null));
     }
 
     /**
@@ -201,7 +218,6 @@ public class HttpBidderRequester {
     }
 
     private static <T> Result<List<BidderBid>> makeBids(Bidder<T> bidder, HttpCall<T> httpCall, BidRequest bidRequest) {
-
         return httpCall.getError() != null
                 ? null
                 : makeResult(bidder, httpCall, bidRequest);

@@ -177,6 +177,10 @@ public class StoredResponseProcessor {
             final String id = storedIdToImpId.getKey();
             final String impId = storedIdToImpId.getValue();
             final String rowSeatBid = idToStoredResponses.get(id);
+            if (rowSeatBid == null) {
+                throw new InvalidRequestException(String.format("Failed to fetch stored auction response for"
+                        + " impId = %s and storedAuctionResponse id = %s.", impId, id));
+            }
             final List<SeatBid> seatBids = parseSeatBid(id, rowSeatBid);
             validateStoredSeatBid(seatBids);
             resolvedSeatBids.addAll(seatBids.stream()
