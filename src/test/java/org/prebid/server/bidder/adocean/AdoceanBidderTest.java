@@ -111,10 +111,10 @@ public class AdoceanBidderTest extends VertxTest {
                         + "in imp with id : notValidImp"));
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1"
+                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1"
                         + "&hcuserid=testBuyerUid&aosspsizes=myaozpniqismex"
-                        + "%7E300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.1.0&id="
+                        + "%7E300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.2.0&id="
                         + "masterId2&nc=1&nosecure=1&aid=slaveId%3Ai2-test&gdpr_consent=consent&gdpr=1"
                         + "&hcuserid=testBuyerUid&aosspsizes=slaveId%7E577x333");
     }
@@ -175,7 +175,7 @@ public class AdoceanBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1&nosecure=1"
+                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1&nosecure=1"
                         + "&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1");
     }
 
@@ -210,7 +210,7 @@ public class AdoceanBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1"
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=slaveId%3Aao-test&gdpr_consent=consent&gdpr=1&hcuserid=testBuyerUid"
                         + "&aosspsizes=slaveId%7E300x250_600x320&aid=slaveId2%3Ai2-test&aosspsizes=slaveId2%7E577x333");
     }

@@ -15,6 +15,8 @@
             "prebid": {
               "type": "banner",
               "targeting": {
+                "hb_env": "mobile-app",
+                "hb_env_adocean": "mobile-app",
                 "hb_pb": "10.00",
                 "hb_cache_host_adocean": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
@@ -50,7 +52,7 @@
       "httpcalls": {
         "adocean": [
           {
-            "uri": "{{ adocean.exchange_uri }}/_10000000/ad.json?pbsrv_v=1.1.0&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3AimpId12&gdpr_consent=consentValue&gdpr=1&hcuserid=AO-UID&aosspsizes=myaozpniqismex%7E300x250",
+            "uri": "{{ adocean.exchange_uri }}/_10000000/ad.json?pbsrv_v=1.2.0&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3AimpId12&gdpr_consent=consentValue&gdpr=1&hcuserid=AO-UID&app=1&appname=appname&appbundle=appbundle&appdomain=appdomain&ifa=ifaId&devos=devos&devosv=devosv&devmodel=devmodel&devmake=devmake&aosspsizes=myaozpniqismex%7E300x250",
             "responsebody": "[{\"id\":\"adoceanmyaozpniqismex\",\"price\":\"10\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"},{\"id\":\"adoceanmyaozpniqismexs\",\"price\":\"12\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"}]",
             "status": 200
           }
@@ -90,21 +92,14 @@
             }
           }
         ],
-        "site": {
-          "domain": "www.example.com",
-          "page": "http://www.example.com",
-          "publisher": {
-            "id": "publisherId",
-            "domain": "example.com"
-          },
-          "ext": {
-            "amp": 0
-          }
-        },
         "device": {
           "ua": "userAgent",
           "dnt": 2,
           "ip": "193.168.244.1",
+          "make": "devmake",
+          "model": "devmodel",
+          "os": "devos",
+          "osv": "devosv",
           "pxratio": 4.2,
           "language": "en",
           "ifa": "ifaId"
@@ -117,6 +112,11 @@
         },
         "test": 1,
         "at": 1,
+        "app": {
+          "name": "appname",
+          "bundle": "appbundle",
+          "domain": "appdomain"
+        },
         "tmax": 5000,
         "cur": [
           "EUR"
@@ -163,7 +163,7 @@
             },
             "auctiontimestamp": 1000,
             "channel": {
-              "name": "web"
+              "name": "app"
             }
           }
         }
