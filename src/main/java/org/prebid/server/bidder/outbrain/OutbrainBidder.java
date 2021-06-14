@@ -13,6 +13,7 @@ import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -195,18 +196,14 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         }
 
         final List<EventTracker> eventtrackers = response.getEventtrackers();
-        List<String> imptrackers = response.getImptrackers();
-
-        if (imptrackers == null) {
-            imptrackers = new ArrayList<>();
-        }
-
-        String jstracker = response.getJstracker();
 
         if (CollectionUtils.isEmpty(eventtrackers)) {
             return null;
         }
 
+        final List imptrackers = ListUtils.defaultIfNull(response.getImptrackers(), new ArrayList<>());
+
+        String jstracker = response.getJstracker();
         for (EventTracker eventTracker : eventtrackers) {
             if (!Objects.equals(eventTracker.getEvent(), EVENT_TYPE_IMPRESSION)) {
                 continue;
