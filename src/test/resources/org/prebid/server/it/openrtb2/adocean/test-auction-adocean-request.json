@@ -36,11 +36,10 @@
     "model": "devmodel",
     "make": "devmake"
   },
-  "site": {
-    "publisher": {
-      "id": "publisherId",
-      "page": "http://www.example.com"
-    }
+  "app": {
+    "name": "appname",
+    "bundle": "appbundle",
+    "domain": "appdomain"
   },
   "at": 1,
   "tmax": 5000,
