@@ -1,13 +1,18 @@
 package org.prebid.server.log;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.model.HttpLogSpec;
 import org.prebid.server.settings.model.Account;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -16,7 +21,13 @@ public class HttpInteractionLogger {
     private static final String HTTP_INTERACTION_LOGGER_NAME = "http-interaction";
     private static final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
 
+    private final JacksonMapper mapper;
+
     private final AtomicReference<SpecWithCounter> specWithCounter = new AtomicReference<>();
+
+    public HttpInteractionLogger(JacksonMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper);
+    }
 
     public void setSpec(HttpLogSpec spec) {
         specWithCounter.set(SpecWithCounter.of(spec));
@@ -31,11 +42,20 @@ public class HttpInteractionLogger {
             logger.info(
                     "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
                     routingContext.request().uri(),
-                    routingContext.getBody().toString(),
+                    // This creates string without new line and space symbols;
+                    bufferAsString(routingContext.getBody()),
                     statusCode,
                     responseBody);
 
             incLoggedInteractions();
+        }
+    }
+
+    private String bufferAsString(Buffer buffer) {
+        try {
+            return mapper.encode(mapper.mapper().convertValue(buffer, JsonNode.class));
+        } catch (EncodeException | IllegalArgumentException e) {
+            return buffer.toString();
         }
     }
 
