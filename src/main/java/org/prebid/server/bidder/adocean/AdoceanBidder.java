@@ -231,7 +231,7 @@ public class AdoceanBidder implements Bidder<Void> {
             if (StringUtils.isNotEmpty(device.getIfa())) {
                 uriBuilder.addParameter("ifa", device.getIfa());
             } else {
-                uriBuilder.addParameter("dpidmd5", device.getDidmd5());
+                uriBuilder.addParameter("dpidmd5", device.getDpidmd5());
             }
 
             uriBuilder.addParameter("devos", device.getOs());
