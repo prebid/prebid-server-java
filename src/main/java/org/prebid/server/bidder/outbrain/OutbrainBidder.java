@@ -177,10 +177,13 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         if (!bidType.equals(BidType.xNative) || StringUtils.isEmpty(bid.getAdm())) {
             return BidderBid.of(bid, bidType, cur);
         }
+        final String resolvedAdm = resolveBidAdm(bid.getAdm(), errors);
 
-        final Bid updatedBid = bid.toBuilder().adm(resolveBidAdm(bid.getAdm(), errors)).build();
+        if (resolvedAdm != null) {
+            return BidderBid.of(bid.toBuilder().adm(resolvedAdm).build(), bidType, cur);
+        }
 
-        return BidderBid.of(updatedBid, bidType, cur);
+        return BidderBid.of(bid, bidType, cur);
     }
 
     private String resolveBidAdm(String adm, List<BidderError> errors) {
@@ -189,7 +192,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
             response = mapper.decodeValue(adm, Response.class);
         } catch (DecodeException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
-            return adm;
+            return null;
         }
 
         final List<EventTracker> eventtrackers = response.getEventtrackers();
@@ -202,7 +205,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         String jstracker = response.getJstracker();
 
         if (CollectionUtils.isEmpty(eventtrackers)) {
-            return adm;
+            return null;
         }
 
         for (EventTracker eventTracker : eventtrackers) {
