@@ -168,22 +168,21 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> createBidderBid(bid, getBidType(bid.getImpid(),
-                        bidRequest.getImp()), bidResponse.getCur(), errors))
+                .map(bid -> createBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
                 .collect(Collectors.toList());
     }
 
-    private BidderBid createBidderBid(Bid bid, BidType bidType, String cur, List<BidderError> errors) {
-        if (!bidType.equals(BidType.xNative) || StringUtils.isEmpty(bid.getAdm())) {
-            return BidderBid.of(bid, bidType, cur);
-        }
-        final String resolvedAdm = resolveBidAdm(bid.getAdm(), errors);
+    private BidderBid createBidderBid(Bid bid, List<Imp> requestImps, String cur, List<BidderError> errors) {
+        final BidType bidType = getBidType(bid.getImpid(), requestImps);
+        return BidderBid.of(updateBid(bid, bidType, errors), bidType, cur);
+    }
 
-        if (resolvedAdm != null) {
-            return BidderBid.of(bid.toBuilder().adm(resolvedAdm).build(), bidType, cur);
-        }
-
-        return BidderBid.of(bid, bidType, cur);
+    private Bid updateBid(Bid bid, BidType bidType, List<BidderError> errors) {
+        final String bidAdm = bid.getAdm();
+        final String resolvedAdm = bidType.equals(BidType.xNative) && StringUtils.isNotEmpty(bidAdm)
+                ? resolveBidAdm(bidAdm, errors)
+                : null;
+        return resolvedAdm != null ? bid.toBuilder().adm(resolvedAdm).build() : bid;
     }
 
     private String resolveBidAdm(String adm, List<BidderError> errors) {
