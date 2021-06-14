@@ -40,7 +40,6 @@ public class HttpInteractionLogger {
             logger.info(
                     "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
                     routingContext.request().uri(),
-                    // This creates string without new line and space symbols;
                     toOneLineString(routingContext.getBodyAsString()),
                     statusCode,
                     responseBody);
