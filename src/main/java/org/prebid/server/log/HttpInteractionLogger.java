@@ -1,13 +1,11 @@
 package org.prebid.server.log;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import io.vertx.core.buffer.Buffer;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.model.HttpLogSpec;
 import org.prebid.server.settings.model.Account;
@@ -43,7 +41,7 @@ public class HttpInteractionLogger {
                     "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
                     routingContext.request().uri(),
                     // This creates string without new line and space symbols;
-                    bufferAsString(routingContext.getBody()),
+                    toOneLineString(routingContext.getBodyAsString()),
                     statusCode,
                     responseBody);
 
@@ -51,11 +49,11 @@ public class HttpInteractionLogger {
         }
     }
 
-    private String bufferAsString(Buffer buffer) {
+    private String toOneLineString(String value) {
         try {
-            return mapper.encode(mapper.mapper().convertValue(buffer, JsonNode.class));
-        } catch (EncodeException | IllegalArgumentException e) {
-            return buffer.toString();
+            return mapper.encode(mapper.mapper().readTree(value));
+        } catch (JsonProcessingException e) {
+            return String.format("Not parseable JSON passed: %s", value.replaceAll("[\r\n]+", " "));
         }
     }
 
