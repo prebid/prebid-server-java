@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.rubicon.proto;
+package org.prebid.server.bidder.rubicon.proto.request;
 
 import lombok.Value;
 
