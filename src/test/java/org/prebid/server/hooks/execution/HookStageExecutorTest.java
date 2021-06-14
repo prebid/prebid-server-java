@@ -12,7 +12,6 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import lombok.Value;
-import lombok.experimental.Accessors;
 import lombok.experimental.NonFinal;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
@@ -54,11 +53,12 @@ import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
-import org.prebid.server.hooks.v1.analytics.Activity;
-import org.prebid.server.hooks.v1.analytics.AppliedTo;
-import org.prebid.server.hooks.v1.analytics.Result;
-import org.prebid.server.hooks.v1.analytics.Tags;
+import org.prebid.server.hooks.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
@@ -906,7 +906,7 @@ public class HookStageExecutorTest extends VertxTest {
                 singletonList(ResultImpl.of(
                         "success",
                         null,
-                        AppliedToImpl.of(null, null, true, false, null))))));
+                        AppliedToImpl.builder().request(true).build())))));
 
         givenEntrypointHook(
                 "module-alpha",
@@ -2654,49 +2654,5 @@ public class HookStageExecutorTest extends VertxTest {
         public String code() {
             return code;
         }
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class TagsImpl implements Tags {
-
-        List<Activity> activities;
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class ActivityImpl implements Activity {
-
-        String name;
-
-        String status;
-
-        List<Result> results;
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class ResultImpl implements Result {
-
-        String status;
-
-        ObjectNode values;
-
-        AppliedTo appliedTo;
-    }
-
-    @Accessors(fluent = true)
-    @Value(staticConstructor = "of")
-    private static class AppliedToImpl implements AppliedTo {
-
-        List<String> impIds;
-
-        List<String> bidders;
-
-        boolean request;
-
-        boolean response;
-
-        List<String> bidIds;
     }
 }

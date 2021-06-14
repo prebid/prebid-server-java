@@ -69,6 +69,10 @@ import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
+import org.prebid.server.hooks.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
@@ -107,6 +111,10 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsActivity;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsAppliedTo;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
@@ -3033,8 +3041,22 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getExt().getPrebid().getModules().getTrace().getStages())
                 .anySatisfy(stage -> assertThat(stage.getGroups())
                         .anySatisfy(group -> assertThat(group.getInvocationResults())
-                                .anySatisfy(hook -> assertThat(hook.getDebugMessages())
-                                        .containsOnly("debug message 1-1 1", "debug message 1-1 2"))));
+                                .anySatisfy(hook -> {
+                                    assertThat(hook.getDebugMessages())
+                                            .containsOnly("debug message 1-1 1", "debug message 1-1 2");
+                                    assertThat(hook.getAnalyticsTags()).isEqualTo(
+                                            ExtModulesTraceAnalyticsTags.of(singletonList(
+                                                    ExtModulesTraceAnalyticsActivity.of(
+                                                            "some-activity",
+                                                            "success",
+                                                            singletonList(ExtModulesTraceAnalyticsResult.of(
+                                                                    "success",
+                                                                    mapper.createObjectNode(),
+                                                                    ExtModulesTraceAnalyticsAppliedTo.builder()
+                                                                            .impIds(asList("impId1", "impId2"))
+                                                                            .request(true)
+                                                                            .build()))))));
+                                })));
     }
 
     @Test
@@ -3399,6 +3421,17 @@ public class ExchangeServiceTest extends VertxTest {
                                 .errors(asList("error message 1-1 1", "error message 1-1 2"))
                                 .warnings(asList("warning message 1-1 1", "warning message 1-1 2"))
                                 .debugMessages(asList("debug message 1-1 1", "debug message 1-1 2"))
+                                .analyticsTags(TagsImpl.of(singletonList(
+                                        ActivityImpl.of(
+                                                "some-activity",
+                                                "success",
+                                                singletonList(ResultImpl.of(
+                                                        "success",
+                                                        mapper.createObjectNode(),
+                                                        AppliedToImpl.builder()
+                                                                .impIds(asList("impId1", "impId2"))
+                                                                .request(true)
+                                                                .build()))))))
                                 .build(),
                         HookExecutionOutcome.builder()
                                 .hookId(HookId.of("module1", "hook2"))
