@@ -43,7 +43,7 @@ public class HttpInteractionLogger {
                     "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
                     routingContext.request().uri(),
                     // This creates string without new line and space symbols;
-                    requestAsString(routingContext.getBody()),
+                    bufferAsString(routingContext.getBody()),
                     statusCode,
                     responseBody);
 
@@ -51,14 +51,12 @@ public class HttpInteractionLogger {
         }
     }
 
-    private String requestAsString(Buffer body) {
-        String requestAsString;
+    private String bufferAsString(Buffer buffer) {
         try {
-            requestAsString = mapper.encode(mapper.mapper().convertValue(body, JsonNode.class));
+            return mapper.encode(mapper.mapper().convertValue(buffer, JsonNode.class));
         } catch (EncodeException | IllegalArgumentException e) {
-            requestAsString = body.toString();
+            return buffer.toString();
         }
-        return requestAsString;
     }
 
     public void maybeLogOpenrtb2Amp(AuctionContext auctionContext,
