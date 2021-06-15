@@ -51,6 +51,9 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(PubmaticBidder.class);
     private static final String PREBID = "prebid";
+    private static final String DCTR_KEY_NAME = "key_val";
+    private static final String PM_ZONE_ID_KEY_NAME = "pmZoneId";
+    private static final String PM_ZONE_ID_OLD_KEY_NAME = "pmZoneID";
     private static final TypeReference<ExtPrebid<?, ExtImpPubmatic>> PUBMATIC_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubmatic>>() {
             };
