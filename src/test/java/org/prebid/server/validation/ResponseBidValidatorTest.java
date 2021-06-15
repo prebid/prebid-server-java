@@ -25,6 +25,7 @@ import org.prebid.server.validation.model.ValidationResult;
 import java.math.BigDecimal;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -168,7 +169,9 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: 'nullxnull'");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers creative size "
+                        + "validation for bid bidId1, account=account, referrer=unknown, max imp size='100x200', bid "
+                        + "response size='nullxnull'");
     }
 
     @Test
@@ -179,7 +182,9 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: '150x150'");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers creative size"
+                        + " validation for bid bidId1, account=account, referrer=unknown, max imp size='100x200',"
+                        + " bid response size='150x150'");
     }
 
     @Test
@@ -193,7 +198,9 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: '50x250'");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers creative size"
+                        + " validation for bid bidId1, account=account, referrer=unknown, max imp size='100x200',"
+                        + " bid response size='50x250'");
     }
 
     @Test
@@ -248,7 +255,9 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers secure creative "
+                        + "validation for bid bidId1, account=account, referrer=unknown,"
+                        + " adm=<tag>http://site.com/creative.jpg</tag>");
     }
 
     @Test
@@ -262,7 +271,9 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers secure creative"
+                        + " validation for bid bidId1, account=account, referrer=unknown, "
+                        + "adm=<tag>http%3A//site.com/creative.jpg</tag>");
     }
 
     @Test
@@ -276,7 +287,9 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers secure creative"
+                        + " validation for bid bidId1, account=account, referrer=unknown, "
+                        + "adm=<tag>//site.com/creative.jpg</tag>");
     }
 
     @Test
@@ -377,7 +390,9 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         assertThat(result.hasErrors()).isFalse();
         assertThat(result.getWarnings())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: 'nullxnull'");
+                .containsOnly("BidResponse validation `warn`: bidder `bidder` response triggers creative size "
+                        + "validation for bid bidId1, account=account, referrer=unknown, max imp size='100x200',"
+                        + " bid response size='nullxnull'");
     }
 
     @Test
@@ -411,7 +426,9 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         assertThat(result.hasErrors()).isFalse();
         assertThat(result.getWarnings())
-                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
+                .containsOnly("BidResponse validation `warn`: bidder `bidder` response triggers secure creative "
+                        + "validation for bid bidId1, account=account, referrer=unknown, "
+                        + "adm=<tag>http://site.com/creative.jpg</tag>");
     }
 
     @Test
@@ -518,7 +535,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id("impId1")
                 .banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(100).h(200).build()))
+                        .format(asList(Format.builder().w(100).h(200).build(), Format.builder().w(50).h(50).build()))
                         .build());
 
         return BidRequest.builder()
