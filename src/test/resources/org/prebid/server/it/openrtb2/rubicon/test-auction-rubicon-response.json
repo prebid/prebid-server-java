@@ -15,6 +15,9 @@
           "h": 250,
           "ext": {
             "prebid": {
+              "meta": {
+                "network_id" : 123
+              },
               "type": "video",
               "targeting": {
                 "hb_pb": "3.30",
@@ -37,7 +40,14 @@
                 }
               }
             },
-            "origbidcpm": 3.33
+            "origbidcpm": 3.33,
+            "bidder": {
+              "prebid": {
+                "meta": {
+                  "network_id" : 123
+                }
+              }
+            }
           }
         }
       ],
