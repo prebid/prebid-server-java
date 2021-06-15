@@ -1,8 +1,8 @@
 package org.prebid.server.it.hooks;
 
 import io.vertx.core.Future;
-import org.prebid.server.hooks.execution.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;

@@ -4,14 +4,23 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import org.prebid.server.hooks.execution.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationResultImpl;
+import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 public class SampleItRawAuctionRequestHook implements RawAuctionRequestHook {
 
@@ -29,10 +38,27 @@ public class SampleItRawAuctionRequestHook implements RawAuctionRequestHook {
 
         final BidRequest updatedBidRequest = updateBidRequest(originalBidRequest);
 
-        return Future.succeededFuture(InvocationResultImpl.succeeded(payload ->
-                AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder()
-                        .ext(updatedBidRequest.getExt())
-                        .build())));
+        return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.update)
+                .payloadUpdate(payload ->
+                        AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder()
+                                .ext(updatedBidRequest.getExt())
+                                .build()))
+                .debugMessages(Arrays.asList(
+                        "raw auction request debug message 1",
+                        "raw auction request debug message 1"))
+                .analyticsTags(TagsImpl.of(Collections.singletonList(ActivityImpl.of(
+                        "device-id",
+                        "success",
+                        Collections.singletonList(ResultImpl.of(
+                                "success",
+                                mapper.mapper().createObjectNode().put("some-field", "some-value"),
+                                AppliedToImpl.builder()
+                                        .impIds(Collections.singletonList("impId1"))
+                                        .request(true)
+                                        .build()))))))
+                .build());
     }
 
     @Override

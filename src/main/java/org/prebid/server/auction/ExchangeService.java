@@ -51,6 +51,10 @@ import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
+import org.prebid.server.hooks.v1.analytics.Activity;
+import org.prebid.server.hooks.v1.analytics.AppliedTo;
+import org.prebid.server.hooks.v1.analytics.Result;
+import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
@@ -82,6 +86,10 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsActivity;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsAppliedTo;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
@@ -1480,7 +1488,44 @@ public class ExchangeService {
                 .message(hook.getMessage())
                 .action(hook.getAction())
                 .debugMessages(level == TraceLevel.verbose ? hook.getDebugMessages() : null)
+                .analyticsTags(level == TraceLevel.verbose ? toTraceAnalyticsTags(hook.getAnalyticsTags()) : null)
                 .build();
+    }
+
+    private static ExtModulesTraceAnalyticsTags toTraceAnalyticsTags(Tags analyticsTags) {
+        if (analyticsTags == null) {
+            return null;
+        }
+
+        return ExtModulesTraceAnalyticsTags.of(CollectionUtils.emptyIfNull(analyticsTags.activities()).stream()
+                .filter(Objects::nonNull)
+                .map(ExchangeService::toTraceAnalyticsActivity)
+                .collect(Collectors.toList()));
+    }
+
+    private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(Activity activity) {
+        return ExtModulesTraceAnalyticsActivity.of(
+                activity.name(),
+                activity.status(),
+                CollectionUtils.emptyIfNull(activity.results()).stream()
+                        .filter(Objects::nonNull)
+                        .map(ExchangeService::toTraceAnalyticsResult)
+                        .collect(Collectors.toList()));
+    }
+
+    private static ExtModulesTraceAnalyticsResult toTraceAnalyticsResult(Result result) {
+        final AppliedTo appliedTo = result.appliedTo();
+        final ExtModulesTraceAnalyticsAppliedTo extAppliedTo = appliedTo != null
+                ? ExtModulesTraceAnalyticsAppliedTo.builder()
+                .impIds(appliedTo.impIds())
+                .bidders(appliedTo.bidders())
+                .request(appliedTo.request() ? Boolean.TRUE : null)
+                .response(appliedTo.response() ? Boolean.TRUE : null)
+                .bidIds(appliedTo.bidIds())
+                .build()
+                : null;
+
+        return ExtModulesTraceAnalyticsResult.of(result.status(), result.values(), extAppliedTo);
     }
 
     private <T> T updateHooksMetrics(AuctionContext context, T result) {

@@ -1,5 +1,7 @@
 package org.prebid.server.hooks.v1;
 
+import org.prebid.server.hooks.v1.analytics.Tags;
+
 import java.util.List;
 
 public interface InvocationResult<PAYLOAD> {
@@ -19,4 +21,6 @@ public interface InvocationResult<PAYLOAD> {
     List<String> debugMessages();
 
     Object moduleContext();
+
+    Tags analyticsTags();
 }
