@@ -12,6 +12,7 @@ import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.function.Function;
 
 class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
@@ -20,6 +21,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     private final Clock clock;
 
     private Stage stage;
+    private String entity;
     private StageExecutionPlan executionPlan;
     private PAYLOAD initialPayload;
     private Function<HookId, Hook<PAYLOAD, CONTEXT>> hookProvider;
@@ -41,6 +43,11 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
 
     public StageExecutor<PAYLOAD, CONTEXT> withStage(Stage stage) {
         this.stage = stage;
+        return this;
+    }
+
+    public StageExecutor<PAYLOAD, CONTEXT> withEntity(String entity) {
+        this.entity = entity;
         return this;
     }
 
@@ -77,7 +84,7 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     }
 
     public Future<HookStageExecutionResult<PAYLOAD>> execute() {
-        Future<StageResult<PAYLOAD>> stageFuture = Future.succeededFuture(StageResult.of(initialPayload));
+        Future<StageResult<PAYLOAD>> stageFuture = Future.succeededFuture(StageResult.of(initialPayload, entity));
 
         for (final ExecutionGroup group : executionPlan.getGroups()) {
             stageFuture = stageFuture.compose(stageResult ->
@@ -118,7 +125,8 @@ class StageExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
     }
 
     private HookStageExecutionResult<PAYLOAD> toHookStageExecutionResult(StageResult<PAYLOAD> stageResult) {
-        hookExecutionContext.getStageOutcomes().put(stage, stageResult.toStageExecutionOutcome());
+        hookExecutionContext.getStageOutcomes().computeIfAbsent(stage, key -> new ArrayList<>())
+                .add(stageResult.toStageExecutionOutcome());
 
         return stageResult.shouldReject()
                 ? HookStageExecutionResult.reject()

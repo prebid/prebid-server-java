@@ -85,6 +85,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -1400,6 +1401,7 @@ public class ExchangeService {
 
         final Map<String, List<HookExecutionOutcome>> hookOutcomesByModule =
                 context.getHookExecutionContext().getStageOutcomes().values().stream()
+                        .flatMap(Collection::stream)
                         .flatMap(stageOutcome -> stageOutcome.getGroups().stream())
                         .flatMap(groupOutcome -> groupOutcome.getHooks().stream())
                         .filter(hookOutcome -> CollectionUtils.isNotEmpty(messagesGetter.apply(hookOutcome)))
@@ -1440,13 +1442,31 @@ public class ExchangeService {
             return null;
         }
 
-        return ExtModulesTrace.of(
-                stages.stream().mapToLong(ExtModulesTraceStage::getExecutionTime).sum(),
-                stages);
+        final long executionTime = stages.stream().mapToLong(ExtModulesTraceStage::getExecutionTime).sum();
+
+        return ExtModulesTrace.of(executionTime, stages);
     }
 
-    private static ExtModulesTraceStage toTraceStage(Stage stage, StageExecutionOutcome stageOutcome,
+    private static ExtModulesTraceStage toTraceStage(Stage stage,
+                                                     List<StageExecutionOutcome> stageOutcomes,
                                                      TraceLevel level) {
+
+        final List<ExtModulesTraceStageOutcome> extStageOutcomes = stageOutcomes.stream()
+                .map(stageOutcome -> toTraceStageOutcome(stageOutcome, level))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        final long executionTime = extStageOutcomes.stream()
+                .mapToLong(ExtModulesTraceStageOutcome::getExecutionTime)
+                .max()
+                .orElse(0L);
+
+        return ExtModulesTraceStage.of(stage, executionTime, extStageOutcomes);
+    }
+
+    private static ExtModulesTraceStageOutcome toTraceStageOutcome(
+            StageExecutionOutcome stageOutcome, TraceLevel level) {
+
         final List<ExtModulesTraceGroup> groups = stageOutcome.getGroups().stream()
                 .map(group -> toTraceGroup(group, level))
                 .collect(Collectors.toList());
@@ -1455,10 +1475,9 @@ public class ExchangeService {
             return null;
         }
 
-        return ExtModulesTraceStage.of(
-                stage,
-                groups.stream().mapToLong(ExtModulesTraceGroup::getExecutionTime).sum(),
-                groups);
+        final long executionTime = groups.stream().mapToLong(ExtModulesTraceGroup::getExecutionTime).sum();
+
+        return ExtModulesTraceStageOutcome.of(stageOutcome.getEntity(), executionTime, groups);
     }
 
     private static ExtModulesTraceGroup toTraceGroup(GroupExecutionOutcome group, TraceLevel level) {
@@ -1466,9 +1485,12 @@ public class ExchangeService {
                 .map(hook -> toTraceInvocationResult(hook, level))
                 .collect(Collectors.toList());
 
-        return ExtModulesTraceGroup.of(
-                invocationResults.stream().mapToLong(ExtModulesTraceInvocationResult::getExecutionTime).sum(),
-                invocationResults);
+        final long executionTime = invocationResults.stream()
+                .mapToLong(ExtModulesTraceInvocationResult::getExecutionTime)
+                .max()
+                .orElse(0L);
+
+        return ExtModulesTraceGroup.of(executionTime, invocationResults);
     }
 
     private static ExtModulesTraceInvocationResult toTraceInvocationResult(HookExecutionOutcome hook,
@@ -1484,18 +1506,19 @@ public class ExchangeService {
     }
 
     private <T> T updateHooksMetrics(AuctionContext context, T result) {
-        final EnumMap<Stage, StageExecutionOutcome> stageOutcomes =
+        final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes =
                 context.getHookExecutionContext().getStageOutcomes();
 
         final Account account = context.getAccount();
 
-        stageOutcomes.forEach((stage, outcome) -> updateHooksStageMetrics(account, stage, outcome));
+        stageOutcomes.forEach((stage, outcomes) -> updateHooksStageMetrics(account, stage, outcomes));
 
         // account might be null if request is rejected by the entrypoint hook
         if (account != null) {
             final String accountId = account.getId();
 
             stageOutcomes.values().stream()
+                    .flatMap(Collection::stream)
                     .map(StageExecutionOutcome::getGroups)
                     .flatMap(Collection::stream)
                     .map(GroupExecutionOutcome::getHooks)
@@ -1510,8 +1533,9 @@ public class ExchangeService {
         return result;
     }
 
-    private void updateHooksStageMetrics(Account account, Stage stage, StageExecutionOutcome stageOutcome) {
-        stageOutcome.getGroups().stream()
+    private void updateHooksStageMetrics(Account account, Stage stage, List<StageExecutionOutcome> stageOutcomes) {
+        stageOutcomes.stream()
+                .flatMap(stageOutcome -> stageOutcome.getGroups().stream())
                 .flatMap(groupOutcome -> groupOutcome.getHooks().stream())
                 .forEach(hookOutcome -> updateHookInvocationMetrics(account, stage, hookOutcome));
     }

@@ -110,6 +110,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -2952,64 +2953,70 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(extModules.getWarnings()).isNull();
 
         assertThat(extModules.getTrace()).isEqualTo(ExtModulesTrace.of(
-                28L,
+                16L,
                 asList(
                         ExtModulesTraceStage.of(
                                 Stage.entrypoint,
-                                20L,
-                                asList(
-                                        ExtModulesTraceGroup.of(
-                                                10L,
-                                                asList(
-                                                        ExtModulesTraceInvocationResult.builder()
-                                                                .hookId(HookId.of("module1", "hook1"))
-                                                                .executionTime(4L)
-                                                                .status(ExecutionStatus.success)
-                                                                .message("Message 1-1")
-                                                                .action(ExecutionAction.update)
-                                                                .build(),
-                                                        ExtModulesTraceInvocationResult.builder()
-                                                                .hookId(HookId.of("module1", "hook2"))
-                                                                .executionTime(6L)
-                                                                .status(ExecutionStatus.invocation_failure)
-                                                                .message("Message 1-2")
-                                                                .build())),
-                                        ExtModulesTraceGroup.of(
-                                                10L,
-                                                asList(
-                                                        ExtModulesTraceInvocationResult.builder()
-                                                                .hookId(HookId.of("module1", "hook2"))
-                                                                .executionTime(4L)
-                                                                .status(ExecutionStatus.success)
-                                                                .message("Message 1-2")
-                                                                .action(ExecutionAction.no_action)
-                                                                .build(),
-                                                        ExtModulesTraceInvocationResult.builder()
-                                                                .hookId(HookId.of("module2", "hook1"))
-                                                                .executionTime(6L)
-                                                                .status(ExecutionStatus.timeout)
-                                                                .message("Message 2-1")
-                                                                .build())))),
+                                12L,
+                                singletonList(ExtModulesTraceStageOutcome.of(
+                                        "http-request",
+                                        12L,
+                                        asList(
+                                                ExtModulesTraceGroup.of(
+                                                        6L,
+                                                        asList(
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module1", "hook1"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("Message 1-1")
+                                                                        .action(ExecutionAction.update)
+                                                                        .build(),
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module1", "hook2"))
+                                                                        .executionTime(6L)
+                                                                        .status(ExecutionStatus.invocation_failure)
+                                                                        .message("Message 1-2")
+                                                                        .build())),
+                                                ExtModulesTraceGroup.of(
+                                                        6L,
+                                                        asList(
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module1", "hook2"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("Message 1-2")
+                                                                        .action(ExecutionAction.no_action)
+                                                                        .build(),
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module2", "hook1"))
+                                                                        .executionTime(6L)
+                                                                        .status(ExecutionStatus.timeout)
+                                                                        .message("Message 2-1")
+                                                                        .build())))))),
                         ExtModulesTraceStage.of(
                                 Stage.auction_response,
-                                8L,
-                                singletonList(
-                                        ExtModulesTraceGroup.of(
-                                                8L,
-                                                asList(
-                                                        ExtModulesTraceInvocationResult.builder()
-                                                                .hookId(HookId.of("module3", "hook1"))
-                                                                .executionTime(4L)
-                                                                .status(ExecutionStatus.success)
-                                                                .message("Message 3-1")
-                                                                .action(ExecutionAction.update)
-                                                                .build(),
-                                                        ExtModulesTraceInvocationResult.builder()
-                                                                .hookId(HookId.of("module3", "hook2"))
-                                                                .executionTime(4L)
-                                                                .status(ExecutionStatus.success)
-                                                                .action(ExecutionAction.no_action)
-                                                                .build())))))));
+                                4L,
+                                singletonList(ExtModulesTraceStageOutcome.of(
+                                        "auction-response",
+                                        4L,
+                                        singletonList(
+                                                ExtModulesTraceGroup.of(
+                                                        4L,
+                                                        asList(
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module3", "hook1"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .message("Message 3-1")
+                                                                        .action(ExecutionAction.update)
+                                                                        .build(),
+                                                                ExtModulesTraceInvocationResult.builder()
+                                                                        .hookId(HookId.of("module3", "hook2"))
+                                                                        .executionTime(4L)
+                                                                        .status(ExecutionStatus.success)
+                                                                        .action(ExecutionAction.no_action)
+                                                                        .build())))))))));
     }
 
     @Test
@@ -3031,10 +3038,11 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getExt().getPrebid().getModules().getTrace().getStages())
-                .anySatisfy(stage -> assertThat(stage.getGroups())
-                        .anySatisfy(group -> assertThat(group.getInvocationResults())
-                                .anySatisfy(hook -> assertThat(hook.getDebugMessages())
-                                        .containsOnly("debug message 1-1 1", "debug message 1-1 2"))));
+                .anySatisfy(stage -> assertThat(stage.getOutcomes())
+                        .anySatisfy(outcome -> assertThat(outcome.getGroups())
+                                .anySatisfy(group -> assertThat(group.getInvocationResults())
+                                        .anySatisfy(hook -> assertThat(hook.getDebugMessages())
+                                                .containsOnly("debug message 1-1 1", "debug message 1-1 2")))));
     }
 
     @Test
@@ -3385,65 +3393,69 @@ public class ExchangeServiceTest extends VertxTest {
                 .isEqualTo(expectedExtUserEids);
     }
 
-    private static EnumMap<Stage, StageExecutionOutcome> stageOutcomes() {
-        final Map<Stage, StageExecutionOutcome> stageOutcomes = new HashMap<>();
+    private static EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes() {
+        final Map<Stage, List<StageExecutionOutcome>> stageOutcomes = new HashMap<>();
 
-        stageOutcomes.put(Stage.entrypoint, StageExecutionOutcome.of(asList(
-                GroupExecutionOutcome.of(asList(
-                        HookExecutionOutcome.builder()
-                                .hookId(HookId.of("module1", "hook1"))
-                                .executionTime(4L)
-                                .status(ExecutionStatus.success)
-                                .message("Message 1-1")
-                                .action(ExecutionAction.update)
-                                .errors(asList("error message 1-1 1", "error message 1-1 2"))
-                                .warnings(asList("warning message 1-1 1", "warning message 1-1 2"))
-                                .debugMessages(asList("debug message 1-1 1", "debug message 1-1 2"))
-                                .build(),
-                        HookExecutionOutcome.builder()
-                                .hookId(HookId.of("module1", "hook2"))
-                                .executionTime(6L)
-                                .status(ExecutionStatus.invocation_failure)
-                                .message("Message 1-2")
-                                .errors(asList("error message 1-2 1", "error message 1-2 2"))
-                                .warnings(asList("warning message 1-2 1", "warning message 1-2 2"))
-                                .build())),
-                GroupExecutionOutcome.of(asList(
-                        HookExecutionOutcome.builder()
-                                .hookId(HookId.of("module1", "hook2"))
-                                .executionTime(4L)
-                                .status(ExecutionStatus.success)
-                                .message("Message 1-2")
-                                .action(ExecutionAction.no_action)
-                                .errors(asList("error message 1-2 3", "error message 1-2 4"))
-                                .warnings(asList("warning message 1-2 3", "warning message 1-2 4"))
-                                .build(),
-                        HookExecutionOutcome.builder()
-                                .hookId(HookId.of("module2", "hook1"))
-                                .executionTime(6L)
-                                .status(ExecutionStatus.timeout)
-                                .message("Message 2-1")
-                                .errors(asList("error message 2-1 1", "error message 2-1 2"))
-                                .warnings(asList("warning message 2-1 1", "warning message 2-1 2"))
-                                .build())))));
+        stageOutcomes.put(Stage.entrypoint, singletonList(StageExecutionOutcome.of(
+                "http-request",
+                asList(
+                        GroupExecutionOutcome.of(asList(
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module1", "hook1"))
+                                        .executionTime(4L)
+                                        .status(ExecutionStatus.success)
+                                        .message("Message 1-1")
+                                        .action(ExecutionAction.update)
+                                        .errors(asList("error message 1-1 1", "error message 1-1 2"))
+                                        .warnings(asList("warning message 1-1 1", "warning message 1-1 2"))
+                                        .debugMessages(asList("debug message 1-1 1", "debug message 1-1 2"))
+                                        .build(),
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module1", "hook2"))
+                                        .executionTime(6L)
+                                        .status(ExecutionStatus.invocation_failure)
+                                        .message("Message 1-2")
+                                        .errors(asList("error message 1-2 1", "error message 1-2 2"))
+                                        .warnings(asList("warning message 1-2 1", "warning message 1-2 2"))
+                                        .build())),
+                        GroupExecutionOutcome.of(asList(
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module1", "hook2"))
+                                        .executionTime(4L)
+                                        .status(ExecutionStatus.success)
+                                        .message("Message 1-2")
+                                        .action(ExecutionAction.no_action)
+                                        .errors(asList("error message 1-2 3", "error message 1-2 4"))
+                                        .warnings(asList("warning message 1-2 3", "warning message 1-2 4"))
+                                        .build(),
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module2", "hook1"))
+                                        .executionTime(6L)
+                                        .status(ExecutionStatus.timeout)
+                                        .message("Message 2-1")
+                                        .errors(asList("error message 2-1 1", "error message 2-1 2"))
+                                        .warnings(asList("warning message 2-1 1", "warning message 2-1 2"))
+                                        .build()))))));
 
-        stageOutcomes.put(Stage.auction_response, StageExecutionOutcome.of(singletonList(
-                GroupExecutionOutcome.of(asList(
-                        HookExecutionOutcome.builder()
-                                .hookId(HookId.of("module3", "hook1"))
-                                .executionTime(4L)
-                                .status(ExecutionStatus.success)
-                                .message("Message 3-1")
-                                .action(ExecutionAction.update)
-                                .errors(asList("error message 3-1 1", "error message 3-1 2"))
-                                .warnings(asList("warning message 3-1 1", "warning message 3-1 2"))
-                                .build(),
-                        HookExecutionOutcome.builder()
-                                .hookId(HookId.of("module3", "hook2"))
-                                .executionTime(4L)
-                                .status(ExecutionStatus.success)
-                                .action(ExecutionAction.no_action)
-                                .build())))));
+        stageOutcomes.put(Stage.auction_response, singletonList(StageExecutionOutcome.of(
+                "auction-response",
+                singletonList(
+                        GroupExecutionOutcome.of(asList(
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module3", "hook1"))
+                                        .executionTime(4L)
+                                        .status(ExecutionStatus.success)
+                                        .message("Message 3-1")
+                                        .action(ExecutionAction.update)
+                                        .errors(asList("error message 3-1 1", "error message 3-1 2"))
+                                        .warnings(asList("warning message 3-1 1", "warning message 3-1 2"))
+                                        .build(),
+                                HookExecutionOutcome.builder()
+                                        .hookId(HookId.of("module3", "hook2"))
+                                        .executionTime(4L)
+                                        .status(ExecutionStatus.success)
+                                        .action(ExecutionAction.no_action)
+                                        .build()))))));
 
         return new EnumMap<>(stageOutcomes);
     }

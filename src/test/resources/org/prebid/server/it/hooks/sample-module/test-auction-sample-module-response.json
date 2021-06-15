@@ -106,16 +106,21 @@
           "stages": [
             {
               "stage": "entrypoint",
-              "groups": [
+              "outcomes": [
                 {
-                  "invocationresults": [
+                  "entity": "http-request",
+                  "groups": [
                     {
-                      "hookid": {
-                        "module-code": "sample-it-module",
-                        "hook-impl-code": "entrypoint"
-                      },
-                      "status": "success",
-                      "action": "update"
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "entrypoint"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -123,16 +128,21 @@
             },
             {
               "stage": "raw-auction-request",
-              "groups": [
+              "outcomes": [
                 {
-                  "invocationresults": [
+                  "entity": "auction-request",
+                  "groups": [
                     {
-                      "hookid": {
-                        "module-code": "sample-it-module",
-                        "hook-impl-code": "raw-auction-request"
-                      },
-                      "status": "success",
-                      "action": "update"
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "raw-auction-request"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -140,16 +150,21 @@
             },
             {
               "stage": "processed-auction-request",
-              "groups": [
+              "outcomes": [
                 {
-                  "invocationresults": [
+                  "entity": "auction-request",
+                  "groups": [
                     {
-                      "hookid": {
-                        "module-code": "sample-it-module",
-                        "hook-impl-code": "processed-auction-request"
-                      },
-                      "status": "success",
-                      "action": "update"
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "processed-auction-request"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -157,16 +172,21 @@
             },
             {
               "stage": "bidder-request",
-              "groups": [
+              "outcomes": [
                 {
-                  "invocationresults": [
+                  "entity": "rubicon",
+                  "groups": [
                     {
-                      "hookid": {
-                        "module-code": "sample-it-module",
-                        "hook-impl-code": "bidder-request"
-                      },
-                      "status": "success",
-                      "action": "update"
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "bidder-request"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -174,16 +194,21 @@
             },
             {
               "stage": "raw-bidder-response",
-              "groups": [
+              "outcomes": [
                 {
-                  "invocationresults": [
+                  "entity": "rubicon",
+                  "groups": [
                     {
-                      "hookid": {
-                        "module-code": "sample-it-module",
-                        "hook-impl-code": "raw-bidder-response"
-                      },
-                      "status": "success",
-                      "action": "update"
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "raw-bidder-response"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -191,16 +216,21 @@
             },
             {
               "stage": "processed-bidder-response",
-              "groups": [
+              "outcomes": [
                 {
-                  "invocationresults": [
+                  "entity": "rubicon",
+                  "groups": [
                     {
-                      "hookid": {
-                        "module-code": "sample-it-module",
-                        "hook-impl-code": "processed-bidder-response"
-                      },
-                      "status": "success",
-                      "action": "update"
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "processed-bidder-response"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -208,16 +238,21 @@
             },
             {
               "stage": "auction-response",
-              "groups": [
+              "outcomes": [
                 {
-                  "invocationresults": [
+                  "entity": "auction-response",
+                  "groups": [
                     {
-                      "hookid": {
-                        "module-code": "sample-it-module",
-                        "hook-impl-code": "auction-response"
-                      },
-                      "status": "success",
-                      "action": "update"
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "auction-response"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
                     }
                   ]
                 }
