@@ -118,14 +118,14 @@ public class PangleBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private NetworkIds getNetworkIds(ExtImpPangle bidderImpExt) {
+    private static NetworkIds getNetworkIds(ExtImpPangle bidderImpExt) {
         if (bidderImpExt != null) {
-            String appid = bidderImpExt.getAppid() == null ? "" : bidderImpExt.getAppid();
-            String placementid = bidderImpExt.getPlacementid() == null ? "" : bidderImpExt.getPlacementid();
+            final String appid = bidderImpExt.getAppid();
+            final String placementid = bidderImpExt.getPlacementid();
 
-            if (appid.length() > 0 && placementid.length() > 0) {
+            if (StringUtils.isNotEmpty(appid) && StringUtils.isNotEmpty(placementid)) {
                 return NetworkIds.of(appid, placementid);
-            } else if (appid.length() > 0 || placementid.length() > 0) {
+            } else if (StringUtils.isNotEmpty(appid) || StringUtils.isNotEmpty(placementid)) {
                 throw new PreBidException("only one of appid or placementid is provided");
             }
         }
