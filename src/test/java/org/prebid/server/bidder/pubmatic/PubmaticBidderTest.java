@@ -644,6 +644,71 @@ public class PubmaticBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(bidType).build(), banner, "USD"));
     }
 
+    @Test
+    public void makeHttpRequestsShouldReplaceDctrIfPresent() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder
+                        .dctr("dctr")
+                        .keywords(singletonList(
+                                ExtImpPubmaticKeyVal.of("key_val", asList("value1", "value2")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsOnly(mapper.readValue("{\"key_val\":\"dctr\"}", ObjectNode.class));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplacePmZoneIdIfPresent() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder
+                        .pmzoneid("pmzoneid")
+                        .keywords(singletonList(
+                                ExtImpPubmaticKeyVal.of("pmZoneId", asList("value1", "value2")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsOnly(mapper.readValue("{\"pmZoneId\":\"pmzoneid\"}", ObjectNode.class));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplacePmZoneIDOldKeyNameWithNew() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder
+                        .keywords(singletonList(
+                                ExtImpPubmaticKeyVal.of("pmZoneID", asList("value1", "value2")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsOnly(mapper.readValue("{\"pmZoneId\":\"value1,value2\"}", ObjectNode.class));
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,

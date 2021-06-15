@@ -166,29 +166,53 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         if (CollectionUtils.isNotEmpty(extImpPubmatic.getKeywords())) {
-            modifiedImp.ext(makeKeywords(extImpPubmatic.getKeywords()));
+            modifiedImp.ext(makeKeywords(extImpPubmatic));
         } else {
             modifiedImp.ext(null);
         }
         return modifiedImp.build();
     }
 
-    private ObjectNode makeKeywords(List<ExtImpPubmaticKeyVal> keywords) {
-        final List<String> eachKv = new ArrayList<>();
-        for (ExtImpPubmaticKeyVal keyVal : keywords) {
-            if (CollectionUtils.isEmpty(keyVal.getValue())) {
-                logger.error(String.format("No values present for key = %s", keyVal.getKey()));
+    private ObjectNode makeKeywords(ExtImpPubmatic extImpPubmatic) {
+        Map<String, List<String>> keyWordsMap = getKeyWordsMap(extImpPubmatic);
+
+        final List<String> eachKv = keyWordsMap.entrySet().stream().map(entry -> {
+            if (CollectionUtils.isEmpty(entry.getValue())) {
+                logger.error(String.format("No values present for key = %s", entry.getValue()));
+                return null;
             } else {
-                eachKv.add(String.format("\"%s\":\"%s\"", keyVal.getKey(),
-                        String.join(",", keyVal.getValue())));
+                return String.format("\"%s\":\"%s\"", entry.getKey(),
+                        String.join(",", entry.getValue()));
             }
-        }
+        })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
         final String keywordsString = "{" + String.join(",", eachKv) + "}";
         try {
             return mapper.mapper().readValue(keywordsString, ObjectNode.class);
         } catch (IOException e) {
             throw new PreBidException(String.format("Failed to create keywords with error: %s", e.getMessage()), e);
         }
+
+    }
+
+    private Map<String, List<String>> getKeyWordsMap(ExtImpPubmatic extImpPubmatic) {
+        Map<String, List<String>> keyWordsMap = extImpPubmatic.getKeywords()
+                .stream()
+                .collect(Collectors.toMap(ExtImpPubmaticKeyVal::getKey,
+                        ExtImpPubmaticKeyVal::getValue));
+        final List<String> pmZoneIdKeyWords = keyWordsMap.remove(PM_ZONE_ID_OLD_KEY_NAME);
+        if (StringUtils.isNotEmpty(extImpPubmatic.getPmzoneid())) {
+            keyWordsMap.put(PM_ZONE_ID_KEY_NAME, Collections.singletonList(extImpPubmatic.getPmzoneid()));
+        } else if (CollectionUtils.isNotEmpty(pmZoneIdKeyWords)) {
+            keyWordsMap.put(PM_ZONE_ID_KEY_NAME, pmZoneIdKeyWords);
+        }
+        if (StringUtils.isNotEmpty(extImpPubmatic.getDctr())) {
+            keyWordsMap.put(DCTR_KEY_NAME, Collections.singletonList(extImpPubmatic.getDctr()));
+        }
+
+        return keyWordsMap;
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<Imp> imps,
