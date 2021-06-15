@@ -2654,6 +2654,30 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldRemoveBidsWithNotParsedExtAndAddError() throws JsonProcessingException {
+        // given
+        final ObjectNode invalidBidExt = mapper.createObjectNode();
+        invalidBidExt.set("prebid", mapper.createArrayNode());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .buyer("123")
+                                .bid(singletonList(givenBid(bid -> bid.id("789").price(ONE).ext(invalidBidExt))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Invalid ext passed in bid with id: 789"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");

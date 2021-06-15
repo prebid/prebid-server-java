@@ -224,10 +224,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
+            final List<BidderError> errors = new ArrayList<>();
             final RubiconBidResponse bidResponse =
                     mapper.decodeValue(httpCall.getResponse().getBody(), RubiconBidResponse.class);
-            return Result.of(extractBids(bidRequest, httpCall.getRequest().getPayload(), bidResponse),
-                    Collections.emptyList());
+            return Result.of(extractBids(bidRequest, httpCall.getRequest().getPayload(), bidResponse, errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -1251,15 +1251,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> extractBids(BidRequest prebidRequest,
                                         BidRequest bidRequest,
-                                        RubiconBidResponse bidResponse) {
+                                        RubiconBidResponse bidResponse,
+                                        List<BidderError> errors) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
-                : bidsFromResponse(prebidRequest, bidRequest, bidResponse);
+                : bidsFromResponse(prebidRequest, bidRequest, bidResponse, errors);
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest prebidRequest,
                                              BidRequest bidRequest,
-                                             RubiconBidResponse bidResponse) {
+                                             RubiconBidResponse bidResponse,
+                                             List<BidderError> errors) {
         final Map<String, Imp> idToImp = prebidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
         final Float cpmOverrideFromRequest = cpmOverrideFromRequest(prebidRequest);
@@ -1267,7 +1269,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(this::updateSeatBids)
+                .map(seatBid -> updateSeatBids(seatBid, errors))
                 .map(RubiconSeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
@@ -1277,21 +1279,28 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid) {
+    private RubiconSeatBid updateSeatBids(RubiconSeatBid seatBid, List<BidderError> errors) {
         final String buyer = seatBid.getBuyer();
         final int networkId = NumberUtils.toInt(buyer, 0);
         if (networkId <= 0) {
             return seatBid;
         }
         final List<Bid> updatedBids = seatBid.getBid().stream()
-                .map(bid -> insertNetworkIdToMeta(bid, networkId))
+                .map(bid -> insertNetworkIdToMeta(bid, networkId, errors))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         return seatBid.toBuilder().bid(updatedBids).build();
     }
 
-    private Bid insertNetworkIdToMeta(Bid bid, int networkId) {
+    private Bid insertNetworkIdToMeta(Bid bid, int networkId, List<BidderError> errors) {
         final ObjectNode bidExt = bid.getExt();
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bidExt);
+        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid;
+        try {
+            extPrebid = getExtPrebid(bidExt, bid.getId());
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
         final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
 
@@ -1309,11 +1318,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return bid.toBuilder().ext(updatedBidExt).build();
     }
 
-    private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt) {
+    private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt, String bidId) {
         try {
             return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
         } catch (IllegalArgumentException e) {
-            return null;
+            throw new PreBidException(String.format("Invalid ext passed in bid with id: %s", bidId));
         }
     }
 
