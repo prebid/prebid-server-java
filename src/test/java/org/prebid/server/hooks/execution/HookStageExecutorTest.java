@@ -54,7 +54,12 @@ import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
@@ -935,6 +940,14 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.entrypoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
+        final TagsImpl analyticsTags = TagsImpl.of(singletonList(ActivityImpl.of(
+                "update",
+                "success",
+                singletonList(ResultImpl.of(
+                        "success",
+                        null,
+                        AppliedToImpl.builder().request(true).build())))));
+
         givenEntrypointHook(
                 "module-alpha",
                 "hook-a",
@@ -946,6 +959,7 @@ public class HookStageExecutorTest extends VertxTest {
                         .errors(singletonList("There have been some errors though"))
                         .warnings(singletonList("Not without warnings too"))
                         .debugMessages(singletonList("And chatty debug messages of course"))
+                        .analyticsTags(analyticsTags)
                         .build()));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
@@ -977,6 +991,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                         .containsOnly("Not without warnings too");
                                                 assertThat(hookOutcome.getDebugMessages())
                                                         .containsOnly("And chatty debug messages of course");
+                                                assertThat(hookOutcome.getAnalyticsTags()).isSameAs(analyticsTags);
                                             }));
 
             async.complete();

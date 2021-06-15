@@ -83,6 +83,7 @@
         "ext": {
           "prebid": {
             "debug": 1,
+            "trace": "verbose",
             "auctiontimestamp": 1000,
             "channel": {
               "name": "web"
@@ -140,7 +141,33 @@
                             "hook-impl-code": "raw-auction-request"
                           },
                           "status": "success",
-                          "action": "update"
+                          "action": "update",
+                          "debugmessages": [
+                            "raw auction request debug message 1",
+                            "raw auction request debug message 1"
+                          ],
+                          "analyticstags": {
+                            "activities": [
+                              {
+                                "name": "device-id",
+                                "status": "success",
+                                "results": [
+                                  {
+                                    "status": "success",
+                                    "values": {
+                                      "some-field": "some-value"
+                                    },
+                                    "appliedto": {
+                                      "impids": [
+                                        "impId1"
+                                      ],
+                                      "request": true
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
                         }
                       ]
                     }

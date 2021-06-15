@@ -96,6 +96,7 @@ class GroupResult<T> {
                 .errors(invocationResult.errors())
                 .warnings(invocationResult.warnings())
                 .debugMessages(invocationResult.debugMessages())
+                .analyticsTags(invocationResult.analyticsTags())
                 .build();
     }
 

@@ -27,4 +27,7 @@ public class ExtModulesTraceInvocationResult {
 
     @JsonProperty("debugmessages")
     List<String> debugMessages;
+
+    @JsonProperty("analyticstags")
+    ExtModulesTraceAnalyticsTags analyticsTags;
 }
