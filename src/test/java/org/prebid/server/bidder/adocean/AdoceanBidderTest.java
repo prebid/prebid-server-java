@@ -76,6 +76,34 @@ public class AdoceanBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent").build())
+                        .build())
+                .imp(singletonList(Imp.builder()
+                        .id("ao-test")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("invalid domain", "masterId",
+                                        "adoceanmyaozpniqismex")))).build()))
+                .test(1)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Invalid url: https://invalid domain/");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                });
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateRequestForEveryValidImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()

@@ -25,7 +25,6 @@ public abstract class EnforcePurposeStrategy {
 
         return isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString)
                 || isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
-
     }
 
     protected boolean isAllowedBySimpleConsent(PurposeCode purpose,

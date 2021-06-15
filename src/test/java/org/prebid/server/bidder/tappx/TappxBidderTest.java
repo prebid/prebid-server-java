@@ -59,6 +59,28 @@ public class TappxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTappx.of("invalid host", "tappxkey", "endpoint", null))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = tappxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage())
+                            .startsWith("Failed to build endpoint URL: Illegal character in authority at index 8");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                });
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -197,7 +219,8 @@ public class TappxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("htTpS://host-host.com/rtb/v2", "tappxkey", "/endpoint", BigDecimal.ONE))))
+                                ExtImpTappx.of("htTpS://host-host.com/rtb/v2", "tappxkey", "/endpoint",
+                                        BigDecimal.ONE))))
                         .build()))
                 .build();
 
