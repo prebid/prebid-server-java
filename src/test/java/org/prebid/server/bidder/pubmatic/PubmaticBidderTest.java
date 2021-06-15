@@ -162,24 +162,6 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfKeywordsAreInvalid() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                extImpPubmaticBuilder -> extImpPubmaticBuilder
-                        .keywords(singletonList(ExtImpPubmaticKeyVal.of("\"", singletonList("\"")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Failed to create keywords with error: Unexpected character");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfWrapExtHasInvalidParams() {
         // given
         final BidRequest bidRequest = givenBidRequest(

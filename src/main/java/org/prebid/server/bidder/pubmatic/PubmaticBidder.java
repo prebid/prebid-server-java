@@ -2,6 +2,7 @@ package org.prebid.server.bidder.pubmatic;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -32,13 +33,11 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
-import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -174,45 +173,27 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode makeKeywords(ExtImpPubmatic extImpPubmatic) {
-        Map<String, List<String>> keyWordsMap = getKeyWordsMap(extImpPubmatic);
-
-        final List<String> eachKv = keyWordsMap.entrySet().stream().map(entry -> {
-            if (CollectionUtils.isEmpty(entry.getValue())) {
-                logger.error(String.format("No values present for key = %s", entry.getValue()));
-                return null;
-            } else {
-                return String.format("\"%s\":\"%s\"", entry.getKey(),
-                        String.join(",", entry.getValue()));
+        final ObjectNode keywordsObjectNode = mapper.mapper().createObjectNode();
+        extImpPubmatic.getKeywords().forEach(keyword -> {
+            if (CollectionUtils.isEmpty(keyword.getValue())) {
+                logger.error(String.format("No values present for key = %s", keyword.getValue()));
+                return;
             }
-        })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        final String keywordsString = "{" + String.join(",", eachKv) + "}";
-        try {
-            return mapper.mapper().readValue(keywordsString, ObjectNode.class);
-        } catch (IOException e) {
-            throw new PreBidException(String.format("Failed to create keywords with error: %s", e.getMessage()), e);
-        }
-
-    }
-
-    private Map<String, List<String>> getKeyWordsMap(ExtImpPubmatic extImpPubmatic) {
-        Map<String, List<String>> keyWordsMap = extImpPubmatic.getKeywords()
-                .stream()
-                .collect(Collectors.toMap(ExtImpPubmaticKeyVal::getKey,
-                        ExtImpPubmaticKeyVal::getValue));
-        final List<String> pmZoneIdKeyWords = keyWordsMap.remove(PM_ZONE_ID_OLD_KEY_NAME);
+            keywordsObjectNode.put(keyword.getKey(), String.join(",", keyword.getValue()));
+        });
+        final JsonNode pmZoneIdKeyWords = keywordsObjectNode.remove(PM_ZONE_ID_OLD_KEY_NAME);
         if (StringUtils.isNotEmpty(extImpPubmatic.getPmzoneid())) {
-            keyWordsMap.put(PM_ZONE_ID_KEY_NAME, Collections.singletonList(extImpPubmatic.getPmzoneid()));
-        } else if (CollectionUtils.isNotEmpty(pmZoneIdKeyWords)) {
-            keyWordsMap.put(PM_ZONE_ID_KEY_NAME, pmZoneIdKeyWords);
+            keywordsObjectNode.put(PM_ZONE_ID_KEY_NAME,
+                    extImpPubmatic.getPmzoneid());
+        } else if (pmZoneIdKeyWords != null) {
+            keywordsObjectNode.set(PM_ZONE_ID_KEY_NAME, pmZoneIdKeyWords);
         }
         if (StringUtils.isNotEmpty(extImpPubmatic.getDctr())) {
-            keyWordsMap.put(DCTR_KEY_NAME, Collections.singletonList(extImpPubmatic.getDctr()));
+            keywordsObjectNode.put(DCTR_KEY_NAME,
+                    extImpPubmatic.getDctr());
         }
 
-        return keyWordsMap;
+        return keywordsObjectNode;
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<Imp> imps,
