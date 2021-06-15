@@ -1284,14 +1284,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return seatBid;
         }
         final List<Bid> updatedBids = seatBid.getBid().stream()
-                .map(bid -> insertNetworkIdToMeta(networkId, bid))
+                .map(bid -> insertNetworkIdToMeta(bid, networkId))
                 .collect(Collectors.toList());
         return seatBid.toBuilder().bid(updatedBids).build();
     }
 
-    private Bid insertNetworkIdToMeta(int networkId, Bid bid) {
+    private Bid insertNetworkIdToMeta(Bid bid, int networkId) {
         final ObjectNode bidExt = bid.getExt();
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bid.getExt());
+        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bidExt);
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
         final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
 
@@ -1310,7 +1310,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt) {
-        return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
+        try {
+            return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static boolean validatePrice(Bid bid) {
