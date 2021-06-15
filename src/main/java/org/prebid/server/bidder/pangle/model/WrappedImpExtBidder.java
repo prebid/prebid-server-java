@@ -18,4 +18,9 @@ public class WrappedImpExtBidder {
 
     @JsonProperty("adtype")
     Integer adType;
+
+    @JsonProperty("is_prebid")
+    Boolean isPrebid;
+
+    NetworkIds networkids;
 }
