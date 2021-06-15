@@ -2162,13 +2162,20 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<BidderResponsePayload>> future1 =
                 executor.executeProcessedBidderResponseStage(
-                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                        "bidder1",
+                        BidderResponse.of(
+                                "bidder1",
+                                BidderSeatBid.of(
+                                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                                        emptyList(),
+                                        emptyList()),
+                                0),
                         auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 =
                 executor.executeProcessedBidderResponseStage(
-                        emptyList(),
-                        "bidder2",
+                        BidderResponse.of(
+                                "bidder2",
+                                BidderSeatBid.of(emptyList(), emptyList(), emptyList()),
+                                0),
                         auctionContext);
 
         // then
@@ -2220,8 +2227,13 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<BidderResponsePayload>> future =
                 executor.executeProcessedBidderResponseStage(
-                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                        "bidder1",
+                        BidderResponse.of(
+                                "bidder1",
+                                BidderSeatBid.of(
+                                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                                        emptyList(),
+                                        emptyList()),
+                                0),
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.builder()

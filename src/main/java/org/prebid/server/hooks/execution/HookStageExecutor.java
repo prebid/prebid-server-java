@@ -204,12 +204,14 @@ public class HookStageExecutor {
     }
 
     public Future<HookStageExecutionResult<BidderResponsePayload>> executeProcessedBidderResponseStage(
-            List<BidderBid> bids,
-            String bidder,
+            BidderResponse bidderResponse,
             AuctionContext auctionContext) {
 
         final Account account = auctionContext.getAccount();
         final HookExecutionContext context = auctionContext.getHookExecutionContext();
+
+        final List<BidderBid> bids = bidderResponse.getSeatBid().getBids();
+        final String bidder = bidderResponse.getBidder();
 
         final Endpoint endpoint = context.getEndpoint();
         final Stage stage = Stage.processed_bidder_response;

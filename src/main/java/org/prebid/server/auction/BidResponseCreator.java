@@ -334,10 +334,8 @@ public class BidResponseCreator {
                                                                             AuctionContext auctionContext) {
 
         return CompositeFuture.join(bidderResponses.stream()
-                .map(bidderResponse -> hookStageExecutor.executeProcessedBidderResponseStage(
-                        bidderResponse.getSeatBid().getBids(),
-                        bidderResponse.getBidder(),
-                        auctionContext)
+                .map(bidderResponse -> hookStageExecutor
+                        .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
                 .collect(Collectors.toList()))
                 .map(CompositeFuture::list);
