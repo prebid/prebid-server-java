@@ -62,15 +62,9 @@ public class AdgenerationBidder implements Bidder<Void> {
 
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> imps = request.getImp();
-
-        if (CollectionUtils.isEmpty(imps)) {
-            return Result.withError(BidderError.badInput("No impression in the bid request"));
-        }
-
         final List<HttpRequest<Void>> requests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
-        for (Imp imp : imps) {
+        for (Imp imp : request.getImp()) {
             try {
                 final ExtImpAdgeneration extImpAdgeneration = parseAndValidateImpExt(imp);
                 final String adgenerationId = extImpAdgeneration.getId();
