@@ -226,8 +226,8 @@ public class AnalyticsReporterDelegatorTest {
         target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
 
         // then
-        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.invalid_request);
-        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.invalid_request);
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.badinput);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.badinput);
     }
 
     @Test

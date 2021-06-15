@@ -65,7 +65,6 @@ public enum MetricName {
     timeout,
     unknown_error,
     err,
-    invalid_request,
     networkerr,
 
     // bids validation

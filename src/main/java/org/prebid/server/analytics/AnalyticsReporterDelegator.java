@@ -205,7 +205,7 @@ public class AnalyticsReporterDelegator {
         if (exception instanceof TimeoutException || exception instanceof ConnectTimeoutException) {
             failedResult = MetricName.timeout;
         } else if (exception instanceof InvalidRequestException) {
-            failedResult = MetricName.invalid_request;
+            failedResult = MetricName.badinput;
         } else {
             failedResult = MetricName.err;
         }
