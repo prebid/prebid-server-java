@@ -56,9 +56,9 @@ public class PangleBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final WrappedImpExtBidder extBidder = parseImpExt(imp);
-                ExtImpPangle bidderImpExt = extBidder.getBidder();
+                final ExtImpPangle extImpPangle = extBidder.getBidder();
                 final Integer adType = resolveAdType(imp, extBidder);
-                final Imp modifiedImp = modifyImp(imp, adType, extBidder, bidderImpExt);
+                final Imp modifiedImp = modifyImp(imp, adType, extBidder, extImpPangle);
 
                 requests.add(createRequest(request, modifiedImp, extBidder.getBidder().getToken()));
             } catch (PreBidException e) {
