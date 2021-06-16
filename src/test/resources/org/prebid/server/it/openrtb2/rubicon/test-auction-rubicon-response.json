@@ -16,7 +16,12 @@
           "ext": {
             "prebid": {
               "meta": {
-                "network_id" : 123
+                "advertiserId": 1,
+                "secondaryCatIds": [
+                  "id1",
+                  "id2"
+                ],
+                "networkId" : 123
               },
               "type": "video",
               "targeting": {
@@ -44,7 +49,12 @@
             "bidder": {
               "prebid": {
                 "meta": {
-                  "network_id" : 123
+                  "advertiserId": 1,
+                  "secondaryCatIds": [
+                    "id1",
+                    "id2"
+                  ],
+                  "networkId" : 123
                 }
               }
             }

@@ -16,7 +16,12 @@
           "origbidcpm": 3.33,
           "prebid": {
             "meta": {
-              "network_id" : 123
+              "advertiserId": 1,
+              "secondaryCatIds": [
+                "id1",
+                "id2"
+              ],
+              "networkId" : 123
             }
           }
         }
