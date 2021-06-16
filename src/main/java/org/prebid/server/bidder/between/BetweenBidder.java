@@ -72,7 +72,6 @@ public class BetweenBidder implements Bidder<BidRequest> {
         }
 
         return Result.withValue(createRequest(extImpBetween, request, modifiedImps));
-
     }
 
     private static Integer resolveSecure(Site site) {
@@ -160,7 +159,6 @@ public class BetweenBidder implements Bidder<BidRequest> {
         }
         if (site != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
-
         }
         return headers;
     }

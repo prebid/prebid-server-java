@@ -513,7 +513,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 .isEqualToIgnoringGivenFields(responseWithExpectedFields, "nbr", "seatbid");
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
-
     }
 
     @Test

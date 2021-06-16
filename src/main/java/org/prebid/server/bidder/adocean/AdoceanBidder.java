@@ -194,19 +194,25 @@ public class AdoceanBidder implements Bidder<Void> {
                 .build();
     }
 
-    private String buildUrl(String impid, ExtImpAdocean extImpAdocean, String consentString, BidRequest bidRequest,
+    private String buildUrl(String impId, ExtImpAdocean extImpAdocean, String consentString, BidRequest bidRequest,
                             Map<String, String> slaveSizes) {
+
         final Integer test = bidRequest.getTest();
-        final String url = endpointUrl.replace("{{Host}}", Objects.toString(extImpAdocean.getEmitterDomain(), ""));
-        final int randomizedPart = Objects.equals(test, 1) ? 10000000 : 10000000 + (int) (Math.random() * 89999999);
-        final String updateUrl = String.format("%s/_%s/ad.json", url, randomizedPart);
-        final URIBuilder uriBuilder = new URIBuilder()
-                .setPath(updateUrl)
+        final String resolvedUrl = resolveEndpointUrl(extImpAdocean, test);
+
+        final URIBuilder uriBuilder;
+        try {
+            uriBuilder = new URIBuilder(resolvedUrl);
+        } catch (URISyntaxException e) {
+            throw new PreBidException(String.format("Invalid url: %s, error: %s", resolvedUrl, e.getMessage()));
+        }
+
+        uriBuilder
                 .addParameter("pbsrv_v", VERSION)
                 .addParameter("id", extImpAdocean.getMasterId())
                 .addParameter("nc", "1")
                 .addParameter("nosecure", "1")
-                .addParameter("aid", extImpAdocean.getSlaveId() + ":" + impid);
+                .addParameter("aid", extImpAdocean.getSlaveId() + ":" + impId);
 
         if (StringUtils.isNotEmpty(consentString)) {
             uriBuilder.addParameter("gdpr_consent", consentString);
@@ -247,6 +253,12 @@ public class AdoceanBidder implements Bidder<Void> {
         }
 
         return uriBuilder.toString();
+    }
+
+    private String resolveEndpointUrl(ExtImpAdocean extImpAdocean, Integer test) {
+        final String url = endpointUrl.replace("{{Host}}", Objects.toString(extImpAdocean.getEmitterDomain(), ""));
+        final int randomizedPart = Objects.equals(test, 1) ? 10000000 : 10000000 + (int) (Math.random() * 89999999);
+        return String.format("%s/_%s/ad.json", url, randomizedPart);
     }
 
     private List<String> setSlaveSizesParam(Map<String, String> slaveSizes, boolean orderByKey) {

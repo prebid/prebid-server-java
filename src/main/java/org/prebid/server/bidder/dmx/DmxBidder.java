@@ -232,7 +232,6 @@ public class DmxBidder implements Bidder<BidRequest> {
                 : video.toBuilder()
                 .protocols(resolveVideoProtocols(video.getProtocols()))
                 .build();
-
     }
 
     private static List<Integer> resolveVideoProtocols(List<Integer> videoProtocols) {
