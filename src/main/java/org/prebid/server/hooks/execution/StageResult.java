@@ -2,6 +2,7 @@ package org.prebid.server.hooks.execution;
 
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 
 import java.util.ArrayList;
@@ -15,16 +16,18 @@ class StageResult<T> {
     private boolean shouldReject;
 
     private T payload;
+    private final String entity;
 
     private final List<GroupResult<T>> groupResults = new ArrayList<>();
 
-    private StageResult(T payload) {
+    private StageResult(T payload, String entity) {
         this.shouldReject = false;
         this.payload = payload;
+        this.entity = entity;
     }
 
-    public static <T> StageResult<T> of(T payload) {
-        return new StageResult<>(payload);
+    public static <T> StageResult<T> of(T payload, String entity) {
+        return new StageResult<>(payload, entity);
     }
 
     public StageResult<T> applyGroupResult(GroupResult<T> groupResult) {
@@ -37,8 +40,12 @@ class StageResult<T> {
     }
 
     public StageExecutionOutcome toStageExecutionOutcome() {
-        return StageExecutionOutcome.of(this.groupResults().stream()
+        return StageExecutionOutcome.of(entity, groupExecutionOutcomes());
+    }
+
+    private List<GroupExecutionOutcome> groupExecutionOutcomes() {
+        return groupResults.stream()
                 .map(GroupResult::toGroupExecutionOutcome)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
     }
 }

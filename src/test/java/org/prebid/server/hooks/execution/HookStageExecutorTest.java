@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -231,48 +232,52 @@ public class HookStageExecutorTest extends VertxTest {
                     .hasSize(1)
                     .hasEntrySatisfying(
                             Stage.entrypoint,
-                            stageOutcome -> {
-                                final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
-                                assertThat(groups).hasSize(2);
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
-                                final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                assertThat(group0Hooks).hasSize(2);
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+                                        assertThat(groups).hasSize(2);
 
-                                assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
-                                });
+                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        assertThat(group0Hooks).hasSize(2);
 
-                                assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(80L, 90L);
-                                });
+                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                        });
 
-                                final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
-                                assertThat(group1Hooks).hasSize(2);
+                                        assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(80L, 90L);
+                                        });
 
-                                assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
-                                });
+                                        final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
+                                        assertThat(group1Hooks).hasSize(2);
 
-                                assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(40L, 50L);
-                                });
-                            });
+                                        assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                        });
+
+                                        assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(40L, 50L);
+                                        });
+                                    }));
 
             async.complete();
         }));
@@ -303,7 +308,9 @@ public class HookStageExecutorTest extends VertxTest {
 
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasSize(1)
-                    .containsEntry(Stage.entrypoint, StageExecutionOutcome.of(emptyList()));
+                    .containsEntry(
+                            Stage.entrypoint,
+                            singletonList(StageExecutionOutcome.of("http-request", emptyList())));
 
             async.complete();
         }));
@@ -336,7 +343,9 @@ public class HookStageExecutorTest extends VertxTest {
 
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasSize(1)
-                    .containsEntry(Stage.entrypoint, StageExecutionOutcome.of(emptyList()));
+                    .containsEntry(
+                            Stage.entrypoint,
+                            singletonList(StageExecutionOutcome.of("http-request", emptyList())));
 
             async.complete();
         }));
@@ -395,47 +404,54 @@ public class HookStageExecutorTest extends VertxTest {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.entrypoint,
-                            stageOutcome -> {
-                                final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
-                                final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.invocation_failure);
-                                    assertThat(hookOutcome.getMessage())
-                                            .isEqualTo("Hook implementation does not exist or disabled");
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
-                                });
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.invocation_failure);
-                                    assertThat(hookOutcome.getMessage()).isEqualTo(
-                                            "java.lang.RuntimeException: I'm not allowed to throw exceptions");
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
-                                });
+                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.invocation_failure);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo(
+                                                    "Hook implementation does not exist or disabled");
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                        });
 
-                                final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
-                                assertThat(group1Hooks).hasSize(2);
+                                        assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-a"));
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.invocation_failure);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo(
+                                                    "java.lang.RuntimeException: I'm not allowed to throw exceptions");
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                        });
 
-                                assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
-                                });
+                                        final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
+                                        assertThat(group1Hooks).hasSize(2);
 
-                                assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.invocation_failure);
-                                    assertThat(hookOutcome.getMessage()).isEqualTo("Action returned null");
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
-                                });
-                            });
+                                        assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                        });
+
+                                        assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-b"));
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.invocation_failure);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo("Action returned null");
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                        });
+                                    }));
 
             async.complete();
         }));
@@ -504,45 +520,52 @@ public class HookStageExecutorTest extends VertxTest {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.entrypoint,
-                            stageOutcome -> {
-                                final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
-                                final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.execution_failure);
-                                    assertThat(hookOutcome.getMessage()).isEqualTo("Failed after a while");
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(50L, 60L);
-                                });
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.timeout);
-                                    assertThat(hookOutcome.getMessage()).isEqualTo("Timed out while executing action");
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 210L);
-                                });
+                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.execution_failure);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo("Failed after a while");
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(50L, 60L);
+                                        });
 
-                                final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
-                                assertThat(group1Hooks).hasSize(2);
+                                        assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.timeout);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo(
+                                                    "Timed out while executing action");
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 210L);
+                                        });
 
-                                assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
-                                });
+                                        final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
+                                        assertThat(group1Hooks).hasSize(2);
 
-                                assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.timeout);
-                                    assertThat(hookOutcome.getMessage()).isEqualTo("Timed out while executing action");
-                                    assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 210L);
-                                });
-                            });
+                                        assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                        });
+
+                                        assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.timeout);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo(
+                                                    "Timed out while executing action");
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 210L);
+                                        });
+                                    }));
 
             async.complete();
         }));
@@ -598,41 +621,46 @@ public class HookStageExecutorTest extends VertxTest {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.entrypoint,
-                            stageOutcome -> {
-                                final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
-                                final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.failure);
-                                    assertThat(hookOutcome.getMessage()).isEqualTo("Failed to contact service ACME");
-                                });
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                });
+                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.failure);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo(
+                                                    "Failed to contact service ACME");
+                                        });
 
-                                final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
-                                assertThat(group1Hooks).hasSize(2);
+                                        assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                        });
 
-                                assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                });
+                                        final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
+                                        assertThat(group1Hooks).hasSize(2);
 
-                                assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.no_action);
-                                });
-                            });
+                                        assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                        });
+
+                                        assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.no_action);
+                                        });
+                                    }));
 
             async.complete();
         }));
@@ -677,26 +705,30 @@ public class HookStageExecutorTest extends VertxTest {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.entrypoint,
-                            stageOutcome -> {
-                                final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
-                                assertThat(groups).hasSize(1);
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
-                                final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                });
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+                                        assertThat(groups).hasSize(1);
 
-                                assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.reject);
-                                    assertThat(hookOutcome.getMessage()).isEqualTo("Request is of low quality");
-                                });
-                            });
+                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                        });
+
+                                        assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.reject);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo("Request is of low quality");
+                                        });
+                                    }));
 
             async.complete();
         }));
@@ -753,45 +785,49 @@ public class HookStageExecutorTest extends VertxTest {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.entrypoint,
-                            stageOutcome -> {
-                                final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
-                                assertThat(groups).hasSize(2);
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
-                                final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                assertThat(group0Hooks).hasSize(2);
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+                                        assertThat(groups).hasSize(2);
 
-                                assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                });
+                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        assertThat(group0Hooks).hasSize(2);
 
-                                assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                });
+                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                        });
 
-                                final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
-                                assertThat(group1Hooks).hasSize(2);
+                                        assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                        });
 
-                                assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                });
+                                        final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
+                                        assertThat(group1Hooks).hasSize(2);
 
-                                assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.reject);
-                                    assertThat(hookOutcome.getMessage()).isEqualTo("Request is of low quality");
-                                });
-                            });
+                                        assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                        });
+
+                                        assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.reject);
+                                            assertThat(hookOutcome.getMessage()).isEqualTo("Request is of low quality");
+                                        });
+                                    }));
 
             async.complete();
         }));
@@ -852,38 +888,42 @@ public class HookStageExecutorTest extends VertxTest {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.entrypoint,
-                            stageOutcome -> {
-                                final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
-                                final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isNull();
-                                });
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-a"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                });
+                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isNull();
+                                        });
 
-                                final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
-                                assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-beta", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                });
+                                        assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-a"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                        });
 
-                                assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
-                                    assertThat(hookOutcome.getHookId())
-                                            .isEqualTo(HookId.of("module-alpha", "hook-b"));
-                                    assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                    assertThat(hookOutcome.getAction()).isNull();
-                                });
-                            });
+                                        final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
+                                        assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-beta", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                        });
+
+                                        assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-b"));
+                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
+                                            assertThat(hookOutcome.getAction()).isNull();
+                                        });
+                                    }));
 
             async.complete();
         }));
@@ -937,8 +977,8 @@ public class HookStageExecutorTest extends VertxTest {
             assertThat(hookExecutionContext.getStageOutcomes())
                     .hasEntrySatisfying(
                             Stage.entrypoint,
-                            stageOutcome ->
-                                    assertThat(stageOutcome.getGroups().get(0).getHooks().get(0))
+                            stageOutcomes ->
+                                    assertThat(stageOutcomes.get(0).getGroups().get(0).getHooks().get(0))
                                             .satisfies(hookOutcome -> {
                                                 assertThat(hookOutcome.getHookId())
                                                         .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -1179,6 +1219,14 @@ public class HookStageExecutorTest extends VertxTest {
                             .test(1)
                             .tmax(1000L)
                             .build()));
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.raw_auction_request,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("auction-request"));
 
             async.complete();
         }));
@@ -1554,6 +1602,14 @@ public class HookStageExecutorTest extends VertxTest {
                             .tmax(1000L)
                             .build()));
 
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.processed_auction_request,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("auction-request"));
+
             async.complete();
         }));
 
@@ -1803,20 +1859,24 @@ public class HookStageExecutorTest extends VertxTest {
                         payload.bidRequest().toBuilder().tmax(1000L).build()))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().build())
+                .account(Account.empty("accountId"))
+                .hookExecutionContext(hookExecutionContext)
+                .debugContext(DebugContext.empty())
+                .build();
 
         // when
-        final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
+        final Future<HookStageExecutionResult<BidderRequestPayload>> future1 = executor.executeBidderRequestStage(
                 BidderRequest.of("bidder1", null, BidRequest.builder().build()),
-                AuctionContext.builder()
-                        .bidRequest(BidRequest.builder().build())
-                        .account(Account.empty("accountId"))
-                        .hookExecutionContext(hookExecutionContext)
-                        .debugContext(DebugContext.empty())
-                        .build());
+                auctionContext);
+        final Future<HookStageExecutionResult<BidderRequestPayload>> future2 = executor.executeBidderRequestStage(
+                BidderRequest.of("bidder2", null, BidRequest.builder().build()),
+                auctionContext);
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(result -> {
+        future1.setHandler(context.asyncAssertSuccess(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
@@ -1828,6 +1888,15 @@ public class HookStageExecutorTest extends VertxTest {
 
             async.complete();
         }));
+
+        CompositeFuture.join(future1, future2).setHandler(context.asyncAssertSuccess(result ->
+                assertThat(hookExecutionContext.getStageOutcomes())
+                        .hasEntrySatisfying(
+                                Stage.bidder_request,
+                                stageOutcomes -> assertThat(stageOutcomes)
+                                        .hasSize(2)
+                                        .extracting(StageExecutionOutcome::getEntity)
+                                        .containsOnly("bidder1", "bidder2"))));
 
         async.awaitSuccess();
     }
@@ -1935,9 +2004,15 @@ public class HookStageExecutorTest extends VertxTest {
                                 .collect(Collectors.toList())))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().build())
+                .account(Account.empty("accountId"))
+                .hookExecutionContext(hookExecutionContext)
+                .debugContext(DebugContext.empty())
+                .build();
 
         // when
-        final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
+        final Future<HookStageExecutionResult<BidderResponsePayload>> future1 = executor.executeRawBidderResponseStage(
                 BidderResponse.of(
                         "bidder1",
                         BidderSeatBid.of(
@@ -1945,16 +2020,17 @@ public class HookStageExecutorTest extends VertxTest {
                                 emptyList(),
                                 emptyList()),
                         0),
-                AuctionContext.builder()
-                        .bidRequest(BidRequest.builder().build())
-                        .account(Account.empty("accountId"))
-                        .hookExecutionContext(hookExecutionContext)
-                        .debugContext(DebugContext.empty())
-                        .build());
+                auctionContext);
+        final Future<HookStageExecutionResult<BidderResponsePayload>> future2 = executor.executeRawBidderResponseStage(
+                BidderResponse.of(
+                        "bidder2",
+                        BidderSeatBid.of(emptyList(), emptyList(), emptyList()),
+                        0),
+                auctionContext);
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(result -> {
+        future1.setHandler(context.asyncAssertSuccess(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bids()).containsOnly(BidderBid.of(
@@ -1969,6 +2045,15 @@ public class HookStageExecutorTest extends VertxTest {
 
             async.complete();
         }));
+
+        CompositeFuture.join(future1, future2).setHandler(context.asyncAssertSuccess(result ->
+                assertThat(hookExecutionContext.getStageOutcomes())
+                        .hasEntrySatisfying(
+                                Stage.raw_bidder_response,
+                                stageOutcomes -> assertThat(stageOutcomes)
+                                        .hasSize(2)
+                                        .extracting(StageExecutionOutcome::getEntity)
+                                        .containsOnly("bidder1", "bidder2"))));
 
         async.awaitSuccess();
     }
@@ -2082,22 +2167,35 @@ public class HookStageExecutorTest extends VertxTest {
                                 .collect(Collectors.toList())))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().build())
+                .account(Account.empty("accountId"))
+                .hookExecutionContext(hookExecutionContext)
+                .debugContext(DebugContext.empty())
+                .build();
 
         // when
-        final Future<HookStageExecutionResult<BidderResponsePayload>> future =
+        final Future<HookStageExecutionResult<BidderResponsePayload>> future1 =
                 executor.executeProcessedBidderResponseStage(
-                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                        "bidder1",
-                        AuctionContext.builder()
-                                .bidRequest(BidRequest.builder().build())
-                                .account(Account.empty("accountId"))
-                                .hookExecutionContext(hookExecutionContext)
-                                .debugContext(DebugContext.empty())
-                                .build());
+                        BidderResponse.of(
+                                "bidder1",
+                                BidderSeatBid.of(
+                                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                                        emptyList(),
+                                        emptyList()),
+                                0),
+                        auctionContext);
+        final Future<HookStageExecutionResult<BidderResponsePayload>> future2 =
+                executor.executeProcessedBidderResponseStage(
+                        BidderResponse.of(
+                                "bidder2",
+                                BidderSeatBid.of(emptyList(), emptyList(), emptyList()),
+                                0),
+                        auctionContext);
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(result -> {
+        future1.setHandler(context.asyncAssertSuccess(result -> {
             assertThat(result).isNotNull();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bids()).containsOnly(BidderBid.of(
@@ -2112,6 +2210,15 @@ public class HookStageExecutorTest extends VertxTest {
 
             async.complete();
         }));
+
+        CompositeFuture.join(future1, future2).setHandler(context.asyncAssertSuccess(result ->
+                assertThat(hookExecutionContext.getStageOutcomes())
+                        .hasEntrySatisfying(
+                                Stage.processed_bidder_response,
+                                stageOutcomes -> assertThat(stageOutcomes)
+                                        .hasSize(2)
+                                        .extracting(StageExecutionOutcome::getEntity)
+                                        .containsOnly("bidder1", "bidder2"))));
 
         async.awaitSuccess();
     }
@@ -2135,8 +2242,13 @@ public class HookStageExecutorTest extends VertxTest {
         // when
         final Future<HookStageExecutionResult<BidderResponsePayload>> future =
                 executor.executeProcessedBidderResponseStage(
-                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
-                        "bidder1",
+                        BidderResponse.of(
+                                "bidder1",
+                                BidderSeatBid.of(
+                                        singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD")),
+                                        emptyList(),
+                                        emptyList()),
+                                0),
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())
                                 .account(Account.builder()
