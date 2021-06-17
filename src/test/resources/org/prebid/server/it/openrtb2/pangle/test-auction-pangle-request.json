@@ -15,7 +15,9 @@
         "prebid": {
           "bidder": {
             "pangle": {
-              "token": ".token"
+              "token": ".token",
+              "appid": "1",
+              "placementid": "1"
             }
           }
         }
