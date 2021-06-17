@@ -173,27 +173,25 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode makeKeywords(ExtImpPubmatic extImpPubmatic) {
-        final ObjectNode keywordsObjectNode = mapper.mapper().createObjectNode();
+        final ObjectNode keywordsNode = mapper.mapper().createObjectNode();
         extImpPubmatic.getKeywords().forEach(keyword -> {
             if (CollectionUtils.isEmpty(keyword.getValue())) {
                 logger.error(String.format("No values present for key = %s", keyword.getValue()));
                 return;
             }
-            keywordsObjectNode.put(keyword.getKey(), String.join(",", keyword.getValue()));
+            keywordsNode.put(keyword.getKey(), String.join(",", keyword.getValue()));
         });
-        final JsonNode pmZoneIdKeyWords = keywordsObjectNode.remove(PM_ZONE_ID_OLD_KEY_NAME);
+        final JsonNode pmZoneIdKeyWords = keywordsNode.remove(PM_ZONE_ID_OLD_KEY_NAME);
         if (StringUtils.isNotEmpty(extImpPubmatic.getPmzoneid())) {
-            keywordsObjectNode.put(PM_ZONE_ID_KEY_NAME,
-                    extImpPubmatic.getPmzoneid());
+            keywordsNode.put(PM_ZONE_ID_KEY_NAME, extImpPubmatic.getPmzoneid());
         } else if (pmZoneIdKeyWords != null) {
-            keywordsObjectNode.set(PM_ZONE_ID_KEY_NAME, pmZoneIdKeyWords);
+            keywordsNode.set(PM_ZONE_ID_KEY_NAME, pmZoneIdKeyWords);
         }
         if (StringUtils.isNotEmpty(extImpPubmatic.getDctr())) {
-            keywordsObjectNode.put(DCTR_KEY_NAME,
-                    extImpPubmatic.getDctr());
+            keywordsNode.put(DCTR_KEY_NAME, extImpPubmatic.getDctr());
         }
 
-        return keywordsObjectNode;
+        return keywordsNode;
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<Imp> imps,
@@ -238,9 +236,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(pubId).build();
             bidRequestBuilder.site(site.toBuilder().publisher(modifiedPublisher).build());
         } else {
-            bidRequestBuilder.site(site.toBuilder()
-                    .publisher(Publisher.builder().id(pubId).build())
-                    .build());
+            bidRequestBuilder.site(site.toBuilder().publisher(Publisher.builder().id(pubId).build()).build());
         }
     }
 
@@ -251,9 +247,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(pubId).build();
             bidRequestBuilder.app(app.toBuilder().publisher(modifiedPublisher).build());
         } else {
-            bidRequestBuilder.app(app.toBuilder()
-                    .publisher(Publisher.builder().id(pubId).build())
-                    .build());
+            bidRequestBuilder.app(app.toBuilder().publisher(Publisher.builder().id(pubId).build()).build());
         }
     }
 
