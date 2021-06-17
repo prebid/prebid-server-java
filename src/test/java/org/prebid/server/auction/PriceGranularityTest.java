@@ -30,10 +30,13 @@ public class PriceGranularityTest {
 
     @Test
     public void createFromExtPriceGranularityShouldTolerateWithEmptyOrMissingValues() {
+        final ExtGranularityRange granularityRangeWithNullMax = ExtGranularityRange.of(null, BigDecimal.valueOf(0.5));
+        final ExtGranularityRange granularityRange = ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.valueOf(0.5));
         assertThatCode(() -> PriceGranularity.createFromExtPriceGranularity(
-                ExtPriceGranularity.of(2, asList(ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.valueOf(0.5)),
-                        null,
-                        ExtGranularityRange.of(null, BigDecimal.valueOf(0.5)))))).doesNotThrowAnyException();
+                ExtPriceGranularity.of(2, asList(granularityRange,
+                        null, // Missed values should be skipped
+                        granularityRangeWithNullMax))))
+                .doesNotThrowAnyException();
     }
 
     @Test
