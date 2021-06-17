@@ -123,7 +123,8 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedExt = mapper
-                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token", null, null), 8, true, null));
+                .valueToTree(WrappedImpExtBidder.of(null,
+                        ExtImpPangle.of("token", null, null), 8, true, null));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -508,7 +509,7 @@ public class PangleBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldThrowExceptionIfAppIdIsNotPresentAndPlacementIdIsPresent() {
+    public void makeHttpRequestsShouldAddErrorAndSkipImpressionIfAppIdIsNotPresentAndPlacementIdIsPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -524,11 +525,11 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldThrowExceptionIfPlacementIdIsNotPresentAndAppIdIsPresent() {
+    public void makeHttpRequestsShouldAddErrorAndSkipImpressionIfPlacementIdIsNotPresentAndAppIdIsPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -544,7 +545,7 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -564,9 +565,8 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedExt = mapper
-                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
-                        "token", null, null),
-                        1, true, null));
+                .valueToTree(WrappedImpExtBidder.of(null,
+                        ExtImpPangle.of("token", null, null), 1, true, null));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
