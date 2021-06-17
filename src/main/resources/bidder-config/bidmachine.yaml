@@ -1,7 +1,7 @@
 adapters:
   between:
     enabled: false
-    endpoint: https://{{.Host}}.bidmachine.io
+    endpoint: https://{{Host}}.bidmachine.io/{{PATH}}/{{SELLER_ID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true

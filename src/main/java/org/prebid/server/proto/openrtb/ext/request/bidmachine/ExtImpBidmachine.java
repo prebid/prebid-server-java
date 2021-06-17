@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request.bidmachine;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -11,6 +10,5 @@ public class ExtImpBidmachine {
 
     String path;
 
-    @JsonProperty("seller_id")
     String sellerId;
 }

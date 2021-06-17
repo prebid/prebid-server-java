@@ -171,8 +171,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode makeKeywords(List<ExtImpPubmaticKeyVal> keywords) {
-        ObjectNode jsonNodes = mapper.mapper().createObjectNode();
-        jsonNodes.set()
         final List<String> eachKv = new ArrayList<>();
         for (ExtImpPubmaticKeyVal keyVal : keywords) {
             if (CollectionUtils.isEmpty(keyVal.getValue())) {
