@@ -283,7 +283,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
             metrics.updateUserSyncBadRequestMetric();
             status = HttpResponseStatus.BAD_REQUEST.code();
             body = String.format("Invalid request format: %s", message);
-
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED.code();

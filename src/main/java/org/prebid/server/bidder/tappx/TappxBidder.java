@@ -109,11 +109,16 @@ public class TappxBidder implements Bidder<BidRequest> {
 
     private String buildUrl(String host, String endpoint, String tappxkey, Integer test) {
         try {
-            final URIBuilder uriBuilder = new URIBuilder(resolveHost(host));
+            final String baseUri = resolveBaseUri(host);
+            final URIBuilder uriBuilder = new URIBuilder(baseUri);
 
             if (!StringUtils.containsIgnoreCase(host, endpoint)) {
-                final String path = buildUrlPath(uriBuilder.getPath(), endpoint);
-                uriBuilder.setPath(path);
+                final List<String> pathSegments = new ArrayList<>();
+                uriBuilder.getPathSegments().stream()
+                        .filter(StringUtils::isNotBlank)
+                        .forEach(pathSegments::add);
+                pathSegments.add(StringUtils.strip(endpoint, "/"));
+                uriBuilder.setPathSegments(pathSegments);
             }
 
             uriBuilder.addParameter("tappxkey", tappxkey);
@@ -130,16 +135,10 @@ public class TappxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String resolveHost(String host) {
+    private String resolveBaseUri(String host) {
         return StringUtils.startsWithAny(host.toLowerCase(), "http://", "https://")
                 ? host
                 : endpointUrl + host;
-    }
-
-    private static String buildUrlPath(String path, String endpoint) {
-        final String strippedPath = StringUtils.stripEnd(path, "/");
-        final String strippedEndpoint = StringUtils.stripStart(endpoint, "/");
-        return strippedPath + "/" + strippedEndpoint;
     }
 
     /**
