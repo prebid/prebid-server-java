@@ -270,8 +270,7 @@ public class ApplicationTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("amp/test-cache-request.json")))
+                .withRequestBody(equalToBidCacheRequest(jsonFrom("amp/test-cache-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName", "amp/test-cache-matcher-amp.json")
