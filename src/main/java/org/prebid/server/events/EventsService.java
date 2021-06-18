@@ -17,7 +17,6 @@ public class EventsService {
      * Returns {@link Events} object based on given params.
      */
     public Events createEvent(String bidId,
-                              //  String auctionId,
                               String bidder,
                               String auctionId,
                               String accountId,

@@ -1019,9 +1019,10 @@ public class BidResponseCreator {
         final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
         final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
         final ExtResponseCache cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
+        final String auctionId = bidRequest.getId();
 
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = createEvents(bidder, account, bidInfo.getBidId(), bidRequest.getId(), eventsContext);
+        final Events events = createEvents(bidder, account, bidInfo.getBidId(), auctionId, eventsContext);
         final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bid.getExt());
