@@ -129,9 +129,12 @@ public class EventUtil {
         final String timestampAsString = StringUtils.stripToNull(queryParams.get(TIMESTAMP_PARAMETER));
         final Long timestamp = timestampAsString != null ? Long.valueOf(timestampAsString) : null;
 
+        final String auctionId = StringUtils.stripToNull(queryParams.get(AUCTION_ID));
+
         return EventRequest.builder()
                 .type(type)
                 .bidId(queryParams.get(BID_ID_PARAMETER))
+                .auctionId(auctionId)
                 .accountId(queryParams.get(ACCOUNT_ID_PARAMETER))
                 .bidder(queryParams.get(BIDDER_PARAMETER))
                 .timestamp(timestamp)
