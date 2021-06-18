@@ -158,6 +158,7 @@ public class BidResponseCreator {
 
         final long auctionTimestamp = auctionTimestamp(auctionContext);
         final Account account = auctionContext.getAccount();
+        final String auctionId = auctionContext.getBidRequest().getId();
 
         final EventsContext eventsContext = EventsContext.builder()
                 .enabledForAccount(eventsEnabledForAccount(auctionContext))
@@ -167,7 +168,11 @@ public class BidResponseCreator {
                 .build();
 
         final Map<String, String> bidIdToGeneratedBidId = new HashMap<>();
-        updateBidAdmInBidderResponses(bidderResponses, account, bidIdToGeneratedBidId, eventsContext);
+        updateBidAdmInBidderResponses(bidderResponses,
+                auctionId,
+                account,
+                bidIdToGeneratedBidId,
+                eventsContext);
 
         if (isEmptyBidderResponses(bidderResponses)) {
             final BidRequest bidRequest = auctionContext.getBidRequest();
@@ -198,6 +203,7 @@ public class BidResponseCreator {
     }
 
     private void updateBidAdmInBidderResponses(List<BidderResponse> bidderResponses,
+                                               String auctionId,
                                                Account account,
                                                Map<String, String> bidIdToGeneratedBidId,
                                                EventsContext eventsContext) {
@@ -218,6 +224,7 @@ public class BidResponseCreator {
                             bid.getAdm(),
                             bid.getNurl(),
                             generatedBidId == null ? bidId : generatedBidId,
+                            auctionId,
                             account.getId(),
                             eventsContext);
 
@@ -922,7 +929,7 @@ public class BidResponseCreator {
         final ExtResponseCache cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
 
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = createEvents(bidder, account, bidInfo.getBidId(), eventsContext);
+        final Events events = createEvents(bidder, bidRequest.getId(), account, bidInfo.getBidId(), eventsContext);
         final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
@@ -1004,6 +1011,7 @@ public class BidResponseCreator {
     }
 
     private Events createEvents(String bidder,
+                                String auctionId,
                                 Account account,
                                 String eventBidId,
                                 EventsContext eventsContext) {
@@ -1012,6 +1020,7 @@ public class BidResponseCreator {
                 ? eventsService.createEvent(
                 eventBidId,
                 bidder,
+                auctionId,
                 account.getId(),
                 eventsContext.getAuctionTimestamp(),
                 eventsContext.getIntegration())

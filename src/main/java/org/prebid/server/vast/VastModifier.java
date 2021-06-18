@@ -32,6 +32,7 @@ public class VastModifier {
         if (BooleanUtils.isTrue(isEventsEnabled) && allowedBidders.contains(bidder) && isValueValid) {
             final String vastUrlTracking = eventsService.vastUrlTracking(
                     putObject.getBidid(),
+                    putObject.getAid(),
                     bidder,
                     accountId,
                     putObject.getTimestamp(),
@@ -48,6 +49,7 @@ public class VastModifier {
                                    String bidAdm,
                                    String bidNurl,
                                    String eventBidId,
+                                   String auctionId,
                                    String accountId,
                                    EventsContext eventsContext) {
         if (!bidderCatalog.isModifyingVastXmlAllowed(bidder)) {
@@ -62,8 +64,8 @@ public class VastModifier {
         final Long auctionTimestamp = eventsContext.getAuctionTimestamp();
         final String integration = eventsContext.getIntegration();
 
-        final String vastUrl = eventsService.vastUrlTracking(eventBidId, bidder, accountId, auctionTimestamp,
-                integration);
+        final String vastUrl = eventsService.vastUrlTracking(eventBidId, auctionId, bidder,
+                accountId, auctionTimestamp, integration);
         return appendTrackingUrlToVastXml(vastXml, vastUrl);
     }
 

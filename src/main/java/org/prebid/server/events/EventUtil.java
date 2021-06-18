@@ -24,6 +24,7 @@ public class EventUtil {
 
     private static final String BIDDER_PARAMETER = "bidder";
     private static final String TIMESTAMP_PARAMETER = "ts";
+    private static final String AUCTION_ID = "aid";
 
     private static final String FORMAT_PARAMETER = "f";
     private static final String BLANK_FORMAT = "b"; // default
@@ -153,6 +154,11 @@ public class EventUtil {
 
     private static String optionalParameters(EventRequest eventRequest) {
         final StringBuilder result = new StringBuilder();
+
+        // auctionID
+        if (StringUtils.isNotEmpty(eventRequest.getAuctionId())) {
+            result.append(nameValueAsQueryString(AUCTION_ID, eventRequest.getAuctionId()));
+        }
 
         // timestamp
         if (eventRequest.getTimestamp() != null) {

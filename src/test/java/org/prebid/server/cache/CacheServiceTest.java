@@ -69,7 +69,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class CacheServiceTest extends VertxTest {
 
-    public static final String ACCOUNT_ID = "accountId";
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -219,7 +218,13 @@ public class CacheServiceTest extends VertxTest {
                 EventsContext.builder().enabledForAccount(true).enabledForRequest(true).build());
 
         // then
-        verify(eventsService).winUrl(eq("bidId1"), eq("bidder"), eq(ACCOUNT_ID), isNull(), isNull());
+        verify(eventsService).winUrl(
+                eq("bidId1"),
+                eq("auctionId"),
+                eq("bidder"),
+                eq("accountId"),
+                isNull(),
+                isNull());
     }
 
     @Test
@@ -238,7 +243,7 @@ public class CacheServiceTest extends VertxTest {
                 eventsContext);
 
         // then
-        verify(metrics).updateCacheRequestFailedTime(eq(ACCOUNT_ID), anyLong());
+        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
 
         final CacheServiceResult result = future.result();
         assertThat(result.getCacheBids()).isEmpty();
@@ -421,8 +426,8 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         // Second value is adm length for each
-        verify(metrics, times(1)).updateCacheCreativeSize(eq(ACCOUNT_ID), eq(0));
-        verify(metrics, times(2)).updateCacheCreativeSize(eq(ACCOUNT_ID), eq(4));
+        verify(metrics, times(1)).updateCacheCreativeSize(eq("accountId"), eq(0));
+        verify(metrics, times(2)).updateCacheCreativeSize(eq("accountId"), eq(4));
 
         final Bid bid1 = bidInfo1.getBid();
         final Bid bid2 = bidInfo2.getBid();
@@ -790,8 +795,9 @@ public class CacheServiceTest extends VertxTest {
                                                UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
 
         final Account.AccountBuilder accountBuilder = Account.builder()
-                .id(ACCOUNT_ID);
+                .id("accountId");
         final BidRequest.BidRequestBuilder bidRequestBuilder = BidRequest.builder()
+                .id("auctionId")
                 .imp(singletonList(givenImp(identity())));
         return AuctionContext.builder()
                 .account(accountCustomizer.apply(accountBuilder).build())

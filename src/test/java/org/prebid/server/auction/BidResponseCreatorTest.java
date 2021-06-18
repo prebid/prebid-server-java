@@ -346,7 +346,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         final String modifiedAdm = "modifiedAdm";
-        given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any())).willReturn(modifiedAdm);
+        given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any(), any())).willReturn(modifiedAdm);
 
         // just a stub to get through method call chain
         givenCacheServiceResult(singletonMap(bid1, CacheInfo.empty()));
@@ -361,7 +361,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auctionTimestamp(1000L)
                 .build();
 
-        verify(vastModifier).createBidVastXml(bidder1, null, BID_NURL, bidId1, accountId, expectedEventContext);
+        verify(vastModifier).createBidVastXml(bidder1, null, BID_NURL, bidId1, "123", accountId, expectedEventContext);
 
         final ArgumentCaptor<List<BidInfo>> bidInfoCaptor = ArgumentCaptor.forClass(List.class);
         verify(cacheService).cacheBidsOpenrtb(
@@ -398,7 +398,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of(bidder, givenSeatBid(BidderBid.of(bid, video, "USD")), 100));
 
         final String modifiedVast = "modifiedVast";
-        given(vastModifier.createBidVastXml(anyString(), anyString(), anyString(), anyString(), anyString(), any()))
+        given(vastModifier.createBidVastXml(anyString(), anyString(), anyString(),
+                anyString(), anyString(), anyString(), any()))
                 .willReturn(modifiedVast);
 
         // when
@@ -411,7 +412,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getAdm)
                 .containsOnly(modifiedVast);
 
-        verify(vastModifier).createBidVastXml(eq(bidder), eq(BID_ADM), eq(BID_NURL), eq(bidId), eq("accountId"), any());
+        verify(vastModifier).createBidVastXml(eq(bidder), eq(BID_ADM), eq(BID_NURL),
+                eq(bidId), eq("123"), eq("accountId"), any());
     }
 
     @Test
@@ -618,7 +620,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidInfo expectedBidInfo = toBidInfo(bid, generatedBid, imp, bidder, banner);
         verify(cacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
 
-        verify(eventsService).createEvent(eq(generatedBid), anyString(), anyString(), anyLong(), anyString());
+        verify(eventsService).createEvent(eq(generatedBid), anyString(), anyString(),
+                anyString(), anyLong(), anyString());
     }
 
     @Test
@@ -1494,7 +1497,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         final Events events = Events.of("http://event-type-win", "http://event-type-view");
-        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyLong(), anyString()))
+        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyString(), anyLong(), anyString()))
                 .willReturn(events);
 
         // when
@@ -1537,7 +1540,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         final Events events = Events.of("http://event-type-win", "http://event-type-view");
-        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyLong(), anyString()))
+        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyString(), anyLong(), anyString()))
                 .willReturn(events);
 
         // when
@@ -1576,7 +1579,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         final Events events = Events.of("http://event-type-win", "http://event-type-view");
-        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyLong(), anyString()))
+        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyString(), anyLong(), anyString()))
                 .willReturn(events);
 
         // when
@@ -2197,7 +2200,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         givenCacheServiceResult(singletonMap(bid, CacheInfo.empty()));
 
-        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyLong(), anyString()))
+        given(eventsService.createEvent(anyString(), anyString(), any(), anyString(), anyLong(), anyString()))
                 .willReturn(Events.of(
                         "http://win-url?param=value&int=integration",
                         "http://imp-url?param=value&int=integration"));

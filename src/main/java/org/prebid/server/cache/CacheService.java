@@ -178,8 +178,10 @@ public class CacheService {
                         .bidid(null)
                         .bidder(null)
                         .timestamp(null)
-
-                        .value(vastModifier.modifyVastXml(isEventsEnabled, allowedBidders, putObject, accountId,
+                        .value(vastModifier.modifyVastXml(isEventsEnabled,
+                                allowedBidders,
+                                putObject,
+                                accountId,
                                 integration))
                         .build())
                 .map(payload -> CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue())))
@@ -278,10 +280,11 @@ public class CacheService {
                                                       EventsContext eventsContext) {
 
         final Account account = auctionContext.getAccount();
-
+        final String bidRequestId = auctionContext.getBidRequest().getId();
         final String accountId = account.getId();
         final List<CachedCreative> cachedCreatives = Stream.concat(
-                bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
+                bids.stream().map(cacheBid ->
+                        createJsonPutObjectOpenrtb(cacheBid, bidRequestId, accountId, eventsContext)),
                 videoBids.stream().map(this::createXmlPutObjectOpenrtb))
                 .collect(Collectors.toList());
 
@@ -380,13 +383,15 @@ public class CacheService {
      * Used for OpenRTB auction request. Also, adds win url to result object if events are enabled.
      */
     private CachedCreative createJsonPutObjectOpenrtb(CacheBid cacheBid,
+                                                      String auctionId,
                                                       String accountId,
                                                       EventsContext eventsContext) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
 
-        final String eventUrl = generateWinUrl(bidInfo.getBidId(), bidInfo.getBidder(), accountId, eventsContext);
+        final String eventUrl =
+                generateWinUrl(bidInfo.getBidId(), auctionId, bidInfo.getBidder(), accountId, eventsContext);
         if (eventUrl != null) {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }
@@ -418,6 +423,7 @@ public class CacheService {
     }
 
     private String generateWinUrl(String bidId,
+                                  String auctionId,
                                   String bidder,
                                   String accountId,
                                   EventsContext eventsContext) {
@@ -425,6 +431,7 @@ public class CacheService {
         if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
             return eventsService.winUrl(
                     bidId,
+                    auctionId,
                     bidder,
                     accountId,
                     eventsContext.getAuctionTimestamp(),

@@ -24,18 +24,20 @@ public class EventsServiceTest {
     @Test
     public void createEventsShouldReturnExpectedEvent() {
         // when
-        final Events events = eventsService.createEvent("bidId", "bidder", "accountId", 1000L, "pbjs");
+        final Events events = eventsService.createEvent("bidId", "bidder", "auctionId", "accountId", 1000L, "pbjs");
 
         // then
         assertThat(events).isEqualTo(Events.of(
-                "http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i&int=pbjs",
-                "http://external-url/event?t=imp&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i&int=pbjs"));
+                "http://external-url/event?t=win&b=bidId&a=accountId"
+                        + "&aid=auctionId&ts=1000&bidder=bidder&f=i&int=pbjs",
+                "http://external-url/event?t=imp&b=bidId&a=accountId"
+                        + "&aid=auctionId&ts=1000&bidder=bidder&f=i&int=pbjs"));
     }
 
     @Test
     public void winUrlShouldReturnExpectedUrl() {
         // when
-        final String winUrl = eventsService.winUrl("bidId", "bidder", "accountId", 1000L, "pbjs");
+        final String winUrl = eventsService.winUrl("bidId", "", "bidder", "accountId", 1000L, "pbjs");
 
         // then
         assertThat(winUrl).isEqualTo(
@@ -45,10 +47,11 @@ public class EventsServiceTest {
     @Test
     public void vastUrlShouldReturnExpectedUrl() {
         // when
-        final String vastUrl = eventsService.vastUrlTracking("bidId", "bidder", "accountId", 1000L, "pbjs");
+        final String vastUrl = eventsService.vastUrlTracking("bidId", "auctionId", "bidder",
+                "accountId", 1000L, "pbjs");
 
         // then
         assertThat(vastUrl).isEqualTo(
-                "http://external-url/event?t=imp&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&int=pbjs");
+                "http://external-url/event?t=imp&b=bidId&a=accountId&aid=auctionId&ts=1000&bidder=bidder&f=b&int=pbjs");
     }
 }
