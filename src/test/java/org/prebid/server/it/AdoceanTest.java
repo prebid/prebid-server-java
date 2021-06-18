@@ -41,12 +41,6 @@ public class AdoceanTest extends IntegrationTest {
                 .willReturn(WireMock.aResponse()
                         .withBody(jsonFrom("openrtb2/adocean/test-adocean-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(WireMock.post(WireMock.urlPathEqualTo("/cache"))
-                .withRequestBody(WireMock.equalToJson(jsonFrom("openrtb2/adocean/test-cache-adocean-request.json")))
-                .willReturn(WireMock.aResponse()
-                        .withBody(jsonFrom("openrtb2/adocean/test-cache-adocean-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("X-Forwarded-For", "193.168.244.1")
