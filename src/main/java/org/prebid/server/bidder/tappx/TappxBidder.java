@@ -49,11 +49,6 @@ public class TappxBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    /**
-     * Makes the HTTP requests which should be made to fetch bids.
-     * <p>
-     * Creates POST http request with all parameters in url and headers with encoded request in body.
-     */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ExtImpTappx extImpTappx;
@@ -109,15 +104,21 @@ public class TappxBidder implements Bidder<BidRequest> {
             throw new PreBidException("Tappx tappxkey undefined");
         }
 
-        return buildUrl(endpointUrl, host, endpoint, tappxkey, test);
+        return buildUrl(host, endpoint, tappxkey, test);
     }
 
-    private static String buildUrl(String endpointUrl, String host, String endpoint, String tappxkey, Integer test) {
+    private String buildUrl(String host, String endpoint, String tappxkey, Integer test) {
         try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl + host);
+            final String baseUri = resolveBaseUri(host);
+            final URIBuilder uriBuilder = new URIBuilder(baseUri);
 
-            if (!host.contains(endpoint)) {
-                uriBuilder.setPath(endpoint);
+            if (!StringUtils.containsIgnoreCase(host, endpoint)) {
+                final List<String> pathSegments = new ArrayList<>();
+                uriBuilder.getPathSegments().stream()
+                        .filter(StringUtils::isNotBlank)
+                        .forEach(pathSegments::add);
+                pathSegments.add(StringUtils.strip(endpoint, "/"));
+                uriBuilder.setPathSegments(pathSegments);
             }
 
             uriBuilder.addParameter("tappxkey", tappxkey);
@@ -125,13 +126,19 @@ public class TappxBidder implements Bidder<BidRequest> {
             uriBuilder.addParameter("type_cnn", TYPE_CNN);
 
             if (test != null && test == 0) {
-                int t = (int) System.nanoTime();
-                uriBuilder.addParameter("ts", String.valueOf(t));
+                final String ts = String.valueOf(System.nanoTime());
+                uriBuilder.addParameter("ts", ts);
             }
             return uriBuilder.build().toString();
         } catch (URISyntaxException e) {
             throw new PreBidException(String.format("Failed to build endpoint URL: %s", e.getMessage()));
         }
+    }
+
+    private String resolveBaseUri(String host) {
+        return StringUtils.startsWithAny(host.toLowerCase(), "http://", "https://")
+                ? host
+                : endpointUrl + host;
     }
 
     /**

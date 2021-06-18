@@ -35,6 +35,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
@@ -65,12 +66,14 @@ import java.util.stream.Collectors;
 public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
+    private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
 
     private static final Map<CharSequence, AsciiString> JSON_HEADERS_MAP = Collections.singletonMap(
             HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
+    private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
 
     // Probably this should be moved to config since hardcoding of "uid" param is not ideal
     private static final String HOST_BIDDER_USERSYNC_URL_TEMPLATE =
@@ -210,9 +213,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final CookieSyncContext cookieSyncContext = cookieSyncContextResult.result();
 
             final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-            final Exception validationException = validateCookieSyncContext(cookieSyncContext);
-            if (validationException != null) {
-                handleErrors(validationException, routingContext, tcfContext);
+            try {
+                validateCookieSyncContext(cookieSyncContext);
+            } catch (InvalidRequestException | UnauthorizedUidsException e) {
+                handleErrors(e, routingContext, tcfContext);
                 return;
             }
 
@@ -222,28 +226,26 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                             biddersToSync(cookieSyncContext),
                             cookieSyncContext));
         } else {
-            final Throwable error = cookieSyncContextResult.cause();
-            handleErrors(error, routingContext, null);
+            handleErrors(cookieSyncContextResult.cause(), routingContext, null);
         }
     }
 
-    private static Exception validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
+    private void validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
-            return new UnauthorizedUidsException("Sync is not allowed for this uids");
+            throw new UnauthorizedUidsException("Sync is not allowed for this uids");
         }
 
         final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
         if (isGdprParamsNotConsistent(cookieSyncRequest)) {
-            return new InvalidRequestException("gdpr_consent is required if gdpr is 1");
+            throw new InvalidRequestException("gdpr_consent is required if gdpr is 1");
         }
 
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
-            return new InvalidRequestException("Consent string is invalid");
+            metrics.updateUserSyncTcfInvalidMetric();
+            throw new InvalidRequestException("Consent string is invalid");
         }
-
-        return null;
     }
 
     private static boolean isGdprParamsNotConsistent(CookieSyncRequest request) {
@@ -366,7 +368,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 tcfDefinerService.resultForBidderNames(biddersToSync, tcfContext, accountGdprConfig)
                         .setHandler(tcfResponseResult -> respondByTcfResultForBidders(tcfResponseResult,
                                 biddersToSync, cookieSyncContext));
-
             } else {
                 // Reject all bidders when Host TCF response has blocked pixel
                 final RejectedBidders rejectedBidders = RejectedBidders.of(biddersToSync, Collections.emptySet());
@@ -464,7 +465,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void updateCookieSyncTcfMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
         for (String bidder : syncBidders) {
             if (rejectedBidders.contains(bidder)) {
-                metrics.updateCookieSyncTcfBlockedMetric(bidder);
+                metrics.updateCookieSyncTcfBlockedMetric(
+                        bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER);
             } else {
                 metrics.updateCookieSyncGenMetric(bidder);
             }
@@ -640,13 +642,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             metrics.updateUserSyncBadRequestMetric();
             status = HttpResponseStatus.BAD_REQUEST.code();
             body = String.format("Invalid request format: %s", message);
-            logger.info(message, error);
-
+            BAD_REQUEST_LOGGER.info(message, 0.01);
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED.code();
             body = String.format("Unauthorized: %s", message);
-
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
             body = String.format("Unexpected setuid processing error: %s", message);

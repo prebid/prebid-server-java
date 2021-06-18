@@ -7,7 +7,7 @@
           "id": "7706636740145184841",
           "impid": "test-imp-id",
           "price": 0.5,
-          "adm": "some-test-ad",
+          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
           "adid": "29681110",
           "adomain": [
             "triplelift.com"

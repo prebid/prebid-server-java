@@ -137,10 +137,13 @@ public class SetuidHandler implements Handler<RoutingContext> {
                                            RoutingContext routingContext) {
         if (setuidContextResult.succeeded()) {
             final SetuidContext setuidContext = setuidContextResult.result();
+            final String bidder = setuidContext.getCookieName();
             final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
-            final Exception exception = validateSetuidContext(setuidContext);
-            if (exception != null) {
-                handleErrors(exception, routingContext, tcfContext);
+
+            try {
+                validateSetuidContext(setuidContext, bidder);
+            } catch (InvalidRequestException | UnauthorizedUidsException e) {
+                handleErrors(e, routingContext, tcfContext);
                 return;
             }
 
@@ -152,25 +155,24 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
     }
 
-    private Exception validateSetuidContext(SetuidContext setuidContext) {
+    private void validateSetuidContext(SetuidContext setuidContext, String bidder) {
         final String cookieName = setuidContext.getCookieName();
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
         if (isCookieNameBlank || !cookieNameToSyncType.containsKey(cookieName)) {
             final String cookieNameError = isCookieNameBlank ? "required" : "invalid";
-            return new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
+            throw new InvalidRequestException(String.format("\"bidder\" query param is %s", cookieNameError));
         }
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
-            return new InvalidRequestException("Consent string is invalid");
+            metrics.updateUserSyncTcfInvalidMetric(bidder);
+            throw new InvalidRequestException("Consent string is invalid");
         }
 
         final UidsCookie uidsCookie = setuidContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
-            return new UnauthorizedUidsException("Sync is not allowed for this uids");
+            throw new UnauthorizedUidsException("Sync is not allowed for this uids");
         }
-
-        return null;
     }
 
     /**
@@ -281,7 +283,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
             metrics.updateUserSyncBadRequestMetric();
             status = HttpResponseStatus.BAD_REQUEST.code();
             body = String.format("Invalid request format: %s", message);
-
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED.code();

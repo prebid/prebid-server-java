@@ -22,7 +22,7 @@ import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
-import org.prebid.server.auction.WinningBidComparator;
+import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -32,6 +32,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
+import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
@@ -115,8 +116,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService) {
-        return new VastModifier(bidderCatalog, eventsService);
+    VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService, Metrics metrics) {
+        return new VastModifier(bidderCatalog, eventsService, metrics);
     }
 
     @Bean
@@ -210,7 +211,8 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
-            ApplicationSettings applicationSettings) {
+            ApplicationSettings applicationSettings,
+            IpAddressHelper ipAddressHelper) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
@@ -222,7 +224,8 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
-                applicationSettings);
+                applicationSettings,
+                ipAddressHelper);
     }
 
     @Bean
@@ -460,9 +463,19 @@ public class ServiceConfiguration {
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
-            BidderErrorNotifier bidderErrorNotifier) {
+            BidderErrorNotifier bidderErrorNotifier,
+            HttpBidderRequestEnricher requestEnricher) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+        return new HttpBidderRequester(httpClient,
+                bidderRequestCompletionTrackerFactory,
+                bidderErrorNotifier,
+                requestEnricher);
+    }
+
+    @Bean
+    HttpBidderRequestEnricher httpBidderRequestEnricher(VersionInfo versionInfo) {
+
+        return new HttpBidderRequestEnricher(versionInfo.getVersion());
     }
 
     @Bean
@@ -490,7 +503,7 @@ public class ServiceConfiguration {
             VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            WinningBidComparator winningBidComparator,
+            WinningBidComparatorFactory winningBidComparatorFactory,
             IdGenerator bidIdGenerator,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
@@ -502,7 +515,7 @@ public class ServiceConfiguration {
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
-                winningBidComparator,
+                winningBidComparatorFactory,
                 bidIdGenerator,
                 truncateAttrChars,
                 clock,
@@ -569,8 +582,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    WinningBidComparator winningBidComparator() {
-        return new WinningBidComparator();
+    WinningBidComparatorFactory winningBidComparatorFactory() {
+        return new WinningBidComparatorFactory();
     }
 
     @Bean
@@ -585,13 +598,21 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             PrivacyExtractor privacyExtractor,
             TcfDefinerService tcfDefinerService,
+            ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             @Value("${lmt.enforce}") boolean lmtEnforce) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, ccpaEnforce, lmtEnforce);
+                bidderCatalog,
+                privacyExtractor,
+                tcfDefinerService,
+                implicitParametersExtractor,
+                ipAddressHelper,
+                metrics,
+                ccpaEnforce,
+                lmtEnforce);
     }
 
     @Bean
@@ -694,8 +715,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpInteractionLogger httpInteractionLogger() {
-        return new HttpInteractionLogger();
+    HttpInteractionLogger httpInteractionLogger(JacksonMapper mapper) {
+        return new HttpInteractionLogger(mapper);
     }
 
     @Bean

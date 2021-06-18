@@ -14,9 +14,7 @@
       "ext": {
         "between": {
           "host": "lbs-ru1.ads",
-          "publisher_id": "publisherTestID",
-          "bid_floor": 12.2345,
-          "bid_floor_cur": "RUB"
+          "publisher_id": "publisherTestID"
         }
       }
     }

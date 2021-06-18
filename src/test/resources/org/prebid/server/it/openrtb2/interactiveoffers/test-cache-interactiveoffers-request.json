@@ -1,0 +1,18 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "test-bid-id-1",
+        "impid": "test-imp-id",
+        "price": 10,
+        "adomain": [],
+        "crid": "test-creative-id-1",
+        "ext": {
+          "origbidcpm": 10,
+          "origbidcur": "USD"
+        }
+      }
+    }
+  ]
+}

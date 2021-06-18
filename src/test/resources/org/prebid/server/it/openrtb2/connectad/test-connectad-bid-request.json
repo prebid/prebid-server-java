@@ -25,7 +25,8 @@
     "domain": "example.com",
     "page": "https://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

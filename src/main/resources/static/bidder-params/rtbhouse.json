@@ -6,7 +6,7 @@
   "properties": {
     "publisherId": {
       "type": "string",
-      "description": "The publisher’s ID provided by RTB House"
+      "description": "The publisher's ID provided by RTB House"
     }
   },
   "required": ["publisherId"]

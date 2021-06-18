@@ -6,6 +6,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import io.vertx.core.http.HttpServerRequest;
@@ -341,22 +342,45 @@ public class Ortb2ImplicitParametersResolver {
 
         final String domain = site != null ? StringUtils.trimToNull(site.getDomain()) : null;
         final String updatedDomain = domain == null
-                ? getDomainOrNull(ObjectUtils.defaultIfNull(updatedPage, page))
+                ? HttpUtil.getHostFromUrl(ObjectUtils.defaultIfNull(updatedPage, page))
                 : null;
+
+        final Publisher publisher = site != null ? site.getPublisher() : null;
+        final Publisher updatedPublisher = populateSitePublisher(
+                publisher, ObjectUtils.defaultIfNull(updatedDomain, domain));
 
         final ExtSite siteExt = site != null ? site.getExt() : null;
         final ExtSite updatedSiteExt = siteExt == null || siteExt.getAmp() == null
                 ? ExtSite.of(0, getIfNotNull(siteExt, ExtSite::getData))
                 : null;
 
-        if (updatedPage != null || updatedDomain != null || updatedSiteExt != null) {
+        if (ObjectUtils.anyNotNull(updatedPage, updatedDomain, updatedPublisher, updatedSiteExt)) {
+            final boolean domainPresent = (publisher != null && publisher.getDomain() != null)
+                    || (updatedPublisher != null && updatedPublisher.getDomain() != null);
+
             return (site == null ? Site.builder() : site.toBuilder())
                     // do not set page if domain was not parsed successfully
-                    .page(domain == null && updatedDomain == null ? page : ObjectUtils.defaultIfNull(updatedPage, page))
+                    .page(domainPresent ? ObjectUtils.defaultIfNull(updatedPage, page) : page)
                     .domain(ObjectUtils.defaultIfNull(updatedDomain, domain))
+                    .publisher(ObjectUtils.defaultIfNull(updatedPublisher, publisher))
                     .ext(ObjectUtils.defaultIfNull(updatedSiteExt, siteExt))
                     .build();
         }
+        return null;
+    }
+
+    private Publisher populateSitePublisher(Publisher publisher, String domain) {
+        final String publisherDomain = publisher != null ? publisher.getDomain() : null;
+        final String updatedPublisherDomain = publisherDomain == null
+                ? getDomainOrNull(domain)
+                : null;
+
+        if (updatedPublisherDomain != null) {
+            return (publisher == null ? Publisher.builder() : publisher.toBuilder())
+                    .domain(updatedPublisherDomain)
+                    .build();
+        }
+
         return null;
     }
 

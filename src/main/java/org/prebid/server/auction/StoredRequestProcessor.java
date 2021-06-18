@@ -134,8 +134,7 @@ public class StoredRequestProcessor {
     /**
      * Fetches AMP request from the source.
      */
-    public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId) {
-        final BidRequest bidRequest = defaultBidRequest != null ? defaultBidRequest : BidRequest.builder().build();
+    public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
         final Future<StoredDataResult> ampStoredDataFuture =
                 applicationSettings.getAmpStoredData(
                         accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
@@ -255,7 +254,8 @@ public class StoredRequestProcessor {
      * Merges original request with request from stored request source. Values from original request
      * has higher priority than stored request values.
      */
-    private BidRequest mergeBidRequest(BidRequest originalRequest, String storedRequestId,
+    private BidRequest mergeBidRequest(BidRequest originalRequest,
+                                       String storedRequestId,
                                        StoredDataResult storedDataResult) {
 
         final String storedRequest = storedDataResult.getStoredIdToRequest().get(storedRequestId);

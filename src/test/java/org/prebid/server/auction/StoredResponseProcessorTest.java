@@ -210,6 +210,24 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
+    public void getStoredResponseResultShouldThrowInvalidRequestExceptionWhenStoredAuctionResponseWasNotFound() {
+        // given
+        final Imp imp1 = givenImp("impId1", ExtStoredAuctionResponse.of("storedAuctionResponseId"), null);
+        given(applicationSettings.getStoredResponses(any(), any())).willReturn(
+                Future.succeededFuture(StoredResponseDataResult.of(emptyMap(), emptyList())));
+
+        // when
+        final Future<StoredResponseResult> result =
+                storedResponseProcessor.getStoredResponseResult(singletonList(imp1), timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Failed to fetch stored auction response for impId = impId1 and storedAuctionResponse id "
+                        + "= storedAuctionResponseId.");
+    }
+
+    @Test
     public void getStoredResponseResultShouldMergeStoredSeatBidsForTheSameBidder() throws JsonProcessingException {
         // given
         final List<Imp> imps = asList(
