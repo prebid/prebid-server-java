@@ -8,7 +8,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -121,7 +121,7 @@ public final class HttpUtil {
         }
     }
 
-    public static Map<String, String> cookiesAsMap(HttpRequestWrapper httpRequest) {
+    public static Map<String, String> cookiesAsMap(HttpRequestContext httpRequest) {
         return httpRequest.getCookies().entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getValue()));
     }

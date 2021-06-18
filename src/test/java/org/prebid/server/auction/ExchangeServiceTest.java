@@ -76,7 +76,7 @@ import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -3238,7 +3238,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private AuctionContext givenRequestContext(BidRequest bidRequest, Account account) {
         return AuctionContext.builder()
-                .httpRequest(HttpRequestWrapper.builder().headers(new CaseInsensitiveHeaders()).build())
+                .httpRequest(HttpRequestContext.builder().headers(new CaseInsensitiveHeaders()).build())
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .debugWarnings(new ArrayList<>())

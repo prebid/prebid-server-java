@@ -9,7 +9,7 @@ import java.util.Map;
 
 @Builder
 @Value
-public class HttpRequestWrapper {
+public class HttpRequestContext {
 
     String absoluteUri;
 

@@ -4,7 +4,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public class ImplicitParametersExtractor {
      * Determines Referer by checking 'url_override' request parameter, or if it's empty 'Referer' header. Then if
      * result is not blank and missing 'http://' prefix appends it.
      */
-    public String refererFrom(HttpRequestWrapper request) {
+    public String refererFrom(HttpRequestContext request) {
         final String urlOverride = request.getQueryParams().get("url_override");
         final String url = StringUtils.isNotBlank(urlOverride) ? urlOverride
                 : StringUtils.trimToNull(request.getHeaders().get(HttpUtil.REFERER_HEADER));
@@ -80,7 +80,7 @@ public class ImplicitParametersExtractor {
     /**
      * Determines User-Agent by checking 'User-Agent' http header.
      */
-    public String uaFrom(HttpRequestWrapper request) {
+    public String uaFrom(HttpRequestContext request) {
         return StringUtils.trimToNull(request.getHeaders().get(HttpUtil.USER_AGENT_HEADER));
     }
 
@@ -88,7 +88,7 @@ public class ImplicitParametersExtractor {
      * Determines the value of 'secure' flag by checking if 'X-Forwarded-Proto' contains 'value' or if HTTP request
      * scheme is 'https'. Returns 1 if one of these conditions evaluates to true or null otherwise.
      */
-    public Integer secureFrom(HttpRequestWrapper httpRequest) {
+    public Integer secureFrom(HttpRequestContext httpRequest) {
         return StringUtils.equalsIgnoreCase(httpRequest.getHeaders().get("X-Forwarded-Proto"), "https")
                 || StringUtils.equalsIgnoreCase(httpRequest.getScheme(), "https")
                 ? 1 : null;

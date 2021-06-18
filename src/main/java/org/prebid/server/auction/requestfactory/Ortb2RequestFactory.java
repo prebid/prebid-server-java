@@ -35,7 +35,7 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
@@ -107,7 +107,7 @@ public class Ortb2RequestFactory {
     }
 
     public AuctionContext enrichAuctionContext(AuctionContext auctionContext,
-                                               HttpRequestWrapper httpRequest,
+                                               HttpRequestContext httpRequest,
                                                BidRequest bidRequest,
                                                long startTime) {
 
@@ -123,7 +123,7 @@ public class Ortb2RequestFactory {
     public Future<Account> fetchAccount(AuctionContext auctionContext, boolean isLookupStoredRequest) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Timeout timeout = auctionContext.getTimeout();
-        final HttpRequestWrapper httpRequest = auctionContext.getHttpRequest();
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return findAccountIdFrom(bidRequest, isLookupStoredRequest)
                 .map(this::validateIfAccountBlacklisted)
@@ -162,7 +162,7 @@ public class Ortb2RequestFactory {
         return bidRequest;
     }
 
-    public Future<HttpRequestWrapper> executeEntrypointHooks(RoutingContext routingContext,
+    public Future<HttpRequestContext> executeEntrypointHooks(RoutingContext routingContext,
                                                              String body,
                                                              AuctionContext auctionContext) {
 
@@ -194,7 +194,7 @@ public class Ortb2RequestFactory {
         return Future.failedFuture(throwable);
     }
 
-    private static HttpRequestWrapper toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
+    private static HttpRequestContext toHttpRequest(HookStageExecutionResult<EntrypointPayload> stageResult,
                                                     RoutingContext routingContext,
                                                     AuctionContext auctionContext) {
 
@@ -202,7 +202,7 @@ public class Ortb2RequestFactory {
             throw new RejectedRequestException(auctionContext);
         }
 
-        return HttpRequestWrapper.builder()
+        return HttpRequestContext.builder()
                 .absoluteUri(routingContext.request().absoluteURI())
                 .queryParams(stageResult.getPayload().queryParams())
                 .headers(stageResult.getPayload().headers())
@@ -264,7 +264,7 @@ public class Ortb2RequestFactory {
     }
 
     private Future<Account> loadAccount(Timeout timeout,
-                                        HttpRequestWrapper httpRequest,
+                                        HttpRequestContext httpRequest,
                                         String accountId) {
         return StringUtils.isBlank(accountId)
                 ? responseForEmptyAccount(httpRequest)
@@ -305,12 +305,12 @@ public class Ortb2RequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    private Future<Account> responseForEmptyAccount(HttpRequestWrapper httpRequest) {
+    private Future<Account> responseForEmptyAccount(HttpRequestContext httpRequest) {
         EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), 100);
         return responseForUnknownAccount(StringUtils.EMPTY);
     }
 
-    private static String accountErrorMessage(String message, HttpRequestWrapper httpRequest) {
+    private static String accountErrorMessage(String message, HttpRequestContext httpRequest) {
         return String.format(
                 "%s, Url: %s and Referer: %s",
                 message,
@@ -320,7 +320,7 @@ public class Ortb2RequestFactory {
 
     private Future<Account> accountFallback(Throwable exception,
                                             String accountId,
-                                            HttpRequestWrapper httpRequest) {
+                                            HttpRequestContext httpRequest) {
 
         if (exception instanceof PreBidException) {
             UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);

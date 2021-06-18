@@ -42,7 +42,7 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -113,7 +113,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private Timeout timeout;
 
     private BidRequest defaultBidRequest;
-    private HttpRequestWrapper httpRequest;
+    private HttpRequestContext httpRequest;
     private HookExecutionContext hookExecutionContext;
 
     @Before
@@ -121,7 +121,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         defaultBidRequest = BidRequest.builder().build();
 
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        httpRequest = HttpRequestWrapper.builder()
+        httpRequest = HttpRequestContext.builder()
                 .headers(headers)
                 .build();
         hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
@@ -637,7 +637,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(timeoutFactory.create(anyLong(), anyLong())).willReturn(timeout);
 
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
-        given(uidsCookieService.parseFromRequest(any(HttpRequestWrapper.class))).willReturn(uidsCookie);
+        given(uidsCookieService.parseFromRequest(any(HttpRequestContext.class))).willReturn(uidsCookie);
 
         // when
         final AuctionContext result = target.enrichAuctionContext(
@@ -885,10 +885,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 AuctionContext.builder().hookExecutionContext(hookExecutionContext).build();
 
         // when
-        final Future<HttpRequestWrapper> result = target.executeEntrypointHooks(routingContext, "", auctionContext);
+        final Future<HttpRequestContext> result = target.executeEntrypointHooks(routingContext, "", auctionContext);
 
         // then
-        final HttpRequestWrapper httpRequest = result.result();
+        final HttpRequestContext httpRequest = result.result();
         assertThat(httpRequest.getAbsoluteUri()).isEqualTo("absoluteUri");
         assertThat(httpRequest.getQueryParams()).isEqualTo(updatedQueryParam);
         assertThat(httpRequest.getHeaders()).isEqualTo(headerParams);

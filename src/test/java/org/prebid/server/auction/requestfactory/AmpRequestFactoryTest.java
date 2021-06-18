@@ -35,7 +35,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -248,7 +248,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldUseQueryParamsModifiedByEntrypointHooks() {
         // given
-        doAnswer(invocation -> Future.succeededFuture(HttpRequestWrapper.builder()
+        doAnswer(invocation -> Future.succeededFuture(HttpRequestContext.builder()
                 .queryParams(MultiMap.caseInsensitiveMultiMap()
                         .add("tag_id", "tagId")
                         .add("debug", "1"))
@@ -1657,7 +1657,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), anyLong()))
                 .willAnswer(invocationOnMock -> ((AuctionContext) invocationOnMock.getArguments()[0]).toBuilder()
-                        .httpRequest((HttpRequestWrapper) invocationOnMock.getArguments()[1])
+                        .httpRequest((HttpRequestContext) invocationOnMock.getArguments()[1])
                         .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
                         .build());
         given(ortb2RequestFactory.fetchAccount(any(), anyBoolean())).willReturn(Future.succeededFuture());
@@ -1678,8 +1678,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         return invocationOnMock -> invocationOnMock.getArguments()[0];
     }
 
-    private static Future<HttpRequestWrapper> toHttpRequest(RoutingContext routingContext, String body) {
-        return Future.succeededFuture(HttpRequestWrapper.builder()
+    private static Future<HttpRequestContext> toHttpRequest(RoutingContext routingContext, String body) {
+        return Future.succeededFuture(HttpRequestContext.builder()
                 .absoluteUri(routingContext.request().absoluteURI())
                 .queryParams(routingContext.queryParams())
                 .headers(routingContext.request().headers())

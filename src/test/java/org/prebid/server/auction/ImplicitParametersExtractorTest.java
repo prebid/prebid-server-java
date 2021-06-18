@@ -10,7 +10,7 @@ import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.util.HttpUtil;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,12 +25,12 @@ public class ImplicitParametersExtractorTest {
 
     private ImplicitParametersExtractor extractor;
 
-    private HttpRequestWrapper httpRequest;
+    private HttpRequestContext httpRequest;
 
     @Before
     public void setUp() {
         // minimal request
-        httpRequest = HttpRequestWrapper.builder()
+        httpRequest = HttpRequestContext.builder()
                 .queryParams(new CaseInsensitiveHeaders())
                 .headers(new CaseInsensitiveHeaders())
                 .build();
@@ -154,7 +154,7 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void secureFromShouldReturnOneIfConnectedViaSSL() {
         // given
-        httpRequest = HttpRequestWrapper.builder()
+        httpRequest = HttpRequestContext.builder()
                 .headers(MultiMap.caseInsensitiveMultiMap())
                 .scheme("https")
                 .build();

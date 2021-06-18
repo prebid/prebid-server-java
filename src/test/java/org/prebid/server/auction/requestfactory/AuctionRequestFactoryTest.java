@@ -32,7 +32,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -227,7 +227,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final String rawModifiedBidRequest = bidRequestToString(BidRequest.builder()
                 .app(App.builder().bundle("org.company.application").build())
                 .build());
-        doAnswer(invocation -> Future.succeededFuture(HttpRequestWrapper.builder().body(rawModifiedBidRequest).build()))
+        doAnswer(invocation -> Future.succeededFuture(HttpRequestContext.builder().body(rawModifiedBidRequest).build()))
                 .when(ortb2RequestFactory)
                 .executeEntrypointHooks(any(), any(), any());
 
@@ -627,8 +627,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         }
     }
 
-    private static Future<HttpRequestWrapper> toHttpRequest(RoutingContext routingContext, String body) {
-        return Future.succeededFuture(HttpRequestWrapper.builder()
+    private static Future<HttpRequestContext> toHttpRequest(RoutingContext routingContext, String body) {
+        return Future.succeededFuture(HttpRequestContext.builder()
                 .absoluteUri(routingContext.request().absoluteURI())
                 .queryParams(routingContext.queryParams())
                 .headers(routingContext.request().headers())
