@@ -52,11 +52,6 @@ public class AdformTest extends IntegrationTest {
                 .withRequestBody(absent())
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adform/test-adform-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adform/test-cache-adform-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adform/test-cache-adform-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

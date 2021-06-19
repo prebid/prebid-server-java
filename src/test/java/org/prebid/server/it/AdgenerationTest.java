@@ -43,12 +43,6 @@ public class AdgenerationTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adgeneration/test-cache-adgeneration-request.json")))
-                .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/adgeneration/test-cache-adgeneration-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
