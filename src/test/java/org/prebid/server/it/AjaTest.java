@@ -33,13 +33,6 @@ public class AjaTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/aja/test-aja-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/aja/test-aja-bid-response-2.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/aja/test-cache-aja-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName", "openrtb2/aja/test-cache-matcher-aja.json")));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

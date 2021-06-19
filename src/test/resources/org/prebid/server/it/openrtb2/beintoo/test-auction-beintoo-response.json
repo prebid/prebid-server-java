@@ -17,23 +17,11 @@
               "type": "banner",
               "targeting": {
                 "hb_pb": "2.90",
-                "hb_cache_id_beintoo": "9a5d11a7-de5a-4ce4-8e89-d37f18a10045",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_beintoo": "{{ cache.path }}",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_beintoo": "{{ cache.host }}",
                 "hb_size": "300x250",
                 "hb_bidder": "beintoo",
-                "hb_cache_id": "9a5d11a7-de5a-4ce4-8e89-d37f18a10045",
                 "hb_bidder_beintoo": "beintoo",
                 "hb_size_beintoo": "300x250",
                 "hb_pb_beintoo": "2.90"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}9a5d11a7-de5a-4ce4-8e89-d37f18a10045",
-                  "cacheId": "9a5d11a7-de5a-4ce4-8e89-d37f18a10045"
-                }
               }
             },
             "origbidcpm": 2.942808,
@@ -48,7 +36,6 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "cache": "{{ cache.response_time_ms }}",
       "beintoo": "{{ beintoo.response_time_ms }}"
     },
     "prebid": {

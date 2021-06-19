@@ -31,11 +31,6 @@ public class AdotTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adot/test-adot-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adot/test-adot-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adot/test-cache-adot-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adot/test-cache-adot-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

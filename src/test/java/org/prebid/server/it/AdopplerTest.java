@@ -32,11 +32,6 @@ public class AdopplerTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adoppler/test-adoppler-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adoppler/test-adoppler-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adoppler/test-cache-adoppler-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adoppler/test-cache-adoppler-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

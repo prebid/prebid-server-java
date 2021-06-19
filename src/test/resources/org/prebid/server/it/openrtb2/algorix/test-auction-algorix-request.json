@@ -23,9 +23,6 @@
     "prebid": {
       "targeting": {
       },
-      "cache": {
-        "bids": {}
-      },
       "auctiontimestamp": 1000
     }
   },
