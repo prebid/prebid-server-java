@@ -1,22 +1,13 @@
 {
-  "id": "tid",
+  "id": "some-request-id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "testimpid",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 320,
+        "h": 250
       },
-      "tagid": "first-tagid",
-      "ext": {
-        "bidder": {
-          "TagID": "first-tagid"
-        }
-      }
+      "tagid": "impId021"
     }
   ],
   "site": {
@@ -31,18 +22,16 @@
     }
   },
   "device": {
-    "ua": "userAgent",
-    "dnt": 2,
-    "ip": "193.168.244.1",
-    "pxratio": 4.2,
+    "ua": "test-user-agent",
+    "ip": "123.123.123.123",
     "language": "en",
-    "ifa": "ifaId"
+    "dnt": 0
   },
   "user": {
-    "buyeruid": "CS-UID"
+    "buyeruid": "AA-UID"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": 1000,
   "cur": [
     "USD"
   ],
@@ -69,6 +58,9 @@
         },
         "includewinners": true,
         "includebidderkeys": true
+      },
+      "cache": {
+        "bids": {}
       },
       "auctiontimestamp": 1000,
       "channel": {

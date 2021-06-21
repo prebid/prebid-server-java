@@ -35,13 +35,6 @@ public class DecenteradsTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/decenterads/test-decenterads-bid-response-2.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/decenterads/test-cache-decenterads-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/decenterads/test-cache-matcher-decenterads.json")));
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

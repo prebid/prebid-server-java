@@ -33,13 +33,6 @@ public class ColossusTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/colossus/test-colossus-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/colossus/test-colossus-bid-response-2.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/colossus/test-cache-colossus-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/colossus/test-cache-matcher-colossus.json")));
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

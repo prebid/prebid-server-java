@@ -42,11 +42,6 @@ public class ConsumableTest extends IntegrationTest {
                         true, true))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/consumable/test-consumable-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/consumable/test-cache-consumable-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/consumable/test-cache-consumable-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

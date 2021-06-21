@@ -41,11 +41,6 @@ public class EplanningTest extends IntegrationTest {
                 .withHeader("Accept-Language", equalTo("en"))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/eplanning/test-eplanning-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/eplanning/test-cache-eplanning-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/eplanning/test-cache-eplanning-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "https://www.example.com")

@@ -34,11 +34,6 @@ public class CriteoTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/criteo/test-criteo-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/criteo/test-criteo-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/criteo/test-cache-criteo-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/criteo/test-cache-criteo-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

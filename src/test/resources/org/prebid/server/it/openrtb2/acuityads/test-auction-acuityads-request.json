@@ -1,43 +1,26 @@
 {
-  "id": "tid",
+  "id": "some-request-id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "testimpid",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 320,
+        "h": 250
       },
       "ext": {
-        "decenterads": {
-          "placementId": "testPlacementId"
+        "acuityads": {
+          "host": "test.host.com",
+          "accountid": "testValue"
         }
-      }
-    },
-    {
-      "id": "impId002",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 640,
-        "h": 480
       },
-      "ext": {
-        "decenterads": {
-          "placementId": "second-placementId"
-        }
-      }
+      "tagid": "impId021"
     }
   ],
   "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
+    "ua": "test-user-agent",
+    "ip": "123.123.123.123",
     "language": "en",
-    "ifa": "ifaId"
+    "dnt": 0
   },
   "site": {
     "publisher": {
@@ -45,7 +28,7 @@
     }
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": 1000,
   "cur": [
     "USD"
   ],
@@ -65,6 +48,9 @@
             }
           ]
         }
+      },
+      "cache": {
+        "bids": {}
       },
       "auctiontimestamp": 1000
     }
