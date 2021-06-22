@@ -66,15 +66,6 @@ public class SomoaudienceTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/somoaudience/test-somoaudience-bid-response-3.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json")))
-                .willReturn(aResponse()
-                        .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/somoaudience/test-cache-matcher-somoaudience.json")));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

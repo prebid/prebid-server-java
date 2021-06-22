@@ -16,20 +16,8 @@
               "targeting": {
                 "hb_bidder": "smaato",
                 "hb_bidder_smaato": "smaato",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_smaato": "{{ cache.host }}",
-                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_cache_id_smaato": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_smaato": "{{ cache.path }}",
                 "hb_pb": "0.00",
                 "hb_pb_smaato": "0.00"
-              },
-              "cache": {
-                "bids": {
-                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb"
-                }
               }
             },
             "origbidcpm": 0.01
@@ -46,7 +34,6 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "cache": "{{ cache.response_time_ms }}",
       "smaato": "{{ smaato.response_time_ms }}"
     },
     "prebid": {

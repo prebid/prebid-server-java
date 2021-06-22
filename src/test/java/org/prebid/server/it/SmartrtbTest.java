@@ -32,11 +32,6 @@ public class SmartrtbTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/smartrtb/test-cache-smartrtb-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/smartrtb/test-cache-smartrtb-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
