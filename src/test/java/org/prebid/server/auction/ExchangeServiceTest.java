@@ -24,7 +24,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -75,6 +74,7 @@ import org.prebid.server.hooks.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -3238,7 +3238,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private AuctionContext givenRequestContext(BidRequest bidRequest, Account account) {
         return AuctionContext.builder()
-                .httpRequest(HttpRequestContext.builder().headers(new CaseInsensitiveHeaders()).build())
+                .httpRequest(HttpRequestContext.builder().headers(CaseInsensitiveMultiMap.of()).build())
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .debugWarnings(new ArrayList<>())

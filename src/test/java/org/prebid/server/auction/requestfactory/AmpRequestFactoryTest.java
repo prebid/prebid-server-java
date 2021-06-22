@@ -34,6 +34,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
@@ -123,11 +124,12 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
-        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.queryParams()).willReturn(
                 MultiMap.caseInsensitiveMultiMap()
                         .add("tag_id", "tagId"));
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
                 .prebidErrors(new ArrayList<>())
@@ -249,7 +251,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldUseQueryParamsModifiedByEntrypointHooks() {
         // given
         doAnswer(invocation -> Future.succeededFuture(HttpRequestContext.builder()
-                .queryParams(MultiMap.caseInsensitiveMultiMap()
+                .queryParams(CaseInsensitiveMultiMap.of()
                         .add("tag_id", "tagId")
                         .add("debug", "1"))
                 .build()))
@@ -1681,12 +1683,19 @@ public class AmpRequestFactoryTest extends VertxTest {
     private static Future<HttpRequestContext> toHttpRequest(RoutingContext routingContext, String body) {
         return Future.succeededFuture(HttpRequestContext.builder()
                 .absoluteUri(routingContext.request().absoluteURI())
-                .queryParams(routingContext.queryParams())
-                .headers(routingContext.request().headers())
+                .queryParams(toMultiMap(routingContext.queryParams()))
+                .headers(toMultiMap(routingContext.request().headers()))
                 .body(body)
                 .scheme(routingContext.request().scheme())
                 .remoteHost(routingContext.request().remoteAddress().host())
                 .build());
+    }
+
+    private static org.prebid.server.model.MultiMap toMultiMap(MultiMap originalMap) {
+        final CaseInsensitiveMultiMap map = CaseInsensitiveMultiMap.of();
+        originalMap.entries().forEach(entry -> map.add(entry.getKey(), entry.getValue()));
+
+        return map;
     }
 
     private static ExtRequest givenRequestExt(ExtRequestTargeting extRequestTargeting) {

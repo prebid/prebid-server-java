@@ -70,8 +70,9 @@ public class HttpBidderRequester {
     public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
                                                  BidderRequest bidderRequest,
                                                  Timeout timeout,
-                                                 MultiMap requestHeaders,
+                                                 org.prebid.server.model.MultiMap requestHeaders,
                                                  boolean debugEnabled) {
+
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
@@ -108,7 +109,7 @@ public class HttpBidderRequester {
     }
 
     private static <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
-                                                           MultiMap requestHeaders) {
+                                                           org.prebid.server.model.MultiMap requestHeaders) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
                 .headers(enrichHeaders(httpRequest.getHeaders(), requestHeaders))
@@ -116,7 +117,10 @@ public class HttpBidderRequester {
                 .collect(Collectors.toList());
     }
 
-    private static MultiMap enrichHeaders(MultiMap bidderRequestHeaders, MultiMap originalRequestHeaders) {
+    private static MultiMap enrichHeaders(
+            MultiMap bidderRequestHeaders,
+            org.prebid.server.model.MultiMap originalRequestHeaders) {
+
         // some bidders has headers on class level, so we create copy to not affect them
         final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);
 

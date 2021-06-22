@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -34,6 +35,7 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -167,8 +169,8 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                routingContext.queryParams(),
-                routingContext.request().headers(),
+                toMultiMap(routingContext.queryParams()),
+                toMultiMap(routingContext.request().headers()),
                 body,
                 auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
@@ -409,6 +411,13 @@ public class Ortb2RequestFactory {
         }
 
         return null;
+    }
+
+    private static org.prebid.server.model.MultiMap toMultiMap(MultiMap originalMap) {
+        final CaseInsensitiveMultiMap map = CaseInsensitiveMultiMap.of();
+        originalMap.entries().forEach(entry -> map.add(entry.getKey(), entry.getValue()));
+
+        return map;
     }
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {

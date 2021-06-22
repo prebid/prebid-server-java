@@ -1,9 +1,9 @@
 package org.prebid.server.hooks.execution.v1.entrypoint;
 
-import io.vertx.core.MultiMap;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.model.MultiMap;
 
 @Accessors(fluent = true)
 @Value(staticConstructor = "of")

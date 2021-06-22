@@ -1,16 +1,17 @@
 package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
-import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.model.MultiMap;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -62,13 +63,21 @@ public class ImplicitParametersExtractor {
      * Determines IP-Address candidates by checking http headers and remote host address.
      */
     public List<String> ipFrom(MultiMap headers, String host) {
+        return ipFrom(headers::get, host);
+    }
+
+    public List<String> ipFrom(io.vertx.core.MultiMap headers, String host) {
+        return ipFrom(headers::get, host);
+    }
+
+    private List<String> ipFrom(Function<String, String> headerGetter, String host) {
         final List<String> candidates = new ArrayList<>();
-        candidates.add(headers.get("True-Client-IP"));
-        final String xff = headers.get("X-Forwarded-For");
+        candidates.add(headerGetter.apply("True-Client-IP"));
+        final String xff = headerGetter.apply("X-Forwarded-For");
         if (xff != null) {
             candidates.addAll(Arrays.asList(xff.split(",")));
         }
-        candidates.add(headers.get("X-Real-IP"));
+        candidates.add(headerGetter.apply("X-Real-IP"));
         candidates.add(host);
 
         return candidates.stream()

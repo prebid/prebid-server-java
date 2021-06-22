@@ -1,7 +1,6 @@
 package org.prebid.server.it.hooks;
 
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationContext;
@@ -9,6 +8,8 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.MultiMap;
 
 public class SampleItEntrypointHook implements EntrypointHook {
 
@@ -42,7 +43,7 @@ public class SampleItEntrypointHook implements EntrypointHook {
     }
 
     private static MultiMap updateHeaders(MultiMap headers) {
-        return MultiMap.caseInsensitiveMultiMap()
+        return CaseInsensitiveMultiMap.of()
                 .addAll(headers)
                 .set("X-Forwarded-For", "222.111.222.111");
     }

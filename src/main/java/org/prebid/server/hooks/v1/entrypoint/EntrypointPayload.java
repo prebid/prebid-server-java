@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.v1.entrypoint;
 
-import io.vertx.core.MultiMap;
+import org.prebid.server.model.MultiMap;
 
 public interface EntrypointPayload {
 

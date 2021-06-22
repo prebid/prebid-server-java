@@ -13,9 +13,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,7 +28,9 @@ import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.model.MultiMap;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
@@ -80,10 +79,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     private Ortb2ImplicitParametersResolver target;
 
     @Mock
-    private RoutingContext routingContext;
-    @Mock
-    private HttpServerRequest httpServerRequest;
-    @Mock
     private TimeoutResolver timeoutResolver;
 
     private BidRequest defaultBidRequest;
@@ -93,16 +88,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         httpRequest = HttpRequestContext.builder()
-                .headers(headers)
+                .headers(CaseInsensitiveMultiMap.of())
                 .build();
 
         given(idGenerator.generateId()).willReturn(null);
         given(timeoutResolver.resolve(any())).willReturn(2000L);
-
-        given(routingContext.request()).willReturn(httpServerRequest);
-        given(httpServerRequest.headers()).willReturn(headers);
 
         target = new Ortb2ImplicitParametersResolver(
                 false,
@@ -257,13 +248,16 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
-        verify(paramsExtractor, never()).ipFrom(any(), any());
+        verify(paramsExtractor, never()).ipFrom(any(MultiMap.class), any());
     }
 
     @Test
     public void shouldNotSetDeviceDntIfHeaderHasInvalidValue() {
         // given
-        given(httpServerRequest.getHeader("DNT")).willReturn("invalid");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.of()
+                        .set("DNT", "invalid"))
+                .build();
 
         // when
         final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver);
@@ -275,7 +269,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetDeviceDntIfHeaderExists() {
         // given
-        httpServerRequest.headers().add("DNT", "1");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.of()
+                        .set("DNT", "1"))
+                .build();
 
         // when
         final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver);
@@ -287,7 +284,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldOverrideDeviceDntIfHeaderExists() {
         // given
-        httpServerRequest.headers().add("DNT", "0");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.of()
+                        .set("DNT", "0"))
+                .build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().dnt(1).build())
@@ -1762,7 +1762,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {
         given(paramsExtractor.refererFrom(any())).willReturn(referer);
         given(paramsExtractor.domainFrom(anyString())).willReturn(domain);
-        given(paramsExtractor.ipFrom(any(), any())).willReturn(singletonList(ip));
+        given(paramsExtractor.ipFrom(any(MultiMap.class), any())).willReturn(singletonList(ip));
         given(ipAddressHelper.toIpAddress(eq(ip))).willReturn(IpAddress.of(ip, ipVersion));
         given(paramsExtractor.uaFrom(any())).willReturn(ua);
     }

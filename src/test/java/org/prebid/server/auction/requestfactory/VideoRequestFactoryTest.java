@@ -31,6 +31,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
@@ -94,7 +95,9 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
 
         given(routingContext.request()).willReturn(httpServerRequest);
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
+        given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
@@ -206,7 +209,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .add(HttpUtil.USER_AGENT_HEADER, "user-agent-123"));
 
         doAnswer(invocation -> Future.succeededFuture(HttpRequestContext.builder()
-                .headers(MultiMap.caseInsensitiveMultiMap()
+                .headers(CaseInsensitiveMultiMap.of()
                         .add(HttpUtil.USER_AGENT_HEADER, "user-agent-456"))
                 .body(body)
                 .build()))
@@ -364,11 +367,18 @@ public class VideoRequestFactoryTest extends VertxTest {
     private static Future<HttpRequestContext> toHttpRequest(RoutingContext routingContext, String body) {
         return Future.succeededFuture(HttpRequestContext.builder()
                 .absoluteUri(routingContext.request().absoluteURI())
-                .queryParams(routingContext.queryParams())
-                .headers(routingContext.request().headers())
+                .queryParams(toMultiMap(routingContext.queryParams()))
+                .headers(toMultiMap(routingContext.request().headers()))
                 .body(body)
                 .scheme(routingContext.request().scheme())
                 .remoteHost(routingContext.request().remoteAddress().host())
                 .build());
+    }
+
+    private static org.prebid.server.model.MultiMap toMultiMap(MultiMap originalMap) {
+        final CaseInsensitiveMultiMap map = CaseInsensitiveMultiMap.of();
+        originalMap.entries().forEach(entry -> map.add(entry.getKey(), entry.getValue()));
+
+        return map;
     }
 }

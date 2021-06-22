@@ -41,6 +41,7 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
@@ -74,6 +75,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -106,10 +108,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private Ortb2RequestFactory target;
 
     @Mock
-    private RoutingContext routingContext;
-    @Mock
-    private HttpServerRequest httpServerRequest;
-    @Mock
     private Timeout timeout;
 
     private BidRequest defaultBidRequest;
@@ -120,15 +118,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         httpRequest = HttpRequestContext.builder()
-                .headers(headers)
+                .headers(CaseInsensitiveMultiMap.of())
                 .build();
         hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
-
-        given(routingContext.request()).willReturn(httpServerRequest);
-        given(httpServerRequest.headers()).willReturn(headers);
-        given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
@@ -862,15 +855,21 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void executeEntrypointHooksShouldReturnExpectedHttpRequest() {
         // given
+        final RoutingContext routingContext = mock(RoutingContext.class);
+        final HttpServerRequest httpServerRequest = mock(HttpServerRequest.class);
+
+        given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap().add("test", "test"));
 
-        final MultiMap updatedQueryParam = MultiMap.caseInsensitiveMultiMap()
-                .add("urloverride", "overriddendomain.com");
-        final MultiMap headerParams = MultiMap.caseInsensitiveMultiMap()
-                .add("DHT", "1");
-
+        given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.absoluteURI()).willReturn("absoluteUri");
         given(httpServerRequest.scheme()).willReturn("https");
+        given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
+
+        final org.prebid.server.model.MultiMap updatedQueryParam = CaseInsensitiveMultiMap.of()
+                .add("urloverride", "overriddendomain.com");
+        final org.prebid.server.model.MultiMap headerParams = CaseInsensitiveMultiMap.of()
+                .add("DHT", "1");
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
@@ -890,8 +889,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         final HttpRequestContext httpRequest = result.result();
         assertThat(httpRequest.getAbsoluteUri()).isEqualTo("absoluteUri");
-        assertThat(httpRequest.getQueryParams()).isEqualTo(updatedQueryParam);
-        assertThat(httpRequest.getHeaders()).isEqualTo(headerParams);
+        assertThat(httpRequest.getQueryParams()).isSameAs(updatedQueryParam);
+        assertThat(httpRequest.getHeaders()).isSameAs(headerParams);
         assertThat(httpRequest.getBody()).isEqualTo("{\"app\":{\"bundle\":\"org.company.application\"}}");
         assertThat(httpRequest.getScheme()).isEqualTo("https");
         assertThat(httpRequest.getRemoteHost()).isEqualTo("host");
@@ -900,6 +899,13 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfEntrypointHooksRejectedRequest() {
         // given
+        final RoutingContext routingContext = mock(RoutingContext.class);
+        final HttpServerRequest httpServerRequest = mock(HttpServerRequest.class);
+
+        given(routingContext.request()).willReturn(httpServerRequest);
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
 

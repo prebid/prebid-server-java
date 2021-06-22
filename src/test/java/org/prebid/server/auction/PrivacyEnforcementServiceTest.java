@@ -306,7 +306,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         given(implicitParametersExtractor.ipFrom(eq(headers), eq("host"))).willReturn(singletonList("ip"));
-        given(implicitParametersExtractor.ipFrom(any(), any())).willReturn(singletonList("ip"));
+        given(implicitParametersExtractor
+                .ipFrom(any(org.prebid.server.model.MultiMap.class), any())).willReturn(singletonList("ip"));
         given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
 
         final TcfContext tcfContext = TcfContext.builder()
