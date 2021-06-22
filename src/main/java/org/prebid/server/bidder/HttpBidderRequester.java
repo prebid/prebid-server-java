@@ -20,6 +20,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -70,7 +71,7 @@ public class HttpBidderRequester {
     public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
                                                  BidderRequest bidderRequest,
                                                  Timeout timeout,
-                                                 org.prebid.server.model.MultiMap requestHeaders,
+                                                 CaseInsensitiveMultiMap requestHeaders,
                                                  boolean debugEnabled) {
 
         final BidRequest bidRequest = bidderRequest.getBidRequest();
@@ -109,7 +110,7 @@ public class HttpBidderRequester {
     }
 
     private static <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
-                                                           org.prebid.server.model.MultiMap requestHeaders) {
+                                                           CaseInsensitiveMultiMap requestHeaders) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
                 .headers(enrichHeaders(httpRequest.getHeaders(), requestHeaders))
@@ -119,7 +120,7 @@ public class HttpBidderRequester {
 
     private static MultiMap enrichHeaders(
             MultiMap bidderRequestHeaders,
-            org.prebid.server.model.MultiMap originalRequestHeaders) {
+            CaseInsensitiveMultiMap originalRequestHeaders) {
 
         // some bidders has headers on class level, so we create copy to not affect them
         final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);

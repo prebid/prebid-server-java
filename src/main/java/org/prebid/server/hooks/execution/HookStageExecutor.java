@@ -38,8 +38,8 @@ import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.MultiMap;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
@@ -98,8 +98,8 @@ public class HookStageExecutor {
     }
 
     public Future<HookStageExecutionResult<EntrypointPayload>> executeEntrypointStage(
-            MultiMap queryParams,
-            MultiMap headers,
+            CaseInsensitiveMultiMap queryParams,
+            CaseInsensitiveMultiMap headers,
             String body,
             HookExecutionContext context) {
 

@@ -30,7 +30,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.model.MultiMap;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
@@ -89,7 +88,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         defaultBidRequest = BidRequest.builder().build();
 
         httpRequest = HttpRequestContext.builder()
-                .headers(CaseInsensitiveMultiMap.of())
+                .headers(CaseInsensitiveMultiMap.empty())
                 .build();
 
         given(idGenerator.generateId()).willReturn(null);
@@ -248,15 +247,16 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
-        verify(paramsExtractor, never()).ipFrom(any(MultiMap.class), any());
+        verify(paramsExtractor, never()).ipFrom(any(CaseInsensitiveMultiMap.class), any());
     }
 
     @Test
     public void shouldNotSetDeviceDntIfHeaderHasInvalidValue() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
-                .headers(CaseInsensitiveMultiMap.of()
-                        .set("DNT", "invalid"))
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add("DNT", "invalid")
+                        .build())
                 .build();
 
         // when
@@ -270,8 +270,9 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void shouldSetDeviceDntIfHeaderExists() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
-                .headers(CaseInsensitiveMultiMap.of()
-                        .set("DNT", "1"))
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add("DNT", "1")
+                        .build())
                 .build();
 
         // when
@@ -285,8 +286,9 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void shouldOverrideDeviceDntIfHeaderExists() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
-                .headers(CaseInsensitiveMultiMap.of()
-                        .set("DNT", "0"))
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add("DNT", "0")
+                        .build())
                 .build();
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -1762,7 +1764,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {
         given(paramsExtractor.refererFrom(any())).willReturn(referer);
         given(paramsExtractor.domainFrom(anyString())).willReturn(domain);
-        given(paramsExtractor.ipFrom(any(MultiMap.class), any())).willReturn(singletonList(ip));
+        given(paramsExtractor.ipFrom(any(CaseInsensitiveMultiMap.class), any())).willReturn(singletonList(ip));
         given(ipAddressHelper.toIpAddress(eq(ip))).willReturn(IpAddress.of(ip, ipVersion));
         given(paramsExtractor.uaFrom(any())).willReturn(ua);
     }

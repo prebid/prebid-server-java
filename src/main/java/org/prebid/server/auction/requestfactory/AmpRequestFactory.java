@@ -29,9 +29,9 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.model.MultiMap;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -627,7 +627,7 @@ public class AmpRequestFactory {
         final ExtRequestPrebidAmp amp = prebid != null ? prebid.getAmp() : null;
         final Map<String, String> existingAmpData = amp != null ? amp.getData() : null;
 
-        final MultiMap queryParams = httpRequest.getQueryParams();
+        final CaseInsensitiveMultiMap queryParams = httpRequest.getQueryParams();
         if (queryParams.isEmpty()) {
             return null;
         }

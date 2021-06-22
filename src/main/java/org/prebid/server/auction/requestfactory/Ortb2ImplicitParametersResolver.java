@@ -24,8 +24,8 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.model.MultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -231,7 +231,7 @@ public class Ortb2ImplicitParametersResolver {
     }
 
     private IpAddress findIpFromRequest(HttpRequestContext request) {
-        final MultiMap headers = request.getHeaders();
+        final CaseInsensitiveMultiMap headers = request.getHeaders();
         final String remoteHost = request.getRemoteHost();
         final List<String> requestIps = paramsExtractor.ipFrom(headers, remoteHost);
         return requestIps.stream()

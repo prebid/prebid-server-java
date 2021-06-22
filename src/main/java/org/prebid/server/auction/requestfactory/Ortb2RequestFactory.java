@@ -169,8 +169,8 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                toMultiMap(routingContext.queryParams()),
-                toMultiMap(routingContext.request().headers()),
+                toCaseInsensitiveMultiMap(routingContext.queryParams()),
+                toCaseInsensitiveMultiMap(routingContext.request().headers()),
                 body,
                 auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
@@ -413,11 +413,11 @@ public class Ortb2RequestFactory {
         return null;
     }
 
-    private static org.prebid.server.model.MultiMap toMultiMap(MultiMap originalMap) {
-        final CaseInsensitiveMultiMap map = CaseInsensitiveMultiMap.of();
-        originalMap.entries().forEach(entry -> map.add(entry.getKey(), entry.getValue()));
+    private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {
+        final CaseInsensitiveMultiMap.Builder mapBuilder = CaseInsensitiveMultiMap.builder();
+        originalMap.entries().forEach(entry -> mapBuilder.add(entry.getKey(), entry.getValue()));
 
-        return map;
+        return mapBuilder.build();
     }
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {

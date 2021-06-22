@@ -29,6 +29,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
@@ -307,7 +308,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         given(implicitParametersExtractor.ipFrom(eq(headers), eq("host"))).willReturn(singletonList("ip"));
         given(implicitParametersExtractor
-                .ipFrom(any(org.prebid.server.model.MultiMap.class), any())).willReturn(singletonList("ip"));
+                .ipFrom(any(CaseInsensitiveMultiMap.class), any())).willReturn(singletonList("ip"));
         given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
 
         final TcfContext tcfContext = TcfContext.builder()

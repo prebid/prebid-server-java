@@ -1,12 +1,12 @@
 package org.prebid.server.hooks.v1.entrypoint;
 
-import org.prebid.server.model.MultiMap;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 
 public interface EntrypointPayload {
 
-    MultiMap queryParams();
+    CaseInsensitiveMultiMap queryParams();
 
-    MultiMap headers();
+    CaseInsensitiveMultiMap headers();
 
     String body();
 }

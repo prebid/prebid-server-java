@@ -3,8 +3,8 @@ package org.prebid.server.auction;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.model.MultiMap;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -62,7 +62,7 @@ public class ImplicitParametersExtractor {
     /**
      * Determines IP-Address candidates by checking http headers and remote host address.
      */
-    public List<String> ipFrom(MultiMap headers, String host) {
+    public List<String> ipFrom(CaseInsensitiveMultiMap headers, String host) {
         return ipFrom(headers::get, host);
     }
 

@@ -632,18 +632,18 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private static Future<HttpRequestContext> toHttpRequest(RoutingContext routingContext, String body) {
         return Future.succeededFuture(HttpRequestContext.builder()
                 .absoluteUri(routingContext.request().absoluteURI())
-                .queryParams(toMultiMap(routingContext.queryParams()))
-                .headers(toMultiMap(routingContext.request().headers()))
+                .queryParams(toCaseInsensitiveMultiMap(routingContext.queryParams()))
+                .headers(toCaseInsensitiveMultiMap(routingContext.request().headers()))
                 .body(body)
                 .scheme(routingContext.request().scheme())
                 .remoteHost(routingContext.request().remoteAddress().host())
                 .build());
     }
 
-    private static org.prebid.server.model.MultiMap toMultiMap(MultiMap originalMap) {
-        final CaseInsensitiveMultiMap map = CaseInsensitiveMultiMap.of();
-        originalMap.entries().forEach(entry -> map.add(entry.getKey(), entry.getValue()));
+    private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {
+        final CaseInsensitiveMultiMap.Builder mapBuilder = CaseInsensitiveMultiMap.builder();
+        originalMap.entries().forEach(entry -> mapBuilder.add(entry.getKey(), entry.getValue()));
 
-        return map;
+        return mapBuilder.build();
     }
 }

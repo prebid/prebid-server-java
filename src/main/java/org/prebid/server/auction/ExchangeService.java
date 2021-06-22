@@ -59,7 +59,7 @@ import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.model.MultiMap;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -1013,7 +1013,7 @@ public class ExchangeService {
                                                              Timeout timeout,
                                                              BidderAliases aliases) {
 
-        final MultiMap headers = auctionContext.getHttpRequest().getHeaders();
+        final CaseInsensitiveMultiMap headers = auctionContext.getHttpRequest().getHeaders();
         final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
 
         return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
@@ -1028,7 +1028,7 @@ public class ExchangeService {
             HookStageExecutionResult<BidderRequestPayload> hookStageResult,
             BidderRequest bidderRequest,
             Timeout timeout,
-            MultiMap requestHeaders,
+            CaseInsensitiveMultiMap requestHeaders,
             boolean debugEnabled,
             BidderAliases aliases) {
 
@@ -1059,7 +1059,7 @@ public class ExchangeService {
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest,
                                                Timeout timeout,
-                                               MultiMap requestHeaders,
+                                               CaseInsensitiveMultiMap requestHeaders,
                                                boolean debugEnabled,
                                                BidderAliases aliases) {
 

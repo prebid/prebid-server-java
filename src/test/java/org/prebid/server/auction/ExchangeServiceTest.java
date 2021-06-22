@@ -3238,7 +3238,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private AuctionContext givenRequestContext(BidRequest bidRequest, Account account) {
         return AuctionContext.builder()
-                .httpRequest(HttpRequestContext.builder().headers(CaseInsensitiveMultiMap.of()).build())
+                .httpRequest(HttpRequestContext.builder().headers(CaseInsensitiveMultiMap.empty()).build())
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .debugWarnings(new ArrayList<>())

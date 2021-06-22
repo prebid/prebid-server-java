@@ -12,9 +12,9 @@ public class HttpRequestContext {
 
     String absoluteUri;
 
-    MultiMap queryParams;
+    CaseInsensitiveMultiMap queryParams;
 
-    MultiMap headers;
+    CaseInsensitiveMultiMap headers;
 
     Map<String, Cookie> cookies;
 

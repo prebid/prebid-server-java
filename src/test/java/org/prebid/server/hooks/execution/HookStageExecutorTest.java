@@ -74,7 +74,6 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.MultiMap;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
@@ -141,8 +140,8 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final HookStageExecutor executor = createExecutor(null, null);
 
-        final MultiMap queryParams = CaseInsensitiveMultiMap.of();
-        final MultiMap headers = CaseInsensitiveMultiMap.of();
+        final CaseInsensitiveMultiMap queryParams = CaseInsensitiveMultiMap.empty();
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.empty();
         final String body = "body";
 
         // when
@@ -216,8 +215,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -296,8 +295,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -331,8 +330,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -390,8 +389,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -506,8 +505,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -608,8 +607,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -692,8 +691,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -772,8 +771,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -875,8 +874,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -967,8 +966,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 
@@ -1020,8 +1019,8 @@ public class HookStageExecutorTest extends VertxTest {
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                CaseInsensitiveMultiMap.of(),
-                CaseInsensitiveMultiMap.of(),
+                CaseInsensitiveMultiMap.empty(),
+                CaseInsensitiveMultiMap.empty(),
                 "body",
                 hookExecutionContext);
 

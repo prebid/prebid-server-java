@@ -119,7 +119,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         defaultBidRequest = BidRequest.builder().build();
 
         httpRequest = HttpRequestContext.builder()
-                .headers(CaseInsensitiveMultiMap.of())
+                .headers(CaseInsensitiveMultiMap.empty())
                 .build();
         hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
@@ -866,10 +866,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(httpServerRequest.scheme()).willReturn("https");
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
-        final org.prebid.server.model.MultiMap updatedQueryParam = CaseInsensitiveMultiMap.of()
-                .add("urloverride", "overriddendomain.com");
-        final org.prebid.server.model.MultiMap headerParams = CaseInsensitiveMultiMap.of()
-                .add("DHT", "1");
+        final CaseInsensitiveMultiMap updatedQueryParam = CaseInsensitiveMultiMap.builder()
+                .add("urloverride", "overriddendomain.com")
+                .build();
+        final CaseInsensitiveMultiMap headerParams = CaseInsensitiveMultiMap.builder()
+                .add("DHT", "1")
+                .build();
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
