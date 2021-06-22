@@ -21,7 +21,7 @@ import static java.util.Collections.singletonList;
 @RunWith(SpringRunner.class)
 public class BidmachineTest extends IntegrationTest {
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromBetween() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromBidmachine() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/bidmachine-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
