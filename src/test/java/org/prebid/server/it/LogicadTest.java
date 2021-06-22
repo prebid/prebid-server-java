@@ -33,12 +33,6 @@ public class LogicadTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/logicad/test-logicad-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/logicad/test-cache-logicad-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/logicad/test-cache-logicad-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

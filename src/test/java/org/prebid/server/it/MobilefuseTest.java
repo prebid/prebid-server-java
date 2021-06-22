@@ -31,11 +31,6 @@ public class MobilefuseTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/mobilefuse/test-mobilefuse-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/mobilefuse/test-mobilefuse-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/mobilefuse/test-cache-mobilefuse-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/mobilefuse/test-cache-mobilefuse-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

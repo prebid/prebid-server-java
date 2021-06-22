@@ -48,11 +48,6 @@ public class GammaTest extends IntegrationTest {
                 .withRequestBody(absent())
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamma/test-gamma-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/gamma/test-cache-gamma-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamma/test-cache-gamma-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

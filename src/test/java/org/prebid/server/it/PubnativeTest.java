@@ -45,15 +45,6 @@ public class PubnativeTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubnative/test-pubnative-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pubnative/test-pubnative-bid-response-3.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/pubnative/test-cache-pubnative-request.json")))
-                .willReturn(aResponse()
-                        .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/pubnative/test-cache-matcher-pubnative.json")));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

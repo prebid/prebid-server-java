@@ -33,12 +33,6 @@ public class OnetagTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/onetag/test-onetag-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/onetag/test-cache-onetag-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/onetag/test-cache-onetag-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
