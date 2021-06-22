@@ -153,7 +153,6 @@ public class BidmachineBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        ;
     }
 
     @Test
@@ -272,6 +271,4 @@ public class BidmachineBidderTest extends VertxTest {
                 .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
-
-
 }

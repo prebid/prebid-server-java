@@ -38,9 +38,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * InteractiveOffers {@link Bidder} implementation.
+ * Bidmachine {@link Bidder} implementation.
  */
 public class BidmachineBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpBidmachine>> BIDMACHINE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBidmachine>>() {
             };
@@ -76,7 +77,6 @@ public class BidmachineBidder implements Bidder<BidRequest> {
             }
         }
 
-
         return Result.of(httpRequests, errors);
     }
 
@@ -86,7 +86,7 @@ public class BidmachineBidder implements Bidder<BidRequest> {
             return;
         }
 
-        if (banner.getW() == null && banner.getW() == null) {
+        if (banner.getW() == null && banner.getH() == null) {
             final List<Format> format = banner.getFormat();
             if (format == null) {
                 throw new PreBidException("Impression with id: " + imp.getId()
@@ -139,7 +139,8 @@ public class BidmachineBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp(), errors), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid,
+                        getBidType(bid.getImpid(), bidRequest.getImp(), errors), bidResponse.getCur()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }

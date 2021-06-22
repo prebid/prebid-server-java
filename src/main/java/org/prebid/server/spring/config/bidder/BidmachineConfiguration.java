@@ -20,6 +20,7 @@ import javax.validation.constraints.NotBlank;
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/bidmachine.yaml", factory = YamlPropertySourceFactory.class)
 public class BidmachineConfiguration {
+
     private static final String BIDDER_NAME = "bidmachine";
 
     @Value("${external-url}")

@@ -1,5 +1,5 @@
 adapters:
-  between:
+  bidmachine:
     enabled: false
     endpoint: https://{{Host}}.bidmachine.io/{{PATH}}/{{SELLER_ID}}
     pbs-enforces-gdpr: true
