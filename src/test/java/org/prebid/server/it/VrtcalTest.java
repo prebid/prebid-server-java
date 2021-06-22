@@ -32,11 +32,6 @@ public class VrtcalTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/vrtcal/test-vrtcal-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/vrtcal/test-vrtcal-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/vrtcal/test-cache-vrtcal-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/vrtcal/test-cache-vrtcal-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

@@ -40,13 +40,6 @@ public class YieldlabTest extends IntegrationTest {
                 .willReturn(WireMock.aResponse()
                         .withBody(jsonFrom("openrtb2/yieldlab/test-yieldlab-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(WireMock.post(WireMock.urlPathEqualTo("/cache"))
-                .withRequestBody(WireMock
-                        .equalToJson(jsonFrom("openrtb2/yieldlab/test-cache-yieldlab-request.json")))
-                .willReturn(WireMock.aResponse()
-                        .withBody(jsonFrom("openrtb2/yieldlab/test-cache-yieldlab-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

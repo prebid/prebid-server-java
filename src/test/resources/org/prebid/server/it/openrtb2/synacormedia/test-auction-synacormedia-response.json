@@ -19,22 +19,10 @@
               "targeting": {
                 "hb_pb": "7.70",
                 "hb_size_synacormedia": "300x250",
-                "hb_cache_id_synacormedia": "c1662cf6-f00a-4066-b71a-46d97abccc35",
-                "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x250",
                 "hb_bidder_synacormedia": "synacormedia",
-                "hb_cache_host_synacormedia": "{{ cache.host }}",
                 "hb_bidder": "synacormedia",
-                "hb_cache_id": "c1662cf6-f00a-4066-b71a-46d97abccc35",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_path_synacormedia": "{{ cache.path }}",
                 "hb_pb_synacormedia": "7.70"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}c1662cf6-f00a-4066-b71a-46d97abccc35",
-                  "cacheId": "c1662cf6-f00a-4066-b71a-46d97abccc35"
-                }
               }
             },
             "origbidcpm": 7.77
@@ -53,35 +41,16 @@
           "crid": "crid002",
           "w": 300,
           "h": 250,
-          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
               "targeting": {
                 "hb_size_synacormedia": "300x250",
-                "hb_cache_host_synacormedia": "{{ cache.host }}",
-                "hb_cache_id": "dbaa191c-5a56-4655-85eb-da079f94e09f",
                 "hb_pb_synacormedia": "9.90",
                 "hb_pb": "9.90",
-                "hb_cache_id_synacormedia": "dbaa191c-5a56-4655-85eb-da079f94e09f",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_uuid": "62019cff-d657-42fc-8366-16c34e1fd28c",
                 "hb_size": "300x250",
                 "hb_bidder_synacormedia": "synacormedia",
-                "hb_bidder": "synacormedia",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_path_synacormedia": "{{ cache.path }}",
-                "hb_uuid_synacormedia": "62019cff-d657-42fc-8366-16c34e1fd28c"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}dbaa191c-5a56-4655-85eb-da079f94e09f",
-                  "cacheId": "dbaa191c-5a56-4655-85eb-da079f94e09f"
-                },
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}62019cff-d657-42fc-8366-16c34e1fd28c",
-                  "cacheId": "62019cff-d657-42fc-8366-16c34e1fd28c"
-                }
+                "hb_bidder": "synacormedia"
               }
             },
             "origbidcpm": 9.99
@@ -95,8 +64,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "synacormedia": "{{ synacormedia.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "synacormedia": "{{ synacormedia.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

@@ -60,12 +60,6 @@ public class ConversantTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/conversant/alias/test-conversant-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/alias/test-cache-conversant-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/conversant/alias/test-cache-conversant-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

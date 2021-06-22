@@ -28,11 +28,6 @@ public class TtxTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ttx/test-ttx-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ttx/test-ttx-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/ttx/test-cache-ttx-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/ttx/test-cache-ttx-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

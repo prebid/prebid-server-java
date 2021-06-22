@@ -30,13 +30,6 @@ public class VerizonmediaTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/verizonmedia/test-verizonmedia-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/verizonmedia/test-cache-verizonmedia-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/verizonmedia/test-cache-verizonmedia-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
