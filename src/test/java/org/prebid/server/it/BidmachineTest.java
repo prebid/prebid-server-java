@@ -20,6 +20,7 @@ import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class BidmachineTest extends IntegrationTest {
+
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromBidmachine() throws IOException, JSONException {
         // given

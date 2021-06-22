@@ -18,7 +18,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidmachine.ExtImpBidmachine;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -196,12 +195,10 @@ public class BidmachineBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyImplIfPrebidIsRequestAndBannerBattrDoesNotContain16() {
         // given
-        List<Integer> requestBattr = new ArrayList<>();
-        requestBattr.add(1);
         final Imp imp = givenImp(impBuilder -> impBuilder
                 .banner(Banner.builder()
                         .format(singletonList(Format.builder().w(300).h(500).build()))
-                        .battr(requestBattr).build())
+                        .battr(singletonList(1)).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(
                         ExtImpPrebid.builder()
                                 .isRewardedInventory(1)
@@ -219,17 +216,15 @@ public class BidmachineBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .extracting(imps -> imps.get(0))
-                .extracting(currImp -> currImp.getBanner().getBattr())
-                .containsExactly(Arrays.asList(1, 16));
+                .flatExtracting(currImp -> currImp.getBanner().getBattr())
+                .containsExactly(1, 16);
     }
 
     @Test
     public void makeHttpRequestsShouldModifyImplIfPrebidIsRequestAndVideoBattrDoesNotContain16() {
         // given
-        List<Integer> requestBattr = new ArrayList<>();
-        requestBattr.add(1);
         final Imp imp = givenImp(impBuilder -> impBuilder
-                .video(Video.builder().battr(requestBattr).build())
+                .video(Video.builder().battr(singletonList(1)).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(
                         ExtImpPrebid.builder()
                                 .isRewardedInventory(1)
@@ -247,8 +242,8 @@ public class BidmachineBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .extracting(imps -> imps.get(0))
-                .extracting(currImp -> currImp.getVideo().getBattr())
-                .containsExactly(Arrays.asList(1, 16));
+                .flatExtracting(currImp -> currImp.getVideo().getBattr())
+                .containsExactly(1, 16);
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
