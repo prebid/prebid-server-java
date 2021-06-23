@@ -23,15 +23,9 @@ public class GridTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheMediaGrid() throws IOException, JSONException {
         // given
-        // TheMediaGrid bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/grid-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/grid/test-grid-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/grid/test-grid-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/grid/test-cache-grid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/grid/test-cache-grid-response.json"))));
 
         // when
         final Response response = given(SPEC)

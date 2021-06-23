@@ -212,7 +212,6 @@ public class Tcf2Service {
                     purposeOneTreatmentInterpretation, true);
             processPurposeStrategy(tcfConsent, weakPermissions, weakPurpose, purposeStrategy,
                     purposeOneTreatmentInterpretation, true);
-
         }
 
         return Future.succeededFuture(vendorPermissionsByType.joinPermissions());

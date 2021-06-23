@@ -16,23 +16,11 @@
               "type": "banner",
               "targeting": {
                 "hb_bidder_openx": "openx",
-                "hb_cache_id": "6f10452f-dbf8-4d5c-9f40-760080e08612",
-                "hb_cache_id_openx": "6f10452f-dbf8-4d5c-9f40-760080e08612",
                 "hb_size_openx": "300x250",
                 "hb_pb": "5.70",
-                "hb_cache_path_openx": "{{ cache.path }}",
-                "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x250",
                 "hb_pb_openx": "5.70",
-                "hb_bidder": "openx",
-                "hb_cache_host_openx": "{{ cache.host }}",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}6f10452f-dbf8-4d5c-9f40-760080e08612",
-                  "cacheId": "6f10452f-dbf8-4d5c-9f40-760080e08612"
-                }
+                "hb_bidder": "openx"
               }
             },
             "origbidcpm": 5.78,
@@ -52,23 +40,11 @@
               "type": "banner",
               "targeting": {
                 "hb_bidder_openx": "openx",
-                "hb_cache_id": "16649e72-5dd5-4ab9-ab83-df9a5f06d9d1",
-                "hb_cache_id_openx": "16649e72-5dd5-4ab9-ab83-df9a5f06d9d1",
                 "hb_size_openx": "300x250",
                 "hb_pb": "5.70",
-                "hb_cache_path_openx": "{{ cache.path }}",
-                "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x250",
                 "hb_pb_openx": "5.70",
-                "hb_bidder": "openx",
-                "hb_cache_host_openx": "{{ cache.host }}",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}16649e72-5dd5-4ab9-ab83-df9a5f06d9d1",
-                  "cacheId": "16649e72-5dd5-4ab9-ab83-df9a5f06d9d1"
-                }
+                "hb_bidder": "openx"
               }
             },
             "origbidcpm": 5.78,
@@ -83,35 +59,16 @@
           "crid": "crid00",
           "w": 300,
           "h": 250,
-          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
               "targeting": {
                 "hb_bidder_openx": "openx",
-                "hb_uuid_openx": "857b3394-c5ac-402c-9cca-54ae52b927fc",
-                "hb_cache_id": "827f68ed-03d5-4dad-8794-4518f01fbfb8",
-                "hb_cache_id_openx": "827f68ed-03d5-4dad-8794-4518f01fbfb8",
                 "hb_size_openx": "300x250",
                 "hb_pb": "5.70",
-                "hb_cache_path_openx": "{{ cache.path }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_uuid": "857b3394-c5ac-402c-9cca-54ae52b927fc",
                 "hb_size": "300x250",
                 "hb_pb_openx": "5.70",
-                "hb_bidder": "openx",
-                "hb_cache_host_openx": "{{ cache.host }}",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}827f68ed-03d5-4dad-8794-4518f01fbfb8",
-                  "cacheId": "827f68ed-03d5-4dad-8794-4518f01fbfb8"
-                },
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}857b3394-c5ac-402c-9cca-54ae52b927fc",
-                  "cacheId": "857b3394-c5ac-402c-9cca-54ae52b927fc"
-                }
+                "hb_bidder": "openx"
               }
             },
             "origbidcpm": 5.78,
@@ -126,35 +83,16 @@
           "crid": "crid00",
           "w": 300,
           "h": 250,
-          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
               "targeting": {
                 "hb_bidder_openx": "openx",
-                "hb_uuid_openx": "18b7676c-f024-4a06-aa1a-5d222a643603",
-                "hb_cache_id": "bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
-                "hb_cache_id_openx": "bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
                 "hb_size_openx": "300x250",
                 "hb_pb": "5.70",
-                "hb_cache_path_openx": "{{ cache.path }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_uuid": "18b7676c-f024-4a06-aa1a-5d222a643603",
                 "hb_size": "300x250",
                 "hb_pb_openx": "5.70",
-                "hb_bidder": "openx",
-                "hb_cache_host_openx": "{{ cache.host }}",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
-                  "cacheId": "bdf4b96c-3d1a-4c92-b8da-aece5d514e0b"
-                },
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}18b7676c-f024-4a06-aa1a-5d222a643603",
-                  "cacheId": "18b7676c-f024-4a06-aa1a-5d222a643603"
-                }
+                "hb_bidder": "openx"
               }
             },
             "origbidcpm": 5.78,
@@ -169,8 +107,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "openx": "{{ openx.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "openx": "{{ openx.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

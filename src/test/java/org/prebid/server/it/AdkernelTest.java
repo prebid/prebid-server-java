@@ -25,7 +25,6 @@ public class AdkernelTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdkernel() throws IOException, JSONException {
         // given
-        // adkernel bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adkernel-exchange"))
                 .withQueryParam("zone", equalTo("101"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
@@ -34,12 +33,6 @@ public class AdkernelTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adkernel/test-adkernel-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/adkernel/test-adkernel-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adkernel/test-cache-adkernel-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/adkernel/test-cache-adkernel-response.json"))));
 
         // when
         final Response response = given(SPEC)

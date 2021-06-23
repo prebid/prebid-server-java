@@ -15,21 +15,9 @@
               "type": "banner",
               "targeting": {
                 "hb_pb": "10.00",
-                "hb_cache_path": "{{ cache.path }}",
                 "hb_bidder_interactiveoffers": "interactiveoffers",
                 "hb_bidder": "interactiveoffers",
-                "hb_cache_id_interactiveoffers": "9092799c-93b0-4e11-a232-2c0151d5d275",
-                "hb_cache_id": "9092799c-93b0-4e11-a232-2c0151d5d275",
-                "hb_cache_path_interactiveoffers": "/cache",
-                "hb_cache_host_interactiveoffers": "{{ cache.host }}",
-                "hb_cache_host": "{{ cache.host }}",
                 "hb_pb_interactiveoffers": "10.00"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}9092799c-93b0-4e11-a232-2c0151d5d275",
-                  "cacheId": "9092799c-93b0-4e11-a232-2c0151d5d275"
-                }
               }
             },
             "origbidcpm": 10,
@@ -44,8 +32,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "interactiveoffers": "{{ interactiveoffers.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "interactiveoffers": "{{ interactiveoffers.response_time_ms }}"
     },
     "tmaxrequest": 2000,
     "prebid": {

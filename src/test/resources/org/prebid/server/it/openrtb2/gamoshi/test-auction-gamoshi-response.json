@@ -20,21 +20,9 @@
                 "hb_pb": "3.30",
                 "hb_size_gamoshi": "300x250",
                 "hb_bidder_gamoshi": "gamoshi",
-                "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x250",
-                "hb_cache_host_gamoshi": "{{ cache.host }}",
-                "hb_cache_path_gamoshi": "{{ cache.path }}",
-                "hb_cache_id_gamoshi": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
                 "hb_bidder": "gamoshi",
-                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_pb_gamoshi": "3.30",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb"
-                }
+                "hb_pb_gamoshi": "3.30"
               }
             },
             "origbidcpm": 3.33
@@ -50,35 +38,16 @@
           "crid": "crid002",
           "w": 1024,
           "h": 576,
-          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
               "targeting": {
-                "hb_cache_host_gamoshi": "{{ cache.host }}",
-                "hb_cache_path_gamoshi": "{{ cache.path }}",
-                "hb_cache_id": "e7965b2e-0aa3-4252-a22c-580ed010e619",
                 "hb_pb_gamoshi": "5.50",
                 "hb_pb": "5.50",
                 "hb_size_gamoshi": "1024x576",
                 "hb_bidder_gamoshi": "gamoshi",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_uuid": "44a52b06-b29f-4819-a05f-db36b9e7b8fc",
                 "hb_size": "1024x576",
-                "hb_cache_id_gamoshi": "e7965b2e-0aa3-4252-a22c-580ed010e619",
-                "hb_bidder": "gamoshi",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_uuid_gamoshi": "44a52b06-b29f-4819-a05f-db36b9e7b8fc"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}e7965b2e-0aa3-4252-a22c-580ed010e619",
-                  "cacheId": "e7965b2e-0aa3-4252-a22c-580ed010e619"
-                },
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}44a52b06-b29f-4819-a05f-db36b9e7b8fc",
-                  "cacheId": "44a52b06-b29f-4819-a05f-db36b9e7b8fc"
-                }
+                "hb_bidder": "gamoshi"
               }
             },
             "origbidcpm": 5.55
@@ -92,8 +61,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "gamoshi": "{{ gamoshi.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "gamoshi": "{{ gamoshi.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

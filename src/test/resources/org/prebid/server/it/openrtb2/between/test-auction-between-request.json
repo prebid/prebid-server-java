@@ -55,9 +55,6 @@
           ]
         }
       },
-      "cache": {
-        "bids": {}
-      },
       "auctiontimestamp": 1000
     }
   },

@@ -15,24 +15,12 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_cache_host_lifestreet": "{{ cache.host }}",
-                "hb_cache_id": "f0bfa534-ca56-42bc-9b91-a801f8f202c2",
                 "hb_bidder_lifestreet": "lifestreet",
                 "hb_pb": "4.70",
                 "hb_size_lifestreet": "300x600",
-                "hb_cache_path_lifestreet": "{{ cache.path }}",
-                "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x600",
                 "hb_pb_lifestreet": "4.70",
-                "hb_bidder": "lifestreet",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_id_lifestreet": "f0bfa534-ca56-42bc-9b91-a801f8f202c2"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}f0bfa534-ca56-42bc-9b91-a801f8f202c2",
-                  "cacheId": "f0bfa534-ca56-42bc-9b91-a801f8f202c2"
-                }
+                "hb_bidder": "lifestreet"
               }
             },
             "origbidcpm": 4.75
@@ -46,35 +34,16 @@
           "crid": "crid71",
           "w": 300,
           "h": 600,
-          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
               "targeting": {
-                "hb_cache_host_lifestreet": "{{ cache.host }}",
-                "hb_cache_id": "04f8b42b-7927-4930-a0b1-0ab16a441e91",
                 "hb_bidder_lifestreet": "lifestreet",
                 "hb_pb": "3.70",
                 "hb_size_lifestreet": "300x600",
-                "hb_cache_path_lifestreet": "{{ cache.path }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_uuid": "7e5320e5-ad46-439e-a7eb-f4cb826d8ab6",
                 "hb_size": "300x600",
                 "hb_pb_lifestreet": "3.70",
-                "hb_bidder": "lifestreet",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_id_lifestreet": "04f8b42b-7927-4930-a0b1-0ab16a441e91",
-                "hb_uuid_lifestreet": "7e5320e5-ad46-439e-a7eb-f4cb826d8ab6"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}04f8b42b-7927-4930-a0b1-0ab16a441e91",
-                  "cacheId": "04f8b42b-7927-4930-a0b1-0ab16a441e91"
-                },
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}7e5320e5-ad46-439e-a7eb-f4cb826d8ab6",
-                  "cacheId": "7e5320e5-ad46-439e-a7eb-f4cb826d8ab6"
-                }
+                "hb_bidder": "lifestreet"
               }
             },
             "origbidcpm": 3.75
@@ -88,8 +57,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "lifestreet": "{{ lifestreet.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "lifestreet": "{{ lifestreet.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

@@ -116,7 +116,6 @@ public class UnicornBidder implements Bidder<BidRequest> {
             }
 
             modifiedImps.add(impBuilder.build());
-
         }
         return modifiedImps;
     }

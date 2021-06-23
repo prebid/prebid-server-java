@@ -33,16 +33,6 @@ public class ValueImpressionTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/valueimpression/test-valueimpression-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(
-                        equalToBidCacheRequest(
-                                jsonFrom("openrtb2/valueimpression/test-cache-valueimpression-request.json")))
-                .willReturn(aResponse()
-                        .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/valueimpression/test-cache-matcher-valueimpression.json")));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

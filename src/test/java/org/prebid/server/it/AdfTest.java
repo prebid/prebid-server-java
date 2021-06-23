@@ -23,15 +23,9 @@ public class AdfTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdf() throws IOException, JSONException {
         // given
-        // Adf bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adf-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adf/test-adf-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adf/test-adf-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adf/test-cache-adf-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adf/test-cache-matcher-adf.json"))));
 
         // when
         final Response response = given(SPEC)

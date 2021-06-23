@@ -24,17 +24,11 @@ public class OrbidderTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromOrbidder() throws IOException, JSONException {
         // given
-        // OrbidderBidder bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/orbidder-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/orbidder/test-orbidder-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/orbidder/test-orbidder-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/orbidder/test-cache-orbidder-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/orbidder/test-cache-orbidder-response.json"))));
 
         // when
         final Response response = given(SPEC)

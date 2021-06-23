@@ -162,24 +162,6 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfKeywordsAreInvalid() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                extImpPubmaticBuilder -> extImpPubmaticBuilder
-                        .keywords(singletonList(ExtImpPubmaticKeyVal.of("\"", singletonList("\"")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Failed to create keywords with error: Unexpected character");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfWrapExtHasInvalidParams() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -642,6 +624,70 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(bidType).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplaceDctrIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.dctr("dctr")
+                        .keywords(singletonList(ExtImpPubmaticKeyVal.of("key_val", asList("value1", "value2")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Map<String, String> expectedKeyWords = singletonMap("key_val", "dctr");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.convertValue(expectedKeyWords, ObjectNode.class));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplacePmZoneIdIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.pmzoneid("pmzoneid")
+                        .keywords(singletonList(ExtImpPubmaticKeyVal.of("pmZoneId", asList("value1", "value2")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Map<String, String> expectedKeyWords = singletonMap("pmZoneId", "pmzoneid");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.convertValue(expectedKeyWords, ObjectNode.class));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplacePmZoneIDOldKeyNameWithNew() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                extImpPubmaticBuilder -> extImpPubmaticBuilder
+                        .keywords(singletonList(ExtImpPubmaticKeyVal.of("pmZoneID", asList("value1", "value2")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+
+        final Map<String, String> expectedKeyWords = singletonMap("pmZoneId", "value1,value2");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.convertValue(expectedKeyWords, ObjectNode.class));
     }
 
     private static BidRequest givenBidRequest(

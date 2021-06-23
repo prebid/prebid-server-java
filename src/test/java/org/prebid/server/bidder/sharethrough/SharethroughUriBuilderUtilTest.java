@@ -9,6 +9,16 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 public class SharethroughUriBuilderUtilTest {
 
     @Test
+    public void buildSharethroughUrlParametersShouldThrowIllegalArgumentExceptionWhenEndpointUrlComposingFails() {
+        // given
+        final String uri = "http://invalid domain.com";
+
+        // when and then
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uri));
+    }
+
+    @Test
     public void buildSharethroughUrlParametersShouldThrowIllegalArgumentExceptionWhenHeightIsNotNumberOrNotPresent() {
         // given
         final String uriNull = "http://uri.com?placement_key=pkey&bidId=bidid&height=null&width=30";
@@ -25,7 +35,7 @@ public class SharethroughUriBuilderUtilTest {
     }
 
     @Test
-    public void buildSharethroughUrlParametersShouldThrowIllegalArgumentExceptionWhenWidthtIsNotNumberOrNotPresent() {
+    public void buildSharethroughUrlParametersShouldThrowIllegalArgumentExceptionWhenWidthIsNotNumberOrNotPresent() {
         // given
         final String uriNull = "http://uri.com?placement_key=pkey&bidId=bidid&height=30&width=null";
         final String uriNotNumber = "http://uri.com?placement_key=pkey&bidId=bidid&height=30&width=notNumber";
