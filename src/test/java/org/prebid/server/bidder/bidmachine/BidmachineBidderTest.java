@@ -122,8 +122,7 @@ public class BidmachineBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .containsExactly(bidRequest);
     }
@@ -148,8 +147,7 @@ public class BidmachineBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .extracting(imps -> imps.get(0))
@@ -233,7 +231,11 @@ public class BidmachineBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = bidmachineBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors())
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).isEqualTo("ignoring bid id=null, request doesn't contain any valid impression with id=123");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
