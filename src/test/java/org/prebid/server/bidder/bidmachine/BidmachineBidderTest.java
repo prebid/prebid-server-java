@@ -46,30 +46,6 @@ public class BidmachineBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullHostParam() {
-        // given
-        final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidmachine.of("", "pubId", "1")))));
-
-        final Imp secondImp = givenImp(impBuilder -> impBuilder
-                .id("456")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidmachine.of(null, "pubId", "1")))));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(firstImp, secondImp))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidmachineBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsExactly(
-                        BidderError.badInput("Invalid/Missing host"),
-                        BidderError.badInput("Invalid/Missing host"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
@@ -91,54 +67,6 @@ public class BidmachineBidderTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullPath() {
-        // given
-        final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidmachine.of("host", "", "2")))));
-
-        final Imp secondImp = givenImp(impBuilder -> impBuilder
-                .id("456")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidmachine.of("host", null, "3")))));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(firstImp, secondImp))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidmachineBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsExactlyInAnyOrder(
-                        BidderError.badInput("Invalid/Missing path"),
-                        BidderError.badInput("Invalid/Missing path"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullSellerId() {
-        // given
-        final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidmachine.of("host", "path", "")))));
-
-        final Imp secondImp = givenImp(impBuilder -> impBuilder
-                .id("456")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidmachine.of("host", "path", null)))));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(firstImp, secondImp))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidmachineBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsExactlyInAnyOrder(
-                        BidderError.badInput("Invalid/Missing sellerId"),
-                        BidderError.badInput("Invalid/Missing sellerId"));
     }
 
     @Test
@@ -206,6 +134,7 @@ public class BidmachineBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(imp))
                 .build();
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidmachineBidder.makeHttpRequests(bidRequest);
 
@@ -232,6 +161,7 @@ public class BidmachineBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(imp))
                 .build();
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidmachineBidder.makeHttpRequests(bidRequest);
 

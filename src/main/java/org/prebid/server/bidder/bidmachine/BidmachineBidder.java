@@ -1,19 +1,17 @@
 package org.prebid.server.bidder.bidmachine;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -28,7 +26,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidmachine.ExtImpBidmachine;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.springframework.boot.json.JsonParseException;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,8 +39,8 @@ import java.util.stream.Collectors;
  */
 public class BidmachineBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpBidmachine>> BIDMACHINE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBidmachine>>() {
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>> BIDMACHINE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>>() {
             };
 
     private final String endpointUrl;
@@ -61,18 +58,19 @@ public class BidmachineBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
+                final ExtPrebid<ExtImpPrebid, ExtImpBidmachine> mappedExt = parseImpExt(imp);
                 validateImp(imp);
-                final BidRequest singleRequest = createSingleRequest(imp, parsePrebid(imp.getExt()), request);
-                final String body = mapper.encode(singleRequest);
+                final BidRequest outgoingRequest = createRequest(imp, mappedExt.getPrebid(), request);
+                final String body = mapper.encode(outgoingRequest);
 
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
-                        .uri(buildEndpointUrl(parseAndValidateImpExt(imp)))
+                        .uri(buildEndpointUrl(mappedExt.getBidder()))
                         .body(body)
                         .headers(resolveHeaders())
-                        .payload(singleRequest)
+                        .payload(outgoingRequest)
                         .build());
-            } catch (Exception e) {
+            } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
@@ -102,39 +100,46 @@ public class BidmachineBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidRequest createSingleRequest(Imp imp, ExtImpPrebid extPrebid, BidRequest request) {
+    private BidRequest createRequest(Imp imp, ExtImpPrebid extPrebid, BidRequest request) {
         return request.toBuilder()
                 .imp(Collections.singletonList(modifyImp(imp, extPrebid)))
                 .build();
-    }
-
-    private ExtImpPrebid parsePrebid(ObjectNode ext) throws JsonProcessingException {
-        return mapper.mapper().treeToValue(ext.get("prebid"), ExtImpPrebid.class);
     }
 
     private Imp modifyImp(Imp imp, ExtImpPrebid extPrebid) {
         if (extPrebid != null && Objects.equals(extPrebid.getIsRewardedInventory(), 1)) {
             final Banner banner = imp.getBanner();
             final List<Integer> bannerBattr = banner == null ? null : banner.getBattr();
-            final Imp.ImpBuilder impBuilder = imp.toBuilder();
-            if (bannerBattr != null && !hasRewardedBattr(bannerBattr)) {
-                final List<Integer> changedBannerBattrList = new ArrayList<>(bannerBattr);
-                changedBannerBattrList.add(16);
-                impBuilder.banner(imp.getBanner().toBuilder().battr(changedBannerBattrList).build());
-            }
+            final List<Integer> resolvedBannerBattr = resolveBattrList(bannerBattr);
+
             final Video video = imp.getVideo();
             final List<Integer> videoBattr = video == null ? null : video.getBattr();
+            final List<Integer> resolvedVideoBattr = resolveBattrList(videoBattr);
 
-            if (videoBattr != null && !hasRewardedBattr(videoBattr)) {
-                final List<Integer> changedVideoBattrList = new ArrayList<>(videoBattr);
-                changedVideoBattrList.add(16);
-                impBuilder.video(imp.getVideo().toBuilder().battr(changedVideoBattrList).build());
+            if (resolvedBannerBattr != null || resolvedVideoBattr != null) {
+                final Imp.ImpBuilder impBuilder = imp.toBuilder();
+                if (resolvedBannerBattr != null) {
+                    impBuilder.banner(banner.toBuilder().battr(resolvedBannerBattr).build());
+                }
+                if (resolvedVideoBattr != null) {
+                    impBuilder.video(video.toBuilder().battr(resolvedVideoBattr).build());
+                }
+
+                return impBuilder.build();
             }
-
-            return impBuilder.build();
         }
 
         return imp;
+    }
+
+    private static List<Integer> resolveBattrList(List<Integer> battr) {
+        if (battr != null && !hasRewardedBattr(battr)) {
+            final List<Integer> updatedBattr = new ArrayList<>(battr);
+            updatedBattr.add(16);
+            return updatedBattr;
+        }
+
+        return null;
     }
 
     private String buildEndpointUrl(ExtImpBidmachine extImpBidmachine) {
@@ -147,27 +152,12 @@ public class BidmachineBidder implements Bidder<BidRequest> {
         return battr.contains(16);
     }
 
-    private ExtImpBidmachine parseAndValidateImpExt(Imp imp) {
-        final ExtImpBidmachine extImpBidmachine;
+    private ExtPrebid<ExtImpPrebid, ExtImpBidmachine> parseImpExt(Imp imp) {
         try {
-            extImpBidmachine = mapper.mapper().convertValue(imp.getExt(), BIDMACHINE_EXT_TYPE_REFERENCE).getBidder();
-        } catch (JsonParseException e) {
+            return mapper.mapper().convertValue(imp.getExt(), BIDMACHINE_EXT_TYPE_REFERENCE);
+        } catch (IllegalArgumentException e) {
             throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
-
-        if (StringUtils.isEmpty(extImpBidmachine.getSellerId())) {
-            throw new PreBidException("Invalid/Missing sellerId");
-        }
-
-        if (StringUtils.isBlank(extImpBidmachine.getHost())) {
-            throw new PreBidException("Invalid/Missing host");
-        }
-
-        if (StringUtils.isEmpty(extImpBidmachine.getPath())) {
-            throw new PreBidException("Invalid/Missing path");
-        }
-
-        return extImpBidmachine;
     }
 
     private static MultiMap resolveHeaders() {
@@ -195,20 +185,33 @@ public class BidmachineBidder implements Bidder<BidRequest> {
         return bidsFromResponse(bidRequest, bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse,
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest,
+                                                    BidResponse bidResponse,
                                                     List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid,
-                        getBidType(bid.getImpid(), bidRequest.getImp(), errors), bidResponse.getCur()))
+                .map(bid -> createBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps, List<BidderError> errors) {
+    private static BidderBid createBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+        final BidType bidType = getBidType(bid.getImpid(), imps);
+        if (bidType == null) {
+            errors.add(BidderError.badServerResponse(
+                    String.format("ignoring bid id=%s, request doesn't contain any valid "
+                            + "impression with id=%s", bid.getId(), bid.getImpid())));
+
+            return null;
+        }
+
+        return BidderBid.of(bid, bidType, currency);
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() == null && imp.getVideo() != null) {
@@ -219,7 +222,6 @@ public class BidmachineBidder implements Bidder<BidRequest> {
             }
         }
 
-        errors.add(BidderError.badServerResponse(String.format("Failed to find impression with id: %s", impId)));
         return null;
     }
 }
