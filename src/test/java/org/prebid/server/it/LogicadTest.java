@@ -25,7 +25,6 @@ public class LogicadTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromLogicad() throws IOException, JSONException {
         // given
-        // Logicad bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/logicad-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

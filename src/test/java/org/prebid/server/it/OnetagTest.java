@@ -25,7 +25,6 @@ public class OnetagTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromOnetag() throws IOException, JSONException {
         // given
-        // Onetag bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/onetag-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

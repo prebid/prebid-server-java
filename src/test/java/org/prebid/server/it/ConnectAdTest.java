@@ -24,7 +24,6 @@ public class ConnectAdTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromConnectAd() throws IOException, JSONException {
         // given
-        // ConnectAdBidder bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/connectad-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))

@@ -23,12 +23,10 @@ public class ColossusTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromColossus() throws IOException, JSONException {
         // given
-        // Colossus bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/colossus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/colossus/test-colossus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/colossus/test-colossus-bid-response-1.json"))));
 
-        // Colossus bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/colossus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/colossus/test-colossus-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/colossus/test-colossus-bid-response-2.json"))));

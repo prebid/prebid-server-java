@@ -23,7 +23,6 @@ public class InteractiveoffersTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromInteractiveoffers() throws IOException, JSONException {
         // given
-        // Interactiveoffers bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/interactiveoffers-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/interactiveoffers/test-interactiveoffers-bid-request.json")))

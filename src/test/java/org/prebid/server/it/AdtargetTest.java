@@ -25,7 +25,6 @@ public class AdtargetTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdtarget() throws IOException, JSONException {
         // given
-        // Adtarget bid response for imp 14
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtarget-exchange"))
                 .withQueryParam("aid", equalTo("1000"))
                 .withHeader("Accept", equalTo("application/json"))

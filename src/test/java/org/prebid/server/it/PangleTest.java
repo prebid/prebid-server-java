@@ -23,7 +23,6 @@ public class PangleTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromPangle() throws IOException, JSONException {
         // given
-        // Pangle bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pangle-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pangle/test-pangle-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pangle/test-pangle-bid-response-1.json"))));

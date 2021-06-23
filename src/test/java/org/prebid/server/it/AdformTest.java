@@ -27,7 +27,6 @@ public class AdformTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdform() throws IOException, JSONException {
         // given
-        // adform bid response for imp 12
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/adform-exchange"))
                 .withQueryParam("CC", equalTo("1"))
                 .withQueryParam("rp", equalTo("4"))

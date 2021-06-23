@@ -25,12 +25,10 @@ public class LifestreetTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromLifestreet() throws IOException, JSONException {
         // given
-        // lifestreet bid response for imp 7
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lifestreet-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-response-1.json"))));
 
-        // lifestreet bid response for imp 71
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lifestreet-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-response-2.json"))));

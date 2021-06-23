@@ -25,7 +25,6 @@ public class VrtcalTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromVrtcal() throws IOException, JSONException {
         // given
-        // Vrtcal bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/vrtcal-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))

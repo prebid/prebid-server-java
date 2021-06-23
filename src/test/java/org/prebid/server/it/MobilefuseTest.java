@@ -24,7 +24,6 @@ public class MobilefuseTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromMobilefuse() throws IOException, JSONException {
         // given
-        // MobilefuseBidder bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/mobilefuse-exchange/1111&tagid_src=ext"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))

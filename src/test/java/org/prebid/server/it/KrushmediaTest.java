@@ -25,7 +25,6 @@ public class KrushmediaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromKrushmedia() throws IOException, JSONException {
         // given
-        // Krushmedia bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/krushmedia-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

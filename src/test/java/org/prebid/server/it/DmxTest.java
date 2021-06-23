@@ -24,7 +24,6 @@ public class DmxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromDmx() throws IOException, JSONException {
         // given
-        // DmxBidder bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/dmx-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))

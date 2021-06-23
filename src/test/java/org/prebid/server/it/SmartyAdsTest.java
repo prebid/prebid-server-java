@@ -25,7 +25,6 @@ public class SmartyAdsTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSmartyAds() throws IOException, JSONException {
         // given
-        // SmartyAds bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartyads-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

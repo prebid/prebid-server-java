@@ -23,8 +23,7 @@ public class RhythmoneTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromRhythmone() throws IOException, JSONException {
-        // given
-        // rhythmone bid response for imp002
+        // given002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rhythmone-exchange/72721/0/mvo"))
                 .withQueryParam("z", equalTo("1r"))
                 .withQueryParam("s2s", equalTo("true"))

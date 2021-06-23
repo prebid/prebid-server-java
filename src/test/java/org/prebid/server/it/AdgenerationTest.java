@@ -25,7 +25,6 @@ public class AdgenerationTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdgeneration() throws IOException, JSONException {
         // given
-        // Adgeneration bid response for imp 001
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/adgeneration-exchange"))
                 .withQueryParam("posall", equalTo("SSPLOC"))
                 .withQueryParam("id", equalTo("58278"))

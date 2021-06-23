@@ -23,7 +23,6 @@ public class VerizonmediaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromVerizonmedia() throws IOException, JSONException {
         // given
-        // Verizonmedia bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/verizonmedia-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/verizonmedia/test-verizonmedia-bid-request-1.json")))

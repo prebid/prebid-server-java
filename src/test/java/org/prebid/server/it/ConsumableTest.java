@@ -24,7 +24,6 @@ public class ConsumableTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromConsumable() throws IOException, JSONException {
         // given
-        // consumable bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/consumable-exchange"))
                 .withHeader("Cookie", equalTo("azk=CS-UID"))
                 .withHeader("Origin", equalTo("http://www.example.com"))

@@ -25,7 +25,6 @@ public class NobidTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromNobid() throws IOException, JSONException {
         // given
-        // Nobid bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/nobid-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

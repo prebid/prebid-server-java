@@ -23,17 +23,15 @@ public class AdprimeTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdprime() throws IOException, JSONException {
         // given
-        // Adprime bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adprime-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adprime/test-adprime-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adprime/test-adprime-bid-response-1.json"))));
 
-        // Adprime bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adprime-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adprime/test-adprime-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adprime/test-adprime-bid-response-2.json"))));
 
-       // when
+        // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")

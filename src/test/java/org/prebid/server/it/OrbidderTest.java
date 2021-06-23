@@ -24,7 +24,6 @@ public class OrbidderTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromOrbidder() throws IOException, JSONException {
         // given
-        // OrbidderBidder bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/orbidder-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))

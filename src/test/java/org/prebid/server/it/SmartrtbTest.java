@@ -24,7 +24,6 @@ public class SmartrtbTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSmartrtb() throws IOException, JSONException {
         // given
-        // Smartrtb bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartrtb-exchange/1234"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -47,7 +46,6 @@ public class SmartrtbTest extends IntegrationTest {
                 "openrtb2/smartrtb/test-auction-smartrtb-response.json",
                 response, singletonList("smartrtb"));
 
-        String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

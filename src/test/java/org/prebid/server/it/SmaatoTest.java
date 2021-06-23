@@ -48,7 +48,6 @@ public class SmaatoTest extends IntegrationTest {
                 "openrtb2/smaato/test-auction-smaato-response.json",
                 response, singletonList("smaato"));
 
-        final String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

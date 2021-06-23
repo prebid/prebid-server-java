@@ -25,7 +25,6 @@ public class SilvermobTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSilvermob() throws IOException, JSONException {
         // given
-        // Silvermob bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/silvermob-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

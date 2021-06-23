@@ -25,7 +25,6 @@ public class DeepintentTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromDeepintent() throws IOException, JSONException {
         // given
-        // Deepintent bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/deepintent-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

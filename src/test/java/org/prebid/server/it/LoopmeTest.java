@@ -23,7 +23,6 @@ public class LoopmeTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromLoopme() throws IOException, JSONException {
         // given
-        // Loopme bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/loopme-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/loopme/test-loopme-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/loopme/test-loopme-bid-response.json"))));

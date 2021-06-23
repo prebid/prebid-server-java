@@ -24,7 +24,6 @@ public class MarsmediaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromMarsmedia() throws IOException, JSONException {
         // given
-        // Marsmedia bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/marsmedia-exchange"))
                 .withQueryParam("zone", equalTo("zone_1"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))

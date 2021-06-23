@@ -23,12 +23,10 @@ public class AjaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheAjaBidder() throws IOException, JSONException {
         // given
-        // TheMediaAja bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/aja"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/aja/test-aja-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/aja/test-aja-bid-response-1.json"))));
 
-        // TheMediaAja bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/aja"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/aja/test-aja-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/aja/test-aja-bid-response-2.json"))));

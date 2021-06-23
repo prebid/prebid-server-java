@@ -23,7 +23,6 @@ public class SynacormediaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSynacorMedia() throws IOException, JSONException {
         // given
-        // SynacorMedia bid response for imp 001 and imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/synacormedia-exchange/228"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/synacormedia/test-synacormedia-bid-request.json")))

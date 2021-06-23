@@ -25,7 +25,6 @@ public class PulsepointTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromPulsepoint() throws IOException, JSONException {
         // given
-        // pulsepoint bid response for imp 8
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pulsepoint-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pulsepoint/test-pulsepoint-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pulsepoint/test-pulsepoint-bid-response-1.json"))));

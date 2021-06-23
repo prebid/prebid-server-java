@@ -56,7 +56,6 @@ public class YieldlabTest extends IntegrationTest {
                 "openrtb2/yieldlab/test-auction-yieldlab-response.json",
                 response, singletonList("yieldlab"));
 
-        final String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, openrtbCacheDebugComparator());
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }

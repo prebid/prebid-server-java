@@ -25,7 +25,6 @@ public class GumgumTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromGumGum() throws IOException, JSONException {
         // given
-        // GumGum bid response for imp 001 and 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/gumgum-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

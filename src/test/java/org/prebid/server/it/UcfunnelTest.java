@@ -24,7 +24,6 @@ public class UcfunnelTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromUcfunnel() throws IOException, JSONException {
         // given
-        // Ucfunnel bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ucfunnel-exchange/par-2EDDB423AA24474188B843EE4842932/request"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))

@@ -23,12 +23,10 @@ public class AdmanTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdman() throws IOException, JSONException {
         // given
-        // Adman bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adman-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adman/test-adman-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adman/test-adman-bid-response-1.json"))));
 
-        // Adman bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adman-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adman/test-adman-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adman/test-adman-bid-response-2.json"))));

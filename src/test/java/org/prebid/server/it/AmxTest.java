@@ -25,7 +25,6 @@ public class AmxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAmx() throws IOException, JSONException {
         // given
-        // Amx bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/amx-exchange"))
                 .withQueryParam("v", equalTo("pbs1.1"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

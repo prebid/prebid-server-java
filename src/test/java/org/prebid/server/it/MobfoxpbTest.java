@@ -24,7 +24,6 @@ public class MobfoxpbTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromMobfoxpb() throws IOException, JSONException {
         // given
-        // Mobfoxpb bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/mobfoxpb-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))

@@ -24,7 +24,6 @@ public class InvibesTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromInvibes() throws IOException, JSONException {
         // given
-        // InvibesBidder bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/invibes-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))

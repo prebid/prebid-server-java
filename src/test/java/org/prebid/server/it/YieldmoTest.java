@@ -25,7 +25,6 @@ public class YieldmoTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromYieldmo() throws IOException, JSONException {
         // given
-        // Yieldmo bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/yieldmo-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))

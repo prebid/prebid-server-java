@@ -27,7 +27,6 @@ public class SovrnTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSovrn() throws IOException, JSONException {
         // given
-        // sovrn bid response for imp 13
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))

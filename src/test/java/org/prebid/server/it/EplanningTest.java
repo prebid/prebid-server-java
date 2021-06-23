@@ -25,8 +25,7 @@ public class EplanningTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromEplanning() throws IOException, JSONException {
-        // given
-        // eplanning bid response for imp15
+        // given15
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/eplanning-exchange/12345/1/www.example.com/ROS"))
                 .withQueryParam("r", equalTo("pbs"))
                 .withQueryParam("ncb", equalTo("1"))

@@ -25,7 +25,6 @@ public class EngagebdrTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromEngagebdr() throws IOException, JSONException {
         // given
-        // engagebdr bid response for imp 021
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/engagebdr-exchange"))
                 .withQueryParam("zoneid", equalTo("99999"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
@@ -33,7 +32,6 @@ public class EngagebdrTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/engagebdr/test-engagebdr-bid-response-1.json"))));
 
-        // engagebdr bid response for imp 022
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/engagebdr-exchange"))
                 .withQueryParam("zoneid", equalTo("88888"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

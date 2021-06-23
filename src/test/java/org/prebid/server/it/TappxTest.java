@@ -25,7 +25,6 @@ public class TappxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTappx() throws IOException, JSONException {
         // given
-        // tappx bid response for imp 12
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/tappx-exchange"))
                 .withQueryParam("tappxkey", equalTo("pub-12345-android-9876"))
                 .withQueryParam("v", equalTo("1.2"))

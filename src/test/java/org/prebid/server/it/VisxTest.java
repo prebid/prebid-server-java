@@ -23,7 +23,6 @@ public class VisxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromVisx() throws IOException, JSONException {
         // given
-        // VisxTest bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/visx-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/visx/test-visx-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/visx/test-visx-bid-response.json"))));

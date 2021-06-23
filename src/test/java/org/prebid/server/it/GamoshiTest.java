@@ -24,7 +24,6 @@ public class GamoshiTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromGamoshi() throws IOException, JSONException {
         // given
-        // Gamoshi bid response for imp 001 and 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/gamoshi-exchange/r/1701/bidr"))
                 .withQueryParam("bidder", equalTo("prebid-server"))
                 .withHeader("Accept", equalTo("application/json"))

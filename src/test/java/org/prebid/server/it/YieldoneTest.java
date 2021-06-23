@@ -24,7 +24,6 @@ public class YieldoneTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromYieldone() throws IOException, JSONException {
         // given
-        // Yieldone bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/yieldone-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))

@@ -25,7 +25,6 @@ public class BrightrollTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromBrightroll() throws IOException, JSONException {
         // given
-        // brightroll bid response for imp 15
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/brightroll-exchange"))
                 .withQueryParam("publisher", equalTo("businessinsider"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))

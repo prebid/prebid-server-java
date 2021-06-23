@@ -25,7 +25,6 @@ public class PubmaticTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromPubmatic() throws IOException, JSONException {
         // given
-        // pubmatic bid response for imp 9
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubmatic/test-pubmatic-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pubmatic/test-pubmatic-bid-response-1.json"))));
