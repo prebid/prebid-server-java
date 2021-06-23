@@ -14,42 +14,20 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
-import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
-import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
-import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
-import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
-import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
-import org.prebid.server.bidder.appnexus.proto.AppnexusReqExt;
-import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
-import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.appnexus.proto.*;
+import org.prebid.server.bidder.model.*;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.*;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -178,11 +156,15 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         final List<Imp> processedImps = new ArrayList<>();
         final Set<String> memberIds = new HashSet<>();
+        Boolean adPodId = null;
         for (final Imp imp : bidRequest.getImp()) {
             try {
                 final ImpWithMemberId impWithMemberId = makeImpWithMemberId(imp, defaultDisplayManagerVer);
                 processedImps.add(impWithMemberId.getImp());
                 memberIds.add(impWithMemberId.getMemberId());
+                if (adPodId == null) {
+                }
+                adPodId = imp.get
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
