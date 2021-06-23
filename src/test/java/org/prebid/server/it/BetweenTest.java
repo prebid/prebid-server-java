@@ -37,11 +37,6 @@ public class BetweenTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/between/test-between-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/between/test-between-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/between/test-cache-between-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/between/test-cache-between-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

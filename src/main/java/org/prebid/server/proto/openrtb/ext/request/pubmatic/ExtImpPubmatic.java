@@ -27,4 +27,8 @@ public class ExtImpPubmatic {
     ObjectNode wrapper;
 
     List<ExtImpPubmaticKeyVal> keywords;
+
+    String dctr;
+
+    String pmzoneid;
 }

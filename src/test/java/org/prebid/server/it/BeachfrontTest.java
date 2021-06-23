@@ -25,7 +25,6 @@ public class BeachfrontTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromBeachfront() throws IOException, JSONException {
         // given
-        // beachfront bid response for imp 02
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/beachfront-exchange/video"))
                 .withQueryParam("exchange_id", equalTo("beachfrontAppId"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
@@ -38,7 +37,6 @@ public class BeachfrontTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/beachfront/test-beachfront-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/beachfront/test-beachfront-bid-response-2.json"))));
 
-        // beachfront bid response for imp 01
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/beachfront-exchange/video"))
                 .withQueryParam("exchange_id", equalTo("beachfrontAppId1"))
                 .withQueryParam("prebidserver", equalTo(""))
@@ -52,7 +50,6 @@ public class BeachfrontTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/beachfront/test-beachfront-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/beachfront/test-beachfront-bid-response-1.json"))));
 
-        // beachfront bid response for imp 03
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/beachfront-exchange/banner"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -62,11 +59,6 @@ public class BeachfrontTest extends IntegrationTest {
                 .withHeader("DNT", equalTo("2"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/beachfront/test-beachfront-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/beachfront/test-beachfront-bid-response-3.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/beachfront/test-cache-beachfront-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/beachfront/test-cache-beachfront-response.json"))));
 
         // when
         final Response response = given(SPEC)

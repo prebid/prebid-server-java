@@ -11,13 +11,13 @@ public class VendorV1 {
     Integer id;
 
     @JsonProperty("purposeIds")
-    EnumSet<Purpose> purposeIds;
+    EnumSet<PurposeCode> purposeIds;
 
     @JsonProperty("legIntPurposeIds")
-    EnumSet<Purpose> legIntPurposeIds;
+    EnumSet<PurposeCode> legIntPurposeIds;
 
-    public EnumSet<Purpose> combinedPurposes() {
-        final EnumSet<Purpose> combinedPurposes = EnumSet.noneOf(Purpose.class);
+    public EnumSet<PurposeCode> combinedPurposes() {
+        final EnumSet<PurposeCode> combinedPurposes = EnumSet.noneOf(PurposeCode.class);
         if (purposeIds != null) {
             combinedPurposes.addAll(purposeIds);
         }

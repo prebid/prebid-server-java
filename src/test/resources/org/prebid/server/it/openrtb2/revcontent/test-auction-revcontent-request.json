@@ -50,17 +50,11 @@
           ]
         }
       },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      },
       "auctiontimestamp": 1000
     }
   },
   "user": {
-    "buyeruid" : "revcontent-UID"
+    "buyeruid": "revcontent-UID"
   },
   "regs": {
     "ext": {

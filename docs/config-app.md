@@ -118,16 +118,30 @@ Removes and downloads file again if depending service cant process probably corr
 There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
-- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if PBS server provides GDPR support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-ccpa` - indicates if PBS server provides CCPA support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.modifying-vast-xml-allowed` - indicates if PBS server is allowed to modify VAST creatives received from this bidder.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
-- `adapters.<BIDDER_NAME>.aliases` - comma separated aliases of bidder.
+- `adapters.<BIDDER_NAME>.meta-info.maintainer-email` - specifies maintainer e-mail address that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.app-media-types` - specifies media types supported for app requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.site-media-types` - specifies media types supported for site requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.supported-vendors` - specifies viewability vendors supported by the bidder.
+- `adapters.<BIDDER_NAME>.meta-info.vendor-id` - specifies TCF vendor ID.
 - `adapters.<BIDDER_NAME>.usersync.url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
-But feel free to add additional bidder's specific options.
+In addition, each bidder could have arbitrary aliases configured that will look and act very much the same as the bidder itself.
+Aliases are configured by adding child configuration object at `adapters.<BIDDER_NAME>.aliases.<BIDDER_ALIAS>.`, aliases 
+support the same configuration options that their bidder counterparts support except `aliases` (i.e. it's not possible 
+to declare alias of an alias). Another restriction of aliases configuration is that they cannot declare support for media types 
+not supported by their bidders (however aliases could narrow down media types they support). For example: if the bidder 
+is written to not support native site requests, then an alias cannot magically decide to change that; however, if a bidder 
+supports native site requests, and the alias does not want to for some reason, it has the ability to remove that support.
+
+Also, each bidder could have its own bidder-specific options.
 
 ## Logging
 - `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
@@ -365,3 +379,13 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
+
+## Analytics
+- `analytics.pubstack.enabled` - if equals to `true` the Pubstack analytics module will be enabled. Default value is `false`. 
+- `analytics.pubstack.endpoint` - url for reporting events and fetching configuration. 
+- `analytics.pubstack.scopeid` - defined the scope provided by the Pubstack Support Team.
+- `analytics.pubstack.configuration-refresh-delay-ms` - delay in milliseconds between remote config updates.
+- `analytics.pubstack.timeout-ms` - timeout in milliseconds for report and fetch config requests.
+- `analytics.pubstack.buffers.size-bytes` - threshold in bytes for buffer to send events. 
+- `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
+- `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.
