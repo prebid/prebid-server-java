@@ -29,6 +29,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -100,11 +101,11 @@ public class HttpBidderRequesterTest extends VertxTest {
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(), emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false).result();
+                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false)
+                        .result();
 
         // then
         assertThat(bidderSeatBid.getBids()).isEmpty();
@@ -121,11 +122,11 @@ public class HttpBidderRequesterTest extends VertxTest {
                 asList(BidderError.badInput("error1"), BidderError.badInput("error2"))));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false).result();
+                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false)
+                        .result();
 
         // then
         assertThat(bidderSeatBid.getBids()).isEmpty();
@@ -155,17 +156,20 @@ public class HttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
 
         // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false);
 
         // then
         verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), argThat(new MultiMapMatcher(headers)),
                 eq("requestBody"), eq(500L));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void shouldPassStoredResponseToBidderMakeBidsMethodAndReturnSeatBids() {
         // given
         final MultiMap headers = new CaseInsensitiveHeaders();
+        headers.add("header1", "value1");
+        headers.add("header2", "value2");
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -174,8 +178,6 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .headers(headers)
                         .build()),
                 emptyList()));
-        headers.add("header1", "value1");
-        headers.add("header2", "value2");
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
@@ -184,7 +186,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid = httpBidderRequester
-                .requestBids(bidder, bidderRequest, timeout, headers, false)
+                .requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false)
                 .result();
 
         // then
@@ -202,6 +204,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, null);
         final MultiMap headers = new CaseInsensitiveHeaders();
+        headers.add("header1", "value1");
+        headers.add("header2", "value2");
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -216,13 +220,11 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .headers(headers)
                         .build()),
                 emptyList()));
-        headers.add("header1", "value1");
-        headers.add("header2", "value2");
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", "storedResponse", BidRequest.builder().build());
 
         // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false).result();
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false);
 
         // then
         verify(httpClient, times(2)).request(any(), anyString(), any(), anyString(), anyLong());
@@ -241,10 +243,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false);
 
         // then
         verify(httpClient).request(any(), anyString(), any(), (String) isNull(), anyLong());
@@ -271,10 +272,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false);
 
         // then
         verify(httpClient, times(2)).request(any(), anyString(), any(), anyString(), anyLong());
@@ -298,11 +298,11 @@ public class HttpBidderRequesterTest extends VertxTest {
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false).result();
+                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false)
+                        .result();
 
         // then
         assertThat(bidderSeatBid.getBids()).containsOnlyElementsOf(bids);
@@ -333,11 +333,11 @@ public class HttpBidderRequesterTest extends VertxTest {
         given(bidder.makeBids(any(), any())).willReturn(Result.of(emptyList(), emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, true).result();
+                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), true)
+                        .result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
@@ -360,11 +360,11 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(bidder, bidderRequest, expiredTimeout, headers, true).result();
+                httpBidderRequester.requestBids(bidder, bidderRequest, expiredTimeout, CaseInsensitiveMultiMap.empty(),
+                        true).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -386,11 +386,11 @@ public class HttpBidderRequesterTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Request exception"));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, true).result();
+                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), true)
+                        .result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -412,7 +412,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final MultiMap headers = new CaseInsensitiveHeaders().set("Sec-GPC", "1");
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder().add("Sec-GPC", "1").build();
 
         // when
         httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
@@ -439,10 +439,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false);
 
         // then
         verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), headerCaptor.capture(), eq("requestBody"), eq(500L));
@@ -466,11 +465,11 @@ public class HttpBidderRequesterTest extends VertxTest {
         givenHttpClientReturnsResponses(HttpClientResponse.of(500, null, "responseBody1"));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, true).result();
+                httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), true)
+                        .result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -494,11 +493,11 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(bidder, bidderRequest, expiredTimeout, headers, false).result();
+                httpBidderRequester.requestBids(bidder, bidderRequest, expiredTimeout, CaseInsensitiveMultiMap.empty(),
+                        false).result();
 
         // then
         assertThat(bidderSeatBid.getErrors()).hasSize(1)
@@ -523,10 +522,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false);
 
         // then
         verify(bidderErrorNotifier).processTimeout(any(), same(bidder));
@@ -599,11 +597,10 @@ public class HttpBidderRequesterTest extends VertxTest {
                         singletonList(BidderError.badServerResponse("makeBidsError"))));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
         final BidderSeatBid bidderSeatBid = httpBidderRequester
-                .requestBids(bidder, bidderRequest, timeout, headers, false)
+                .requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false)
                 .result();
 
         // then
@@ -634,10 +631,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         givenHttpClientReturnsResponse(204, EMPTY);
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().test(1).build());
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
 
         // when
-        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, headers, false);
+        httpBidderRequester.requestBids(bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false);
 
         // then
         verify(bidder, never()).makeBids(any(), any());

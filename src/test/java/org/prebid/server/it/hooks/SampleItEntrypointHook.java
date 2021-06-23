@@ -1,7 +1,6 @@
 package org.prebid.server.it.hooks;
 
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.v1.InvocationContext;
@@ -9,6 +8,7 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 
 public class SampleItEntrypointHook implements EntrypointHook {
 
@@ -27,7 +27,7 @@ public class SampleItEntrypointHook implements EntrypointHook {
     private Future<InvocationResult<EntrypointPayload>> maybeUpdate(EntrypointPayload entrypointPayload) {
         final String updateSelector = entrypointPayload.queryParams().get("sample-it-module-update");
 
-        final MultiMap updatedHeaders = StringUtils.contains(updateSelector, "headers")
+        final CaseInsensitiveMultiMap updatedHeaders = StringUtils.contains(updateSelector, "headers")
                 ? updateHeaders(entrypointPayload.headers())
                 : entrypointPayload.headers();
 
@@ -41,10 +41,11 @@ public class SampleItEntrypointHook implements EntrypointHook {
                 updatedBody)));
     }
 
-    private static MultiMap updateHeaders(MultiMap headers) {
-        return MultiMap.caseInsensitiveMultiMap()
+    private static CaseInsensitiveMultiMap updateHeaders(CaseInsensitiveMultiMap headers) {
+        return CaseInsensitiveMultiMap.builder()
                 .addAll(headers)
-                .set("X-Forwarded-For", "222.111.222.111");
+                .add("X-Forwarded-For", "222.111.222.111")
+                .build();
     }
 
     private static String updateBody(String body) {

@@ -24,7 +24,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.util.HttpUtil;
@@ -121,7 +121,7 @@ public class VideoRequestFactory {
         return body;
     }
 
-    private Future<WithPodErrors<BidRequest>> createBidRequest(HttpRequestWrapper httpRequest) {
+    private Future<WithPodErrors<BidRequest>> createBidRequest(HttpRequestContext httpRequest) {
 
         final BidRequestVideo bidRequestVideo;
         try {
@@ -147,7 +147,7 @@ public class VideoRequestFactory {
      * <p>
      * Throws {@link InvalidRequestException} if body is empty, exceeds max request size or couldn't be deserialized.
      */
-    private BidRequestVideo parseRequest(HttpRequestWrapper httpRequest) {
+    private BidRequestVideo parseRequest(HttpRequestContext httpRequest) {
         try {
             final BidRequestVideo bidRequestVideo = mapper.decodeValue(httpRequest.getBody(), BidRequestVideo.class);
             return insertDeviceUa(httpRequest, bidRequestVideo);
@@ -156,7 +156,7 @@ public class VideoRequestFactory {
         }
     }
 
-    private BidRequestVideo insertDeviceUa(HttpRequestWrapper httpRequest, BidRequestVideo bidRequestVideo) {
+    private BidRequestVideo insertDeviceUa(HttpRequestContext httpRequest, BidRequestVideo bidRequestVideo) {
         final Device device = bidRequestVideo.getDevice();
         final String deviceUa = device != null ? device.getUa() : null;
         if (StringUtils.isBlank(deviceUa)) {
@@ -225,7 +225,7 @@ public class VideoRequestFactory {
         return returnObject;
     }
 
-    private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(HttpRequestWrapper httpRequest,
+    private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(HttpRequestContext httpRequest,
                                                                         WithPodErrors<BidRequest> bidRequestToErrors) {
         final BidRequest bidRequest = bidRequestToErrors.getData();
         final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver);

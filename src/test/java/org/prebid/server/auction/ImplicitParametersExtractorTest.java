@@ -2,15 +2,14 @@ package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.util.HttpUtil;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,23 +24,20 @@ public class ImplicitParametersExtractorTest {
 
     private ImplicitParametersExtractor extractor;
 
-    private HttpRequestWrapper httpRequest;
-
     @Before
     public void setUp() {
-        // minimal request
-        httpRequest = HttpRequestWrapper.builder()
-                .queryParams(new CaseInsensitiveHeaders())
-                .headers(new CaseInsensitiveHeaders())
-                .build();
-
         extractor = new ImplicitParametersExtractor(psl);
     }
 
     @Test
     public void refererFromShouldReturnRefererFromRefererHeader() {
         // given
-        httpRequest.getHeaders().set(HttpUtil.REFERER_HEADER, "http://example.com");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.REFERER_HEADER, "http://example.com")
+                        .build())
+                .queryParams(CaseInsensitiveMultiMap.empty())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://example.com");
@@ -50,8 +46,14 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void refererFromShouldReturnRefererFromRefererHeaderIfUrlOverrideParamBlank() {
         // given
-        httpRequest.getHeaders().set(HttpUtil.REFERER_HEADER, "http://example.com");
-        httpRequest.getQueryParams().set("url_override", "");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.REFERER_HEADER, "http://example.com")
+                        .build())
+                .queryParams(CaseInsensitiveMultiMap.builder()
+                        .add("url_override", "")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://example.com");
@@ -60,7 +62,11 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void refererFromShouldReturnRefererFromRequestParamIfUrlOverrideParamExists() {
         // given
-        httpRequest.getQueryParams().set("url_override", "http://exampleoverrride.com");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .queryParams(CaseInsensitiveMultiMap.builder()
+                        .add("url_override", "http://exampleoverrride.com")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://exampleoverrride.com");
@@ -69,7 +75,11 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void refererFromShouldReturnRefererWithHttpSchemeIfUrlOverrideParamDoesNotContainScheme() {
         // given
-        httpRequest.getQueryParams().set("url_override", "example.com");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .queryParams(CaseInsensitiveMultiMap.builder()
+                        .add("url_override", "example.com")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://example.com");
@@ -78,7 +88,12 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void refererFromShouldReturnRefererWithHttpSchemeIfRefererHeaderDoesNotContainScheme() {
         // given
-        httpRequest.getHeaders().set(HttpUtil.REFERER_HEADER, "example.com");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.REFERER_HEADER, "example.com")
+                        .build())
+                .queryParams(CaseInsensitiveMultiMap.empty())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://example.com");
@@ -111,10 +126,11 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void ipFromShouldReturnIpFromHeadersAndRemoteAddress() {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders()
-                .set("True-Client-IP", "192.168.144.1 ")
-                .set("X-Forwarded-For", "192.168.144.2 , 192.168.144.3 ")
-                .set("X-Real-IP", "192.168.144.4 ");
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
+                .add("True-Client-IP", "192.168.144.1 ")
+                .add("X-Forwarded-For", "192.168.144.2 , 192.168.144.3 ")
+                .add("X-Real-IP", "192.168.144.4 ")
+                .build();
         final String remoteHost = "192.168.144.5";
 
         // when and then
@@ -125,8 +141,9 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void ipFromShouldNotReturnNullsAndEmptyValues() {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders()
-                .set("X-Real-IP", " ");
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
+                .add("X-Real-IP", " ")
+                .build();
         final String remoteHost = "192.168.144.5";
 
         // when and then
@@ -136,7 +153,11 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void uaFromShouldReturnUaFromUserAgentHeader() {
         // given
-        httpRequest.getHeaders().set(HttpUtil.USER_AGENT_HEADER, " user agent ");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.USER_AGENT_HEADER, " user agent ")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.uaFrom(httpRequest)).isEqualTo("user agent");
@@ -145,7 +166,11 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void secureFromShouldReturnOneIfXForwardedProtoIsHttps() {
         // given
-        httpRequest.getHeaders().set("X-Forwarded-Proto", "https");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add("X-Forwarded-Proto", "https")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.secureFrom(httpRequest)).isEqualTo(1);
@@ -154,8 +179,8 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void secureFromShouldReturnOneIfConnectedViaSSL() {
         // given
-        httpRequest = HttpRequestWrapper.builder()
-                .headers(MultiMap.caseInsensitiveMultiMap())
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.empty())
                 .scheme("https")
                 .build();
 
@@ -165,6 +190,9 @@ public class ImplicitParametersExtractorTest {
 
     @Test
     public void secureFromShouldReturnNull() {
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.empty())
+                .build();
         assertThat(extractor.secureFrom(httpRequest)).isNull();
     }
 }

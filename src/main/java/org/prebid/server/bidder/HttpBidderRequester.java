@@ -20,6 +20,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -70,8 +71,9 @@ public class HttpBidderRequester {
     public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
                                                  BidderRequest bidderRequest,
                                                  Timeout timeout,
-                                                 MultiMap requestHeaders,
+                                                 CaseInsensitiveMultiMap requestHeaders,
                                                  boolean debugEnabled) {
+
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
@@ -108,7 +110,7 @@ public class HttpBidderRequester {
     }
 
     private static <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
-                                                           MultiMap requestHeaders) {
+                                                           CaseInsensitiveMultiMap requestHeaders) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
                 .headers(enrichHeaders(httpRequest.getHeaders(), requestHeaders))
@@ -116,7 +118,10 @@ public class HttpBidderRequester {
                 .collect(Collectors.toList());
     }
 
-    private static MultiMap enrichHeaders(MultiMap bidderRequestHeaders, MultiMap originalRequestHeaders) {
+    private static MultiMap enrichHeaders(
+            MultiMap bidderRequestHeaders,
+            CaseInsensitiveMultiMap originalRequestHeaders) {
+
         // some bidders has headers on class level, so we create copy to not affect them
         final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);
 

@@ -41,8 +41,9 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -74,6 +75,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -106,29 +108,20 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private Ortb2RequestFactory target;
 
     @Mock
-    private RoutingContext routingContext;
-    @Mock
-    private HttpServerRequest httpServerRequest;
-    @Mock
     private Timeout timeout;
 
     private BidRequest defaultBidRequest;
-    private HttpRequestWrapper httpRequest;
+    private HttpRequestContext httpRequest;
     private HookExecutionContext hookExecutionContext;
 
     @Before
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        httpRequest = HttpRequestWrapper.builder()
-                .headers(headers)
+        httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.empty())
                 .build();
         hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
-
-        given(routingContext.request()).willReturn(httpServerRequest);
-        given(httpServerRequest.headers()).willReturn(headers);
-        given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
@@ -637,7 +630,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(timeoutFactory.create(anyLong(), anyLong())).willReturn(timeout);
 
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
-        given(uidsCookieService.parseFromRequest(any(HttpRequestWrapper.class))).willReturn(uidsCookie);
+        given(uidsCookieService.parseFromRequest(any(HttpRequestContext.class))).willReturn(uidsCookie);
 
         // when
         final AuctionContext result = target.enrichAuctionContext(
@@ -862,15 +855,23 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void executeEntrypointHooksShouldReturnExpectedHttpRequest() {
         // given
+        final RoutingContext routingContext = mock(RoutingContext.class);
+        final HttpServerRequest httpServerRequest = mock(HttpServerRequest.class);
+
+        given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap().add("test", "test"));
 
-        final MultiMap updatedQueryParam = MultiMap.caseInsensitiveMultiMap()
-                .add("urloverride", "overriddendomain.com");
-        final MultiMap headerParams = MultiMap.caseInsensitiveMultiMap()
-                .add("DHT", "1");
-
+        given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.absoluteURI()).willReturn("absoluteUri");
         given(httpServerRequest.scheme()).willReturn("https");
+        given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
+
+        final CaseInsensitiveMultiMap updatedQueryParam = CaseInsensitiveMultiMap.builder()
+                .add("urloverride", "overriddendomain.com")
+                .build();
+        final CaseInsensitiveMultiMap headerParams = CaseInsensitiveMultiMap.builder()
+                .add("DHT", "1")
+                .build();
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
@@ -885,13 +886,13 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 AuctionContext.builder().hookExecutionContext(hookExecutionContext).build();
 
         // when
-        final Future<HttpRequestWrapper> result = target.executeEntrypointHooks(routingContext, "", auctionContext);
+        final Future<HttpRequestContext> result = target.executeEntrypointHooks(routingContext, "", auctionContext);
 
         // then
-        final HttpRequestWrapper httpRequest = result.result();
+        final HttpRequestContext httpRequest = result.result();
         assertThat(httpRequest.getAbsoluteUri()).isEqualTo("absoluteUri");
-        assertThat(httpRequest.getQueryParams()).isEqualTo(updatedQueryParam);
-        assertThat(httpRequest.getHeaders()).isEqualTo(headerParams);
+        assertThat(httpRequest.getQueryParams()).isSameAs(updatedQueryParam);
+        assertThat(httpRequest.getHeaders()).isSameAs(headerParams);
         assertThat(httpRequest.getBody()).isEqualTo("{\"app\":{\"bundle\":\"org.company.application\"}}");
         assertThat(httpRequest.getScheme()).isEqualTo("https");
         assertThat(httpRequest.getRemoteHost()).isEqualTo("host");
@@ -900,6 +901,13 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfEntrypointHooksRejectedRequest() {
         // given
+        final RoutingContext routingContext = mock(RoutingContext.class);
+        final HttpServerRequest httpServerRequest = mock(HttpServerRequest.class);
+
+        given(routingContext.request()).willReturn(httpServerRequest);
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)));
 

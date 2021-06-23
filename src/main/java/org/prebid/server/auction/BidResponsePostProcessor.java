@@ -5,7 +5,7 @@ import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.proto.Uids;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 
 /**
@@ -24,7 +24,7 @@ public interface BidResponsePostProcessor {
      * @param account     {@link Account} fetched from request
      * @return a {@link Future} with (possibly modified) auction result
      */
-    Future<BidResponse> postProcess(HttpRequestWrapper httpRequest,
+    Future<BidResponse> postProcess(HttpRequestContext httpRequest,
                                     UidsCookie uidsCookie,
                                     BidRequest bidRequest,
                                     BidResponse bidResponse,
@@ -42,7 +42,7 @@ public interface BidResponsePostProcessor {
      */
     class NoOpBidResponsePostProcessor implements BidResponsePostProcessor {
         @Override
-        public Future<BidResponse> postProcess(HttpRequestWrapper httpRequest,
+        public Future<BidResponse> postProcess(HttpRequestContext httpRequest,
                                                UidsCookie uidsCookie,
                                                BidRequest bidRequest,
                                                BidResponse bidResponse,

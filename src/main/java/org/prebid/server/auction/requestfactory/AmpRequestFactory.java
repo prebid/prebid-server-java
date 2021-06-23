@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -30,8 +29,9 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -149,7 +149,7 @@ public class AmpRequestFactory {
      * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> parseBidRequest(HttpRequestWrapper httpRequest) {
+    private Future<BidRequest> parseBidRequest(HttpRequestContext httpRequest) {
         final String tagId = httpRequest.getQueryParams().get(TAG_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(tagId)) {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
@@ -181,7 +181,7 @@ public class AmpRequestFactory {
         final Account account = auctionContext.getAccount();
         final String accountId = account != null ? account.getId() : null;
 
-        final HttpRequestWrapper httpRequest = auctionContext.getHttpRequest();
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
@@ -233,7 +233,7 @@ public class AmpRequestFactory {
      * - Sets {@link BidRequest}.test = 1 if it was passed in {@link RoutingContext}
      * - Updates {@link BidRequest}.ext.prebid.amp.data with all query parameters
      */
-    private BidRequest fillExplicitParameters(BidRequest bidRequest, HttpRequestWrapper httpRequest) {
+    private BidRequest fillExplicitParameters(BidRequest bidRequest, HttpRequestContext httpRequest) {
         final List<Imp> imps = bidRequest.getImp();
         // Force HTTPS as AMP requires it, but pubs can forget to set it.
         final Imp imp = imps.get(0);
@@ -309,7 +309,7 @@ public class AmpRequestFactory {
     /**
      * Returns debug flag from request query string if it is equal to either 0 or 1, or null if otherwise.
      */
-    private static Integer debugFromQueryStringParam(HttpRequestWrapper httpRequest) {
+    private static Integer debugFromQueryStringParam(HttpRequestContext httpRequest) {
         final String debug = httpRequest.getQueryParams().get(DEBUG_REQUEST_PARAM);
         return Objects.equals(debug, "1") ? Integer.valueOf(1) : Objects.equals(debug, "0") ? 0 : null;
     }
@@ -317,7 +317,7 @@ public class AmpRequestFactory {
     /**
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
-    private BidRequest overrideParameters(BidRequest bidRequest, HttpRequestWrapper httpRequest, List<String> errors) {
+    private BidRequest overrideParameters(BidRequest bidRequest, HttpRequestContext httpRequest, List<String> errors) {
         final String requestConsentParam = httpRequest.getQueryParams().get(CONSENT_PARAM);
         final String requestGdprConsentParam = httpRequest.getQueryParams().get(GDPR_CONSENT_PARAM);
         final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
@@ -397,7 +397,7 @@ public class AmpRequestFactory {
         }
     }
 
-    private Site overrideSite(Site site, HttpRequestWrapper httpRequest) {
+    private Site overrideSite(Site site, HttpRequestContext httpRequest) {
         final String canonicalUrl = canonicalUrl(httpRequest);
         final String accountId = httpRequest.getQueryParams().get(ACCOUNT_REQUEST_PARAM);
 
@@ -431,7 +431,7 @@ public class AmpRequestFactory {
         return null;
     }
 
-    private static String canonicalUrl(HttpRequestWrapper httpRequest) {
+    private static String canonicalUrl(HttpRequestContext httpRequest) {
         try {
             return HttpUtil.decodeUrl(httpRequest.getQueryParams().get(CURL_REQUEST_PARAM));
         } catch (IllegalArgumentException e) {
@@ -439,7 +439,7 @@ public class AmpRequestFactory {
         }
     }
 
-    private Imp overrideImp(Imp imp, HttpRequestWrapper httpRequest, ObjectNode targetingNode) {
+    private Imp overrideImp(Imp imp, HttpRequestContext httpRequest, ObjectNode targetingNode) {
         final String tagId = httpRequest.getQueryParams().get(SLOT_REQUEST_PARAM);
         final Banner banner = imp.getBanner();
         final List<Format> overwrittenFormats = banner != null
@@ -458,7 +458,7 @@ public class AmpRequestFactory {
     /**
      * Creates formats from request parameters to override origin amp banner formats.
      */
-    private static List<Format> createOverrideBannerFormats(HttpRequestWrapper httpRequest, List<Format> formats) {
+    private static List<Format> createOverrideBannerFormats(HttpRequestContext httpRequest, List<Format> formats) {
         final int overrideWidth = parseIntParamOrZero(httpRequest, OW_REQUEST_PARAM);
         final int width = parseIntParamOrZero(httpRequest, W_REQUEST_PARAM);
         final int overrideHeight = parseIntParamOrZero(httpRequest, OH_REQUEST_PARAM);
@@ -473,7 +473,7 @@ public class AmpRequestFactory {
                 : updateFormatsFromParams(formats, width, height);
     }
 
-    private static Integer parseIntParamOrZero(HttpRequestWrapper httpRequest, String name) {
+    private static Integer parseIntParamOrZero(HttpRequestContext httpRequest, String name) {
         return parseIntOrZero(httpRequest.getQueryParams().get(name));
     }
 
@@ -538,7 +538,7 @@ public class AmpRequestFactory {
                 : banner;
     }
 
-    private static Long overrideTimeout(Long tmax, HttpRequestWrapper httpRequest) {
+    private static Long overrideTimeout(Long tmax, HttpRequestContext httpRequest) {
         final String timeoutQueryParam = httpRequest.getQueryParams().get(TIMEOUT_REQUEST_PARAM);
         if (timeoutQueryParam == null) {
             return null;
@@ -623,11 +623,11 @@ public class AmpRequestFactory {
         return formats;
     }
 
-    private static Map<String, String> updateAmpData(ExtRequestPrebid prebid, HttpRequestWrapper httpRequest) {
+    private static Map<String, String> updateAmpData(ExtRequestPrebid prebid, HttpRequestContext httpRequest) {
         final ExtRequestPrebidAmp amp = prebid != null ? prebid.getAmp() : null;
         final Map<String, String> existingAmpData = amp != null ? amp.getData() : null;
 
-        final MultiMap queryParams = httpRequest.getQueryParams();
+        final CaseInsensitiveMultiMap queryParams = httpRequest.getQueryParams();
         if (queryParams.isEmpty()) {
             return null;
         }

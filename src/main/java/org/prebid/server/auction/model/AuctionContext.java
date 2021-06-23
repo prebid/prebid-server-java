@@ -9,7 +9,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.metric.MetricName;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
 
@@ -20,7 +20,7 @@ import java.util.Map;
 @Value
 public class AuctionContext {
 
-    HttpRequestWrapper httpRequest;
+    HttpRequestContext httpRequest;
 
     UidsCookie uidsCookie;
 

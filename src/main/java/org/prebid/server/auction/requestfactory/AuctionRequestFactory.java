@@ -16,7 +16,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 
 import java.io.IOException;
@@ -117,7 +117,7 @@ public class AuctionRequestFactory {
         return body;
     }
 
-    private Future<BidRequest> parseBidRequest(HttpRequestWrapper httpRequest, List<String> errors) {
+    private Future<BidRequest> parseBidRequest(HttpRequestContext httpRequest, List<String> errors) {
         try {
             final JsonNode bidRequestNode = bodyAsJsonNode(httpRequest.getBody());
 
@@ -153,7 +153,7 @@ public class AuctionRequestFactory {
     private Future<BidRequest> updateBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final HttpRequestWrapper httpRequest = auctionContext.getHttpRequest();
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
                 .map(resolvedBidRequest -> paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver))

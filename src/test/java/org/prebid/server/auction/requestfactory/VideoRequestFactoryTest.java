@@ -31,7 +31,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
-import org.prebid.server.model.HttpRequestWrapper;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -94,7 +95,9 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
 
         given(routingContext.request()).willReturn(httpServerRequest);
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
+        given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
@@ -205,9 +208,10 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.USER_AGENT_HEADER, "user-agent-123"));
 
-        doAnswer(invocation -> Future.succeededFuture(HttpRequestWrapper.builder()
-                .headers(MultiMap.caseInsensitiveMultiMap()
-                        .add(HttpUtil.USER_AGENT_HEADER, "user-agent-456"))
+        doAnswer(invocation -> Future.succeededFuture(HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.USER_AGENT_HEADER, "user-agent-456")
+                        .build())
                 .body(body)
                 .build()))
                 .when(ortb2RequestFactory)
@@ -361,14 +365,21 @@ public class VideoRequestFactoryTest extends VertxTest {
         return invocationOnMock -> invocationOnMock.getArguments()[0];
     }
 
-    private static Future<HttpRequestWrapper> toHttpRequest(RoutingContext routingContext, String body) {
-        return Future.succeededFuture(HttpRequestWrapper.builder()
+    private static Future<HttpRequestContext> toHttpRequest(RoutingContext routingContext, String body) {
+        return Future.succeededFuture(HttpRequestContext.builder()
                 .absoluteUri(routingContext.request().absoluteURI())
-                .queryParams(routingContext.queryParams())
-                .headers(routingContext.request().headers())
+                .queryParams(toCaseInsensitiveMultiMap(routingContext.queryParams()))
+                .headers(toCaseInsensitiveMultiMap(routingContext.request().headers()))
                 .body(body)
                 .scheme(routingContext.request().scheme())
                 .remoteHost(routingContext.request().remoteAddress().host())
                 .build());
+    }
+
+    private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {
+        final CaseInsensitiveMultiMap.Builder mapBuilder = CaseInsensitiveMultiMap.builder();
+        originalMap.entries().forEach(entry -> mapBuilder.add(entry.getKey(), entry.getValue()));
+
+        return mapBuilder.build();
     }
 }
