@@ -25,7 +25,6 @@ public class AdtargetTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdtarget() throws IOException, JSONException {
         // given
-        // Adtarget bid response for imp 14
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtarget-exchange"))
                 .withQueryParam("aid", equalTo("1000"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -33,12 +32,6 @@ public class AdtargetTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adtarget/test-adtarget-bid-request-1.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/adtarget/test-adtarget-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adtarget/test-cache-adtarget-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/adtarget/test-cache-adtarget-response.json"))));
 
         // when
         final Response response = given(SPEC)

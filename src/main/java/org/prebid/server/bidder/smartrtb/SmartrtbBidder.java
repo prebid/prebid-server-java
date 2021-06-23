@@ -72,7 +72,6 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                         ? validImp.toBuilder().tagid(zoneId).build()
                         : imp;
                 validImps.add(updatedImp);
-
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }

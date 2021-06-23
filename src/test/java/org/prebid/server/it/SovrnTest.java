@@ -27,7 +27,6 @@ public class SovrnTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSovrn() throws IOException, JSONException {
         // given
-        // sovrn bid response for imp 13
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -38,11 +37,6 @@ public class SovrnTest extends IntegrationTest {
                 .withCookie("ljt_reader", equalTo("990011"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/sovrn/test-sovrn-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/sovrn/test-sovrn-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/sovrn/test-cache-sovrn-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/sovrn/test-cache-sovrn-response.json"))));
 
         // when
         final Response response = given(SPEC)

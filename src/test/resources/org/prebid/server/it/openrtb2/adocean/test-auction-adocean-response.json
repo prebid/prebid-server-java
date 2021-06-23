@@ -15,6 +15,8 @@
             "prebid": {
               "type": "banner",
               "targeting": {
+                "hb_env": "mobile-app",
+                "hb_env_adocean": "mobile-app",
                 "hb_pb": "10.00",
                 "hb_cache_host_adocean": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
@@ -34,7 +36,9 @@
                   "cacheId": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce"
                 }
               }
-            }
+            },
+            "origbidcpm": 10,
+            "origbidcur": "EUR"
           }
         }
       ],
@@ -48,7 +52,7 @@
       "httpcalls": {
         "adocean": [
           {
-            "uri": "{{ adocean.exchange_uri }}/_10000000/ad.json?pbsrv_v=1.1.0&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3AimpId12&gdpr_consent=consentValue&gdpr=1&hcuserid=AO-UID&aosspsizes=myaozpniqismex%7E300x250",
+            "uri": "{{ adocean.exchange_uri }}/_10000000/ad.json?pbsrv_v=1.2.0&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3AimpId12&gdpr_consent=consentValue&gdpr=1&hcuserid=AO-UID&app=1&appname=appname&appbundle=appbundle&appdomain=appdomain&ifa=ifaId&devos=devos&devosv=devosv&devmodel=devmodel&devmake=devmake&aosspsizes=myaozpniqismex%7E300x250",
             "responsebody": "[{\"id\":\"adoceanmyaozpniqismex\",\"price\":\"10\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"},{\"id\":\"adoceanmyaozpniqismexs\",\"price\":\"12\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"}]",
             "status": 200
           }
@@ -56,7 +60,7 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"adoceanmyaozpniqismex\",\"impid\":\"impId12\",\"price\":10,\"adm\":\" <script> +function() { var wu = \\\"https://win-url.com\\\"; var su = \\\"https://stats-url.com\\\".replace(/\\\\[TIMESTAMP\\\\]/, Date.now()); if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); </script>  <!-- code 1 --> \",\"crid\":\"0af345b42983cc4bc0\",\"w\":300,\"h\":250}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"adoceanmyaozpniqismex\",\"impid\":\"impId12\",\"price\":10,\"adm\":\" <script> +function() { var wu = \\\"https://win-url.com\\\"; var su = \\\"https://stats-url.com\\\".replace(/\\\\[TIMESTAMP\\\\]/, Date.now()); if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); </script>  <!-- code 1 --> \",\"crid\":\"0af345b42983cc4bc0\",\"w\":300,\"h\":250,\"ext\":{\"origbidcpm\":10,\"origbidcur\":\"EUR\"}}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"ca2a4dd3-f974-4eff-be5c-986bf4e083ce\"}]}",
             "status": 200
           }
@@ -88,20 +92,14 @@
             }
           }
         ],
-        "site": {
-          "domain": "example.com",
-          "page": "http://www.example.com",
-          "publisher": {
-            "id": "publisherId"
-          },
-          "ext": {
-            "amp": 0
-          }
-        },
         "device": {
           "ua": "userAgent",
           "dnt": 2,
           "ip": "193.168.244.1",
+          "make": "devmake",
+          "model": "devmodel",
+          "os": "devos",
+          "osv": "devosv",
           "pxratio": 4.2,
           "language": "en",
           "ifa": "ifaId"
@@ -114,6 +112,11 @@
         },
         "test": 1,
         "at": 1,
+        "app": {
+          "name": "appname",
+          "bundle": "appbundle",
+          "domain": "appdomain"
+        },
         "tmax": 5000,
         "cur": [
           "EUR"
@@ -160,7 +163,7 @@
             },
             "auctiontimestamp": 1000,
             "channel": {
-              "name": "web"
+              "name": "app"
             }
           }
         }

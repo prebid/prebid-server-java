@@ -13,7 +13,7 @@
       },
       "ext": {
         "mobfoxpb": {
-          "TagID": "extTagId"
+          "key": "someKey"
         }
       }
     },
@@ -44,8 +44,8 @@
     "ifa": "ifaId"
   },
   "site": {
-    "domain" : "example.com",
-    "page" : "http://www.example.com",
+    "domain": "example.com",
+    "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
     },
@@ -73,12 +73,6 @@
               "increment": 0.1
             }
           ]
-        }
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
         }
       },
       "auctiontimestamp": 1000

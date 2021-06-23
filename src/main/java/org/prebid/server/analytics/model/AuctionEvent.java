@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Represents a transaction at /openrtb2/auction endpoint.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class AuctionEvent {
 

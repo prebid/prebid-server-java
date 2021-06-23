@@ -24,18 +24,12 @@ public class AdopplerTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdoppler() throws IOException, JSONException {
         // given
-        // Adoppler bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adoppler-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withHeader("X-OpenRTB-Version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adoppler/test-adoppler-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adoppler/test-adoppler-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adoppler/test-cache-adoppler-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adoppler/test-cache-adoppler-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -52,7 +46,6 @@ public class AdopplerTest extends IntegrationTest {
                 "openrtb2/adoppler/test-auction-adoppler-response.json",
                 response, singletonList("adoppler"));
 
-        String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

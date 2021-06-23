@@ -32,11 +32,6 @@ public class SmaatoTest extends IntegrationTest {
                         .withHeader("X-SMT-ADTYPE", "Img")
                         .withBody(jsonFrom("openrtb2/smaato/test-smaato-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/smaato/test-cache-smaato-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/smaato/test-cache-smaato-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
@@ -53,7 +48,6 @@ public class SmaatoTest extends IntegrationTest {
                 "openrtb2/smaato/test-auction-smaato-response.json",
                 response, singletonList("smaato"));
 
-        final String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

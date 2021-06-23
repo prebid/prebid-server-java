@@ -39,7 +39,6 @@
   },
   "ext": {
     "prebid": {
-      "debug": 1,
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -49,12 +48,6 @@
               "increment": 0.1
             }
           ]
-        }
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
         }
       },
       "auctiontimestamp": 1000

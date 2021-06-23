@@ -33,7 +33,6 @@ import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudien
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +108,7 @@ public class SomoaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnCorrectRequestBodyAndUri() throws IOException {
+    public void makeHttpRequestsShouldReturnCorrectRequestBodyAndUri() {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
                 givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
@@ -195,7 +194,6 @@ public class SomoaudienceBidderTest extends VertxTest {
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("ignoring imp id=impId, error while decoding");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-
                 });
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly("http://somoaudience.com?s=placementId");
@@ -372,7 +370,6 @@ public class SomoaudienceBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = somoaudienceBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Failed to decode: ");

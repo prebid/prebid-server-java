@@ -50,7 +50,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Executes stored request processing.
+ * Executes stored request processing for video.
  */
 public class VideoStoredRequestProcessor {
 
@@ -132,9 +132,10 @@ public class VideoStoredRequestProcessor {
     /**
      * Fetches ParsedStoredDataResult&lt;BidRequestVideo, Imp&gt; from stored request.
      */
-    Future<WithPodErrors<BidRequest>> processVideoRequest(String accountId, String storedBidRequestId,
-                                                          Set<String> podIds,
-                                                          BidRequestVideo receivedRequest) {
+    public Future<WithPodErrors<BidRequest>> processVideoRequest(String accountId,
+                                                                 String storedBidRequestId,
+                                                                 Set<String> podIds,
+                                                                 BidRequestVideo receivedRequest) {
         final Set<String> storedRequestIds = StringUtils.isNotBlank(storedBidRequestId)
                 ? Collections.singleton(storedBidRequestId)
                 : Collections.emptySet();
@@ -147,8 +148,8 @@ public class VideoStoredRequestProcessor {
                         String.format("Stored request fetching failed: %s", exception.getMessage()))));
     }
 
-    private static BidRequest readBidRequest(
-            String defaultBidRequestPath, FileSystem fileSystem, JacksonMapper mapper) {
+    private static BidRequest readBidRequest(String defaultBidRequestPath, FileSystem fileSystem,
+                                             JacksonMapper mapper) {
 
         return StringUtils.isNotBlank(defaultBidRequestPath)
                 ? mapper.decodeValue(fileSystem.readFileBlocking(defaultBidRequestPath), BidRequest.class)

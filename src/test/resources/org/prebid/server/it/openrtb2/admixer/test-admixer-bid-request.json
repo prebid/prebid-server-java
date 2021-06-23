@@ -47,7 +47,8 @@
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "publisherId",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
@@ -104,12 +105,6 @@
               "increment": 0.1
             }
           ]
-        }
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
         }
       },
       "auctiontimestamp": 1000,
