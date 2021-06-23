@@ -1,13 +1,7 @@
 package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.*;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -103,6 +97,46 @@ public class IxBidderTest extends VertxTest {
                 .extracting(Site::getPublisher)
                 .extracting(Publisher::getId)
                 .containsOnly(SITE_ID);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetUserBuyerIdIfUserIsNotPresent() {
+        // given
+        final Banner banner = Banner.builder().w(100).h(200).build();
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(null),
+                impBuilder -> impBuilder.banner(banner));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsOnly("0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetUserBuyerIdIfNotPresent() {
+        // given
+        final Banner banner = Banner.builder().w(100).h(200).build();
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().build()),
+                impBuilder -> impBuilder.banner(banner));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsOnly("0");
     }
 
     @Test

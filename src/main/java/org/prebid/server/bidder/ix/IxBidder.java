@@ -3,17 +3,13 @@ package org.prebid.server.bidder.ix;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.*;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -119,17 +115,35 @@ public class IxBidder implements Bidder<BidRequest> {
                                                     ExtImpIx extImpIx) {
         final ArrayList<BidRequest> modifiedBidRequests = new ArrayList<>();
         final Site modifiedSite = modifySite(bidRequest.getSite(), extImpIx);
+        final User modifiedUser = modifyUser(bidRequest.getUser());
 
         final List<Imp> modifiedImps = modifyImps(imp);
         for (Imp modifiedImp : modifiedImps) {
             final BidRequest modifiedBidRequest = bidRequest.toBuilder()
                     .site(modifiedSite)
+                    .user(modifiedUser)
                     .imp(Collections.singletonList(modifiedImp))
                     .build();
             modifiedBidRequests.add(modifiedBidRequest);
         }
 
         return modifiedBidRequests;
+    }
+
+    /**
+     * IndexExchange does nothing if `buyerid` is not present on the request.
+     * This methods adds the default `0` buyerid. Maybe IX will add the IX UID to this adapter in the future.
+     *
+     * @param user user object for the current bid request
+     * @return the user with a default value for buyerid
+     * @see [https://kb.indexexchange.com/publishers/openrtb_integration/list_of_supported_openrtb_bid_request_fields_for_sellers.htm#User]
+     */
+    private static User modifyUser(User user) {
+        return user == null
+                ? User.builder().buyeruid("0").build()
+                : user.toBuilder()
+                .buyeruid(ObjectUtils.defaultIfNull(user.getBuyeruid(), "0"))
+                .build();
     }
 
     private static Site modifySite(Site site, ExtImpIx extImpIx) {
