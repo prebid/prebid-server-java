@@ -33,11 +33,6 @@ public class JixieTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/jixie/test-jixie-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/jixie/test-jixie-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/jixie/test-cache-jixie-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/jixie/test-cache-jixie-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

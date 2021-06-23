@@ -24,7 +24,6 @@ public class MobfoxpbTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromMobfoxpb() throws IOException, JSONException {
         // given
-        // Mobfoxpb bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/mobfoxpb-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -33,11 +32,6 @@ public class MobfoxpbTest extends IntegrationTest {
                 .withQueryParam("key", equalTo("someKey"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/mobfoxpb/test-mobfoxpb-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/mobfoxpb/test-mobfoxpb-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/mobfoxpb/test-cache-mobfoxpb-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/mobfoxpb/test-cache-mobfoxpb-response.json"))));
 
         // when
         final Response response = given(SPEC)

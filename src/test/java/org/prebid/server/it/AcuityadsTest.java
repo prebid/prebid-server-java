@@ -25,7 +25,6 @@ public class AcuityadsTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAcuityAds() throws IOException, JSONException {
         // given
-        // Acuityads bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/acuityads-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

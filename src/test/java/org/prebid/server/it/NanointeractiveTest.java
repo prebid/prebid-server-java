@@ -27,7 +27,6 @@ public class NanointeractiveTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromNanointeractive() throws IOException, JSONException {
         // given
-        // nanointeractive bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/nanointeractive-exchange/"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -39,13 +38,6 @@ public class NanointeractiveTest extends IntegrationTest {
                         jsonFrom("openrtb2/nanointeractive/test-nanointeractive-bid-request-1.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/nanointeractive/test-nanointeractive-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/nanointeractive/test-cache-nanointeractive-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/nanointeractive/test-cache-nanointeractive-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -63,7 +55,6 @@ public class NanointeractiveTest extends IntegrationTest {
                 "openrtb2/nanointeractive/test-auction-nanointeractive-response.json",
                 response, singletonList(NANOINTERACTIVE));
 
-        String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

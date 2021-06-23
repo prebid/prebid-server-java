@@ -18,23 +18,11 @@
               "type": "banner",
               "targeting": {
                 "hb_pb": "0.50",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_rtbhouse": "{{ cache.path }}",
                 "hb_size": "300x250",
-                "hb_cache_id_rtbhouse": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
                 "hb_bidder": "rtbhouse",
                 "hb_pb_rtbhouse": "0.50",
-                "hb_cache_id": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
-                "hb_cache_host": "{{ cache.host }}",
                 "hb_bidder_rtbhouse": "rtbhouse",
-                "hb_size_rtbhouse": "300x250",
-                "hb_cache_host_rtbhouse": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}a5d3a873-d06e-4f2f-8556-120e05d62b28",
-                  "cacheId": "a5d3a873-d06e-4f2f-8556-120e05d62b28"
-                }
+                "hb_size_rtbhouse": "300x250"
               }
             },
             "origbidcpm": 0.5
@@ -48,8 +36,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "rtbhouse": "{{ rtbhouse.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "rtbhouse": "{{ rtbhouse.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

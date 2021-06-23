@@ -24,17 +24,11 @@ public class YeahmobiTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromYeahmobi() throws IOException, JSONException {
         // given
-        // YeahmobiBidder bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/yeahmobi-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/yeahmobi/test-yeahmobi-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/yeahmobi/test-yeahmobi-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/yeahmobi/test-cache-yeahmobi-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/yeahmobi/test-cache-yeahmobi-response.json"))));
 
         // when
         final Response response = given(SPEC)

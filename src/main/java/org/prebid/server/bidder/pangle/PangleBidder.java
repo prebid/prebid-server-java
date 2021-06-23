@@ -17,12 +17,14 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pangle.model.BidExt;
+import org.prebid.server.bidder.pangle.model.NetworkIds;
 import org.prebid.server.bidder.pangle.model.PangleBidExt;
 import org.prebid.server.bidder.pangle.model.WrappedImpExtBidder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.pangle.ExtImpPangle;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -54,8 +56,9 @@ public class PangleBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final WrappedImpExtBidder extBidder = parseImpExt(imp);
+                final ExtImpPangle extImpPangle = extBidder.getBidder();
                 final Integer adType = resolveAdType(imp, extBidder);
-                final Imp modifiedImp = modifyImp(imp, adType, extBidder);
+                final Imp modifiedImp = modifyImp(imp, adType, extBidder, extImpPangle);
 
                 requests.add(createRequest(request, modifiedImp, extBidder.getBidder().getToken()));
             } catch (PreBidException e) {
@@ -101,11 +104,33 @@ public class PangleBidder implements Bidder<BidRequest> {
         throw new PreBidException("not a supported adtype");
     }
 
-    private Imp modifyImp(Imp imp, Integer adType, WrappedImpExtBidder extBidder) {
-        final WrappedImpExtBidder updatedImpExt = extBidder.toBuilder().adType(adType).build();
+    private Imp modifyImp(Imp imp, Integer adType, WrappedImpExtBidder extBidder, ExtImpPangle bidderImpExt) {
+        final NetworkIds modifiedNetworkIds = getNetworkIds(bidderImpExt);
+
+        final WrappedImpExtBidder updatedImpExt = extBidder.toBuilder()
+                .adType(adType)
+                .isPrebid(true)
+                .networkids(modifiedNetworkIds == null ? extBidder.getNetworkids() : modifiedNetworkIds)
+                .build();
+
         return imp.toBuilder()
                 .ext(mapper.mapper().convertValue(updatedImpExt, ObjectNode.class))
                 .build();
+    }
+
+    private static NetworkIds getNetworkIds(ExtImpPangle bidderImpExt) {
+        if (bidderImpExt != null) {
+            final String appid = bidderImpExt.getAppid();
+            final String placementid = bidderImpExt.getPlacementid();
+
+            if (StringUtils.isNotEmpty(appid) && StringUtils.isNotEmpty(placementid)) {
+                return NetworkIds.of(appid, placementid);
+            } else if (StringUtils.isNotEmpty(appid) || StringUtils.isNotEmpty(placementid)) {
+                throw new PreBidException("only one of appid or placementid is provided");
+            }
+        }
+
+        return null;
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request, Imp imp, String token) {
@@ -164,8 +189,6 @@ public class PangleBidder implements Bidder<BidRequest> {
         final BidType bidType;
         switch (adType) {
             case 1:
-                bidType = BidType.banner;
-                break;
             case 2:
                 bidType = BidType.banner;
                 break;
@@ -173,8 +196,6 @@ public class PangleBidder implements Bidder<BidRequest> {
                 bidType = BidType.xNative;
                 break;
             case 7:
-                bidType = BidType.video;
-                break;
             case 8:
                 bidType = BidType.video;
                 break;

@@ -23,25 +23,15 @@ public class DatablocksTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromDatablocks() throws IOException, JSONException {
         // given
-        // Datablocks bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/datablocks-exchange"))
                 .withQueryParam("sid", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/datablocks/test-datablocks-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/datablocks/test-datablocks-bid-response-1.json"))));
 
-        // Datablocks bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/datablocks-exchange"))
                 .withQueryParam("sid", equalTo("2"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/datablocks/test-datablocks-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/datablocks/test-datablocks-bid-response-2.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/datablocks/test-cache-datablocks-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/datablocks/test-cache-matcher-datablocks.json")));
 
         // when
         final Response response = given(SPEC)

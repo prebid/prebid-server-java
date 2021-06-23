@@ -55,7 +55,6 @@ public class AdoceanTest extends IntegrationTest {
                 "openrtb2/adocean/test-auction-adocean-response.json",
                 response, singletonList("adocean"));
 
-        String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

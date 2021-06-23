@@ -14,9 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
@@ -47,11 +45,6 @@ public class GammaTest extends IntegrationTest {
                 .withHeader("DNT", equalTo("2"))
                 .withRequestBody(absent())
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamma/test-gamma-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/gamma/test-cache-gamma-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamma/test-cache-gamma-response.json"))));
 
         // when
         final Response response = given(SPEC)
