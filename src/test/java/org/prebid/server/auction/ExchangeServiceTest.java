@@ -1599,7 +1599,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
@@ -1636,7 +1636,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), anyBoolean());
+        verify(httpBidderRequester).requestBids(any(), bidderRequestCaptor.capture(), any(), any(), anyBoolean());
         final List<BidderRequest> capturedBidRequests = bidderRequestCaptor.getAllValues();
         assertThat(capturedBidRequests)
                 .extracting(BidderRequest::getBidRequest)
