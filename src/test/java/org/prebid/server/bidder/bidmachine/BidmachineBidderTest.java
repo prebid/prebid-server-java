@@ -103,8 +103,7 @@ public class BidmachineBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://127.0.0.1/path/1");
     }
@@ -234,7 +233,8 @@ public class BidmachineBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).isEqualTo("ignoring bid id=null, request doesn't contain any valid impression with id=123");
+                    assertThat(error.getMessage()).isEqualTo(
+                            "ignoring bid id=null, request doesn't contain any valid impression with id=123");
                 });
         assertThat(result.getValue()).isEmpty();
     }
