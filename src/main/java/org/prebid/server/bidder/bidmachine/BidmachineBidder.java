@@ -109,12 +109,10 @@ public class BidmachineBidder implements Bidder<BidRequest> {
     private Imp modifyImp(Imp imp, ExtImpPrebid extPrebid) {
         if (extPrebid != null && Objects.equals(extPrebid.getIsRewardedInventory(), 1)) {
             final Banner banner = imp.getBanner();
-            final List<Integer> bannerBattr = banner == null ? null : banner.getBattr();
-            final List<Integer> resolvedBannerBattr = resolveBattrList(bannerBattr);
+            final List<Integer> resolvedBannerBattr = banner == null ? null : resolveBattrList(banner.getBattr());
 
             final Video video = imp.getVideo();
-            final List<Integer> videoBattr = video == null ? null : video.getBattr();
-            final List<Integer> resolvedVideoBattr = resolveBattrList(videoBattr);
+            final List<Integer> resolvedVideoBattr = video == null ? null : resolveBattrList(video.getBattr());
 
             if (resolvedBannerBattr != null || resolvedVideoBattr != null) {
                 final Imp.ImpBuilder impBuilder = imp.toBuilder();
@@ -133,8 +131,8 @@ public class BidmachineBidder implements Bidder<BidRequest> {
     }
 
     private static List<Integer> resolveBattrList(List<Integer> battr) {
-        if (battr != null && !hasRewardedBattr(battr)) {
-            final List<Integer> updatedBattr = new ArrayList<>(battr);
+        if (isMissedRewardedBattr(battr)) {
+            final List<Integer> updatedBattr = battr == null ? new ArrayList<>() : new ArrayList<>(battr);
             updatedBattr.add(16);
             return updatedBattr;
         }
@@ -142,14 +140,14 @@ public class BidmachineBidder implements Bidder<BidRequest> {
         return null;
     }
 
+    private static boolean isMissedRewardedBattr(List<Integer> battr) {
+        return battr == null || !battr.contains(16);
+    }
+
     private String buildEndpointUrl(ExtImpBidmachine extImpBidmachine) {
         return endpointUrl.replace("{{HOST}}", extImpBidmachine.getHost())
                 .replace("{{PATH}}", extImpBidmachine.getPath())
                 .replace("{{SELLER_ID}}", extImpBidmachine.getSellerId());
-    }
-
-    private static boolean hasRewardedBattr(List<Integer> battr) {
-        return battr.contains(16);
     }
 
     private ExtPrebid<ExtImpPrebid, ExtImpBidmachine> parseImpExt(Imp imp) {

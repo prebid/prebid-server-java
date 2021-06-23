@@ -72,8 +72,7 @@ public class BidmachineBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(
-                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
+                .contains(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
     }
 
     @Test
@@ -86,7 +85,9 @@ public class BidmachineBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidmachineBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .containsExactly("Missing bidder ext in impression with id: 123");
     }
 
     @Test
@@ -174,8 +175,7 @@ public class BidmachineBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .extracting(imps -> imps.get(0))
