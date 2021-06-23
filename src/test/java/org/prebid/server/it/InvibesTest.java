@@ -24,7 +24,6 @@ public class InvibesTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromInvibes() throws IOException, JSONException {
         // given
-        // InvibesBidder bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/invibes-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -33,11 +32,6 @@ public class InvibesTest extends IntegrationTest {
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/invibes/test-invibes-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/invibes/test-invibes-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/invibes/test-cache-invibes-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/invibes/test-cache-invibes-response.json"))));
 
         // when
         final Response response = given(SPEC)

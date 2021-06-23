@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -243,7 +244,7 @@ public class TcfDefinerServiceTest {
                 ipAddressHelper,
                 metrics);
 
-        final String vendorConsent = "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA";
+        final String vendorConsent = "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA";
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
@@ -254,10 +255,12 @@ public class TcfDefinerServiceTest {
         assertThat(result.result()).extracting(
                 TcfContext::getGdpr,
                 TcfContext::getConsentString,
+                TcfContext::getIsConsentValid,
                 TcfContext::getGeoInfo,
                 TcfContext::getInEea,
                 TcfContext::getIpAddress)
-                .containsExactly("1", "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA", null, null, null);
+                .containsExactly("1", "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+                        true, null, null, null);
         assertThat(result.result().getConsent()).isNotNull();
 
         verifyZeroInteractions(geoLocationService);
@@ -289,6 +292,7 @@ public class TcfDefinerServiceTest {
     @Test
     public void resolveTcfContextShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
         // given
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
         given(ipAddressHelper.maskIpv4(anyString())).willReturn("ip-masked");
 
         final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").country("ua").build();
@@ -384,6 +388,38 @@ public class TcfDefinerServiceTest {
                 .containsExactly("0", null, null, null, null);
 
         verifyZeroInteractions(geoLocationService);
+    }
+
+    @Test
+    public void resolveTcfContextShouldReturnTcfContextWithConsentValidAsTrue() {
+        // when
+        final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
+                Privacy.of("1", "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+                        null, null), null, null, MetricName.setuid, null,
+                null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result()).extracting(
+                TcfContext::getGdpr,
+                TcfContext::getConsentString,
+                TcfContext::getIsConsentValid)
+                .containsExactly("1", "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA", true);
+    }
+
+    @Test
+    public void resolveTcfContextShouldReturnTcfContextWithConsentValidAsFalse() {
+        // when
+        final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
+                Privacy.of("1", "invalid", null, null), null, null, MetricName.setuid, null, null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result()).extracting(
+                TcfContext::getGdpr,
+                TcfContext::getConsentString,
+                TcfContext::getIsConsentValid)
+                .containsExactly("1", "invalid", false);
     }
 
     @Test

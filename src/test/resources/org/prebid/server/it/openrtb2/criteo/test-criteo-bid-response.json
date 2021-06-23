@@ -1,0 +1,16 @@
+{
+  "id": "test-response-id",
+  "slots": [
+    {
+      "id": "e77e016a-091d-4cdb-a759-29d57a1ffa48",
+      "impid": "test-imp-id",
+      "zoneid": 123456,
+      "networkid": 78910,
+      "width": 250,
+      "height": 250,
+      "cpm": 0.5,
+      "creative": "<iframe id='789abc' name='789abc' src='http://creative-url.criteo.com'></iframe>",
+      "creativeid": "creative-123"
+    }
+  ]
+}

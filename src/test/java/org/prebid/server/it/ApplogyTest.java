@@ -24,26 +24,18 @@ public class ApplogyTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromApplogy() throws IOException, JSONException {
         // given
-        // Applogy bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/applogy-exchange/1234"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/applogy/test-applogy-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/applogy/test-applogy-bid-response-1.json"))));
 
-        // Applogy bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/applogy-exchange/12345"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/applogy/test-applogy-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/applogy/test-applogy-bid-response-2.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/applogy/test-cache-applogy-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName", "openrtb2/applogy/test-cache-matcher-applogy.json")));
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

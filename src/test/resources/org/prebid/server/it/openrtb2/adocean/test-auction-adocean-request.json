@@ -30,13 +30,16 @@
     "language": "en",
     "ifa": "ifaId",
     "ua": "userAgent",
-    "ip": "193.168.244.1"
+    "ip": "193.168.244.1",
+    "os": "devos",
+    "osv": "devosv",
+    "model": "devmodel",
+    "make": "devmake"
   },
-  "site": {
-    "publisher": {
-      "id": "publisherId",
-      "page": "http://www.example.com"
-    }
+  "app": {
+    "name": "appname",
+    "bundle": "appbundle",
+    "domain": "appdomain"
   },
   "at": 1,
   "tmax": 5000,

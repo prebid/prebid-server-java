@@ -24,7 +24,6 @@ public class SomoaudienceTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSomoaudience() throws IOException, JSONException {
         // given
-        // somoaudience bid response for imp 16 & 17
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId02"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -38,7 +37,6 @@ public class SomoaudienceTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/somoaudience/test-somoaudience-bid-response-1.json"))));
 
-        // somoaudience bid response for imp 18
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId03"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -52,7 +50,6 @@ public class SomoaudienceTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/somoaudience/test-somoaudience-bid-response-2.json"))));
 
-        // somoaudience bid response for imp 19
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId04"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -65,15 +62,6 @@ public class SomoaudienceTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/somoaudience/test-somoaudience-bid-response-3.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json")))
-                .willReturn(aResponse()
-                        .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/somoaudience/test-cache-matcher-somoaudience.json")));
 
         // when
         final Response response = given(SPEC)

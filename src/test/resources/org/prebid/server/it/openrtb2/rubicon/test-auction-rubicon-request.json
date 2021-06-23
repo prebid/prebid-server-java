@@ -1,0 +1,89 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "rubicon": {
+          "accountId": 2001,
+          "siteId": 3001,
+          "zoneId": 4001
+        }
+      }
+    }
+  ],
+  "site": {
+    "content": {
+      "data": [
+        {
+          "ext": {
+            "segtax": 1
+          },
+          "segment": [
+            {
+              "id": "segmentId1"
+            },
+            {
+              "id": "segmentId2"
+            }
+          ]
+        },
+        {
+          "ext": {
+            "segtax": 2
+          },
+          "segment": [
+            {
+              "id": "segmentId3"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "user": {
+    "data": [
+      {
+        "ext": {
+          "segtax": 3
+        },
+        "segment": [
+          {
+            "id": "segmentId4"
+          }
+        ]
+      }
+    ]
+  },
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        }
+      },
+      "cache": {
+        "bids": {}
+      },
+      "auctiontimestamp": 1000
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

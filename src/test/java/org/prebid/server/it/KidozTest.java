@@ -24,7 +24,6 @@ public class KidozTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromKidoz() throws IOException, JSONException {
         // given
-        // Kidoz bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/kidoz-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -32,20 +31,12 @@ public class KidozTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/kidoz/test-kidoz-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/kidoz/test-kidoz-bid-response-1.json"))));
 
-        // Kidoz bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/kidoz-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/kidoz/test-kidoz-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/kidoz/test-kidoz-bid-response-2.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(jsonFrom("openrtb2/kidoz/test-cache-kidoz-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/kidoz/test-cache-matcher-kidoz.json")));
 
         // when
         final Response response = given(SPEC)
@@ -62,7 +53,6 @@ public class KidozTest extends IntegrationTest {
                 "openrtb2/kidoz/test-auction-kidoz-response.json",
                 response, singletonList("kidoz"));
 
-        String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

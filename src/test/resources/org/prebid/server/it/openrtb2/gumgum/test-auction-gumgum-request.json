@@ -31,7 +31,7 @@
       },
       "ext": {
         "gumgum": {
-          "zone": "second_zone"
+          "pubId": 737
         }
       }
     },
@@ -55,7 +55,8 @@
       },
       "ext": {
         "gumgum": {
-          "zone": "third_zone"
+          "zone": "third_zone",
+          "irisid": "iris_6f9285823a48bne5"
         }
       }
     }
@@ -93,17 +94,11 @@
           ]
         }
       },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      },
       "auctiontimestamp": 1000
     }
   },
   "user": {
-    "buyeruid" : "GUM-UID",
+    "buyeruid": "GUM-UID",
     "ext": {
       "consent": "consentValue"
     }
