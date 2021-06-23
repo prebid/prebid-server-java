@@ -208,7 +208,6 @@ public class Ortb2RequestFactory {
                 .absoluteUri(routingContext.request().absoluteURI())
                 .queryParams(stageResult.getPayload().queryParams())
                 .headers(stageResult.getPayload().headers())
-                .cookies(routingContext.cookieMap())
                 .body(stageResult.getPayload().body())
                 .scheme(routingContext.request().scheme())
                 .remoteHost(routingContext.request().remoteAddress().host())

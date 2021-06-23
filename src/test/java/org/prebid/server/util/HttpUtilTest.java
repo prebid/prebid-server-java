@@ -2,12 +2,14 @@ package org.prebid.server.util;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 
 import java.util.Map;
@@ -129,7 +131,9 @@ public class HttpUtilTest {
     public void cookiesAsMapFromRequestShouldReturnExpectedResult() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
-                .cookies(singletonMap("name", Cookie.cookie("name", "value")))
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpHeaders.COOKIE, Cookie.cookie("name", "value").encode())
+                        .build())
                 .build();
 
         // when

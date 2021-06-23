@@ -2,6 +2,7 @@ package org.prebid.server.util;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
@@ -16,6 +17,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -25,7 +27,7 @@ import java.util.stream.Collectors;
 public final class HttpUtil {
 
     public static final String APPLICATION_JSON_CONTENT_TYPE =
-            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "="
+            HttpHeaderValues.APPLICATION_JSON + ";" + HttpHeaderValues.CHARSET + "="
                     + StandardCharsets.UTF_8.toString().toLowerCase();
 
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
@@ -122,8 +124,16 @@ public final class HttpUtil {
     }
 
     public static Map<String, String> cookiesAsMap(HttpRequestContext httpRequest) {
-        return httpRequest.getCookies().entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getValue()));
+        final String cookieHeader = httpRequest.getHeaders().get(HttpHeaders.COOKIE);
+        if (cookieHeader == null) {
+            return Collections.emptyMap();
+        }
+
+        return ServerCookieDecoder.STRICT.decode(cookieHeader).stream()
+                .collect(Collectors.toMap(
+                        io.netty.handler.codec.http.cookie.Cookie::name,
+                        io.netty.handler.codec.http.cookie.Cookie::value));
+
     }
 
     public static Map<String, String> cookiesAsMap(RoutingContext context) {
