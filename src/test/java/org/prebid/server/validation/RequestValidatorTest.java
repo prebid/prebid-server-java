@@ -1514,7 +1514,27 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode : bidder1");
+                .containsOnly(
+                        "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: 'bidder1'");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenEidsPermissionsBidderHasBlankValue() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(null,
+                                singletonList(
+                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList(" ")))))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: ' '");
     }
 
     @Test
