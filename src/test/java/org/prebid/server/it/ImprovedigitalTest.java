@@ -23,19 +23,11 @@ public class ImprovedigitalTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromImproveDigital() throws IOException, JSONException {
         // given
-        // Improvedigital bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/improvedigital-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/improvedigital/test-improvedigital-bid-request-1.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/improvedigital/test-improvedigital-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/improvedigital/test-cache-improvedigital-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/improvedigital/test-cache-improvedigital-response.json"))));
 
         // when
         final Response response = given(SPEC)

@@ -23,21 +23,12 @@ public class RhythmoneTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromRhythmone() throws IOException, JSONException {
-        // given
-        // rhythmone bid response for imp002
+        // given002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rhythmone-exchange/72721/0/mvo"))
                 .withQueryParam("z", equalTo("1r"))
                 .withQueryParam("s2s", equalTo("true"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rhythmone/test-rhythmone-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/rhythmone/test-rhythmone-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/rhythmone/test-cache-rhythmone-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/rhythmone/test-cache-matcher-rhythmone.json")));
 
         // when
         final Response response = given(SPEC)

@@ -38,10 +38,6 @@
         "includewinners": true,
         "includebidderkeys": true
       },
-      "cache": {
-        "bids": {},
-        "vastxml": {}
-      },
       "auctiontimestamp": 1000,
       "channel": {
         "name": "web"

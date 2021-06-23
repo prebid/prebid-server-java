@@ -80,7 +80,6 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
         // given
-        // rubicon bid response for imp 1
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withQueryParam("tk_xint", equalTo("dmbjs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
@@ -92,21 +91,18 @@ public class ApplicationTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
 
-        // rubicon bid response for imp 2
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
-        // appnexus bid response for imp 3
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
-        // appnexus bid response for imp 3 with alias parameters
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-2.json")))
@@ -183,7 +179,6 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void openrtb2MultiBidAuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
         // given
-        // rubicon bid response for imp 1
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
@@ -195,7 +190,6 @@ public class ApplicationTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus_multi_bid/test-rubicon-bid-response-1.json"))));
 
-        // appnexus bid response for imp 1
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-appnexus-bid-request-1.json")))

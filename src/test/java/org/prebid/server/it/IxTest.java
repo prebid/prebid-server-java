@@ -25,20 +25,13 @@ public class IxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromIx() throws IOException, JSONException {
         // given
-        // ix bid response for imp 6 with 300x250
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response-1.json"))));
 
-        // ix bid response for imp 6 with 600x480
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response-2.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-cache-ix-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-cache-ix-response.json"))));
 
         // when
         final Response response = given(SPEC)

@@ -34,11 +34,6 @@ public class AlgorixTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/algorix/test-algorix-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/algorix/test-algorix-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/algorix/test-cache-algorix-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/algorix/test-cache-algorix-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

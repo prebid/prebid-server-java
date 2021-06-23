@@ -63,9 +63,6 @@
         "includewinners": true,
         "includebidderkeys": true
       },
-      "cache": {
-        "bids": {}
-      },
       "auctiontimestamp": 1000,
       "channel": {
         "name": "web"

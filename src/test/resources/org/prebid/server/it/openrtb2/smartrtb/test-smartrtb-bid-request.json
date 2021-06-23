@@ -13,13 +13,6 @@
   },
   "ext": {
     "prebid": {
-      "cache": {
-        "bids": {
-        },
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      },
       "targeting": {
         "includebidderkeys": true,
         "includewinners": true,

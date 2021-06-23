@@ -16,35 +16,16 @@
           "crid": "crid002",
           "w": 300,
           "h": 250,
-          "exp": 120,
           "ext": {
             "prebid": {
               "type": "video",
               "targeting": {
-                "hb_cache_id_zeroclickfraud": "dbaa191c-5a56-4655-85eb-da079f94e09f",
                 "hb_bidder_zeroclickfraud": "zeroclickfraud",
-                "hb_cache_id": "dbaa191c-5a56-4655-85eb-da079f94e09f",
                 "hb_pb": "9.90",
-                "hb_cache_path_zeroclickfraud": "{{ cache.path }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_uuid": "62019cff-d657-42fc-8366-16c34e1fd28c",
                 "hb_size": "300x250",
-                "hb_cache_host_zeroclickfraud": "{{ cache.host }}",
                 "hb_size_zeroclickfraud": "300x250",
                 "hb_bidder": "zeroclickfraud",
-                "hb_uuid_zeroclickfraud": "62019cff-d657-42fc-8366-16c34e1fd28c",
-                "hb_cache_host": "{{ cache.host }}",
                 "hb_pb_zeroclickfraud": "9.90"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}dbaa191c-5a56-4655-85eb-da079f94e09f",
-                  "cacheId": "dbaa191c-5a56-4655-85eb-da079f94e09f"
-                },
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}62019cff-d657-42fc-8366-16c34e1fd28c",
-                  "cacheId": "62019cff-d657-42fc-8366-16c34e1fd28c"
-                }
               }
             },
             "origbidcpm": 9.99
@@ -65,23 +46,11 @@
               "type": "banner",
               "targeting": {
                 "hb_pb": "7.70",
-                "hb_cache_path_zeroclickfraud": "{{ cache.path }}",
-                "hb_cache_id_zeroclickfraud": "c1662cf6-f00a-4066-b71a-46d97abccc35",
-                "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x250",
-                "hb_cache_host_zeroclickfraud": "{{ cache.host }}",
                 "hb_size_zeroclickfraud": "300x250",
                 "hb_bidder_zeroclickfraud": "zeroclickfraud",
                 "hb_bidder": "zeroclickfraud",
-                "hb_cache_id": "c1662cf6-f00a-4066-b71a-46d97abccc35",
-                "hb_cache_host": "{{ cache.host }}",
                 "hb_pb_zeroclickfraud": "7.70"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}c1662cf6-f00a-4066-b71a-46d97abccc35",
-                  "cacheId": "c1662cf6-f00a-4066-b71a-46d97abccc35"
-                }
               }
             },
             "origbidcpm": 7.77
@@ -95,8 +64,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "zeroclickfraud": "{{ zeroclickfraud.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "zeroclickfraud": "{{ zeroclickfraud.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

@@ -25,7 +25,6 @@ public class SilvermobTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSilvermob() throws IOException, JSONException {
         // given
-        // Silvermob bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/silvermob-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
@@ -35,12 +34,6 @@ public class SilvermobTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/silvermob/test-silvermob-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/silvermob/test-silvermob-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/silvermob/test-cache-silvermob-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/silvermob/test-cache-silvermob-response.json"))));
 
         // when
         final Response response = given(SPEC)
