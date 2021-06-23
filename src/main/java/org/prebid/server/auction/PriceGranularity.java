@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Describes the behavior for price granularity feature.
@@ -110,7 +111,9 @@ public class PriceGranularity {
         }
 
         final BigDecimal rangeMax = ranges.stream()
+                .filter(Objects::nonNull)
                 .map(ExtGranularityRange::getMax)
+                .filter(Objects::nonNull)
                 .max(BigDecimal::compareTo)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Max value among all ranges was not found. Please check if ranges are valid"));
