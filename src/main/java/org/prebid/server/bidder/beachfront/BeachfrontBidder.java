@@ -64,6 +64,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static final BigDecimal MIN_BID_FLOOR = BigDecimal.valueOf(0.01);
     private static final int DEFAULT_VIDEO_WIDTH = 300;
     private static final int DEFAULT_VIDEO_HEIGHT = 250;
+    private static final BigDecimal ZERO = BigDecimal.ZERO;
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
@@ -160,8 +161,8 @@ public class BeachfrontBidder implements Bidder<Void> {
                 final ExtImpBeachfront extImpBeachfront = parseImpExt(imp);
                 final String appId = getAppId(extImpBeachfront, true);
 
-                slots.add(BeachfrontSlot.of(imp.getId(), appId, checkBidFloor(extImpBeachfront.getBidfloor()),
-                        makeBeachfrontSizes(imp.getBanner())));
+                slots.add(BeachfrontSlot.of(imp.getId(), appId, getBidFloor(
+                        extImpBeachfront.getBidfloor(), imp.getBidfloor()), makeBeachfrontSizes(imp.getBanner())));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -244,8 +245,20 @@ public class BeachfrontBidder implements Bidder<Void> {
         throw new PreBidException("unable to determine the appId(s) from the supplied extension");
     }
 
-    private static BigDecimal checkBidFloor(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(MIN_BID_FLOOR) > 0 ? bidFloor : BigDecimal.ZERO;
+    private static BigDecimal getBidFloor(BigDecimal extImpBeachfrontBidfloor, BigDecimal impBidfloor) {
+        extImpBeachfrontBidfloor = extImpBeachfrontBidfloor == null ? BigDecimal.ZERO : extImpBeachfrontBidfloor;
+        impBidfloor = impBidfloor == null ? BigDecimal.ZERO : impBidfloor;
+        BigDecimal resultFloor;
+
+        if (impBidfloor.compareTo(ZERO) > 0) {
+            resultFloor = impBidfloor;
+        } else if (extImpBeachfrontBidfloor.compareTo(ZERO) > 0) {
+            resultFloor = extImpBeachfrontBidfloor;
+        } else {
+            resultFloor = MIN_BID_FLOOR;
+        }
+
+        return resultFloor.compareTo(MIN_BID_FLOOR) < 0 ? MIN_BID_FLOOR : resultFloor;
     }
 
     /**
@@ -370,7 +383,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                     .banner(null)
                     .ext(null)
                     .secure(secure)
-                    .bidfloor(checkBidFloor(extImpBeachfront.getBidfloor()));
+                    .bidfloor(getBidFloor(extImpBeachfront.getBidfloor(), extImpBeachfront.getBidfloor()));
 
             final Video video = imp.getVideo();
             final Integer videoHeight = video.getH();
