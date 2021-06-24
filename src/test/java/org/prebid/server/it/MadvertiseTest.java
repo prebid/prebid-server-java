@@ -36,8 +36,6 @@ public class MadvertiseTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"madvertise":"MDV-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7Im1hZHZlcnRpc2UiOiJNRFYtVUlEIn19")
                 .body(jsonFrom("openrtb2/madvertise/test-auction-madvertise-request.json"))
                 .post("/openrtb2/auction");
 

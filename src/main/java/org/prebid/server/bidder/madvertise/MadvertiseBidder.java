@@ -10,7 +10,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -25,14 +24,11 @@ import org.prebid.server.proto.openrtb.ext.request.madvertise.ExtImpMadvertise;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -58,25 +54,24 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
-        final Set<String> zoneIds = new HashSet<>();
+        String zoneId = null;
 
         for (Imp imp : request.getImp()) {
+            final String impZoneId;
+
             try {
-                zoneIds.add(parseImpExt(imp).getZoneId());
+                impZoneId = parseImpExt(imp).getZoneId();
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
+            }
+
+            if (zoneId == null) {
+                zoneId = impZoneId;
+            } else if (!zoneId.equals(impZoneId)) {
+                return Result.withError(BidderError.badInput("There must be only one zone ID"));
             }
         }
 
-        final String zoneId = zoneIds.stream().findFirst().orElseThrow();
-        if (zoneIds.size() != 1) {
-            errors.add(BidderError.badInput("Ambiguous zone id provided"));
-        }
-
-        if (!errors.isEmpty()) {
-            return Result.withErrors(errors);
-        }
         return Result.withValue(createRequest(request, zoneId));
     }
 
@@ -99,16 +94,10 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
         }
 
-        if (StringUtils.isBlank(extImpMadvertise.getZoneId())) {
-            throw new PreBidException(String.format(
-                    "Required Madvertise ext parameter %s is missing in impression with id: %s",
-                    "zoneId", imp.getId()));
-        }
+        final String zoneId = extImpMadvertise.getZoneId();
 
-        if (extImpMadvertise.getZoneId().length() < ZONE_ID_MIN_LENGTH) {
-            throw new PreBidException(String.format(
-                    "Length on zoneId is less then min length of %s in impression with id: %s",
-                    ZONE_ID_MIN_LENGTH, imp.getId()));
+        if (zoneId == null || zoneId.length() < ZONE_ID_MIN_LENGTH) {
+            throw new PreBidException(String.format("The minLength of zone ID is 7; ImpID=%s", imp.getId()));
         }
         return extImpMadvertise;
     }
@@ -147,12 +136,18 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
     private static BidType getBidMediaType(Bid bid) {
         final List<Integer> videoBidAttrs = Arrays.asList(16, 6, 7);
+        final List<Integer> bidAttrs = bid.getAttr();
+
+        if (bidAttrs == null || bidAttrs.isEmpty()) {
+            return BidType.banner;
+        }
 
         for (int attr : bid.getAttr()) {
             if (videoBidAttrs.contains(attr)) {

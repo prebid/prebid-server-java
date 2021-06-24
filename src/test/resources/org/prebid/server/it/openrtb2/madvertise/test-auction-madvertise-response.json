@@ -24,7 +24,8 @@
                 "hb_bidder": "madvertise",
                 "hb_pb_madvertise": "3.30"
               }
-            }
+            },
+            "origbidcpm": 3.33
           }
         }
       ],
@@ -40,6 +41,6 @@
     "prebid": {
       "auctiontimestamp": 1000
     },
-    "tmaxrequest": 5000
+    "tmaxrequest": 2000
   }
 }
