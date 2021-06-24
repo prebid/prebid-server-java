@@ -42,7 +42,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
 
     private static final int ZONE_ID_MIN_LENGTH = 7;
     private static final String X_OPENRTB_VERSION = "2.5";
-    private static final String ZONE_ID_MACRO = "{{ZoneId}}";
+    private static final String ZONE_ID_MACRO = "{{ZoneID}}";
 
     private final JacksonMapper mapper;
     private final String endpointUrl;
@@ -87,17 +87,22 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
 
     private ExtImpMadvertise parseImpExt(Imp imp) {
         final ExtImpMadvertise extImpMadvertise;
+        final String impId = imp.getId();
 
         try {
             extImpMadvertise = mapper.mapper().convertValue(imp.getExt(), MADVERTISE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
+            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", impId));
+        }
+
+        if (extImpMadvertise == null) {
+            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", impId));
         }
 
         final String zoneId = extImpMadvertise.getZoneId();
 
         if (zoneId == null || zoneId.length() < ZONE_ID_MIN_LENGTH) {
-            throw new PreBidException(String.format("The minLength of zone ID is 7; ImpID=%s", imp.getId()));
+            throw new PreBidException(String.format("The minLength of zone ID is 7; ImpID=%s", impId));
         }
         return extImpMadvertise;
     }
