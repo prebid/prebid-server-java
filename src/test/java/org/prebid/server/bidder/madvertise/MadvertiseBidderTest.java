@@ -185,7 +185,6 @@ public class MadvertiseBidderTest extends VertxTest {
                 .containsExactly("https://mobile.mng-ads.com/bidrequestsomeZoneIdLongerThan7");
     }
 
-
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
@@ -249,7 +248,8 @@ public class MadvertiseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfSixAndSevenAndSixteenIsAbsentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfSixAndSevenAndSixteenIsAbsentInRequestImp()
+            throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().build()))
