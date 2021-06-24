@@ -136,6 +136,50 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @Test
+    public void creationShouldFailWhenHostExecutionPlanHasUnknownHook() {
+        final String hostPlan = executionPlan(singletonMap(
+                Endpoint.openrtb2_auction,
+                EndpointExecutionPlan.of(singletonMap(
+                        Stage.entrypoint, StageExecutionPlan.of(singletonList(
+                                ExecutionGroup.of(
+                                        200L,
+                                        asList(
+                                                HookId.of("module-alpha", "hook-a"),
+                                                HookId.of("module-beta", "hook-a")))))))));
+
+        given(hookCatalog.entrypointHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(null);
+
+        givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultImpl.noAction()));
+
+        assertThatThrownBy(() -> createExecutor(hostPlan))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Hooks execution plan contains unknown or disabled hook: "
+                        + "stage=entrypoint, hookId=HookId(moduleCode=module-alpha, hookImplCode=hook-a)");
+    }
+
+    @Test
+    public void creationShouldFailWhenDefaultAccountExecutionPlanHasUnknownHook() {
+        final String defaultAccountPlan = executionPlan(singletonMap(
+                Endpoint.openrtb2_auction,
+                EndpointExecutionPlan.of(singletonMap(
+                        Stage.entrypoint, StageExecutionPlan.of(singletonList(
+                                ExecutionGroup.of(
+                                        200L,
+                                        asList(
+                                                HookId.of("module-alpha", "hook-a"),
+                                                HookId.of("module-beta", "hook-a")))))))));
+
+        given(hookCatalog.entrypointHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(null);
+
+        givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultImpl.noAction()));
+
+        assertThatThrownBy(() -> createExecutor(null, defaultAccountPlan))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Hooks execution plan contains unknown or disabled hook: "
+                        + "stage=entrypoint, hookId=HookId(moduleCode=module-alpha, hookImplCode=hook-a)");
+    }
+
+    @Test
     public void shouldTolerateMissingHostAndDefaultAccountExecutionPlans() {
         // given
         final HookStageExecutor executor = createExecutor(null, null);

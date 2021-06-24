@@ -293,7 +293,7 @@ public class HookStageExecutor {
         final Object hook = hookByStageAndId(stage, hookId, hookCatalog);
         if (hook == null) {
             throw new IllegalArgumentException(String.format(
-                    "Hooks execution plan contains unknown hook: stage=%s, moduleId=%s", stage, hookId));
+                    "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s", stage, hookId));
         }
     }
 
