@@ -246,9 +246,9 @@ public class BeachfrontBidder implements Bidder<Void> {
     }
 
     private static BigDecimal getBidFloor(BigDecimal extImpBeachfrontBidfloor, BigDecimal impBidfloor) {
-        extImpBeachfrontBidfloor = extImpBeachfrontBidfloor == null ? BigDecimal.ZERO : extImpBeachfrontBidfloor;
-        impBidfloor = impBidfloor == null ? BigDecimal.ZERO : impBidfloor;
-        BigDecimal resultFloor;
+        extImpBeachfrontBidfloor = extImpBeachfrontBidfloor == null ? ZERO : extImpBeachfrontBidfloor;
+        impBidfloor = impBidfloor == null ? ZERO : impBidfloor;
+        final BigDecimal resultFloor;
 
         if (impBidfloor.compareTo(ZERO) > 0) {
             resultFloor = impBidfloor;
@@ -383,7 +383,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                     .banner(null)
                     .ext(null)
                     .secure(secure)
-                    .bidfloor(getBidFloor(extImpBeachfront.getBidfloor(), extImpBeachfront.getBidfloor()));
+                    .bidfloor(getBidFloor(extImpBeachfront.getBidfloor(), imp.getBidfloor()));
 
             final Video video = imp.getVideo();
             final Integer videoHeight = video.getH();
