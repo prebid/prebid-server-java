@@ -19,6 +19,7 @@ import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -203,6 +204,8 @@ public class AnalyticsReporterDelegator {
         final MetricName failedResult;
         if (exception instanceof TimeoutException || exception instanceof ConnectTimeoutException) {
             failedResult = MetricName.timeout;
+        } else if (exception instanceof InvalidRequestException) {
+            failedResult = MetricName.badinput;
         } else {
             failedResult = MetricName.err;
         }

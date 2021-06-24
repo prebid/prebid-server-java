@@ -35,7 +35,7 @@ public final class HttpUtil {
     public static final CharSequence X_REQUEST_AGENT_HEADER = HttpHeaders.createOptimized("X-Request-Agent");
     public static final CharSequence ORIGIN_HEADER = HttpHeaders.createOptimized("Origin");
     public static final CharSequence ACCEPT_HEADER = HttpHeaders.createOptimized("Accept");
-    public static final CharSequence SEC_GPC = HttpHeaders.createOptimized("Sec-GPC");
+    public static final CharSequence SEC_GPC_HEADER = HttpHeaders.createOptimized("Sec-GPC");
     public static final CharSequence CONTENT_TYPE_HEADER = HttpHeaders.createOptimized("Content-Type");
     public static final CharSequence X_REQUESTED_WITH_HEADER = HttpHeaders.createOptimized("X-Requested-With");
     public static final CharSequence REFERER_HEADER = HttpHeaders.createOptimized("Referer");
@@ -52,6 +52,7 @@ public final class HttpUtil {
     public static final CharSequence CONNECTION_HEADER = HttpHeaders.createOptimized("Connection");
     public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
+    public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
 
     private HttpUtil() {
     }

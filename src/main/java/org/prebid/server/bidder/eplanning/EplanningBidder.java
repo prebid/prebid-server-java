@@ -35,6 +35,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -110,15 +111,19 @@ public class EplanningBidder implements Bidder<Void> {
             return Result.withErrors(errors);
         }
 
-        final MultiMap headers = createHeaders(request.getDevice());
-        final String uri = resolveRequestUri(request, requestsStrings, clientId);
+        final String uri;
+        try {
+            uri = resolveRequestUri(request, requestsStrings, clientId);
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
                         .method(HttpMethod.GET)
                         .uri(uri)
+                        .headers(createHeaders(request.getDevice()))
                         .body(null)
-                        .headers(headers)
                         .payload(null)
                         .build()),
                 errors);
@@ -227,8 +232,14 @@ public class EplanningBidder implements Bidder<Void> {
 
         final String uri = endpointUrl + String.format("/%s/%s/%s/%s", clientId, DFP_CLIENT_ID, requestTarget, SEC);
 
-        final URIBuilder uriBuilder = new URIBuilder()
-                .setPath(uri)
+        final URIBuilder uriBuilder;
+        try {
+            uriBuilder = new URIBuilder(uri);
+        } catch (URISyntaxException e) {
+            throw new PreBidException(String.format("Invalid url: %s, error: %s", uri, e.getMessage()));
+        }
+
+        uriBuilder
                 .addParameter("r", "pbs")
                 .addParameter("ncb", "1");
 

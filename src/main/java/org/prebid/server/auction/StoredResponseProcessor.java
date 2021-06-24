@@ -166,7 +166,6 @@ public class StoredResponseProcessor {
     private Map<String, String> resolveStoredBidResponse(List<ExtStoredBidResponse> storedBidResponse) {
         return storedBidResponse.stream()
                 .collect(Collectors.toMap(ExtStoredBidResponse::getBidder, ExtStoredBidResponse::getId));
-
     }
 
     private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult,

@@ -156,9 +156,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             if (StringUtils.isBlank(extImpFacebook.getPublisherId())) {
                 throw new PreBidException("Missing publisherId param");
             }
-
             return extImpFacebook;
-
         } else if (splitLength == 2) {
             return ExtImpFacebook.of(placementSplit[1], placementSplit[0]);
         } else {
@@ -323,7 +321,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
                     .build();
 
             return BidderBid.of(modifiedBid, getBidType(modifiedBid.getImpid(), imps), currency);
-
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;

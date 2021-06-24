@@ -322,7 +322,6 @@ public class PurposeSevenStrategyTest {
                 singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
         verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
-
     }
 
     private static PrivacyEnforcementAction allowPurposeAndNaturally() {

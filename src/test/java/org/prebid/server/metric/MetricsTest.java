@@ -474,7 +474,7 @@ public class MetricsTest {
         metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_video, MetricName.err);
         metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_cookie_sync, MetricName.timeout);
         metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_notification, MetricName.err);
-        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_setuid, MetricName.ok);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_setuid, MetricName.badinput);
 
         // then
         assertThat(metricRegistry.counter("analytics.analyticCode.auction.ok").getCount()).isOne();
@@ -482,7 +482,7 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("analytics.analyticCode.video.err").getCount()).isOne();
         assertThat(metricRegistry.counter("analytics.analyticCode.cookie_sync.timeout").getCount()).isOne();
         assertThat(metricRegistry.counter("analytics.analyticCode.event.err").getCount()).isOne();
-        assertThat(metricRegistry.counter("analytics.analyticCode.setuid.ok").getCount()).isOne();
+        assertThat(metricRegistry.counter("analytics.analyticCode.setuid.badinput").getCount()).isOne();
     }
 
     @Test

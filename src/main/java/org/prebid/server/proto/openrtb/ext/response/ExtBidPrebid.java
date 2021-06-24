@@ -31,4 +31,6 @@ public class ExtBidPrebid {
     Events events;
 
     ExtBidPrebidVideo video;
+
+    ExtBidPrebidMeta meta;
 }
