@@ -16,7 +16,6 @@ for review and approval of the ported adapter:
 - audienceNetwork
 - conversant
 - ix
-- lifestreet
 - openx
 - pubmatic
 - pulsepoint
