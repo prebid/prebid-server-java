@@ -291,6 +291,7 @@ public class PubmaticBidderTest extends VertxTest {
                         )))
                         .build()))
                 .build();
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
@@ -318,6 +319,7 @@ public class PubmaticBidderTest extends VertxTest {
                         )))
                         .build()))
                 .build();
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
