@@ -646,6 +646,20 @@
       ]
     },
     {
+      "id": 67,
+      "name": "LifeStreet Corporation",
+      "policyUrl": "http://www.lifestreet.com/privacy/",
+      "purposeIds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legIntPurposeIds": [],
+      "featureIds": []
+    },
+    {
       "id": 33,
       "name": "ShareThis, Inc.",
       "policyUrl": "http://www.sharethis.com/privacy/",
