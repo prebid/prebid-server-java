@@ -230,24 +230,6 @@ public class MadvertiseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = madvertiseBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
-    }
-
-    @Test
     public void makeBidsShouldReturnBannerBidIfSixAndSevenAndSixteenIsAbsentInRequestImp()
             throws JsonProcessingException {
         // given
