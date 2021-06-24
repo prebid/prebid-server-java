@@ -46,9 +46,11 @@ import org.prebid.server.settings.model.AccountHooksConfiguration;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -89,9 +91,12 @@ public class HookStageExecutor {
                                            JacksonMapper mapper) {
 
         return new HookStageExecutor(
-                parseExecutionPlan(hostExecutionPlan, Objects.requireNonNull(mapper)),
-                parseExecutionPlan(defaultAccountExecutionPlan, mapper),
-                Objects.requireNonNull(hookCatalog),
+                parseAndValidateExecutionPlan(
+                        hostExecutionPlan,
+                        Objects.requireNonNull(mapper),
+                        Objects.requireNonNull(hookCatalog)),
+                parseAndValidateExecutionPlan(defaultAccountExecutionPlan, mapper, hookCatalog),
+                hookCatalog,
                 Objects.requireNonNull(timeoutFactory),
                 Objects.requireNonNull(vertx),
                 Objects.requireNonNull(clock));
@@ -261,6 +266,49 @@ public class HookStageExecutor {
 
         return this.<PAYLOAD, CONTEXT>stageExecutor(stage, entity, context)
                 .withExecutionPlan(planForStage(account, endpoint, stage));
+    }
+
+    private static ExecutionPlan parseAndValidateExecutionPlan(
+            String executionPlan,
+            JacksonMapper mapper,
+            HookCatalog hookCatalog) {
+
+        return validateExecutionPlan(parseExecutionPlan(executionPlan, mapper), hookCatalog);
+    }
+
+    private static ExecutionPlan validateExecutionPlan(ExecutionPlan plan, HookCatalog hookCatalog) {
+        plan.getEndpoints().values().stream()
+                .map(EndpointExecutionPlan::getStages)
+                .map(Map::entrySet)
+                .flatMap(Collection::stream)
+                .forEach(stageToPlan -> stageToPlan.getValue().getGroups().stream()
+                        .map(ExecutionGroup::getHookSequence)
+                        .flatMap(Collection::stream)
+                        .forEach(hookId -> validateHookId(stageToPlan.getKey(), hookId, hookCatalog)));
+
+        return plan;
+    }
+
+    private static void validateHookId(Stage stage, HookId hookId, HookCatalog hookCatalog) {
+        final Object hook = hookByStageAndId(stage, hookId, hookCatalog);
+        if (hook == null) {
+            throw new IllegalArgumentException(String.format(
+                    "Hooks execution plan contains unknown hook: stage=%s, moduleId=%s", stage, hookId));
+        }
+    }
+
+    private static Object hookByStageAndId(Stage stage, HookId hookId, HookCatalog hookCatalog) {
+        final EnumMap<Stage, BiFunction<String, String, ?>> hookProvidersByStage = new EnumMap<>(Stage.class);
+
+        hookProvidersByStage.put(Stage.entrypoint, hookCatalog::entrypointHookBy);
+        hookProvidersByStage.put(Stage.raw_auction_request, hookCatalog::rawAuctionRequestHookBy);
+        hookProvidersByStage.put(Stage.processed_auction_request, hookCatalog::processedAuctionRequestHookBy);
+        hookProvidersByStage.put(Stage.bidder_request, hookCatalog::bidderRequestHookBy);
+        hookProvidersByStage.put(Stage.raw_bidder_response, hookCatalog::rawBidderResponseHookBy);
+        hookProvidersByStage.put(Stage.processed_bidder_response, hookCatalog::processedBidderResponseHookBy);
+        hookProvidersByStage.put(Stage.auction_response, hookCatalog::auctionResponseHookBy);
+
+        return hookProvidersByStage.get(stage).apply(hookId.getModuleCode(), hookId.getHookImplCode());
     }
 
     private static ExecutionPlan parseExecutionPlan(String executionPlan, JacksonMapper mapper) {
