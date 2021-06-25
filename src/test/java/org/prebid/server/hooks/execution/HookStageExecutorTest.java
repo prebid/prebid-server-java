@@ -44,6 +44,7 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
+import org.prebid.server.hooks.execution.model.StageWithHookType;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
@@ -147,7 +148,8 @@ public class HookStageExecutorTest extends VertxTest {
                                                 HookId.of("module-alpha", "hook-a"),
                                                 HookId.of("module-beta", "hook-a")))))))));
 
-        given(hookCatalog.entrypointHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(null);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.ENTRYPOINT)))
+                .willReturn(null);
 
         givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultImpl.noAction()));
 
@@ -169,7 +171,8 @@ public class HookStageExecutorTest extends VertxTest {
                                                 HookId.of("module-alpha", "hook-a"),
                                                 HookId.of("module-beta", "hook-a")))))))));
 
-        given(hookCatalog.entrypointHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(null);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.ENTRYPOINT)))
+                .willReturn(null);
 
         givenEntrypointHook("module-beta", "hook-a", immediateHook(InvocationResultImpl.noAction()));
 
@@ -1057,10 +1060,14 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final EntrypointHookImpl hookImpl = spy(
                 EntrypointHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.entrypointHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.entrypointHookBy(eq("module-alpha"), eq("hook-b"))).willReturn(hookImpl);
-        given(hookCatalog.entrypointHookBy(eq("module-beta"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.entrypointHookBy(eq("module-beta"), eq("hook-b"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.ENTRYPOINT)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.ENTRYPOINT)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.ENTRYPOINT)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.ENTRYPOINT)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -1119,7 +1126,8 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final RawAuctionRequestHookImpl hookImpl = spy(
                 RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.noAction())));
-        given(hookCatalog.rawAuctionRequestHookBy(anyString(), anyString())).willReturn(hookImpl);
+        given(hookCatalog.hookById(anyString(), anyString(), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
 
         final String hostPlan = executionPlan(singletonMap(
                 Endpoint.openrtb2_auction,
@@ -1150,8 +1158,10 @@ public class HookStageExecutorTest extends VertxTest {
                     assertThat(payload.bidRequest()).isSameAs(bidRequest));
 
             verify(hookImpl, times(2)).call(any(), any());
-            verify(hookCatalog, times(2)).rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-a"));
-            verify(hookCatalog, times(2)).rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-b"));
+            verify(hookCatalog, times(2))
+                    .hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
+            verify(hookCatalog, times(2))
+                    .hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
 
             async.complete();
         }));
@@ -1164,7 +1174,8 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final RawAuctionRequestHookImpl hookImpl = spy(
                 RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.noAction())));
-        given(hookCatalog.rawAuctionRequestHookBy(anyString(), anyString())).willReturn(hookImpl);
+        given(hookCatalog.hookById(anyString(), anyString(), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
 
         final String hostPlan = executionPlan(singletonMap(
                 Endpoint.openrtb2_auction,
@@ -1206,9 +1217,12 @@ public class HookStageExecutorTest extends VertxTest {
                     assertThat(payload.bidRequest()).isSameAs(bidRequest));
 
             verify(hookImpl, times(2)).call(any(), any());
-            verify(hookCatalog, times(2)).rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-a"));
-            verify(hookCatalog).rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-b"));
-            verify(hookCatalog).rawAuctionRequestHookBy(eq("module-beta"), eq("hook-b"));
+            verify(hookCatalog, times(2))
+                    .hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
+            verify(hookCatalog)
+                    .hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
+            verify(hookCatalog)
+                    .hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST));
 
             async.complete();
         }));
@@ -1219,7 +1233,7 @@ public class HookStageExecutorTest extends VertxTest {
     @Test
     public void shouldExecuteRawAuctionRequestHooksToleratingUnknownHookInAccountPlan(TestContext context) {
         // given
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-a")))
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(null);
 
         givenRawAuctionRequestHook(
@@ -1376,10 +1390,14 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final RawAuctionRequestHookImpl hookImpl = spy(
                 RawAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-b"))).willReturn(hookImpl);
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-beta"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-beta"), eq("hook-b"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -1465,12 +1483,18 @@ public class HookStageExecutorTest extends VertxTest {
                                     .build()));
                     return promise.future();
                 }));
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-b"))).willReturn(hookImpl);
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-alpha"), eq("hook-c"))).willReturn(hookImpl);
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-beta"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-beta"), eq("hook-b"))).willReturn(hookImpl);
-        given(hookCatalog.rawAuctionRequestHookBy(eq("module-beta"), eq("hook-c"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-c"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-c"), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -1652,10 +1676,14 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final ProcessedAuctionRequestHookImpl hookImpl = spy(
                 ProcessedAuctionRequestHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-alpha"), eq("hook-b"))).willReturn(hookImpl);
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-beta"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-beta"), eq("hook-b"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -1742,12 +1770,18 @@ public class HookStageExecutorTest extends VertxTest {
                                     .build()));
                     return promise.future();
                 }));
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-alpha"), eq("hook-b"))).willReturn(hookImpl);
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-alpha"), eq("hook-c"))).willReturn(hookImpl);
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-beta"), eq("hook-a"))).willReturn(hookImpl);
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-beta"), eq("hook-b"))).willReturn(hookImpl);
-        given(hookCatalog.processedAuctionRequestHookBy(eq("module-beta"), eq("hook-c"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-c"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-a"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-b"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-beta"), eq("hook-c"), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -1937,7 +1971,8 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final BidderRequestHookImpl hookImpl = spy(
                 BidderRequestHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.bidderRequestHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.BIDDER_REQUEST)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2094,7 +2129,8 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final RawBidderResponseHookImpl hookImpl = spy(
                 RawBidderResponseHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.rawBidderResponseHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.RAW_BIDDER_RESPONSE)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2259,7 +2295,8 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final ProcessedBidderResponseHookImpl hookImpl = spy(
                 ProcessedBidderResponseHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.processedBidderResponseHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.PROCESSED_BIDDER_RESPONSE)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2416,7 +2453,8 @@ public class HookStageExecutorTest extends VertxTest {
         // given
         final AuctionResponseHookImpl hookImpl = spy(
                 AuctionResponseHookImpl.of(immediateHook(InvocationResultImpl.succeeded(identity()))));
-        given(hookCatalog.auctionResponseHookBy(eq("module-alpha"), eq("hook-a"))).willReturn(hookImpl);
+        given(hookCatalog.hookById(eq("module-alpha"), eq("hook-a"), eq(StageWithHookType.AUCTION_RESPONSE)))
+                .willReturn(hookImpl);
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -2526,7 +2564,7 @@ public class HookStageExecutorTest extends VertxTest {
             String hookImplCode,
             BiFunction<EntrypointPayload, InvocationContext, Future<InvocationResult<EntrypointPayload>>> delegate) {
 
-        given(hookCatalog.entrypointHookBy(eq(moduleCode), eq(hookImplCode)))
+        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.ENTRYPOINT)))
                 .willReturn(EntrypointHookImpl.of(delegate));
     }
 
@@ -2538,7 +2576,7 @@ public class HookStageExecutorTest extends VertxTest {
                     AuctionInvocationContext,
                     Future<InvocationResult<AuctionRequestPayload>>> delegate) {
 
-        given(hookCatalog.rawAuctionRequestHookBy(eq(moduleCode), eq(hookImplCode)))
+        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.RAW_AUCTION_REQUEST)))
                 .willReturn(RawAuctionRequestHookImpl.of(delegate));
     }
 
@@ -2550,7 +2588,7 @@ public class HookStageExecutorTest extends VertxTest {
                     AuctionInvocationContext,
                     Future<InvocationResult<AuctionRequestPayload>>> delegate) {
 
-        given(hookCatalog.processedAuctionRequestHookBy(eq(moduleCode), eq(hookImplCode)))
+        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.PROCESSED_AUCTION_REQUEST)))
                 .willReturn(ProcessedAuctionRequestHookImpl.of(delegate));
     }
 
@@ -2562,7 +2600,7 @@ public class HookStageExecutorTest extends VertxTest {
                     BidderInvocationContext,
                     Future<InvocationResult<BidderRequestPayload>>> delegate) {
 
-        given(hookCatalog.bidderRequestHookBy(eq(moduleCode), eq(hookImplCode)))
+        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.BIDDER_REQUEST)))
                 .willReturn(BidderRequestHookImpl.of(delegate));
     }
 
@@ -2574,7 +2612,7 @@ public class HookStageExecutorTest extends VertxTest {
                     BidderInvocationContext,
                     Future<InvocationResult<BidderResponsePayload>>> delegate) {
 
-        given(hookCatalog.rawBidderResponseHookBy(eq(moduleCode), eq(hookImplCode)))
+        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.RAW_BIDDER_RESPONSE)))
                 .willReturn(RawBidderResponseHookImpl.of(delegate));
     }
 
@@ -2586,7 +2624,7 @@ public class HookStageExecutorTest extends VertxTest {
                     BidderInvocationContext,
                     Future<InvocationResult<BidderResponsePayload>>> delegate) {
 
-        given(hookCatalog.processedBidderResponseHookBy(eq(moduleCode), eq(hookImplCode)))
+        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.PROCESSED_BIDDER_RESPONSE)))
                 .willReturn(ProcessedBidderResponseHookImpl.of(delegate));
     }
 
@@ -2598,7 +2636,7 @@ public class HookStageExecutorTest extends VertxTest {
                     AuctionInvocationContext,
                     Future<InvocationResult<AuctionResponsePayload>>> delegate) {
 
-        given(hookCatalog.auctionResponseHookBy(eq(moduleCode), eq(hookImplCode)))
+        given(hookCatalog.hookById(eq(moduleCode), eq(hookImplCode), eq(StageWithHookType.AUCTION_RESPONSE)))
                 .willReturn(AuctionResponseHookImpl.of(delegate));
     }
 

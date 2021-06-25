@@ -20,6 +20,7 @@ import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
+import org.prebid.server.hooks.execution.model.StageWithHookType;
 import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -28,6 +29,7 @@ import org.prebid.server.hooks.execution.v1.bidder.BidderInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
+import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
@@ -46,11 +48,9 @@ import org.prebid.server.settings.model.AccountHooksConfiguration;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -110,11 +110,10 @@ public class HookStageExecutor {
 
         final Endpoint endpoint = context.getEndpoint();
 
-        return this.<EntrypointPayload, InvocationContext>stageExecutor(Stage.entrypoint, ENTITY_HTTP_REQUEST, context)
+        return this
+                .stageExecutor(StageWithHookType.ENTRYPOINT, ENTITY_HTTP_REQUEST, context)
                 .withExecutionPlan(planForEntrypointStage(endpoint))
                 .withInitialPayload(EntrypointPayloadImpl.of(queryParams, headers, body))
-                .withHookProvider(hookId ->
-                        hookCatalog.entrypointHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
                 .withRejectAllowed(true)
                 .execute();
@@ -128,14 +127,11 @@ public class HookStageExecutor {
         final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
-        final Stage stage = Stage.raw_auction_request;
 
         return this
-                .<AuctionRequestPayload, AuctionInvocationContext>stageExecutor(
-                        stage, ENTITY_AUCTION_REQUEST, context, account, endpoint)
+                .stageExecutor(
+                        StageWithHookType.RAW_AUCTION_REQUEST, ENTITY_AUCTION_REQUEST, context, account, endpoint)
                 .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
-                .withHookProvider(hookId ->
-                        hookCatalog.rawAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(true)
                 .execute();
@@ -149,14 +145,11 @@ public class HookStageExecutor {
         final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
-        final Stage stage = Stage.processed_auction_request;
 
         return this
-                .<AuctionRequestPayload, AuctionInvocationContext>stageExecutor(
-                        stage, ENTITY_AUCTION_REQUEST, context, account, endpoint)
+                .stageExecutor(
+                        StageWithHookType.PROCESSED_AUCTION_REQUEST, ENTITY_AUCTION_REQUEST, context, account, endpoint)
                 .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
-                .withHookProvider(hookId ->
-                        hookCatalog.processedAuctionRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(true)
                 .execute();
@@ -171,14 +164,10 @@ public class HookStageExecutor {
         final String bidder = bidderRequest.getBidder();
 
         final Endpoint endpoint = context.getEndpoint();
-        final Stage stage = Stage.bidder_request;
 
         return this
-                .<BidderRequestPayload, BidderInvocationContext>stageExecutor(
-                        stage, bidder, context, account, endpoint)
+                .stageExecutor(StageWithHookType.BIDDER_REQUEST, bidder, context, account, endpoint)
                 .withInitialPayload(BidderRequestPayloadImpl.of(bidderRequest.getBidRequest()))
-                .withHookProvider(hookId ->
-                        hookCatalog.bidderRequestHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
                 .execute();
@@ -195,14 +184,10 @@ public class HookStageExecutor {
         final String bidder = bidderResponse.getBidder();
 
         final Endpoint endpoint = context.getEndpoint();
-        final Stage stage = Stage.raw_bidder_response;
 
         return this
-                .<BidderResponsePayload, BidderInvocationContext>stageExecutor(
-                        stage, bidder, context, account, endpoint)
+                .stageExecutor(StageWithHookType.RAW_BIDDER_RESPONSE, bidder, context, account, endpoint)
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
-                .withHookProvider(hookId ->
-                        hookCatalog.rawBidderResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
                 .execute();
@@ -219,14 +204,10 @@ public class HookStageExecutor {
         final String bidder = bidderResponse.getBidder();
 
         final Endpoint endpoint = context.getEndpoint();
-        final Stage stage = Stage.processed_bidder_response;
 
         return this
-                .<BidderResponsePayload, BidderInvocationContext>stageExecutor(
-                        stage, bidder, context, account, endpoint)
+                .stageExecutor(StageWithHookType.PROCESSED_BIDDER_RESPONSE, bidder, context, account, endpoint)
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
-                .withHookProvider(hookId ->
-                        hookCatalog.processedBidderResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
                 .execute();
@@ -240,32 +221,36 @@ public class HookStageExecutor {
         final HookExecutionContext context = auctionContext.getHookExecutionContext();
 
         final Endpoint endpoint = context.getEndpoint();
-        final Stage stage = Stage.auction_response;
 
-        return this.<AuctionResponsePayload, AuctionInvocationContext>stageExecutor(
-                stage, ENTITY_AUCTION_RESPONSE, context, account, endpoint)
+        return this
+                .stageExecutor(StageWithHookType.AUCTION_RESPONSE, ENTITY_AUCTION_RESPONSE, context, account, endpoint)
                 .withInitialPayload(AuctionResponsePayloadImpl.of(bidResponse))
-                .withHookProvider(hookId ->
-                        hookCatalog.auctionResponseHookBy(hookId.getModuleCode(), hookId.getHookImplCode()))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(false)
                 .execute();
     }
 
     private <PAYLOAD, CONTEXT extends InvocationContext> StageExecutor<PAYLOAD, CONTEXT> stageExecutor(
-            Stage stage, String entity, HookExecutionContext context) {
+            StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage,
+            String entity,
+            HookExecutionContext context) {
 
-        return StageExecutor.<PAYLOAD, CONTEXT>create(vertx, clock)
+        return StageExecutor.<PAYLOAD, CONTEXT>create(hookCatalog, vertx, clock)
                 .withStage(stage)
                 .withEntity(entity)
                 .withHookExecutionContext(context);
     }
 
     private <PAYLOAD, CONTEXT extends InvocationContext> StageExecutor<PAYLOAD, CONTEXT> stageExecutor(
-            Stage stage, String entity, HookExecutionContext context, Account account, Endpoint endpoint) {
+            StageWithHookType<? extends Hook<PAYLOAD, CONTEXT>> stage,
+            String entity,
+            HookExecutionContext context,
+            Account account,
+            Endpoint endpoint) {
 
-        return this.<PAYLOAD, CONTEXT>stageExecutor(stage, entity, context)
-                .withExecutionPlan(planForStage(account, endpoint, stage));
+        return this
+                .stageExecutor(stage, entity, context)
+                .withExecutionPlan(planForStage(account, endpoint, stage.stage()));
     }
 
     private static ExecutionPlan parseAndValidateExecutionPlan(
@@ -290,25 +275,15 @@ public class HookStageExecutor {
     }
 
     private static void validateHookId(Stage stage, HookId hookId, HookCatalog hookCatalog) {
-        final Object hook = hookByStageAndId(stage, hookId, hookCatalog);
+        final Hook<?, ? extends InvocationContext> hook = hookCatalog.hookById(
+                hookId.getModuleCode(),
+                hookId.getHookImplCode(),
+                StageWithHookType.forStage(stage));
+
         if (hook == null) {
             throw new IllegalArgumentException(String.format(
                     "Hooks execution plan contains unknown or disabled hook: stage=%s, hookId=%s", stage, hookId));
         }
-    }
-
-    private static Object hookByStageAndId(Stage stage, HookId hookId, HookCatalog hookCatalog) {
-        final EnumMap<Stage, BiFunction<String, String, ?>> hookProvidersByStage = new EnumMap<>(Stage.class);
-
-        hookProvidersByStage.put(Stage.entrypoint, hookCatalog::entrypointHookBy);
-        hookProvidersByStage.put(Stage.raw_auction_request, hookCatalog::rawAuctionRequestHookBy);
-        hookProvidersByStage.put(Stage.processed_auction_request, hookCatalog::processedAuctionRequestHookBy);
-        hookProvidersByStage.put(Stage.bidder_request, hookCatalog::bidderRequestHookBy);
-        hookProvidersByStage.put(Stage.raw_bidder_response, hookCatalog::rawBidderResponseHookBy);
-        hookProvidersByStage.put(Stage.processed_bidder_response, hookCatalog::processedBidderResponseHookBy);
-        hookProvidersByStage.put(Stage.auction_response, hookCatalog::auctionResponseHookBy);
-
-        return hookProvidersByStage.get(stage).apply(hookId.getModuleCode(), hookId.getHookImplCode());
     }
 
     private static ExecutionPlan parseExecutionPlan(String executionPlan, JacksonMapper mapper) {

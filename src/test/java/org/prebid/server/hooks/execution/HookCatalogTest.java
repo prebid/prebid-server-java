@@ -4,14 +4,17 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.hooks.execution.model.StageWithHookType;
 import org.prebid.server.hooks.v1.Hook;
+import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
+import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
+import org.prebid.server.hooks.v1.bidder.ProcessedBidderResponseHook;
 import org.prebid.server.hooks.v1.bidder.RawBidderResponseHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 
@@ -19,6 +22,7 @@ import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 public class HookCatalogTest {
 
@@ -28,7 +32,7 @@ public class HookCatalogTest {
     @Mock
     private Module sampleModule;
     @Mock
-    private Hook sampleHook;
+    private Hook<?, ? extends InvocationContext> sampleHook;
 
     private HookCatalog hookCatalog;
 
@@ -40,30 +44,33 @@ public class HookCatalogTest {
     }
 
     @Test
-    public void entrypointHookByShouldTolerateUnknownModule() {
+    public void hookByIdShouldTolerateUnknownModule() {
         // when
-        final Hook foundHook = hookCatalog.entrypointHookBy("unknown-module", null);
+        final EntrypointHook foundHook = hookCatalog.hookById(
+                "unknown-module", null, StageWithHookType.ENTRYPOINT);
 
         // then
         assertThat(foundHook).isNull();
     }
 
     @Test
-    public void entrypointHookByShouldTolerateUnknownHook() {
+    public void hookByIdShouldTolerateUnknownHook() {
         // when
-        final Hook foundHook = hookCatalog.entrypointHookBy("sample-module", "unknown-hook");
+        final EntrypointHook foundHook = hookCatalog.hookById(
+                "sample-module", "unknown-hook", StageWithHookType.ENTRYPOINT);
 
         // then
         assertThat(foundHook).isNull();
     }
 
     @Test
-    public void entrypointHookByShouldReturnExpectedResult() {
+    public void hookByIdShouldReturnEntrypointHook() {
         // given
         givenHook(EntrypointHook.class);
 
         // when
-        final Hook foundHook = hookCatalog.entrypointHookBy("sample-module", "sample-hook");
+        final EntrypointHook foundHook = hookCatalog.hookById(
+                "sample-module", "sample-hook", StageWithHookType.ENTRYPOINT);
 
         // then
         assertThat(foundHook).isNotNull()
@@ -72,12 +79,13 @@ public class HookCatalogTest {
     }
 
     @Test
-    public void rawAuctionRequestHookByShouldReturnExpectedResult() {
+    public void hookByIdShouldReturnRawAuctionRequestHook() {
         // given
         givenHook(RawAuctionRequestHook.class);
 
         // when
-        final Hook foundHook = hookCatalog.rawAuctionRequestHookBy("sample-module", "sample-hook");
+        final RawAuctionRequestHook foundHook = hookCatalog.hookById(
+                "sample-module", "sample-hook", StageWithHookType.RAW_AUCTION_REQUEST);
 
         // then
         assertThat(foundHook).isNotNull()
@@ -86,12 +94,28 @@ public class HookCatalogTest {
     }
 
     @Test
-    public void bidderRequestHookByShouldReturnExpectedResult() {
+    public void hookByIdShouldReturnProcessedAuctionRequestHook() {
+        // given
+        givenHook(ProcessedAuctionRequestHook.class);
+
+        // when
+        final ProcessedAuctionRequestHook foundHook = hookCatalog.hookById(
+                "sample-module", "sample-hook", StageWithHookType.PROCESSED_AUCTION_REQUEST);
+
+        // then
+        assertThat(foundHook).isNotNull()
+                .extracting(Hook::code)
+                .containsOnly("sample-hook");
+    }
+
+    @Test
+    public void hookByIdShouldReturnBidderRequestHook() {
         // given
         givenHook(BidderRequestHook.class);
 
         // when
-        final Hook foundHook = hookCatalog.bidderRequestHookBy("sample-module", "sample-hook");
+        final BidderRequestHook foundHook = hookCatalog.hookById(
+                "sample-module", "sample-hook", StageWithHookType.BIDDER_REQUEST);
 
         // then
         assertThat(foundHook).isNotNull()
@@ -100,12 +124,13 @@ public class HookCatalogTest {
     }
 
     @Test
-    public void rawBidderResponseHookByShouldReturnExpectedResult() {
+    public void hookByIdShouldReturnRawBidderResponseHook() {
         // given
         givenHook(RawBidderResponseHook.class);
 
         // when
-        final Hook foundHook = hookCatalog.rawBidderResponseHookBy("sample-module", "sample-hook");
+        final RawBidderResponseHook foundHook = hookCatalog.hookById(
+                "sample-module", "sample-hook", StageWithHookType.RAW_BIDDER_RESPONSE);
 
         // then
         assertThat(foundHook).isNotNull()
@@ -114,12 +139,13 @@ public class HookCatalogTest {
     }
 
     @Test
-    public void auctionResponseHookByShouldReturnExpectedResult() {
+    public void hookByIdShouldReturnProcessedBidderResponseHook() {
         // given
-        givenHook(AuctionResponseHook.class);
+        givenHook(ProcessedBidderResponseHook.class);
 
         // when
-        final Hook foundHook = hookCatalog.auctionResponseHookBy("sample-module", "sample-hook");
+        final ProcessedBidderResponseHook foundHook = hookCatalog.hookById(
+                "sample-module", "sample-hook", StageWithHookType.PROCESSED_BIDDER_RESPONSE);
 
         // then
         assertThat(foundHook).isNotNull()
@@ -127,8 +153,23 @@ public class HookCatalogTest {
                 .containsOnly("sample-hook");
     }
 
-    private void givenHook(Class<? extends Hook> clazz) {
-        sampleHook = Mockito.mock(clazz);
+    @Test
+    public void hookByIdShouldReturnAuctionResponseHook() {
+        // given
+        givenHook(AuctionResponseHook.class);
+
+        // when
+        final AuctionResponseHook foundHook = hookCatalog.hookById(
+                "sample-module", "sample-hook", StageWithHookType.AUCTION_RESPONSE);
+
+        // then
+        assertThat(foundHook).isNotNull()
+                .extracting(Hook::code)
+                .containsOnly("sample-hook");
+    }
+
+    private void givenHook(Class<? extends Hook<?, ? extends InvocationContext>> clazz) {
+        sampleHook = mock(clazz);
         given(sampleHook.code()).willReturn("sample-hook");
         doReturn(singleton(sampleHook)).when(sampleModule).hooks();
     }
