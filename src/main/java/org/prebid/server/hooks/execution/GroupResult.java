@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.execution;
 
+import io.vertx.core.logging.LoggerFactory;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
@@ -11,6 +12,7 @@ import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
+import org.prebid.server.log.ConditionalLogger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,11 @@ import java.util.concurrent.TimeoutException;
 @Accessors(fluent = true)
 @Getter
 class GroupResult<T> {
+
+    private static final ConditionalLogger conditionalLogger =
+            new ConditionalLogger(LoggerFactory.getLogger(GroupExecutor.class));
+
+    private static final double LOG_SAMPLING_RATE = 0.01d;
 
     private boolean shouldReject;
 
@@ -42,35 +49,19 @@ class GroupResult<T> {
                                                 HookId hookId,
                                                 long executionTime) {
 
-        hookExecutionOutcomes.add(toExecutionOutcome(invocationResult, hookId, executionTime));
-
         if (invocationResult.status() == InvocationStatus.success && invocationResult.action() != null) {
-            switch (invocationResult.action()) {
-                case reject:
-                    applyReject();
-                    break;
-                case update:
-                    applyPayloadUpdate(invocationResult.payloadUpdate());
-                    break;
-                case no_action:
-                    break;
-                default:
-                    throw new IllegalStateException(
-                            String.format("Unknown invocation action %s", invocationResult.action()));
+            try {
+                applyAction(hookId, invocationResult.action(), invocationResult.payloadUpdate());
+            } catch (Exception e) {
+                hookExecutionOutcomes.add(toExecutionOutcome(e, hookId, executionTime));
+
+                return this;
             }
         }
 
+        hookExecutionOutcomes.add(toExecutionOutcome(invocationResult, hookId, executionTime));
+
         return this;
-    }
-
-    private void applyReject() {
-        if (!rejectAllowed) {
-            // TODO: log error?
-            return;
-        }
-
-        shouldReject = true;
-        payload = null;
     }
 
     public GroupResult<T> applyFailure(Throwable throwable, HookId hookId, long executionTime) {
@@ -81,6 +72,64 @@ class GroupResult<T> {
 
     public GroupExecutionOutcome toGroupExecutionOutcome() {
         return GroupExecutionOutcome.of(this.hookExecutionOutcomes());
+    }
+
+    private void applyAction(HookId hookId, InvocationAction action, PayloadUpdate<T> payloadUpdate) {
+        switch (action) {
+            case reject:
+                applyReject(hookId);
+                break;
+            case update:
+                applyPayloadUpdate(hookId, payloadUpdate);
+                break;
+            case no_action:
+                break;
+            default:
+                throw new IllegalStateException(
+                        String.format("Unknown invocation action %s", action));
+        }
+    }
+
+    private void applyReject(HookId hookId) {
+        if (!rejectAllowed) {
+            conditionalLogger.error(
+                    String.format(
+                            "Hook implementation %s requested to reject an entity on a stage that does not support "
+                                    + "rejection",
+                            hookId),
+                    LOG_SAMPLING_RATE);
+
+            throw new RejectionNotSupportedException("Rejection is not supported during this stage");
+        }
+
+        shouldReject = true;
+        payload = null;
+    }
+
+    private void applyPayloadUpdate(HookId hookId, PayloadUpdate<T> payloadUpdate) {
+        if (payloadUpdate == null) {
+            conditionalLogger.error(
+                    String.format(
+                            "Hook implementation %s requested to update an entity but not provided a payload update",
+                            hookId),
+                    LOG_SAMPLING_RATE);
+
+            throw new PayloadUpdateException("Payload update is missing in invocation result");
+        }
+
+        try {
+            payload = payloadUpdate.apply(payload);
+        } catch (Exception e) {
+            conditionalLogger.error(
+                    String.format(
+                            "Hook implementation %s requested to update an entity but payload update has thrown an "
+                                    + "exception: %s",
+                            hookId,
+                            e),
+                    LOG_SAMPLING_RATE);
+
+            throw new PayloadUpdateException(String.format("Payload update has thrown an exception: %s", e));
+        }
     }
 
     private static HookExecutionOutcome toExecutionOutcome(InvocationResult<?> invocationResult,
@@ -151,16 +200,17 @@ class GroupResult<T> {
         }
     }
 
-    private void applyPayloadUpdate(PayloadUpdate<T> payloadUpdate) {
-        if (payloadUpdate == null) {
-            // TODO: log error?
-            return;
-        }
+    private static class RejectionNotSupportedException extends RuntimeException {
 
-        try {
-            payload = payloadUpdate.apply(payload);
-        } catch (Exception e) {
-            // TODO: log error?
+        RejectionNotSupportedException(String message) {
+            super(message);
+        }
+    }
+
+    private static class PayloadUpdateException extends RuntimeException {
+
+        PayloadUpdateException(String message) {
+            super(message);
         }
     }
 }

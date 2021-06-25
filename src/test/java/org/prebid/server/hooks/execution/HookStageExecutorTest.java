@@ -960,16 +960,21 @@ public class HookStageExecutorTest extends VertxTest {
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-a"));
-                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.execution_failure);
+                                            assertThat(hookOutcome.getMessage())
+                                                    .isEqualTo("Payload update is missing in invocation result");
                                         });
 
                                         final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
                                         assertThat(group1Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
-                                            assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
-                                            assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.execution_failure);
+                                            assertThat(hookOutcome.getMessage())
+                                                    .isEqualTo("Payload update has thrown an exception: "
+                                                            + "java.lang.RuntimeException: Can not alter payload");
                                         });
 
                                         assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
@@ -2527,6 +2532,27 @@ public class HookStageExecutorTest extends VertxTest {
             assertThat(result.isShouldReject()).isFalse();
             assertThat(result.getPayload()).isNotNull().satisfies(payload ->
                     assertThat(payload.bidResponse()).isNotNull());
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.auction_response,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                        assertThat(stageOutcome.getEntity()).isEqualTo("auction-response");
+
+                                        final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
+
+                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                            assertThat(hookOutcome.getHookId())
+                                                    .isEqualTo(HookId.of("module-alpha", "hook-a"));
+                                            assertThat(hookOutcome.getStatus())
+                                                    .isEqualTo(ExecutionStatus.execution_failure);
+                                            assertThat(hookOutcome.getMessage())
+                                                    .isEqualTo("Rejection is not supported during this stage");
+                                        });
+                                    }));
 
             async.complete();
         }));
