@@ -47,10 +47,10 @@
       }
     },
     "ext": {
+      "amp": 0,
       "rp": {
         "site_id": 6001
-      },
-      "amp": 0
+      }
     }
   },
   "device": {
@@ -59,6 +59,7 @@
     "ip": "80.215.195.0",
     "pxratio": 4.2,
     "language": "en",
+    "ifa": "ifaId",
     "ext": {
       "rp": {
         "pixelratio": 4.2
@@ -66,6 +67,7 @@
     }
   },
   "user": {
+    "buyeruid": "J5VLCWQP-26-CWFT",
     "data": [
       {
         "ext": {
@@ -82,9 +84,54 @@
       }
     ],
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+      "eids": [
+        {
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "cd96870f-f53d-4986-a08e-cd1612fb13b0",
+              "ext": {
+                "rtiPartner": "TDID"
+              }
+            }
+          ]
+        },
+        {
+          "source": "liveintent.com",
+          "uids": [
+            {
+              "id": "efcf3a33-2eaf-4d6b-bf11-a411f134278c"
+            }
+          ],
+          "ext": {
+            "segments": [
+              "999",
+              "888"
+            ]
+          }
+        },
+        {
+          "source": "pubcid",
+          "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+        }
+      ],
+      "tpid": [
+        {
+          "source": "tdid",
+          "uid": "cd96870f-f53d-4986-a08e-cd1612fb13b0"
+        },
+        {
+          "source": "liveintent.com",
+          "uid": "efcf3a33-2eaf-4d6b-bf11-a411f134278c"
+        }
+      ],
       "rp": {
         "target": {
+          "LIseg": [
+            "999",
+            "888"
+          ],
           "iab": [
             "segmentId1",
             "segmentId2"
