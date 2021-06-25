@@ -4,12 +4,14 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.log.ConditionalLogger;
 
 import java.time.Clock;
 import java.util.concurrent.TimeoutException;
@@ -17,6 +19,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
+
+    private static final ConditionalLogger conditionalLogger =
+            new ConditionalLogger(LoggerFactory.getLogger(GroupExecutor.class));
 
     private final Vertx vertx;
     private final Clock clock;
@@ -97,7 +102,8 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
             HookId hookId) {
 
         if (hook == null) {
-            // TODO: log error?
+            conditionalLogger.error(String.format("Hook implementation %s does not exist or disabled", hookId), 0.01d);
+
             return Future.failedFuture(new FailedException("Hook implementation does not exist or disabled"));
         }
 
