@@ -15,21 +15,9 @@
               "type": "banner",
               "targeting": {
                 "hb_pb": "0.00",
-                "hb_cache_id_advangelists": "3c0769d8-0dd9-465c-8bf3-f570605ba698",
                 "hb_bidder_advangelists": "advangelists",
                 "hb_bidder": "advangelists",
-                "hb_cache_id": "3c0769d8-0dd9-465c-8bf3-f570605ba698",
-                "hb_pb_advangelists": "0.00",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_advangelists": "{{ cache.host }}",
-                "hb_cache_path": "/cache",
-                "hb_cache_path_advangelists": "/cache"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}3c0769d8-0dd9-465c-8bf3-f570605ba698",
-                  "cacheId": "3c0769d8-0dd9-465c-8bf3-f570605ba698"
-                }
+                "hb_pb_advangelists": "0.00"
               }
             },
             "origbidcpm": 0.01
@@ -43,8 +31,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "advangelists": "{{ advangelists.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "advangelists": "{{ advangelists.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

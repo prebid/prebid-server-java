@@ -22,7 +22,6 @@ public class AvocetTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAvocet() throws IOException, JSONException {
         // given
-        // Avocet bid response for imp 001 and 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/avocet-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/avocet/test-avocet-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/avocet/test-avocet-bid-response-1.json"))));
@@ -49,8 +48,6 @@ public class AvocetTest extends IntegrationTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/avocet/test-auction-avocet-response.json", response, singletonList("avocet"));
 
-        final String actualStr = response.asString();
-
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, openrtbCacheDebugComparator());
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }

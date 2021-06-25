@@ -30,11 +30,6 @@ public class InmobiTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/inmobi/test-inmobi-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/inmobi/test-inmobi-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/inmobi/test-cache-inmobi-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/inmobi/test-cache-inmobi-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

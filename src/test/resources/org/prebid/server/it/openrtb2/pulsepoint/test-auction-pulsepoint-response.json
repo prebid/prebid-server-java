@@ -15,24 +15,12 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_cache_id_pulsepoint": "b537fcb1-28c9-4cd1-bf74-abc7730fd1f4",
-                "hb_cache_id": "b537fcb1-28c9-4cd1-bf74-abc7730fd1f4",
-                "hb_cache_path_pulsepoint": "{{ cache.path }}",
                 "hb_pb": "4.70",
                 "hb_pb_pulsepoint": "4.70",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_host_pulsepoint": "{{ cache.host }}",
                 "hb_size_pulsepoint": "300x250",
                 "hb_size": "300x250",
                 "hb_bidder_pulsepoint": "pulsepoint",
-                "hb_bidder": "pulsepoint",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}b537fcb1-28c9-4cd1-bf74-abc7730fd1f4",
-                  "cacheId": "b537fcb1-28c9-4cd1-bf74-abc7730fd1f4"
-                }
+                "hb_bidder": "pulsepoint"
               }
             },
             "origbidcpm": 4.75
@@ -50,24 +38,12 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_cache_id_pulsepoint": "a4073156-828d-4a22-acdc-84dc4529149e",
-                "hb_cache_id": "a4073156-828d-4a22-acdc-84dc4529149e",
-                "hb_cache_path_pulsepoint": "{{ cache.path }}",
                 "hb_pb": "3.70",
                 "hb_pb_pulsepoint": "3.70",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_host_pulsepoint": "{{ cache.host }}",
                 "hb_size_pulsepoint": "120x180",
                 "hb_size": "120x180",
                 "hb_bidder_pulsepoint": "pulsepoint",
-                "hb_bidder": "pulsepoint",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}a4073156-828d-4a22-acdc-84dc4529149e",
-                  "cacheId": "a4073156-828d-4a22-acdc-84dc4529149e"
-                }
+                "hb_bidder": "pulsepoint"
               }
             },
             "origbidcpm": 3.75
@@ -81,8 +57,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "pulsepoint": "{{ pulsepoint.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "pulsepoint": "{{ pulsepoint.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

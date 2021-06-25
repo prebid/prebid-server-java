@@ -19,20 +19,8 @@
               "targeting": {
                 "hb_bidder": "yeahmobi",
                 "hb_bidder_yeahmobi": "yeahmobi",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_yeahmobi": "{{ cache.host }}",
-                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_cache_id_yeahmobi": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_yeahmobi": "{{ cache.path }}",
                 "hb_pb": "0.00",
                 "hb_pb_yeahmobi": "0.00"
-              },
-              "cache": {
-                "bids": {
-                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb"
-                }
               }
             },
             "origbidcpm": 0.01
@@ -46,7 +34,6 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "cache": "{{ cache.response_time_ms }}",
       "yeahmobi": "{{ yeahmobi.response_time_ms }}"
     },
     "prebid": {

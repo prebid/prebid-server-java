@@ -8,4 +8,8 @@ import lombok.Value;
 public class ExtImpPangle {
 
     String token;
+
+    String appid;
+
+    String placementid;
 }

@@ -15,7 +15,7 @@
       },
       "tagid": "slot9",
       "ext": {
-        "pmZoneID": "Zone1,Zone2",
+        "pmZoneId": "Zone1,Zone2",
         "preference": "sports,movies"
       }
     },
@@ -29,7 +29,8 @@
         "h": 600
       },
       "ext": {
-        "pmZoneID": "Zone1,Zone2"
+        "pmZoneId": "drama,sport",
+        "key_val": "abBucket=4|adType=page|entity=|paidByCategory=|sku=|userLevel=free|platform=android|majorVersion=3.54|version=3.54.0|mobileApplication=true|showId=20166|show=Kisah Untuk Geri|genre=Drama|contentUrl=https://www.iflix.com/title/show/20166|rating=TV-MA|contentLanguage=id"
       }
     }
   ],

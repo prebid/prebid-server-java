@@ -18,21 +18,9 @@
                 "hb_pb": "1.20",
                 "hb_pb_verizonmedia": "1.20",
                 "hb_size_verizonmedia": "300x250",
-                "hb_cache_id_verizonmedia": "3bdd45bf-b80e-4943-8445-32692ae5ff51",
-                "hb_cache_path": "{{ cache.path }}",
                 "hb_bidder_verizonmedia": "verizonmedia",
                 "hb_size": "300x250",
-                "hb_cache_path_verizonmedia": "{{ cache.path }}",
-                "hb_cache_host_verizonmedia": "{{ cache.host }}",
-                "hb_bidder": "verizonmedia",
-                "hb_cache_id": "3bdd45bf-b80e-4943-8445-32692ae5ff51",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}3bdd45bf-b80e-4943-8445-32692ae5ff51",
-                  "cacheId": "3bdd45bf-b80e-4943-8445-32692ae5ff51"
-                }
+                "hb_bidder": "verizonmedia"
               }
             },
             "origbidcpm": 1.25
@@ -46,8 +34,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "verizonmedia": "{{ verizonmedia.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "verizonmedia": "{{ verizonmedia.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

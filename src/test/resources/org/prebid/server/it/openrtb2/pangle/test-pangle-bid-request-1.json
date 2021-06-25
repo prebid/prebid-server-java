@@ -13,9 +13,16 @@
       },
       "ext": {
         "bidder": {
-          "token": ".token"
+          "token": ".token",
+          "appid": "1",
+          "placementid": "1"
         },
-        "adtype" : 1
+        "adtype": 1,
+        "is_prebid": true,
+        "networkids": {
+          "appid": "1",
+          "placementid": "1"
+        }
       }
     }
   ],
@@ -72,12 +79,6 @@
         },
         "includewinners": true,
         "includebidderkeys": true
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
       },
       "auctiontimestamp": 1000,
       "channel": {

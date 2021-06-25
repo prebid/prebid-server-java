@@ -32,11 +32,6 @@ public class AdyoulikeTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adyoulike/test-adyoulike-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adyoulike/test-adyoulike-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adyoulike/test-cache-adyoulike-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adyoulike/test-cache-adyoulike-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

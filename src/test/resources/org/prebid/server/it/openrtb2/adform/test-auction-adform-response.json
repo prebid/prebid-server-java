@@ -19,20 +19,8 @@
                 "hb_size_adform": "400x300",
                 "hb_size": "400x300",
                 "hb_bidder": "adform",
-                "hb_cache_id_adform": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
-                "hb_cache_id": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
                 "hb_bidder_adform": "adform",
-                "hb_pb_adform": "11.30",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_adform": "{{ cache.host }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_adform": "{{ cache.path }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
-                  "cacheId": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce"
-                }
+                "hb_pb_adform": "11.30"
               }
             },
             "origbidcpm": 0.5,
@@ -47,8 +35,7 @@
   "cur": "CZK",
   "ext": {
     "responsetimemillis": {
-      "adform": "{{ adform.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "adform": "{{ adform.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000
