@@ -58,8 +58,8 @@ public class BidmachineBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final ExtPrebid<ExtImpPrebid, ExtImpBidmachine> mappedExt = parseImpExt(imp);
                 validateImp(imp);
+                final ExtPrebid<ExtImpPrebid, ExtImpBidmachine> mappedExt = parseImpExt(imp);
                 final BidRequest outgoingRequest = createRequest(imp, mappedExt.getPrebid(), request);
                 final String body = mapper.encode(outgoingRequest);
 
