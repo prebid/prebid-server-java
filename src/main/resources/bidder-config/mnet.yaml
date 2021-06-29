@@ -1,0 +1,26 @@
+adapters:
+  mnet:
+    enabled: true
+    endpoint: ${ENDPOINT}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: ${EMAIL}
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: ${VENDOR_ID}
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name:
+      type: redirect
+      support-cors: false
