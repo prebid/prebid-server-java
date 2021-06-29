@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
@@ -9,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Describes the behavior for price granularity feature.
@@ -105,8 +107,10 @@ public class PriceGranularity {
      */
     private static PriceGranularity createFromRanges(Integer precision, List<ExtGranularityRange> ranges) {
 
-        final BigDecimal rangeMax = ranges.stream()
+        final BigDecimal rangeMax = CollectionUtils.emptyIfNull(ranges).stream()
+                .filter(Objects::nonNull)
                 .map(ExtGranularityRange::getMax)
+                .filter(Objects::nonNull)
                 .max(BigDecimal::compareTo)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Price granularity error: "
