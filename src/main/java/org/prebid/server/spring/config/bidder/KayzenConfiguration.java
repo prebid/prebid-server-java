@@ -41,7 +41,7 @@ public class KayzenConfiguration {
     }
 
     @Bean
-    BidderDeps madvertiseBidderDeps() {
+    BidderDeps kayzenBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
