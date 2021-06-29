@@ -1677,6 +1677,26 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenIncrementIsMissed() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(
+                                        2,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), null)))))
+                                .build())
+                        .build()))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Price granularity error: increment must be a nonzero positive number");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenIncrementIsNegative() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -1789,6 +1809,27 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
                         + " must be enabled to enable targeting support");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenRangesContainsMissedMaxValue() {
+        final ExtPriceGranularity priceGranuality = ExtPriceGranularity.of(2,
+                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                        ExtGranularityRange.of(null, BigDecimal.valueOf(0.05))));
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranuality))
+                                .build())
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Price granularity error: max value should not be missed");
     }
 
     @Test
