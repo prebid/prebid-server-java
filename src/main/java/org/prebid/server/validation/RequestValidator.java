@@ -428,27 +428,37 @@ public class RequestValidator {
             throw new ValidationException("Price granularity error: empty granularity definition supplied");
         }
 
-        final Iterator<ExtGranularityRange> rangeIterator = ranges.iterator();
-        ExtGranularityRange range = rangeIterator.next();
-        validateGranularityRangeIncrement(range);
+        BigDecimal previousRangeMax = null;
+        for (ExtGranularityRange range : ranges) {
+            final BigDecimal rangeMax = range.getMax();
 
-        while (rangeIterator.hasNext()) {
-            final ExtGranularityRange nextGranularityRange = rangeIterator.next();
-            if (range.getMax().compareTo(nextGranularityRange.getMax()) > 0) {
-                throw new ValidationException(
-                        "Price granularity error: range list must be ordered with increasing \"max\"");
-            }
-            validateGranularityRangeIncrement(nextGranularityRange);
-            range = nextGranularityRange;
+            validateGranularityRangeMax(rangeMax);
+            validateGranularityRangeIncrement(range);
+            validateGranularityRangeMaxOrdering(previousRangeMax, rangeMax);
+
+            previousRangeMax = rangeMax;
         }
     }
 
-    /**
-     * Validates {@link ExtGranularityRange}s increment.
-     */
+    private static void validateGranularityRangeMax(BigDecimal rangeMax)
+            throws ValidationException {
+        if (rangeMax == null) {
+            throw new ValidationException("Price granularity error: max value should not be missed");
+        }
+    }
+
+    private static void validateGranularityRangeMaxOrdering(BigDecimal previousRangeMax, BigDecimal rangeMax)
+            throws ValidationException {
+        if (previousRangeMax != null && previousRangeMax.compareTo(rangeMax) > 0) {
+            throw new ValidationException(
+                    "Price granularity error: range list must be ordered with increasing \"max\"");
+        }
+    }
+
     private static void validateGranularityRangeIncrement(ExtGranularityRange range)
             throws ValidationException {
-        if (range.getIncrement().compareTo(BigDecimal.ZERO) <= 0) {
+        final BigDecimal increment = range.getIncrement();
+        if (increment == null || increment.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ValidationException("Price granularity error: increment must be a nonzero positive number");
         }
     }

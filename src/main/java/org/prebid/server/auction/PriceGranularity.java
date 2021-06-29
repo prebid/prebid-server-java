@@ -106,17 +106,15 @@ public class PriceGranularity {
      * Creates {@link PriceGranularity} from list of {@link ExtGranularityRange}s and validates it.
      */
     private static PriceGranularity createFromRanges(Integer precision, List<ExtGranularityRange> ranges) {
-        if (CollectionUtils.isEmpty(ranges)) {
-            throw new IllegalArgumentException("Ranges list cannot be null or empty");
-        }
 
-        final BigDecimal rangeMax = ranges.stream()
+        final BigDecimal rangeMax = CollectionUtils.emptyIfNull(ranges).stream()
                 .filter(Objects::nonNull)
                 .map(ExtGranularityRange::getMax)
                 .filter(Objects::nonNull)
                 .max(BigDecimal::compareTo)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Max value among all ranges was not found. Please check if ranges are valid"));
+                        "Price granularity error: "
+                                + "Max value among all ranges was not found. Please check if ranges are valid"));
 
         return new PriceGranularity(ranges, rangeMax, precision);
     }
