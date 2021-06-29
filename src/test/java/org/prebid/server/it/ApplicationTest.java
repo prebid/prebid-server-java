@@ -4,9 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.iab.gdpr.consent.VendorConsentEncoder;
-import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
-import com.iab.gdpr.consent.range.StartEndRangeEntry;
+import com.iabtcf.encoder.TCStringEncoder;
+import com.iabtcf.utils.BitSetIntIterable;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
@@ -41,7 +40,6 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -347,16 +345,14 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void cookieSyncShouldReturnBidderStatusWithExpectedUsersyncInfo() {
         // given
-        final String gdprConsent = VendorConsentEncoder.toBase64String(new VendorConsentBuilder()
-                .withConsentRecordCreatedOn(Instant.now())
-                .withConsentRecordLastUpdatedOn(Instant.now())
-                .withConsentLanguage("en")
-                .withVendorListVersion(79)
-                .withRangeEntries(singletonList(new StartEndRangeEntry(1, 100)))
-                .withMaxVendorId(100)
-                .withBitField(new HashSet<>(asList(1, 32, 52)))
-                .withAllowedPurposeIds(new HashSet<>(asList(1, 3)))
-                .build());
+        final String gdprConsent = TCStringEncoder.newBuilder()
+                .version(2)
+                .consentLanguage("EN")
+                .vendorListVersion(52)
+                .tcfPolicyVersion(2)
+                .addPurposesConsent(BitSetIntIterable.from(1))
+                .addVendorConsent(BitSetIntIterable.from(1, 32, 52))
+                .encode();
 
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
@@ -419,7 +415,7 @@ public class ApplicationTest extends IntegrationTest {
                 .queryParam("bidder", RUBICON)
                 .queryParam("uid", "updatedUid")
                 .queryParam("gdpr", "1")
-                .queryParam("gdpr_consent", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA")
+                .queryParam("gdpr_consent", "CPBCKiyPBCKiyAAAAAENA0CAAIAAAAAAACiQAaQAwAAgAgABoAAAAAA")
                 .when()
                 .get("/setuid")
                 .then()

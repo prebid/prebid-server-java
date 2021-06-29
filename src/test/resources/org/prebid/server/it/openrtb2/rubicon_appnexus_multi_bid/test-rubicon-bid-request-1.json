@@ -23,10 +23,10 @@
         "ext": {
           "skip": 5,
           "skipdelay": 1,
-          "videotype": "rewarded",
           "rp": {
             "size_id": 15
-          }
+          },
+          "videotype": "rewarded"
         }
       },
       "ext": {
@@ -63,10 +63,10 @@
       }
     },
     "ext": {
+      "amp": 0,
       "rp": {
         "site_id": 3001
-      },
-      "amp": 0
+      }
     }
   },
   "device": {
@@ -75,6 +75,7 @@
     "ip": "80.215.195.0",
     "pxratio": 4.2,
     "language": "en",
+    "ifa": "ifaId",
     "ext": {
       "rp": {
         "pixelratio": 4.2
@@ -82,8 +83,9 @@
     }
   },
   "user": {
+    "buyeruid": "J5VLCWQP-26-CWFT",
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "rp": {
         "target": {
           "ucat": [

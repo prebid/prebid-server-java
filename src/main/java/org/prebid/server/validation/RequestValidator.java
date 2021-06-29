@@ -340,7 +340,7 @@ public class RequestValidator {
             if (!bidderCatalog.isValidName(bidder) && !bidderCatalog.isValidName(aliases.get(bidder))
                     && ObjectUtils.notEqual(bidder, ASTERISK)) {
                 throw new ValidationException(
-                        "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode : %s", bidder);
+                        "request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: '%s'", bidder);
             }
         }
     }

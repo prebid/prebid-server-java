@@ -174,7 +174,7 @@
   "device": {
     "pxratio": 4.2,
     "dnt": 2,
-    "ip": "80.215.195.122",
+    "ip": "80.215.195.0",
     "language": "en",
     "ifa": "ifaId",
     "ext": {
@@ -287,7 +287,7 @@
       }
     ],
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "eids": [
         {
           "source": "adserver.org",

@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.lifestreet.LifestreetBidder;
+import org.prebid.server.bidder.bidmachine.BidmachineBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -18,10 +18,10 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/lifestreet.yaml", factory = YamlPropertySourceFactory.class)
-public class LifestreetConfiguration {
+@PropertySource(value = "classpath:/bidder-config/bidmachine.yaml", factory = YamlPropertySourceFactory.class)
+public class BidmachineConfiguration {
 
-    private static final String BIDDER_NAME = "lifestreet";
+    private static final String BIDDER_NAME = "bidmachine";
 
     @Value("${external-url}")
     @NotBlank
@@ -31,21 +31,22 @@ public class LifestreetConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
-    @Qualifier("lifestreetConfigurationProperties")
+    @Qualifier("bidmachineConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
-    @Bean("lifestreetConfigurationProperties")
-    @ConfigurationProperties("adapters.lifestreet")
+    @Bean("bidmachineConfigurationProperties")
+    @ConfigurationProperties("adapters.bidmachine")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps lifestreetBidderDeps() {
+    BidderDeps bidmachineBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new LifestreetBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new BidmachineBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
+
 }

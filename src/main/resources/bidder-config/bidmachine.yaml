@@ -1,23 +1,23 @@
 adapters:
-  interactiveoffers:
+  bidmachine:
     enabled: false
-    endpoint: https://rtb.ioadx.com/bidRequest/?partnerId=d9e56d418c4825d466ee96c7a31bf1da6b62fa04
+    endpoint: https://{{Host}}.bidmachine.io/{{PATH}}/{{SELLER_ID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases: {}
     meta-info:
-      maintainer-email: support@interactiveoffers.com
+      maintainer-email: hi@bidmachine.io
       app-media-types:
         - banner
+        - video
       site-media-types:
-        - banner
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 724
     usersync:
       url:
       redirect-url:
-      cookie-family-name: interactiveoffers
+      cookie-family-name: bidmachine
       type: redirect
       support-cors: false
