@@ -94,6 +94,7 @@ public class PrivacyEnforcementService {
         final Account account = auctionContext.getAccount();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Timeout timeout = auctionContext.getTimeout();
+        final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
@@ -109,7 +110,7 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(requestType, bidRequest, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                privacy, country, effectiveIpAddress, accountGdpr, requestType, requestLogInfo, timeout)
+                privacy, country, effectiveIpAddress, accountGdpr, requestType, requestLogInfo, timeout, debugWarnings)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
