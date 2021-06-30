@@ -12,9 +12,7 @@ import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
@@ -25,7 +23,6 @@ public class AdgenerationTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdgeneration() throws IOException, JSONException {
         // given
-        // Adgeneration bid response for imp 001
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/adgeneration-exchange"))
                 .withQueryParam("posall", equalTo("SSPLOC"))
                 .withQueryParam("id", equalTo("58278"))
@@ -42,12 +39,6 @@ public class AdgenerationTest extends IntegrationTest {
                 .withHeader("User-Agent", equalTo("some-agent"))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adgeneration/test-cache-adgeneration-request.json")))
-                .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/adgeneration/test-cache-adgeneration-response.json"))));
 
         // when
         final Response response = given(SPEC)

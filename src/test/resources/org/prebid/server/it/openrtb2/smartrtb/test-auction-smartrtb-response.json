@@ -10,21 +10,9 @@
           "crid": "test_banner_crid",
           "ext": {
             "prebid": {
-              "cache": {
-                "bids": {
-                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb"
-                }
-              },
               "targeting": {
                 "hb_bidder": "smartrtb",
                 "hb_bidder_smartrtb": "smartrtb",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_smartrtb": "{{ cache.host }}",
-                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_cache_id_smartrtb": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_smartrtb": "{{ cache.path }}",
                 "hb_pb": "0.00",
                 "hb_pb_smartrtb": "0.00"
               },
@@ -43,7 +31,6 @@
   ],
   "ext": {
     "responsetimemillis": {
-      "cache": "{{ cache.response_time_ms }}",
       "smartrtb": "{{ smartrtb.response_time_ms }}"
     },
     "prebid": {

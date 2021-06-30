@@ -35,7 +35,7 @@ public class RubiconTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(
+                .withRequestBody(equalToBidCacheRequest(
                         jsonFrom("openrtb2/rubicon/test-cache-rubicon-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/rubicon/test-cache-rubicon-response.json"))));

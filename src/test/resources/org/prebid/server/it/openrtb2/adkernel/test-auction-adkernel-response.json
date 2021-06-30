@@ -20,20 +20,8 @@
               "targeting": {
                 "hb_pb": "2.20",
                 "hb_bidder_adkernel": "adkernel",
-                "hb_cache_id_adkernel": "71615e3d-8a18-4099-a807-3952199b532a",
                 "hb_pb_adkernel": "2.20",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_host_adkernel": "{{ cache.host }}",
-                "hb_bidder": "adkernel",
-                "hb_cache_id": "71615e3d-8a18-4099-a807-3952199b532a",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_path_adkernel": "{{ cache.path }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}71615e3d-8a18-4099-a807-3952199b532a",
-                  "cacheId": "71615e3d-8a18-4099-a807-3952199b532a"
-                }
+                "hb_bidder": "adkernel"
               }
             },
             "origbidcpm": 2.25
@@ -47,8 +35,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "adkernel": "{{ adkernel.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "adkernel": "{{ adkernel.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

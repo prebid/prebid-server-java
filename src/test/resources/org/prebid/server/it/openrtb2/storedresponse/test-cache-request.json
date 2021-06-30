@@ -11,6 +11,9 @@
         "w": 300,
         "h": 250,
         "ext": {
+          "prebid": {
+            "type": "banner"
+          },
           "origbidcpm": 0.8
         }
       }

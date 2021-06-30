@@ -584,7 +584,7 @@ public class ExchangeService {
 
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
         final List<ExtUserEid> userEids = extractUserEids(user);
-        final List<ExtUserEid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions, aliases);
+        final List<ExtUserEid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions);
         final boolean shouldUpdateUserEids = extUser != null
                 && allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
         final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
@@ -646,10 +646,10 @@ public class ExchangeService {
      * Returns {@link List<ExtUserEid>} allowed by {@param eidPermissions} per source per bidder.
      */
     private List<ExtUserEid> resolveAllowedEids(List<ExtUserEid> userEids, String bidder,
-                                                Map<String, List<String>> eidPermissions, BidderAliases aliases) {
+                                                Map<String, List<String>> eidPermissions) {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
-                .filter(extUserEid -> isUserEidAllowed(extUserEid.getSource(), eidPermissions, bidder, aliases))
+                .filter(extUserEid -> isUserEidAllowed(extUserEid.getSource(), eidPermissions, bidder))
                 .collect(Collectors.toList());
     }
 
@@ -657,15 +657,11 @@ public class ExchangeService {
      * Returns true if {@param source} allowed by {@param eidPermissions} for particular bidder taking into account
      * ealiases.
      */
-    private boolean isUserEidAllowed(String source, Map<String, List<String>> eidPermissions, String bidder,
-                                     BidderAliases aliases) {
+    private boolean isUserEidAllowed(String source, Map<String, List<String>> eidPermissions, String bidder) {
         final List<String> allowedBidders = eidPermissions.get(source);
         return CollectionUtils.isEmpty(allowedBidders)
                 || allowedBidders.contains(EID_ALLOWED_FOR_ALL_BIDDERS)
-                || allowedBidders.contains(bidder)
-                || allowedBidders.contains(aliases.resolveBidder(bidder))
-                || allowedBidders.stream().map(aliases::resolveBidder)
-                .anyMatch(allowedBidder -> allowedBidder.equals(bidder));
+                || allowedBidders.contains(bidder);
     }
 
     /**

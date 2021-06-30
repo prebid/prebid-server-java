@@ -25,7 +25,6 @@ public class AcuityadsTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAcuityAds() throws IOException, JSONException {
         // given
-        // Acuityads bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/acuityads-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
@@ -35,12 +34,6 @@ public class AcuityadsTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/acuityads/test-acuityads-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/acuityads/test-acuityads-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/acuityads/test-cache-acuityads-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/acuityads/test-cache-acuityads-response.json"))));
 
         // when
         final Response response = given(SPEC)

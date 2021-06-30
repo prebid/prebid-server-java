@@ -24,17 +24,11 @@ public class AdotTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdot() throws IOException, JSONException {
         // given
-        // Adot bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adot-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adot/test-adot-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adot/test-adot-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adot/test-cache-adot-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adot/test-cache-adot-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -51,7 +45,6 @@ public class AdotTest extends IntegrationTest {
                 "openrtb2/adot/test-auction-adot-response.json",
                 response, singletonList("adot"));
 
-        String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

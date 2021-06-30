@@ -39,14 +39,6 @@ public class TelariaTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/telaria/test-telaria-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/telaria/test-telaria-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/telaria/test-cache-telaria-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/telaria/test-cache-matcher-telaria.json")));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

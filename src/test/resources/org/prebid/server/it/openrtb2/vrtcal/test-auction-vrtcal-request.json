@@ -48,12 +48,6 @@
           ]
         }
       },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      },
       "auctiontimestamp": 1000
     }
   },
