@@ -184,9 +184,6 @@ public class Ortb2ImplicitParametersResolver {
 
             resolvedIp = getIpIfVersionIs(requestIp, IpAddress.IP.v4);
             resolvedIpv6 = getIpIfVersionIs(requestIp, IpAddress.IP.v6);
-            if (resolvedIp == null) {
-                resolvedIp = "62.197.243.108";
-            }
         }
 
         logWarnIfNoIp(resolvedIp, resolvedIpv6);
