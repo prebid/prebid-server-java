@@ -3,6 +3,7 @@ package org.prebid.server.bidder.adxcg;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
@@ -21,9 +22,11 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adxcg.ExtImpAdxcg;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -153,6 +156,61 @@ public class AdxcgBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidAndErrorIfNativeAndEmptyImpsArePresent() throws JsonProcessingException {
+        // given
+        BidResponse bidResponse = BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(Arrays.asList(Bid.builder().impid("123").build(),
+                                Bid.builder().impid("12").build()))
+                        .build()))
+                .build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(Arrays.asList(Imp.builder().id("123").xNative(Native.builder().build()).build(),
+                                Imp.builder().id("12").build())).build(),
+                mapper.writeValueAsString(bidResponse));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = adxcgBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .containsExactly("Failed to find native/banner/video impression 12");
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateOneRequestForAllImps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder
+                                .id("123")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(300).h(200).build())).build())),
+                        givenImp(impBuilder -> impBuilder
+                                .id("321")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(600).h(400).build())).build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adxcgBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsOnly("123", "321");
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {

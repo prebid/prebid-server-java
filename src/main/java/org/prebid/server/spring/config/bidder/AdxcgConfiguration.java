@@ -48,5 +48,4 @@ public class AdxcgConfiguration {
                 .bidderCreator(config -> new AdxcgBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }

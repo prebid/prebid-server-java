@@ -41,19 +41,13 @@ public class AdxcgBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final String body;
-        try {
-            body = mapper.encode(bidRequest);
-        } catch (Exception e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
-        }
 
         return Result.withValues(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
-                        .body(body)
+                        .body(mapper.encode(bidRequest))
                         .payload(bidRequest)
                         .build()));
     }
@@ -77,22 +71,25 @@ public class AdxcgBidder implements Bidder<BidRequest> {
         return bidsFromResponse(bidResponse, bidRequest, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest,
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse,
+                                                    BidRequest bidRequest,
                                                     List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> createBidderBid(bid, bidRequest, errors, bidResponse))
+                .map(bid -> createBidderBid(bid, bidRequest, bidResponse, errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid createBidderBid(Bid bid, BidRequest bidRequest,
-                                             List<BidderError> errors, BidResponse bidResponse) {
+    private static BidderBid createBidderBid(Bid bid,
+                                             BidRequest bidRequest,
+                                             BidResponse bidResponse,
+                                             List<BidderError> errors) {
         try {
-            BidType bidType = getBidType(bid, bidRequest.getImp());
+            final BidType bidType = getBidType(bid, bidRequest.getImp());
             return BidderBid.of(bid, bidType, bidResponse.getCur());
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));

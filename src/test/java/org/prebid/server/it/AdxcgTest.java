@@ -37,8 +37,6 @@ public class AdxcgTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"adxcg":"ADX-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7ImFkeGNnIjoiQURYLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/adxcg/test-auction-adxcg-request.json"))
                 .post("/openrtb2/auction");
 
