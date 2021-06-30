@@ -64,7 +64,6 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static final BigDecimal MIN_BID_FLOOR = BigDecimal.valueOf(0.01);
     private static final int DEFAULT_VIDEO_WIDTH = 300;
     private static final int DEFAULT_VIDEO_HEIGHT = 250;
-    private static final BigDecimal ZERO = BigDecimal.ZERO;
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
@@ -245,20 +244,20 @@ public class BeachfrontBidder implements Bidder<Void> {
         throw new PreBidException("unable to determine the appId(s) from the supplied extension");
     }
 
-    private static BigDecimal getBidFloor(BigDecimal extImpBeachfrontBidfloor, BigDecimal impBidfloor) {
-        extImpBeachfrontBidfloor = extImpBeachfrontBidfloor == null ? ZERO : extImpBeachfrontBidfloor;
-        impBidfloor = impBidfloor == null ? ZERO : impBidfloor;
-        final BigDecimal resultFloor;
-
-        if (impBidfloor.compareTo(ZERO) > 0) {
-            resultFloor = impBidfloor;
-        } else if (extImpBeachfrontBidfloor.compareTo(ZERO) > 0) {
-            resultFloor = extImpBeachfrontBidfloor;
+    private static BigDecimal getBidFloor(BigDecimal extImpBidfloor, BigDecimal impBidfloor) {
+        final BigDecimal impNonNullBidfloor = zeroIfNull(impBidfloor);
+        final BigDecimal extImpNonNullBidfloor = zeroIfNull(extImpBidfloor);
+        if (impNonNullBidfloor.compareTo(MIN_BID_FLOOR) > 0) {
+            return impNonNullBidfloor;
+        } else if (extImpNonNullBidfloor.compareTo(MIN_BID_FLOOR) > 0) {
+            return extImpNonNullBidfloor;
         } else {
-            resultFloor = MIN_BID_FLOOR;
+            return BigDecimal.ZERO;
         }
+    }
 
-        return resultFloor.compareTo(MIN_BID_FLOOR) < 0 ? MIN_BID_FLOOR : resultFloor;
+    private static BigDecimal zeroIfNull(BigDecimal bigDecimal) {
+        return bigDecimal == null ? BigDecimal.ZERO : bigDecimal;
     }
 
     /**
