@@ -1,5 +1,5 @@
 adapters:
-  mnet:
+  medianet:
     enabled: true
     endpoint: ${ENDPOINT}
     pbs-enforces-gdpr: true
