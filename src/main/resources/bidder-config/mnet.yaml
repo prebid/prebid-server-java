@@ -11,11 +11,8 @@ adapters:
       maintainer-email: ${EMAIL}
       app-media-types:
         - banner
-        - video
-        - native
       site-media-types:
         - banner
-        - video
       supported-vendors:
       vendor-id: ${VENDOR_ID}
     usersync:
