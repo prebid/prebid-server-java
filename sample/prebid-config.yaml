@@ -4,8 +4,6 @@ adapters:
     enabled: true
     XAPI.Username: user1
     XAPI.Password: password1
-  improvedigital:
-    enabled: true
 metrics:
   prefix: prebid
 cache:
