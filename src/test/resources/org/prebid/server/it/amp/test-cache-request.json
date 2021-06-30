@@ -11,15 +11,20 @@
         "w": 300,
         "h": 600,
         "ext": {
-          "rp": {
-            "targeting": [
-              {
-                "key": "rpfl_1001",
-                "values": [
-                  "2_tier0100"
-                ]
-              }
-            ]
+          "prebid": {
+            "type": "banner"
+          },
+          "bidder": {
+            "rp": {
+              "targeting": [
+                {
+                  "key": "rpfl_1001",
+                  "values": [
+                    "2_tier0100"
+                  ]
+                }
+              ]
+            }
           },
           "origbidcpm": 12.09
         }
@@ -42,12 +47,17 @@
         "w": 300,
         "h": 250,
         "ext": {
-          "appnexus": {
-            "brand_id": 1,
-            "auction_id": 8189378542222915032,
-            "bidder_id": 2,
-            "bid_ad_type": 0,
-            "ranking_price": 0.0
+          "prebid": {
+            "type": "banner"
+          },
+          "bidder": {
+            "appnexus": {
+              "brand_id": 1,
+              "auction_id": 8189378542222915032,
+              "bidder_id": 2,
+              "bid_ad_type": 0,
+              "ranking_price": 0.0
+            }
           },
           "origbidcpm": 5.5,
           "origbidcur": "USD"
