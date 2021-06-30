@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.madvertise;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -10,6 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -29,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +46,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
     private static final int ZONE_ID_MIN_LENGTH = 7;
     private static final String X_OPENRTB_VERSION = "2.5";
     private static final String ZONE_ID_MACRO = "{{ZoneID}}";
+    private static final Set<Integer> VIDEO_BID_ATTRS = ImmutableSet.of(16, 6, 7);
 
     private final JacksonMapper mapper;
     private final String endpointUrl;
@@ -95,13 +99,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", impId));
         }
 
-        if (extImpMadvertise == null) {
-            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", impId));
-        }
-
-        final String zoneId = extImpMadvertise.getZoneId();
-
-        if (zoneId == null || zoneId.length() < ZONE_ID_MIN_LENGTH) {
+        if (StringUtils.length(extImpMadvertise.getZoneId()) < ZONE_ID_MIN_LENGTH) {
             throw new PreBidException(String.format("The minLength of zone ID is 7; ImpID=%s", impId));
         }
         return extImpMadvertise;
@@ -142,24 +140,14 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidMediaType(bid.getAttr()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getBidMediaType(Bid bid) {
-        final List<Integer> videoBidAttrs = Arrays.asList(16, 6, 7);
-        final List<Integer> bidAttrs = bid.getAttr();
-
-        if (bidAttrs == null || bidAttrs.isEmpty()) {
-            return BidType.banner;
-        }
-
-        for (int attr : bid.getAttr()) {
-            if (videoBidAttrs.contains(attr)) {
-                return BidType.video;
-            }
-        }
-
-        return BidType.banner;
+    private static BidType getBidMediaType(List<Integer> bidAttrs) {
+        return CollectionUtils.emptyIfNull(bidAttrs).stream()
+                .anyMatch(VIDEO_BID_ATTRS::contains)
+                ? BidType.video
+                : BidType.banner;
     }
 }
