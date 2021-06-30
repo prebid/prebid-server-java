@@ -13,6 +13,8 @@
           "crid": "crid001",
           "w": 300,
           "h": 250,
+          "adomain": [ "improvedigital.com" ],
+          "dealid": "321329",
           "ext": {
             "prebid": {
               "type": "banner",
@@ -22,7 +24,15 @@
                 "hb_size": "300x250",
                 "hb_bidder": "improvedigital",
                 "hb_size_improvedigital": "300x250",
-                "hb_pb_improvedigital": "3.30"
+                "hb_pb_improvedigital": "3.30",
+                "hb_deal": "321329",
+                "hb_deal_improvedigital": "321329"
+              }
+            },
+            "bidder": {
+              "improvedigital": {
+                "buying_type": "classic",
+                "line_item_id": 321329
               }
             },
             "origbidcpm": 3.33
