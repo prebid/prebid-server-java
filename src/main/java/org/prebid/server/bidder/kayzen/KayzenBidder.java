@@ -50,17 +50,17 @@ public class KayzenBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ExtImpKayzen extImpKayzen;
-        final List<Imp> modifiedImps;
-        final Imp firstImp = request.getImp().get(0);
+        final List<Imp> originalImps = request.getImp();
+        final Imp firstImp = originalImps.get(0);
 
         try {
             extImpKayzen = parseImpExt(firstImp);
-
-            modifiedImps = new ArrayList<>(request.getImp());
-            modifiedImps.set(0, firstImp.toBuilder().ext(null).build());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
+
+        final List<Imp> modifiedImps = new ArrayList<>(originalImps);
+        modifiedImps.set(0, firstImp.toBuilder().ext(null).build());
 
         return Result.withValue(createRequest(extImpKayzen, request, modifiedImps));
     }
