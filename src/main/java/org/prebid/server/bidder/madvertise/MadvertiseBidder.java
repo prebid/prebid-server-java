@@ -77,16 +77,6 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
         return Result.withValue(createRequest(request, zoneId));
     }
 
-    @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
-        } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
     private ExtImpMadvertise parseImpExt(Imp imp) {
         final ExtImpMadvertise extImpMadvertise;
         final String impId = imp.getId();
@@ -125,6 +115,16 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
         }
 
         return headers;
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse) {

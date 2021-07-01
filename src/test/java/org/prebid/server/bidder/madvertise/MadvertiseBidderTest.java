@@ -25,12 +25,12 @@ import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.proto.openrtb.ext.request.madvertise.ExtImpMadvertise;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,7 +71,6 @@ public class MadvertiseBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .hasSize(1)
                 .containsExactly(BidderError.badInput("The minLength of zone ID is 7; ImpID=123"));
     }
 
@@ -91,7 +90,6 @@ public class MadvertiseBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .hasSize(1)
                 .containsExactly(BidderError.badInput("The minLength of zone ID is 7; ImpID=123"));
     }
 
@@ -107,7 +105,7 @@ public class MadvertiseBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMadvertise.of("anotherZoneIdLongerThan7")))));
 
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(firstImp, secondImp))
+                .imp(asList(firstImp, secondImp))
                 .build();
 
         // when
@@ -115,7 +113,6 @@ public class MadvertiseBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .hasSize(1)
                 .containsExactly(BidderError.badInput("There must be only one zone ID"));
     }
 
@@ -156,7 +153,6 @@ public class MadvertiseBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = madvertiseBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 123"));
     }
@@ -179,7 +175,6 @@ public class MadvertiseBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://mobile.mng-ads.com/bidrequestsomeZoneIdLongerThan7");
@@ -255,7 +250,7 @@ public class MadvertiseBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponses(Arrays.asList(
+                        givenBidResponses(asList(
                                 bidBuilder -> bidBuilder.impid("123").attr(singletonList(6)),
                                 bidBuilder -> bidBuilder.impid("124").attr(singletonList(16)),
                                 bidBuilder -> bidBuilder.impid("125").attr(singletonList(7))))));
