@@ -1,16 +1,17 @@
 package org.prebid.server.bidder.medianet;
 
+import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.medianet.ExtImpMedianet;
 
 /**
  * Medianet {@link Bidder} implementation.
  */
-public class MedianetBidder extends OpenrtbBidder<ExtImpMedianet> {
+public class MedianetBidder extends OpenrtbBidder<Void> {
 
     public MedianetBidder(String endpointUrl, JacksonMapper mapper) {
-        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpMedianet.class, mapper);
+        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, Void.class, mapper);
     }
 }
