@@ -1,7 +1,6 @@
 package org.prebid.server.it.hooks;
 
 import io.vertx.core.Future;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.execution.v1.bidder.BidderResponsePayloadImpl;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -36,7 +35,9 @@ public class SampleItRawBidderResponseHook implements RawBidderResponseHook {
         return originalBids.stream()
                 .map(bidderBid -> BidderBid.of(
                         bidderBid.getBid().toBuilder()
-                                .impid(bidderBid.getBid().getImpid().replace("-rubicon", StringUtils.EMPTY))
+                                .adm(bidderBid.getBid().getAdm()
+                                        + "<Impression><![CDATA[Raw bidder response hook have been here]]>"
+                                        + "</Impression>")
                                 .build(),
                         bidderBid.getType(),
                         bidderBid.getBidCurrency()))

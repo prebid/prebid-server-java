@@ -38,7 +38,7 @@ public class SampleItBidderRequestHook implements BidderRequestHook {
             BidRequest originalBidRequest, BidderInvocationContext bidderInvocationContext) {
 
         final List<Imp> updatedImps = originalBidRequest.getImp().stream()
-                .map(imp -> imp.toBuilder().id(imp.getId() + "-rubicon").build())
+                .map(imp -> imp.toBuilder().tagid("tagid-from-bidder-request-hook").build())
                 .collect(Collectors.toList());
 
         return originalBidRequest.toBuilder()
