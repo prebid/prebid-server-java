@@ -2,7 +2,7 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId1-rubicon",
+      "id": "impId1",
       "banner": {
         "format": [
           {
@@ -24,6 +24,7 @@
           }
         }
       },
+      "tagid": "tagid-from-bidder-request-hook",
       "ext": {
         "rp": {
           "zone_id": 4001,
