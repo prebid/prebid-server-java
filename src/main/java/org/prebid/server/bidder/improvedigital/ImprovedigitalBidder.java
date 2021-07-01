@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpImprovedigital>> IMPROVEDIGITAL_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
+            new TypeReference<ExtPrebid<?, ExtImpImprovedigital>>() {
             };
 
     private final String endpointUrl;
