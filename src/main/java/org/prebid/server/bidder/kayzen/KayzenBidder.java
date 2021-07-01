@@ -66,16 +66,11 @@ public class KayzenBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpKayzen parseImpExt(Imp imp) {
-        final ExtImpKayzen extImpKayzen;
-        final String impId = imp.getId();
-
         try {
-            extImpKayzen = mapper.mapper().convertValue(imp.getExt(), KAYZEN_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), KAYZEN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", impId));
+            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
         }
-
-        return extImpKayzen;
     }
 
     private HttpRequest<BidRequest> createRequest(ExtImpKayzen extImpKayzen, BidRequest request, List<Imp> imps) {
@@ -123,14 +118,16 @@ public class KayzenBidder implements Bidder<BidRequest> {
 
     private static BidType getBidMediaType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (impId.equals(imp.getId())) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
+            if (!impId.equals(imp.getId())) {
+                continue;
+            }
+
+            if (imp.getBanner() != null) {
+                return BidType.banner;
+            } else if (imp.getVideo() != null) {
+                return BidType.video;
+            } else if (imp.getXNative() != null) {
+                return BidType.xNative;
             }
         }
 
