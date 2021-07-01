@@ -219,7 +219,6 @@ public class BidscubeBidderTest extends VertxTest {
                 BidderError.badInput("Unable to read bid.ext.prebid.type"));
     }
 
-
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

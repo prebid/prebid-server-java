@@ -34,11 +34,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class BidscubeBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpBidscube>> BIDSCUBE_IMP_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBidscube>>() {
             };
 
-    private static Set<BidType> POSSIBLE_BID_TYPES = ImmutableSet.of(BidType.banner, BidType.video, BidType.xNative);
+    private static final Set<BidType> POSSIBLE_BID_TYPES = ImmutableSet.of(BidType.banner, BidType.video, BidType.xNative);
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
