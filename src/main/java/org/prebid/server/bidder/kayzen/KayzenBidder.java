@@ -78,13 +78,12 @@ public class KayzenBidder implements Bidder<BidRequest> {
                 .replace(URL_ACCOUNT_ID_MACRO, extImpKayzen.getExchange());
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
 
-        return
-                HttpRequest.<BidRequest>builder()
+        return HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(url)
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
-                        .body(mapper.encode(request))
+                        .body(mapper.encode(outgoingRequest))
                         .build();
     }
 
