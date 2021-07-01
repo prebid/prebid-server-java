@@ -42,14 +42,13 @@ public class AdxcgBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
 
-        return Result.withValues(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
                         .body(mapper.encode(bidRequest))
                         .payload(bidRequest)
-                        .build()));
+                        .build());
     }
 
     @Override
