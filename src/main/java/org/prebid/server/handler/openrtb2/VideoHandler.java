@@ -11,10 +11,10 @@ import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
@@ -76,7 +76,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
                         .map(bidResponse -> Tuple2.of(bidResponse, contextToErrors)))
 
-                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData().getBidRequest(),
+                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData(),
                         result.getLeft(), result.getRight().getPodErrors()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))

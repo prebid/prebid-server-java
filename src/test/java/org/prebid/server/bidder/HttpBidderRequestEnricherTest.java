@@ -6,6 +6,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import org.junit.Before;
 import org.junit.Test;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -33,7 +34,7 @@ public class HttpBidderRequestEnricherTest {
 
         // when
         final MultiMap resultHeaders =
-                requestEnricher.enrichHeaders(headers, new CaseInsensitiveHeaders(), BidRequest.builder().build());
+                requestEnricher.enrichHeaders(headers, CaseInsensitiveMultiMap.empty(), BidRequest.builder().build());
 
         // then
         final MultiMap expectedHeaders = new CaseInsensitiveHeaders();
@@ -46,7 +47,9 @@ public class HttpBidderRequestEnricherTest {
     @Test
     public void shouldAddSecGpcHeaderFromOriginalRequest() {
         // given
-        final MultiMap originalHeaders = new CaseInsensitiveHeaders().add("Sec-GPC", "1");
+        final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder()
+                .add("Sec-GPC", "1")
+                .build();
 
         // when
         final MultiMap resultHeaders =
@@ -61,7 +64,9 @@ public class HttpBidderRequestEnricherTest {
     @Test
     public void shouldNotOverrideHeadersFromBidRequest() {
         // given
-        final MultiMap originalHeaders = new CaseInsensitiveHeaders().add("Sec-GPC", "1");
+        final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder()
+                .add("Sec-GPC", "1")
+                .build();
         final MultiMap bidderRequestHeaders = new CaseInsensitiveHeaders().add("Sec-GPC", "0");
 
         // when
@@ -88,7 +93,7 @@ public class HttpBidderRequestEnricherTest {
 
         // when
         final MultiMap resultHeaders = requestEnricher.enrichHeaders(new CaseInsensitiveHeaders(),
-                new CaseInsensitiveHeaders(), bidRequest);
+                CaseInsensitiveMultiMap.empty(), bidRequest);
 
         // then
         final MultiMap expectedHeaders = new CaseInsensitiveHeaders();

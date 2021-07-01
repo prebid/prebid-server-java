@@ -23,6 +23,8 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.util.HttpUtil;
@@ -76,25 +78,33 @@ public class VideoRequestFactory {
             return Future.failedFuture(e);
         }
 
-        return createBidRequest(body, routingContext)
-                .compose(bidRequestWithErrors -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
-                        routingContext,
-                        bidRequestWithErrors.getData(),
-                        MetricName.video,
-                        false,
-                        startTime,
-                        new ArrayList<>())
+        final List<PodError> podErrors = new ArrayList<>();
 
-                        .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
-                                .map(auctionContext::with))
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                Endpoint.openrtb2_video, MetricName.video);
 
-                        .map(auctionContext -> auctionContext.with(
-                                ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(
-                                        auctionContext.getBidRequest(),
-                                        auctionContext.getAccount(),
-                                        auctionContext.getPrivacyContext())))
+        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
+                .compose(httpRequest -> createBidRequest(httpRequest)
+                        .map(bidRequestWithErrors -> populatePodErrors(
+                                bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
+                        .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
+                                initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
 
-                        .map(auctionContext -> WithPodErrors.of(auctionContext, bidRequestWithErrors.getPodErrors())));
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext, false)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(
+                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+
+                .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with))
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection)
+
+                .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
     }
 
     private String extractAndValidateBody(RoutingContext context) {
@@ -111,11 +121,11 @@ public class VideoRequestFactory {
         return body;
     }
 
-    private Future<WithPodErrors<BidRequest>> createBidRequest(String body, RoutingContext routingContext) {
+    private Future<WithPodErrors<BidRequest>> createBidRequest(HttpRequestContext httpRequest) {
 
         final BidRequestVideo bidRequestVideo;
         try {
-            bidRequestVideo = parseRequest(body, routingContext);
+            bidRequestVideo = parseRequest(httpRequest);
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
@@ -129,7 +139,7 @@ public class VideoRequestFactory {
 
         return storedRequestProcessor.processVideoRequest(
                 accountIdFrom(bidRequestVideo), storedRequestId, podConfigIds, bidRequestVideo)
-                .map(bidRequestToErrors -> fillImplicitParametersAndValidate(routingContext, bidRequestToErrors));
+                .map(bidRequestToErrors -> fillImplicitParametersAndValidate(httpRequest, bidRequestToErrors));
     }
 
     /**
@@ -137,20 +147,20 @@ public class VideoRequestFactory {
      * <p>
      * Throws {@link InvalidRequestException} if body is empty, exceeds max request size or couldn't be deserialized.
      */
-    private BidRequestVideo parseRequest(String body, RoutingContext routingContext) {
+    private BidRequestVideo parseRequest(HttpRequestContext httpRequest) {
         try {
-            final BidRequestVideo bidRequestVideo = mapper.decodeValue(body, BidRequestVideo.class);
-            return insertDeviceUa(routingContext, bidRequestVideo);
+            final BidRequestVideo bidRequestVideo = mapper.decodeValue(httpRequest.getBody(), BidRequestVideo.class);
+            return insertDeviceUa(httpRequest, bidRequestVideo);
         } catch (DecodeException e) {
             throw new InvalidRequestException(e.getMessage());
         }
     }
 
-    private BidRequestVideo insertDeviceUa(RoutingContext context, BidRequestVideo bidRequestVideo) {
+    private BidRequestVideo insertDeviceUa(HttpRequestContext httpRequest, BidRequestVideo bidRequestVideo) {
         final Device device = bidRequestVideo.getDevice();
         final String deviceUa = device != null ? device.getUa() : null;
         if (StringUtils.isBlank(deviceUa)) {
-            final String userAgentHeader = context.request().getHeader(HttpUtil.USER_AGENT_HEADER);
+            final String userAgentHeader = httpRequest.getHeaders().get(HttpUtil.USER_AGENT_HEADER);
             if (StringUtils.isEmpty(userAgentHeader)) {
                 throw new InvalidRequestException("Device.UA and User-Agent Header is not presented");
             }
@@ -210,11 +220,15 @@ public class VideoRequestFactory {
         return Collections.emptySet();
     }
 
-    private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(RoutingContext routingContext,
+    private static <T> T populatePodErrors(List<PodError> from, List<PodError> to, T returnObject) {
+        to.addAll(from);
+        return returnObject;
+    }
+
+    private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(HttpRequestContext httpRequest,
                                                                         WithPodErrors<BidRequest> bidRequestToErrors) {
         final BidRequest bidRequest = bidRequestToErrors.getData();
-        final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, routingContext,
-                timeoutResolver);
+        final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver);
         final BidRequest validBidRequest = ortb2RequestFactory.validateRequest(updatedBidRequest);
         return WithPodErrors.of(validBidRequest, bidRequestToErrors.getPodErrors());
     }

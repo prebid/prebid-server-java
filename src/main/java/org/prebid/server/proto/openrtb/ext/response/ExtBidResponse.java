@@ -1,6 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.ext
  */
-@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 @Value
 public class ExtBidResponse {
 

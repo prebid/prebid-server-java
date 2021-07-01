@@ -117,7 +117,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(routingContext.response()).willReturn(httpResponse);
@@ -196,7 +196,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).gdpr(1).build()));
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
@@ -345,7 +345,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithSomeBidderStatusesIfSomeUidsMissingInCookies() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
@@ -565,7 +565,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(APPNEXUS_COOKIE, UidWithExpiry.live("12345"));
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
@@ -591,7 +591,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateUnsupportedBidder() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
@@ -621,7 +621,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateDisabledBidder() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
@@ -657,7 +657,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateRejectedBidderByTcf() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
@@ -691,7 +691,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateBiddersWithoutUsersyncUrl() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap("notRelevantBidder", UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
@@ -723,7 +723,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
         final Uids uids = Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build();
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(uids, jacksonMapper));
 
         given(routingContext.getBody())
@@ -784,7 +784,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateCookieSyncMatchesMetricForEachAlreadySyncedBidder() {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
@@ -816,7 +816,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
                 analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
 
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(routingContext.getBody())
@@ -848,7 +848,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoCookieStatusIfNoLiveUids() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(APPNEXUS_COOKIE, UidWithExpiry.expired("12345"))).build(),
                 jacksonMapper));
 
@@ -1222,7 +1222,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         Map<String, UidWithExpiry> liveUids = doubleMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"),
                 APPNEXUS_COOKIE, UidWithExpiry.live("1234567890"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(liveUids).build(), jacksonMapper));
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
@@ -1292,7 +1292,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
                 jacksonMapper));
 
@@ -1326,7 +1326,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoCookieWhenBothCcpaAndGdprRejectBidders() throws IOException {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(routingContext.getBody())

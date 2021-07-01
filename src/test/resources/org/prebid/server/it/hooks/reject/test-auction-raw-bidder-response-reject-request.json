@@ -1,0 +1,60 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "rubicon": {
+              "accountId": 2001,
+              "siteId": 3001,
+              "zoneId": 4001
+            }
+          }
+        }
+      }
+    }
+  ],
+  "device": {
+    "language": "en"
+  },
+  "site": {
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "10001"
+    }
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "user": {
+    "ext": {
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
+    },
+    "regs": {
+      "ext": {
+        "us_privacy": "1YNN"
+      }
+    }
+  },
+  "ext": {
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}
