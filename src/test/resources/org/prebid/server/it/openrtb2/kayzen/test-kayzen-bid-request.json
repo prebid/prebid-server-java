@@ -6,12 +6,6 @@
       "banner": {
         "w": 300,
         "h": 250
-      },
-      "ext": {
-        "bidder": {
-          "zone": "someZoneId",
-          "exchange": "someExchange"
-        }
       }
     }
   ],
