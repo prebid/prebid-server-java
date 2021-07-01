@@ -39,7 +39,8 @@ public class BidscubeBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpBidscube>>() {
             };
 
-    private static final Set<BidType> POSSIBLE_BID_TYPES = ImmutableSet.of(BidType.banner, BidType.video, BidType.xNative);
+    private static final Set<BidType> POSSIBLE_BID_TYPES = ImmutableSet.of(
+            BidType.banner, BidType.video, BidType.xNative);
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
