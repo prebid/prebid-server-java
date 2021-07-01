@@ -1,12 +1,15 @@
 package org.prebid.server.bidder.bidscube;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -15,26 +18,27 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidscube.ExtImpBidscube;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class BidscubeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBidscube>> BIDSCUBE_IMP_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBidscube>>() {
             };
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> BIDSCUBE_BID_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtBidPrebid, ?>>() {
-            };
+    private static Set<BidType> POSSIBLE_BID_TYPES = ImmutableSet.of(BidType.banner, BidType.video, BidType.xNative);
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -66,11 +70,11 @@ public class BidscubeBidder implements Bidder<BidRequest> {
         try {
             extImpBidscube = mapper.mapper().convertValue(imp.getExt(), BIDSCUBE_IMP_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("bidder parameters required");
+            throw new PreBidException("Missing required bidder parameters");
         }
 
         if (StringUtils.isEmpty(extImpBidscube.getPlacementId())) {
-            throw new PreBidException("bidder parameters required");
+            throw new PreBidException("Missing required bidder parameters");
         }
     }
 
@@ -85,30 +89,56 @@ public class BidscubeBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final List<BidderBid> bids = new ArrayList<>();
+    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-        final BidResponse bidResponse;
 
         try {
-            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-        } catch (IllegalArgumentException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse, errors), errors);
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
+    }
 
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            for (Bid bid : seatBid.getBid()) {
-                try {
-                    final BidType bidType = mapper.mapper().convertValue(bid.getExt(), BIDSCUBE_BID_EXT_TYPE_REFERENCE)
-                            .getPrebid().getType();
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+        return bidsFromResponse(bidResponse, errors);
+    }
 
-                    bids.add(BidderBid.of(bid, bidType == null ? BidType.banner : bidType, bidResponse.getCur()));
-                } catch (IllegalArgumentException e) {
-                    errors.add(BidderError.badInput(e.getMessage()));
-                }
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> constructBidderBid(bid, bidResponse, errors))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {
+        try {
+            final JsonNode bidExt = bid.getExt();
+            if (bidExt == null) {
+                throw new IllegalArgumentException();
             }
-        }
 
-        return Result.of(bids, errors);
+            final String bidTypeString = bidExt.path("prebid").path("type").asText("");
+            final BidType bidType = mapper.decodeValue(String.format("\"%s\"", bidTypeString), BidType.class);
+
+            return BidderBid.of(bid, resolveBidType(bidType), bidResponse.getCur());
+        } catch (IllegalArgumentException | DecodeException e) {
+            errors.add(BidderError.badInput("Unable to read bid.ext.prebid.type"));
+            return null;
+        }
+    }
+
+    private static BidType resolveBidType(BidType bidType) {
+        if (!POSSIBLE_BID_TYPES.contains(bidType)) {
+            return BidType.banner;
+        }
+        return bidType;
     }
 }
