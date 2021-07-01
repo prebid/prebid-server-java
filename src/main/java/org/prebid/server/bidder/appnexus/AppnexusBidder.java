@@ -185,10 +185,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 final ExtImpAppnexus appnexusExt = parseAndValidateAppnexusExt(imp);
 
                 if (adPodId == null) {
-                    adPodId = appnexusExt.getAdPoidId();
-                } else if (!Objects.equals(adPodId, appnexusExt.getAdPoidId())) {
-                    return Result.withErrors(Collections.singletonList(
-                            BidderError.badInput("generate ad pod option should be same for all pods in request")));
+                    adPodId = appnexusExt.getGenerateAdPodId();
+                } else if (!adPodId.equals(appnexusExt.getGenerateAdPodId())) {
+                    return Result.withError(
+                            BidderError.badInput("generate ad pod option should be same for all pods in request"));
                 }
 
                 final ImpWithMemberId impWithMemberId = makeImpWithMemberId(imp, appnexusExt, defaultDisplayManagerVer);

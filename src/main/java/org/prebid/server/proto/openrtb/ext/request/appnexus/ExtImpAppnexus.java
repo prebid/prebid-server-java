@@ -43,6 +43,5 @@ public class ExtImpAppnexus {
 
     ObjectNode privateSizes; // At this time we do no processing on the private sizes, so just leaving it as a JSON blob
 
-    @JsonProperty("generate_ad_pod_id")
-    Boolean adPoidId;
+    Boolean generateAdPodId;
 }
