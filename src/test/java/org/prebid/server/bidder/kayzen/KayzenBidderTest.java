@@ -21,8 +21,10 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kayzen.ExtImpKayzen;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -51,9 +53,8 @@ public class KayzenBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                        mapper.createArrayNode()))));
+        final BidRequest bidRequest = givenBidRequest((Function<Imp.ImpBuilder, Imp.ImpBuilder>) impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = kayzenBidder.makeHttpRequests(bidRequest);
 
@@ -64,11 +65,38 @@ public class KayzenBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateCorrectURL() {
+    public void makeHttpRequestsShouldDeleteExtOfOnlyFirstImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpKayzen.of("someZoneId", "someExchange")))));
+                (Function<Imp.ImpBuilder, Imp.ImpBuilder>) impBuilder -> impBuilder.ext(
+                        mapper.valueToTree(givenPrebidKayzenExt("someZoneIdLongerThan7", "exchange"))),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(givenPrebidKayzenExt(
+                        "anotherZoneIdLongerThan7", "anotherExchange"))),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(givenPrebidKayzenExt(
+                        "oneMoreZoneIdLongerThan7", "oneMoreExchange"))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = kayzenBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactlyInAnyOrder(
+                        null,
+                        mapper.valueToTree(givenPrebidKayzenExt(
+                                "anotherZoneIdLongerThan7", "anotherExchange")),
+                        mapper.valueToTree(givenPrebidKayzenExt(
+                                "oneMoreZoneIdLongerThan7", "oneMoreExchange")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURL() {
+        // given
+        final BidRequest bidRequest = givenBidRequest((Function<Imp.ImpBuilder, Imp.ImpBuilder>) impBuilder ->
+                impBuilder.ext(mapper.valueToTree(givenPrebidKayzenExt("someZoneId", "someExchange"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = kayzenBidder.makeHttpRequests(bidRequest);
@@ -178,17 +206,40 @@ public class KayzenBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, null));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    @Test
+    public void makeBidsShouldReturnBidderBidIfBannerAndVideoAndNativeIsAbsentInRequestImp()
+        throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+        // when
+        final Result<List<BidderBid>> result = kayzenBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
+    private static ExtPrebid<?, ExtImpKayzen> givenPrebidKayzenExt(String zoneId, String exchange) {
+        return ExtPrebid.of(null, ExtImpKayzen.of(zoneId, exchange));
+    }
+
+    @SafeVarargs
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
+        return givenBidRequest(identity(), impCustomizers);
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(Arrays.stream(impCustomizers).map(KayzenBidderTest::givenImp).collect(Collectors.toList())))
+                .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
