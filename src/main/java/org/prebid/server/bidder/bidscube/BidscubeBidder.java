@@ -64,8 +64,8 @@ public class BidscubeBidder implements Bidder<BidRequest> {
     private ObjectNode getBidderNode(Imp imp) {
         final JsonNode impExtNode = imp.getExt();
         final JsonNode bidderExtNode = isNotEmptyOrMissedNode(impExtNode) ? impExtNode.path("bidder") : null;
-        final JsonNode placementIdNode = isNotEmptyOrMissedNode(bidderExtNode) ?
-                bidderExtNode.get("placementId") : null;
+        final JsonNode placementIdNode = isNotEmptyOrMissedNode(bidderExtNode)
+                ? bidderExtNode.get("placementId") : null;
         if (placementIdNode == null || !placementIdNode.isTextual() || placementIdNode.asText().isEmpty()) {
             throw new PreBidException("Missing required bidder parameters");
         }
