@@ -1460,6 +1460,10 @@ public class ExchangeService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
+        if (extStageOutcomes.isEmpty()) {
+            return null;
+        }
+
         final long executionTime = extStageOutcomes.stream()
                 .mapToLong(ExtModulesTraceStageOutcome::getExecutionTime)
                 .max()
