@@ -38,6 +38,7 @@ public class KayzenBidder implements Bidder<BidRequest> {
             };
     private static final String URL_ZONE_ID_MACRO = "{{ZoneID}}";
     private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final int FIRST_IMP_INDEX = 0;
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -50,8 +51,7 @@ public class KayzenBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> originalImps = request.getImp();
-        final int firstImpIndex = 0;
-        final Imp firstImp = originalImps.get(firstImpIndex);
+        final Imp firstImp = originalImps.get(FIRST_IMP_INDEX);
         final ExtImpKayzen extImpKayzen;
 
         try {
@@ -61,7 +61,7 @@ public class KayzenBidder implements Bidder<BidRequest> {
         }
 
         final List<Imp> modifiedImps = new ArrayList<>(originalImps);
-        modifiedImps.set(firstImpIndex, firstImp.toBuilder().ext(null).build());
+        modifiedImps.set(FIRST_IMP_INDEX, firstImp.toBuilder().ext(null).build());
 
         return Result.withValue(createRequest(extImpKayzen, request, modifiedImps));
     }
