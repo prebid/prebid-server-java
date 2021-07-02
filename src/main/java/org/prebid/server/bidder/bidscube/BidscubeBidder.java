@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.bidscube;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -10,7 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -20,8 +19,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.bidscube.ExtImpBidscube;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -33,14 +30,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Bidscube {@link Bidder} implementation.
+ */
 public class BidscubeBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpBidscube>> BIDSCUBE_IMP_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBidscube>>() {
-            };
-
-    private static final Set<BidType> POSSIBLE_BID_TYPES = ImmutableSet.of(
-            BidType.banner, BidType.video, BidType.xNative);
+    private static final Set<String> POSSIBLE_BID_TYPES = ImmutableSet.of("banner", "video", "native");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -57,8 +52,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                validateImp(imp);
-                requests.add(createRequest(request, imp));
+                requests.add(createRequest(request, getBidderNode(imp), imp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -67,25 +61,24 @@ public class BidscubeBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
-    private void validateImp(Imp imp) {
-        final ExtImpBidscube extImpBidscube;
-        try {
-            extImpBidscube = mapper.mapper().convertValue(imp.getExt(), BIDSCUBE_IMP_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
+    private ObjectNode getBidderNode(Imp imp) {
+        final JsonNode impExtNode = imp.getExt();
+        final JsonNode bidderExtNode = isNotEmptyOrMissedNode(impExtNode) ? impExtNode.path("bidder") : null;
+        final JsonNode placementIdNode = isNotEmptyOrMissedNode(bidderExtNode) ?
+                bidderExtNode.get("placementId") : null;
+        if (placementIdNode == null || !placementIdNode.isTextual() || placementIdNode.asText().isEmpty()) {
             throw new PreBidException("Missing required bidder parameters");
         }
-
-        if (StringUtils.isEmpty(extImpBidscube.getPlacementId())) {
-            throw new PreBidException("Missing required bidder parameters");
-        }
+        return bidderExtNode.deepCopy();
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request, Imp imp) {
+    private HttpRequest<BidRequest> createRequest(BidRequest request, ObjectNode bidderNode, Imp imp) {
+        final Imp internalImp = imp.toBuilder().ext(bidderNode).build();
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
-                .payload(request.toBuilder().imp(Collections.singletonList(imp)).build())
+                .payload(request.toBuilder().imp(Collections.singletonList(internalImp)).build())
                 .body(mapper.encode(request))
                 .build();
     }
@@ -121,26 +114,24 @@ public class BidscubeBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {
-        try {
-            final JsonNode bidExt = bid.getExt();
-            if (bidExt == null) {
-                throw new IllegalArgumentException();
-            }
-
-            final String bidTypeString = bidExt.path("prebid").path("type").asText("");
-            final BidType bidType = mapper.decodeValue(String.format("\"%s\"", bidTypeString), BidType.class);
-
-            return BidderBid.of(bid, resolveBidType(bidType), bidResponse.getCur());
-        } catch (IllegalArgumentException | DecodeException e) {
+        final JsonNode extNode = bid.getExt();
+        final JsonNode typeNode = isNotEmptyOrMissedNode(extNode) ? extNode.at("/prebid/type") : null;
+        if (typeNode == null || !typeNode.isTextual()) {
             errors.add(BidderError.badInput("Unable to read bid.ext.prebid.type"));
             return null;
         }
+
+        return BidderBid.of(bid, resolveBidType(typeNode), bidResponse.getCur());
     }
 
-    private static BidType resolveBidType(BidType bidType) {
-        if (!POSSIBLE_BID_TYPES.contains(bidType)) {
+    private static boolean isNotEmptyOrMissedNode(JsonNode node) {
+        return node != null && !node.isEmpty();
+    }
+
+    private BidType resolveBidType(JsonNode bidType) {
+        if (!POSSIBLE_BID_TYPES.contains(bidType.asText())) {
             return BidType.banner;
         }
-        return bidType;
+        return mapper.mapper().convertValue(bidType, BidType.class);
     }
 }

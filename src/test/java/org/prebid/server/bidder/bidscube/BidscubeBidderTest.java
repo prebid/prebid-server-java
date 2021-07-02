@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.bidscube;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -183,6 +184,28 @@ public class BidscubeBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBannerBidForUnrecognisedType() throws JsonProcessingException {
+        // given
+        final ObjectNode givenExtPrebid = mapper.createObjectNode().put("type", "unknownType");
+        final ObjectNode givenExt = mapper.createObjectNode().set("prebid", givenExtPrebid);
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidResponse.builder()
+                        .seatbid(givenSeatBid(
+                                givenBid("123", null, bidBuilder -> bidBuilder.ext(givenExt)))
+                        ).build());
+
+        // when
+        final Result<List<BidderBid>> result = bidscubeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(givenBid("123", video, bidBuilder -> bidBuilder.ext(givenExt)),
+                        banner, null));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorOnEmptyBidExt() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -190,7 +213,9 @@ public class BidscubeBidderTest extends VertxTest {
                         .seatbid(givenSeatBid(
                                 givenBid("123", banner, bidBuilder -> bidBuilder.ext(null)),
                                 givenBid("456", banner, bidBuilder -> bidBuilder.ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, null)))))
+                                        ExtPrebid.of(null, null)))),
+                                givenBid("213", null)
+                                )
                         ).build());
 
         // when
@@ -198,7 +223,8 @@ public class BidscubeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactlyInAnyOrder(
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Unable to read bid.ext.prebid.type"),
                 BidderError.badInput("Unable to read bid.ext.prebid.type"),
                 BidderError.badInput("Unable to read bid.ext.prebid.type"));
     }
@@ -237,13 +263,6 @@ public class BidscubeBidderTest extends VertxTest {
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidscube.of("someId")))))
-                .build();
-    }
-
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
                 .build();
     }
 

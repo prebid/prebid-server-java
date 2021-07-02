@@ -22,7 +22,7 @@ import static java.util.Collections.singletonList;
 public class BidscubeTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromBetween() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromBidscube() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/bidscube-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
