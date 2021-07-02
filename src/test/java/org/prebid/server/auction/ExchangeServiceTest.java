@@ -3177,6 +3177,29 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidResponseWithoutHooksTraceInfoWhenNoHooksExecuted() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .hookExecutionContext(HookExecutionContext.of(
+                        Endpoint.openrtb2_auction,
+                        new EnumMap<>(singletonMap(
+                                Stage.entrypoint,
+                                singletonList(StageExecutionOutcome.of("http-request", emptyList()))))))
+                .debugContext(DebugContext.of(false, TraceLevel.basic))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        assertThat(bidResponse.getExt()).isNull();
+    }
+
+    @Test
     public void shouldIncrementHooksGlobalMetrics() {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
