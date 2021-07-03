@@ -1,14 +1,14 @@
 adapters:
   medianet:
     enabled: true
-    endpoint: ${ENDPOINT}
+    endpoint: http://prebid.media.net
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases: {}
     meta-info:
-      maintainer-email: ${EMAIL}
+      maintainer-email: prebid@media.net
       app-media-types:
         - banner
         - video
@@ -18,10 +18,10 @@ adapters:
         - video
         - native
       supported-vendors:
-      vendor-id: ${VENDOR_ID}
+      vendor-id: 10
     usersync:
-      url:
+      url: https://prebid.media.net/usersync
       redirect-url:
-      cookie-family-name:
+      cookie-family-name: medianet
       type: redirect
       support-cors: false

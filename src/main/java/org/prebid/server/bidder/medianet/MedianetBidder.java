@@ -1,9 +1,7 @@
 package org.prebid.server.bidder.medianet;
 
-import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.OpenrtbBidder;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 
 /**

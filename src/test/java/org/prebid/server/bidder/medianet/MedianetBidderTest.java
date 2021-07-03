@@ -29,12 +29,12 @@ public class MedianetBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.media.net";
     private static final BidRequest DUMMY_REQUEST = BidRequest.builder()
-        .id("request_id")
-        .imp(singletonList(Imp.builder()
-            .id("imp_id")
-            .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
-            .build()))
-        .build();
+            .id("request_id")
+            .imp(singletonList(Imp.builder()
+                .id("imp_id")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                .build()))
+            .build();
 
     private MedianetBidder medianetBidder;
 
@@ -46,7 +46,7 @@ public class MedianetBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-            .isThrownBy(() -> new MedianetBidder("invalid_url", jacksonMapper));
+                .isThrownBy(() -> new MedianetBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -91,16 +91,16 @@ public class MedianetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         final HttpCall<BidRequest> httpCall = sampleHttpCall(
-            DUMMY_REQUEST,
-            mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                DUMMY_REQUEST,
+                mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("123"))));
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-            .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     private static BidResponse sampleBidResponse(Function<Bid.BidBuilder,
-        Bid.BidBuilder> bidCustomizer) {
+            Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
             .cur("USD")
             .seatbid(singletonList(SeatBid.builder()
