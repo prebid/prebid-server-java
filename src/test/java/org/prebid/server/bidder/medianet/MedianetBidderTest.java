@@ -27,7 +27,8 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class MedianetBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.media.net";
+    private static final String ENDPOINT_URL = "https://test.media.net?src={{PREBID_SERVER_ENDPOINT}}";
+    private static final String EXTERNAL_URL = "https://external.prebidserver.com";
     private static final BidRequest DUMMY_REQUEST = BidRequest.builder()
             .id("request_id")
             .imp(singletonList(Imp.builder()
@@ -40,13 +41,24 @@ public class MedianetBidderTest extends VertxTest {
 
     @Before
     public void setup() {
-        medianetBidder = new MedianetBidder(ENDPOINT_URL, jacksonMapper);
+        medianetBidder = new MedianetBidder(ENDPOINT_URL, jacksonMapper, EXTERNAL_URL);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new MedianetBidder("invalid_url", jacksonMapper));
+                .isThrownBy(() -> new MedianetBidder("invalid_url", jacksonMapper, EXTERNAL_URL));
+    }
+
+    @Test
+    public void httpRequestShouldContainCorrectUrl() {
+        final Result<List<HttpRequest<BidRequest>>> result;
+        result = medianetBidder.makeHttpRequests(DUMMY_REQUEST);
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+            .extracting(HttpRequest::getUri)
+            .containsExactly("https://test.media.net?src=https%3A%2F%2Fexternal.prebidserver.com");
     }
 
     @Test
