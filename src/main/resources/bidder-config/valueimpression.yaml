@@ -1,6 +1,6 @@
 adapters:
   valueimpression:
-    enabled: false
+    enabled: true
     endpoint: https://rtb.valueimpression.com/endpoint
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

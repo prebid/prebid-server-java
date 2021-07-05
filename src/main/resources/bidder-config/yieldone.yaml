@@ -1,6 +1,6 @@
 adapters:
   yieldone:
-    enabled: false
+    enabled: true
     endpoint: https://y.one.impact-ad.jp/hbs_imp
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

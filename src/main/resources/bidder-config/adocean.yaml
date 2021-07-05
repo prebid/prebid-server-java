@@ -1,6 +1,6 @@
 adapters:
   adocean:
-    enabled: false
+    enabled: true
     endpoint: https://{{Host}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

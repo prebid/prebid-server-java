@@ -12,3 +12,6 @@
 target/
 
 .DS_Store
+
+org/
+META-INF/

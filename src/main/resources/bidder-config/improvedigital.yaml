@@ -1,6 +1,6 @@
 adapters:
   improvedigital:
-    enabled: false
+    enabled: true
     endpoint: http://ad.360yield.com/pbs
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

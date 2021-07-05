@@ -1,6 +1,6 @@
 adapters:
   gumgum:
-    enabled: false
+    enabled: true
     endpoint: https://g2.gumgum.com/providers/prbds2s/bid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

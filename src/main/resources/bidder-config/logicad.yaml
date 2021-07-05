@@ -1,6 +1,6 @@
 adapters:
   logicad:
-    enabled: false
+    enabled: true
     endpoint: https://pbs.ladsp.com/adrequest/prebidserver
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

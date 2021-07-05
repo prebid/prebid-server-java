@@ -1,6 +1,6 @@
 adapters:
   vrtcal:
-    enabled: false
+    enabled: true
     endpoint: http://rtb.vrtcal.com/bidder_prebid.vap?ssp=1804
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

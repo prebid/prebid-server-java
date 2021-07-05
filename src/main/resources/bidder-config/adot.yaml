@@ -1,6 +1,6 @@
 adapters:
   adot:
-    enabled: false
+    enabled: true
     endpoint: https://dsp.adotmob.com/headerbidding/bidrequest
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

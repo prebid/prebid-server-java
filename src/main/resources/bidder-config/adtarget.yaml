@@ -1,6 +1,6 @@
 adapters:
   adtarget:
-    enabled: false
+    enabled: true
     endpoint: http://ghb.console.adtarget.com.tr/pbs/ortb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

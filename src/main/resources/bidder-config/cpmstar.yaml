@@ -1,6 +1,6 @@
 adapters:
   cpmstar:
-    enabled: false
+    enabled: true
     endpoint: https://server.cpmstar.com/openrtbbidrq.aspx
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

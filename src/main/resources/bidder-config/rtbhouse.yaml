@@ -1,6 +1,6 @@
 adapters:
   rtbhouse:
-    enabled: false
+    enabled: true
     endpoint: http://prebidserver-s2s-ams.creativecdn.com/bidder/prebidserver/bids
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

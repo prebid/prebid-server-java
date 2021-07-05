@@ -1,6 +1,6 @@
 adapters:
   datablocks:
-    enabled: false
+    enabled: true
     endpoint: http://{{Host}}/openrtb2?sid={{SourceId}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

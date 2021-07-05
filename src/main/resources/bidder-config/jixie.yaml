@@ -1,6 +1,6 @@
 adapters:
   jixie:
-    enabled: false
+    enabled: true
     endpoint: https://hb.jixie.io/v2/hbsvrpost
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

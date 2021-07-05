@@ -1,6 +1,6 @@
 adapters:
   engagebdr:
-    enabled: false
+    enabled: true
     endpoint: http://dsp.bnmla.com/hb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

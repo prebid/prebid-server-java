@@ -1,6 +1,6 @@
 adapters:
   revcontent:
-    enabled: false
+    enabled: true
     endpoint: https://trends.revcontent.com/rtb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

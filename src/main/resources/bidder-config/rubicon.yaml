@@ -1,6 +1,6 @@
 adapters:
   rubicon:
-    enabled: false
+    enabled: true
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
