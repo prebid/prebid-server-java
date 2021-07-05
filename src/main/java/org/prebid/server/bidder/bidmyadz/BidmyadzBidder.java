@@ -3,8 +3,8 @@ package org.prebid.server.bidder.bidmyadz;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -94,13 +94,13 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-        final SeatBid seatBid = bidResponse.getSeatbid().get(0);
+        final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
 
-        if (CollectionUtils.isEmpty(seatBid.getBid())) {
+        if (CollectionUtils.isEmpty(bids)) {
             throw new PreBidException("Empty SeatBid.Bids");
         }
 
-        return seatBid.getBid().stream()
+        return bids.stream()
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
