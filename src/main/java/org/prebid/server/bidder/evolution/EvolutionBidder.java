@@ -65,7 +65,7 @@ public class EvolutionBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Collections.emptyList();
+            throw new PreBidException("Empty seatbid");
         }
         return bidsFromResponse(bidResponse);
     }
