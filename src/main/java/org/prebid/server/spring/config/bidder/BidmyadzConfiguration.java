@@ -48,5 +48,4 @@ public class BidmyadzConfiguration {
                 .bidderCreator(config -> new BidmyadzBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }
