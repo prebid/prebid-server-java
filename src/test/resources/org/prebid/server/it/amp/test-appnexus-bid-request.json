@@ -113,6 +113,9 @@
       ],
       "channel": {
         "name": "amp"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/amp"
       }
     }
   }

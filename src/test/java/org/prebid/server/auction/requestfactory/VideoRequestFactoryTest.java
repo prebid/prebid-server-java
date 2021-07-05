@@ -32,6 +32,7 @@ import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
@@ -294,7 +295,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 eq(AuctionContext.builder().bidRequest(bidRequest).build()),
                 eq(false));
         verify(ortb2RequestFactory).validateRequest(bidRequest);
-        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver));
+        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver), eq(Endpoint.openrtb2_video.value()));
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
                 argThat(context -> Objects.equals(context.getBidRequest(), bidRequest)));
         assertThat(result.result().getData().getBidRequest()).isEqualTo(bidRequest);
@@ -351,7 +352,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.fetchAccount(any(), anyBoolean())).willReturn(Future.succeededFuture());
 
         given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
-        given(paramsResolver.resolve(any(), any(), any()))
+        given(paramsResolver.resolve(any(), any(), any(), any()))
                 .willAnswer(answerWithFirstArgument());
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))

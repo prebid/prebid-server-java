@@ -64,7 +64,6 @@
   },
   "ext": {
     "prebid": {
-      "debug": 1,
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -81,6 +80,9 @@
       "auctiontimestamp": 1000,
       "channel": {
         "name": "web"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
       }
     }
   }

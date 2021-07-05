@@ -71,7 +71,10 @@
         "includewinners": true,
         "includebidderkeys": true
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      }
     }
   }
 }
