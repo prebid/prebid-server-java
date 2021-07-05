@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.bidmyadz;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -179,6 +178,45 @@ public class BidmyadzBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
+    @Test
+    public void makeBidsShouldReturnErrorIfSeatBidDoesNotHaveBids() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build())).build()));
+
+        // when
+        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid.Bids"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfMediaTypeUnknown() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .ext(mapper.createObjectNode().put("mediaType", "unknown")))));
+
+        // when
+        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse(
+                "No enum constant org.prebid.server.proto.openrtb.ext.response.BidType.unknown"
+        ));
+        assertThat(result.getValue()).isEmpty();
+    }
+
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
@@ -198,7 +236,6 @@ public class BidmyadzBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpBidmyadz.of("placementId")))))
                 .build();

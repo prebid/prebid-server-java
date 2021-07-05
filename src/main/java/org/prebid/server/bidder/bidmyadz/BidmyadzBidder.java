@@ -24,7 +24,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * BidMyAdz {@link Bidder} implementation.
@@ -80,35 +79,39 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            return Result.withValue(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private BidderBid extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty SeatBid");
         }
         return bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private BidderBid bidsFromResponse(BidResponse bidResponse) {
         final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
 
         if (CollectionUtils.isEmpty(bids)) {
             throw new PreBidException("Empty SeatBid.Bids");
         }
 
-        return bids.stream()
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+        final Bid bid = bids.get(0);
+        return BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur());
     }
 
-    private BidType getBidType(JsonNode ext) {
+    private static BidType getBidType(JsonNode ext) {
+        final JsonNode mediaTypeNode = ext.get("mediaType");
+        final String mediaType = mediaTypeNode != null && mediaTypeNode.isTextual() ? mediaTypeNode.asText() : null;
+        if (StringUtils.isEmpty(mediaType)) {
+            throw new PreBidException("Missed mediaType");
+        }
         try {
-            return BidType.valueOf(mapper.mapper().convertValue(ext.get("mediaType"), String.class));
-        } catch (Exception e) {
+            return BidType.valueOf(mediaType);
+        } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
