@@ -67,7 +67,7 @@ public class BidmyadzBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorsIfBidRequestDoesNotHaveIp() {
+    public void makeHttpRequestsShouldReturnErrorsIfBidRequestDeviceDoesNotHaveIpOrIpV6() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.device(
                 Device.builder().ua("ua").build()), identity());
@@ -80,7 +80,7 @@ public class BidmyadzBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorsIfBidRequestDoesNotHaveUa() {
+    public void makeHttpRequestsShouldReturnErrorsIfBidRequestDeviceDoesNotHaveUserAgent() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.device(
                 Device.builder().ip("ip").ipv6("ipv6").build()), identity());
@@ -93,7 +93,7 @@ public class BidmyadzBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorsIfBidRequestHasMoreThan() {
+    public void makeHttpRequestsShouldReturnErrorsIfBidRequestHasMoreThanOneImp() {
         // given
         BidRequest bidRequestWithTwoImps = givenBidRequest(identity(), identity()).toBuilder()
                 .imp(asList(Imp.builder().build(), Imp.builder().build())).build();
@@ -143,7 +143,7 @@ public class BidmyadzBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfMediaTypeEqualsBanner() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
