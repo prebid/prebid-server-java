@@ -23,7 +23,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Evolution {@link Bidder} implementation.
@@ -71,11 +73,12 @@ public class EvolutionBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
+        final List<Bid> bidList = bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .findFirst()
                 .map(SeatBid::getBid)
-                .stream()
+                .orElse(null);
+        return Stream.of(bidList)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
