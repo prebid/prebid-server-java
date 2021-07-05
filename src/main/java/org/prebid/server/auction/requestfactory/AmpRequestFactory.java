@@ -299,9 +299,6 @@ public class AmpRequestFactory {
             throw new InvalidRequestException("request.app must not exist in AMP stored requests.");
         }
 
-        if (bidRequest.getExt() == null) {
-            throw new InvalidRequestException("AMP requests require Ext to be set");
-        }
         return bidRequest;
     }
 
