@@ -17,6 +17,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -51,8 +52,9 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
                     .payload(request)
                     .body(mapper.encode(request))
                     .build());
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
+        } catch (EncodeException e) {
+            return Result.withError(
+                    BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
     }
 
