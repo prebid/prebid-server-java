@@ -52,7 +52,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                requests.add(createRequest(request, getBidderNode(imp), imp));
+                requests.add(createRequest(request, imp, getBidderNode(imp)));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -61,25 +61,24 @@ public class BidscubeBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
-    private ObjectNode getBidderNode(Imp imp) {
+    private static ObjectNode getBidderNode(Imp imp) {
         final JsonNode impExtNode = imp.getExt();
-        final JsonNode bidderExtNode = isNotEmptyOrMissedNode(impExtNode) ? impExtNode.path("bidder") : null;
-        final JsonNode placementIdNode = isNotEmptyOrMissedNode(bidderExtNode)
-                ? bidderExtNode.get("placementId") : null;
-        if (placementIdNode == null || !placementIdNode.isTextual() || placementIdNode.asText().isEmpty()) {
+        final JsonNode bidderExtNode = isNotEmptyOrMissedNode(impExtNode) ? impExtNode.get("bidder") : null;
+        if (!isNotEmptyOrMissedNode(bidderExtNode)) {
             throw new PreBidException("Missing required bidder parameters");
         }
         return bidderExtNode.deepCopy();
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request, ObjectNode bidderNode, Imp imp) {
+    private HttpRequest<BidRequest> createRequest(BidRequest request, Imp imp, ObjectNode bidderNode) {
         final Imp internalImp = imp.toBuilder().ext(bidderNode).build();
+        final BidRequest internalRequest = request.toBuilder().imp(Collections.singletonList(internalImp)).build();
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
-                .payload(request.toBuilder().imp(Collections.singletonList(internalImp)).build())
-                .body(mapper.encode(request))
+                .payload(internalRequest)
+                .body(mapper.encode(internalRequest))
                 .build();
     }
 

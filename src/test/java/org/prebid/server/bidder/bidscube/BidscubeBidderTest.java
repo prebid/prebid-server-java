@@ -55,26 +55,22 @@ public class BidscubeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullPlacementIdParam() {
+    public void makeHttpRequestsShouldReturnErrorIfImpExtContainNullPlacementIdParam() {
         // given
-        final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidscube.of("")))));
-
-        final Imp secondImp = givenImp(impBuilder -> impBuilder
+        final Imp imp = givenImp(impBuilder -> impBuilder
                 .id("456")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidscube.of(null)))));
 
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(firstImp, secondImp))
+                .imp(singletonList(imp))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidscubeBidder.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Missing required bidder parameters"),
                 BidderError.badInput("Missing required bidder parameters"));
     }
 
@@ -110,6 +106,7 @@ public class BidscubeBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidscubeBidder.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("Missing required bidder parameters"));
     }
@@ -241,7 +238,7 @@ public class BidscubeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactlyInAnyOrder(
+        assertThat(result.getErrors()).containsExactly(
                 BidderError.badInput("Unable to read bid.ext.prebid.type"));
     }
 
