@@ -13,7 +13,8 @@
       },
       "ext": {
         "between": {
-          "host": "127.0.0.1"
+          "host": "lbs-ru1.ads",
+          "publisher_id": "publisherTestID"
         }
       }
     }
@@ -22,9 +23,12 @@
     "pxratio": 4.2,
     "dnt": 2,
     "language": "en",
-    "ifa": "ifaId"
+    "ifa": "ifaId",
+    "ua": "testUa",
+    "ip": "193.168.244.1"
   },
   "site": {
+    "page": "awesomePage",
     "publisher": {
       "id": "publisherId"
     }
@@ -50,9 +54,6 @@
             }
           ]
         }
-      },
-      "cache": {
-        "bids": {}
       },
       "auctiontimestamp": 1000
     }

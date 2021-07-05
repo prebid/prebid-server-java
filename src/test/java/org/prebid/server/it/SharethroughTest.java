@@ -6,7 +6,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.util.HttpUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -16,7 +15,6 @@ import java.util.Date;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
@@ -59,12 +57,6 @@ public class SharethroughTest extends IntegrationTest {
                 .willReturn(
                         aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/sharethrough/test-cache-sharethrough-request.json")))
-                .willReturn(
-                        aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-cache-sharethrough-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
@@ -83,6 +75,6 @@ public class SharethroughTest extends IntegrationTest {
                 .replace("{{ TEST_FORMATTED_TIME }}", HttpUtil.encodeUrl(TEST_FORMATTED_TIME))
                 .replace("{{ DEADLINE_FORMATTED_TIME }}", DEADLINE_FORMATTED_TIME);
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }

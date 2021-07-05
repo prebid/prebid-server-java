@@ -4,23 +4,21 @@
     {
       "id": "impId001",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "format": [],
+        "w": 300,
+        "h": 250
       },
+      "secure": 0,
       "ext": {
         "bidder": {
-          "host": "127.0.0.1"
+          "host": "lbs-ru1.ads",
+          "publisher_id": "publisherTestID"
         }
       }
     }
   ],
   "site": {
-    "domain": "example.com",
-    "page": "http://www.example.com",
+    "page": "awesomePage",
     "publisher": {
       "id": "publisherId"
     },
@@ -29,15 +27,15 @@
     }
   },
   "device": {
-    "ua": "userAgent",
-    "dnt": 2,
+    "ua": "testUa",
     "ip": "193.168.244.1",
+    "dnt": 2,
     "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "BTW-UID"
+    "buyeruid": "BTW-UID"
   },
   "at": 1,
   "tmax": 5000,
@@ -68,12 +66,9 @@
         "includewinners": true,
         "includebidderkeys": true
       },
-      "cache": {
-        "bids": {}
-      },
       "auctiontimestamp": 1000,
-      "channel" : {
-        "name" : "web"
+      "channel": {
+        "name": "web"
       },
       "pbs": {
         "endpoint": "/openrtb2/auction"

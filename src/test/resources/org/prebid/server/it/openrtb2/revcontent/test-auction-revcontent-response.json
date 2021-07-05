@@ -1,0 +1,46 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "randomid",
+          "impid": "test-imp-id",
+          "price": 0.5,
+          "adm": "<div id='rtb-widget",
+          "adid": "12345678",
+          "cid": "987",
+          "crid": "12345678",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "0.50",
+                "hb_size": "300x250",
+                "hb_bidder": "revcontent",
+                "hb_pb_revcontent": "0.50",
+                "hb_bidder_revcontent": "revcontent",
+                "hb_size_revcontent": "300x250"
+              }
+            },
+            "origbidcpm": 0.5
+          }
+        }
+      ],
+      "seat": "revcontent",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "revcontent": "{{ revcontent.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}

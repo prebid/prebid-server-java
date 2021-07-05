@@ -24,8 +24,14 @@
     }
   ],
   "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
     "publisher": {
-      "id": "73"
+      "id": "73",
+      "domain" : "example.com"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
@@ -37,7 +43,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid" : "SA-UID",
+    "buyeruid": "SA-UID",
     "ext": {
       "consent": "consentValue"
     }
@@ -58,7 +64,6 @@
   },
   "ext": {
     "prebid": {
-      "debug": 1,
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -71,12 +76,6 @@
         },
         "includewinners": true,
         "includebidderkeys": true
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
       },
       "auctiontimestamp": 1000,
       "channel": {

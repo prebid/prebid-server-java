@@ -19,10 +19,11 @@
       }
     ],
     "site": {
-      "domain": "example.com",
+      "domain": "www.example.com",
       "page": "http://www.example.com",
       "publisher": {
-        "id": "publisherId"
+        "id": "publisherId",
+        "domain": "example.com"
       },
       "ext": {
         "amp": 0
@@ -50,7 +51,20 @@
     ],
     "source": {
       "fd": 1,
-      "tid": "tid"
+      "tid": "tid",
+      "ext": {
+        "schain": {
+          "ver": "1.0",
+          "complete": 1,
+          "nodes": [
+            {
+              "asi": "superads.com",
+              "sid": "123",
+              "hp": 1
+            }
+          ]
+        }
+      }
     },
     "regs": {
       "ext": {
@@ -71,12 +85,6 @@
           },
           "includewinners": true,
           "includebidderkeys": true
-        },
-        "cache": {
-          "bids": {},
-          "vastxml": {
-            "ttlseconds": 120
-          }
         },
         "auctiontimestamp": 1000,
         "channel": {

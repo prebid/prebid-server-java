@@ -5,7 +5,6 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -39,11 +38,6 @@ public class EmxdigitalTest extends IntegrationTest {
                         true, true))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/emxdigital/test-emxdigital-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/emxdigital/test-cache-emxdigital-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/emxdigital/test-cache-emxdigital-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
@@ -60,7 +54,7 @@ public class EmxdigitalTest extends IntegrationTest {
                 "openrtb2/emxdigital/test-auction-emxdigital-response.json",
                 response, singletonList("emx_digital"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }
 

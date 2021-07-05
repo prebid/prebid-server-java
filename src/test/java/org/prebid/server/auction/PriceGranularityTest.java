@@ -16,12 +16,6 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 public class PriceGranularityTest {
 
     @Test
-    public void createFromExtPriceGranularityShouldThrowIllegalArgumentsExceptionIfRangesListNull() {
-        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromExtPriceGranularity(
-                ExtPriceGranularity.of(2, null)));
-    }
-
-    @Test
     public void createFromExtPriceGranularityShouldThrowIllegalArgumentsExceptionIfRangesListIsEmpty() {
         assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromExtPriceGranularity(
                 ExtPriceGranularity.of(2, emptyList())));

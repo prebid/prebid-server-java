@@ -25,7 +25,6 @@ public class BrightrollTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromBrightroll() throws IOException, JSONException {
         // given
-        // brightroll bid response for imp 15
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/brightroll-exchange"))
                 .withQueryParam("publisher", equalTo("businessinsider"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
@@ -37,11 +36,6 @@ public class BrightrollTest extends IntegrationTest {
                 .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/brightroll/test-brightroll-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/brightroll/test-brightroll-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/brightroll/test-cache-brightroll-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/brightroll/test-cache-brightroll-response.json"))));
 
         // when
         final Response response = given(SPEC)

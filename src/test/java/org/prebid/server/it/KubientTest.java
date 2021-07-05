@@ -5,7 +5,6 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -23,15 +22,9 @@ public class KubientTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromKubient() throws IOException, JSONException {
         // given
-        // Kubient bid response for imp 001 and 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/kubient-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/kubient/test-kubient-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/kubient/test-kubient-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/kubient/test-cache-kubient-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/kubient/test-cache-kubient-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -49,7 +42,7 @@ public class KubientTest extends IntegrationTest {
                 "openrtb2/kubient/test-auction-kubient-response.json",
                 response, singletonList("kubient"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }
 

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,21 +48,6 @@ public class AdgenerationBidderTest extends VertxTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new AdgenerationBidder("invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No impression in the bid request"));
     }
 
     @Test

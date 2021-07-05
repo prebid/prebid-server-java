@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,8 +65,7 @@ public class MarsmediaBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("ext.bidder not provided"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -79,8 +80,7 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Zone is empty"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Zone is empty"));
     }
 
     @Test
@@ -94,8 +94,8 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid banner format in the bid request"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("No valid banner format in the bid request"));
     }
 
     @Test
@@ -109,22 +109,44 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impression in the bid request"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No valid impression in the bid request"));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnUnmodifiedBidRequest() {
+    public void makeHttpRequestsShouldAddAtAttributeToOutgoingRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                requestBuilder -> requestBuilder.at(1));
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getPayload()).isSameAs(bidRequest);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getAt)
+                .containsExactly(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddOnlyBannerAndVideoImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(givenImp(impBuilder -> impBuilder.id("123")),
+                        givenImp(impBuilder -> impBuilder.id("456").banner(null).video(Video.builder().build())),
+                        givenImp(impBuilder -> impBuilder.id("789").banner(null).xNative(Native.builder().build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("123", "456");
     }
 
     @Test
@@ -140,12 +162,33 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
                 .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(640, 480));
+                .containsExactly(tuple(640, 480));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplaceBannerWidthAndHeightWithZeroIfFormatValuesNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .banner(Banner.builder()
+                        .format(singletonList(Format.builder().w(null).h(null).build()))
+                        .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsExactly(tuple(0, 0));
     }
 
     @Test
@@ -158,10 +201,10 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getAt)
-                .containsOnly(1);
+                .containsExactly(1);
     }
 
     @Test
@@ -174,14 +217,14 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://test.endpoint.com/test&zone=zoneId");
+                .containsExactly("https://test.endpoint.com/test&zone=zoneId");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
@@ -204,7 +247,7 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -224,9 +267,11 @@ public class MarsmediaBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = marsmediaBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -266,7 +311,7 @@ public class MarsmediaBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("125"))));
 
         // when
         final Result<List<BidderBid>> result = marsmediaBidder.makeBids(httpCall, null);
@@ -274,7 +319,21 @@ public class MarsmediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("125").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfFirstSeatIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+                mapper.writeValueAsString(BidResponse.builder().seatbid(singletonList(null)).build()));
+
+        // when
+        final Result<List<BidderBid>> result = marsmediaBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -293,7 +352,7 @@ public class MarsmediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     private static BidRequest givenBidRequest(

@@ -35,7 +35,6 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     private final Map<String, Account> accountCache;
     private final Map<String, String> accountToErrorCache;
-    private final Map<String, String> adUnitConfigCache;
     private final SettingsCache cache;
     private final SettingsCache ampCache;
     private final SettingsCache videoCache;
@@ -55,7 +54,6 @@ public class CachingApplicationSettings implements ApplicationSettings {
         this.delegate = Objects.requireNonNull(delegate);
         this.accountCache = SettingsCache.createCache(ttl, size);
         this.accountToErrorCache = SettingsCache.createCache(ttl, size);
-        this.adUnitConfigCache = SettingsCache.createCache(ttl, size);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
         this.videoCache = Objects.requireNonNull(videoCache);
@@ -74,20 +72,6 @@ public class CachingApplicationSettings implements ApplicationSettings {
                 timeout,
                 delegate::getAccountById,
                 event -> metrics.updateSettingsCacheEventMetric(MetricName.account, event));
-    }
-
-    /**
-     * Retrieves adUnit config from cache or delegates it to original fetcher.
-     */
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return getFromCacheOrDelegate(
-                adUnitConfigCache,
-                accountToErrorCache,
-                adUnitConfigId,
-                timeout,
-                delegate::getAdUnitConfigById,
-                CachingApplicationSettings::noOp);
     }
 
     /**
@@ -247,6 +231,4 @@ public class CachingApplicationSettings implements ApplicationSettings {
         logger.debug("Account with id {0} was invalidated", accountId);
     }
 
-    private static <ANY> void noOp(ANY any) {
-    }
 }

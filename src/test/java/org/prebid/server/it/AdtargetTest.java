@@ -12,6 +12,7 @@ import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,18 +25,13 @@ public class AdtargetTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdtarget() throws IOException, JSONException {
         // given
-        // Adtarget bid response for imp 14
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtarget-exchange"))
                 .withQueryParam("aid", equalTo("1000"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adtarget/test-adtarget-bid-request-1.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/adtarget/test-adtarget-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adtarget/test-cache-adtarget-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/adtarget/test-cache-adtarget-response.json"))));
 
         // when
         final Response response = given(SPEC)

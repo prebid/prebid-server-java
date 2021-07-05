@@ -31,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -159,7 +160,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         final ExtImpPrebid prebidImpExt = impExt.getPrebid();
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(openxImpExt.getUnit())
-                .bidfloor(openxImpExt.getCustomFloor())
+                .bidfloor(resolveBidFloor(imp.getBidfloor(), openxImpExt.getCustomFloor()))
                 .ext(makeImpExt(openxImpExt.getCustomParams()));
 
         if (resolveImpType(imp) == OpenxImpType.video
@@ -170,6 +171,16 @@ public class OpenxBidder implements Bidder<BidRequest> {
                     .build());
         }
         return impBuilder.build();
+    }
+
+    private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal customFloor) {
+        return !bidFloorIsValid(impBidFloor) && bidFloorIsValid(customFloor)
+                ? customFloor
+                : impBidFloor;
+    }
+
+    private static boolean bidFloorIsValid(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private ExtRequest makeReqExt(Imp imp) {
@@ -223,7 +234,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType(bid, impIdToBidType), bidCurrency))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, impIdToBidType), bidCurrency))
                 .collect(Collectors.toList());
     }
 
@@ -232,7 +243,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toMap(Imp::getId, imp -> imp.getBanner() != null ? BidType.banner : BidType.video));
     }
 
-    private static BidType bidType(Bid bid, Map<String, BidType> impIdToBidType) {
+    private static BidType getBidType(Bid bid, Map<String, BidType> impIdToBidType) {
         return impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
     }
 }

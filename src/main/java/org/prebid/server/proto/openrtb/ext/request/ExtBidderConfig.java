@@ -11,4 +11,9 @@ public class ExtBidderConfig {
      * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.fpd
      */
     ExtBidderConfigFpd fpd;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.ortb2
+     */
+    ExtBidderConfigOrtb ortb2;
 }

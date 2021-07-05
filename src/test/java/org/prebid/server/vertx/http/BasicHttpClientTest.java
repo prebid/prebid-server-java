@@ -95,7 +95,7 @@ public class BasicHttpClientTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("response")));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 1L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -104,7 +104,7 @@ public class BasicHttpClientTest {
     @Test
     public void requestShouldAllowFollowingRedirections() {
         // when
-        httpClient.request(HttpMethod.GET, null, null, null, 1L);
+        httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
 
         // then
         verify(httpClientRequest).setFollowRedirects(true);
@@ -117,7 +117,7 @@ public class BasicHttpClientTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 1L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -134,7 +134,7 @@ public class BasicHttpClientTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 1L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
 
         // then
         assertThat(future.failed()).isTrue();

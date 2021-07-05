@@ -11,7 +11,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class BiddersHandler implements Handler<RoutingContext> {
 
@@ -21,11 +20,8 @@ public class BiddersHandler implements Handler<RoutingContext> {
         Objects.requireNonNull(bidderCatalog);
         Objects.requireNonNull(mapper);
 
-        final Set<String> bidderNamesAndAliases = Stream.concat(
-                bidderCatalog.names().stream()
-                        .filter(bidderCatalog::isActive),
-                bidderCatalog.aliases().stream()
-                        .filter(alias -> bidderCatalog.isActive(bidderCatalog.nameByAlias(alias))))
+        final Set<String> bidderNamesAndAliases = bidderCatalog.names().stream()
+                .filter(bidderCatalog::isActive)
                 .collect(Collectors.toCollection(TreeSet::new));
 
         body = mapper.encode(bidderNamesAndAliases);

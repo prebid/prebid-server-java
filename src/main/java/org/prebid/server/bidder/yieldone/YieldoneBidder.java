@@ -102,14 +102,18 @@ public class YieldoneBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final List<Imp> requestImps = bidRequest.getImp();
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
+            if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+                return Result.empty();
+            }
+
             final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                     .filter(Objects::nonNull)
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), requestImps), bidResponse.getCur()))
+                    .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
+                            bidResponse.getCur()))
                     .collect(Collectors.toList());
 
             return Result.withValues(bidderBids);
