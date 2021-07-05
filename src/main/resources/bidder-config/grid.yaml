@@ -1,6 +1,6 @@
 adapters:
   grid:
-    enabled: false
+    enabled: true
     endpoint: https://grid.bidswitch.net/sp_bid?sp=prebid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

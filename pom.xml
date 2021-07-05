@@ -68,6 +68,13 @@
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
         <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
+        <docker.namespace>harbor-aws.internal.media.net/mowx</docker.namespace>
+        <jdk.image>
+            ${docker.namespace}/adoptopenjdk@sha256:8964de6f36784cbf0ff211415573e2b7c1fa23e12d793a42189800e65c3a1498
+        </jdk.image>
+        <java.base.image>${jdk.image}</java.base.image>
+        <log.path>/var/log/prebid-server</log.path>
+        <additional.config.file>prebid-config.yaml</additional.config.file>
     </properties>
 
     <dependencyManagement>
@@ -413,6 +420,47 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>com.google.cloud.tools</groupId>
+                    <artifactId>jib-maven-plugin</artifactId>
+                    <configuration>
+                        <from>
+                            <image>${java.base.image}</image>
+                        </from>
+                        <to>${docker.namespace}/prebid-server</to>
+                        <allowInsecureRegistries>true</allowInsecureRegistries>
+                        <container>
+                            <appRoot>/app</appRoot>
+                            <workingDirectory>/app</workingDirectory>
+                            <jvmFlags>
+                                <jvmFlag>-XX:+UseStringDeduplication</jvmFlag>
+                                <jvmFlag>-XX:+UseG1GC</jvmFlag>
+                                <jvmFlag>-XX:+PrintGC</jvmFlag>
+                                <jvmFlag>-XX:+PrintGCDetails</jvmFlag>
+                                <jvmFlag>-XX:+PrintGCTimeStamps</jvmFlag>
+                                <jvmFlag>-XX:NumberOfGCLogFiles=10</jvmFlag>
+                                <jvmFlag>-XX:GCLogFileSize=50M</jvmFlag>
+                                <jvmFlag>-XX:+PrintGCDateStamps</jvmFlag>
+                                <jvmFlag>-Xloggc:${log.path}/gc/gc.log</jvmFlag>
+                                <jvmFlag>-XX:+HeapDumpOnOutOfMemoryError</jvmFlag>
+                                <jvmFlag>-XX:HeapDumpPath=${log.path}/gc/heapOOM.log</jvmFlag>
+                                <jvmFlag>-Djava.awt.headless=true</jvmFlag>
+                                <jvmFlag>-Djava.net.preferIPv4Stack=true</jvmFlag>
+                                <jvmFlag>-DjavaEncoding=UTF-8</jvmFlag>
+                                <jvmFlag>-Dfile.encoding=UTF-8</jvmFlag>
+                                <jvmFlag>-cp</jvmFlag>
+                                <jvmFlag>@/app/jib-classpath-file</jvmFlag>
+                            </jvmFlags>
+                            <args>
+                                <arg>--spring.config.additional-location=/app/resources/${additional.config.file}</arg>
+                            </args>
+                            <volumes>
+                                <volume>${log.path}</volume>
+                            </volumes>
+                            <mainClass>org.prebid.server.Application</mainClass>
+                        </container>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
@@ -614,6 +662,9 @@
             <properties>
                 <maven.compiler.source>11</maven.compiler.source>
                 <maven.compiler.target>11</maven.compiler.target>
+                <jdk.image>
+                    ${docker.namespace}/adoptopenjdk@sha256:c5408c21570e4c9768d8db8d2eb34903fa03dbd2aa3d1ffabe86c46426134c3e
+                </jdk.image>
             </properties>
             <build>
                 <plugins>

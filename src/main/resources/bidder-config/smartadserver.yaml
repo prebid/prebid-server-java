@@ -1,6 +1,6 @@
 adapters:
   smartadserver:
-    enabled: false
+    enabled: true
     endpoint: https://ssb-global.smartadserver.com
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

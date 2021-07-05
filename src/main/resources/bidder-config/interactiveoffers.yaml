@@ -1,6 +1,6 @@
 adapters:
   interactiveoffers:
-    enabled: false
+    enabled: true
     endpoint: https://rtb.ioadx.com/bidRequest/?partnerId=d9e56d418c4825d466ee96c7a31bf1da6b62fa04
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

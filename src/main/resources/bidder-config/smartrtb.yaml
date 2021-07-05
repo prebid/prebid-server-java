@@ -1,6 +1,6 @@
 adapters:
   smartrtb:
-    enabled: false
+    enabled: true
     endpoint: http://market-east.smrtb.com/json/publisher/rtb?pubid=
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

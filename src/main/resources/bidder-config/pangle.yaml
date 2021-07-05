@@ -1,6 +1,6 @@
 adapters:
   pangle:
-    enabled: false
+    enabled: true
     endpoint: https://
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

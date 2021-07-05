@@ -1,6 +1,6 @@
 adapters:
   openx:
-    enabled: false
+    enabled: true
     endpoint: http://rtb.openx.net/prebid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

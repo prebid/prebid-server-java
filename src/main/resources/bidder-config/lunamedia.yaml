@@ -1,6 +1,6 @@
 adapters:
   lunamedia:
-    enabled: false
+    enabled: true
     endpoint: http://api.lunamedia.io/xp/get?pubid=
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

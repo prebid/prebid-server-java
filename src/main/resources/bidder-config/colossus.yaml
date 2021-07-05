@@ -1,6 +1,6 @@
 adapters:
   colossus:
-    enabled: false
+    enabled: true
     endpoint: http://colossusssp.com/?c=o&m=rtb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

@@ -1,6 +1,6 @@
 adapters:
   ttx:
-    enabled: false
+    enabled: true
     # Old http://ssc.33across.com/api/v1/hb
     endpoint: https://ssc.33across.com/api/v1/s2s
     pbs-enforces-gdpr: true
@@ -9,7 +9,7 @@ adapters:
     deprecated-names:
     aliases:
       '33across':
-        enabled: false
+        enabled: true
     meta-info:
       maintainer-email: headerbidding@33across.com
       app-media-types:

@@ -1,6 +1,6 @@
 adapters:
   onetag:
-    enabled: false
+    enabled: true
     endpoint: https://prebid-server.onetag-sys.com/prebid-server/{{publisherId}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

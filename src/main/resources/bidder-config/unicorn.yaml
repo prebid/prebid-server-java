@@ -1,6 +1,6 @@
 adapters:
   unicorn:
-    enabled: false
+    enabled: true
     endpoint: https://ds.uncn.jp/pb/0/bid.json
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

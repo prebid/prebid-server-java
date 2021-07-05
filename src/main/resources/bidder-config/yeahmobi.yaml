@@ -1,6 +1,6 @@
 adapters:
   yeahmobi:
-    enabled: false
+    enabled: true
     endpoint: https://{{Host}}/prebid/bid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

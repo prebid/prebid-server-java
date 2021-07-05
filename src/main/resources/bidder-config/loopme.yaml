@@ -1,6 +1,6 @@
 adapters:
   loopme:
-    enabled: false
+    enabled: true
     endpoint: http://prebid-eu.loopmertb.com
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

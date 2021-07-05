@@ -1,0 +1,58 @@
+status-response: "ok"
+vertx:
+  enable-per-client-endpoint-metrics: true
+adapters:
+  rubicon:
+    enabled: true
+    XAPI.Username: user1
+    XAPI.Password: password1
+metrics:
+  prefix: prebid
+  prometheus:
+    port: 9090
+cache:
+  scheme: http
+  host: localhost:8080
+  path: /cache
+  query: uuid=
+settings:
+  filesystem:
+    settings-filename: app-settings.yaml
+    stored-requests-dir:
+    stored-imps-dir:
+    stored-responses-dir: storedresponse
+gdpr:
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
+logging:
+  path: /var/log/prebid-server
+admin-endpoints:
+  version:
+    enabled: true
+    on-application-port: true
+    protected: false
+  currency-rates:
+    enabled: true
+    on-application-port: true
+    protected: false
+  storedrequest:
+    enabled: true
+    on-application-port: true
+    protected: false
+  storedrequest-amp:
+    enabled: true
+    on-application-port: true
+    protected: false
+  cache-invalidation:
+    enabled: true
+    on-application-port: true
+    protected: false
+  logging-httpinteraction:
+    enabled: true
+    on-application-port: true
+    protected: false
+  logging-changelevel:
+    enabled: true
+    on-application-port: true
+    protected: false

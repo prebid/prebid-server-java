@@ -1,6 +1,6 @@
 adapters:
   adgeneration:
-    enabled: false
+    enabled: true
     endpoint: https://d.socdm.com/adsv/v1
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

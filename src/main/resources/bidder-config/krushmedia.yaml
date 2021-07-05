@@ -1,6 +1,6 @@
 adapters:
   krushmedia:
-    enabled: false
+    enabled: true
     endpoint: http://ads4.krushmedia.com/?c=rtb&m=req&key={{AccountID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

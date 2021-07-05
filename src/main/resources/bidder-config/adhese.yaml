@@ -1,6 +1,6 @@
 adapters:
   adhese:
-    enabled: false
+    enabled: true
     endpoint: https://ads-{{AccountId}}.adhese.com/json
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

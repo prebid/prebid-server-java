@@ -1,6 +1,6 @@
 adapters:
   eplanning:
-    enabled: false
+    enabled: true
     endpoint: http://rtb.e-planning.net/pbs/1
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

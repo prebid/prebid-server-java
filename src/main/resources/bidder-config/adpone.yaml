@@ -1,6 +1,6 @@
 adapters:
   adpone:
-    enabled: false
+    enabled: true
     endpoint: http://rtb.adpone.com/bid-request?src=prebid_server
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

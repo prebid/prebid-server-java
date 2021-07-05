@@ -1,6 +1,6 @@
 adapters:
   adoppler:
-    enabled: false
+    enabled: true
     endpoint: http://{{AccountID}}.trustedmarketplace.io/ads/processHeaderBid/{{AdUnit}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

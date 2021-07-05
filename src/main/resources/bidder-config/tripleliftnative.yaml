@@ -1,6 +1,6 @@
 adapters:
   triplelift_native:
-    enabled: false
+    enabled: true
     endpoint: http://
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

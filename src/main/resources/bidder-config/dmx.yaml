@@ -1,6 +1,6 @@
 adapters:
   dmx:
-    enabled: false
+    enabled: true
     endpoint: https://dmx-direct.districtm.io/b/v2
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

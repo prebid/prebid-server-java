@@ -1,6 +1,6 @@
 adapters:
   mobfoxpb:
-    enabled: false
+    enabled: true
     endpoint: http://bes.mobfox.com/?c=__route__&m=__method__&key=__key__
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

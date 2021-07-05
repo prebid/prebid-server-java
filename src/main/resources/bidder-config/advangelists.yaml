@@ -1,6 +1,6 @@
 adapters:
   advangelists:
-    enabled: false
+    enabled: true
     endpoint: http://nep.advangelists.com/xp/get?pubid={{PublisherID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

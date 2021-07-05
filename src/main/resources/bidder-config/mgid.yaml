@@ -1,6 +1,6 @@
 adapters:
   mgid:
-    enabled: false
+    enabled: true
     endpoint: https://prebid.mgid.com/prebid/
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

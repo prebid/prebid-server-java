@@ -1,6 +1,6 @@
 adapters:
   smartyads:
-    enabled: false
+    enabled: true
     endpoint: http://{{Host}}.smartyads.com/bid?rtb_seat_id={{SourceId}}&secret_key={{AccountID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

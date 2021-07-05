@@ -1,6 +1,6 @@
 adapters:
   emxdigital:
-    enabled: false
+    enabled: true
     endpoint: https://hb.emxdgt.com
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

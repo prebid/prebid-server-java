@@ -1,6 +1,6 @@
 adapters:
   gamoshi:
-    enabled: false
+    enabled: true
     endpoint: https://rtb.gamoshi.io
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

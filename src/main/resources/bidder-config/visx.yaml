@@ -1,6 +1,6 @@
 adapters:
   visx:
-    enabled: false
+    enabled: true
     endpoint: https://t.visx.net/s2s_bid?wrapperType=s2s_prebid_java
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
