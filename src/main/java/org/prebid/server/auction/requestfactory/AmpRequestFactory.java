@@ -153,59 +153,55 @@ public class AmpRequestFactory {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
         }
 
-        final String accountId = StringUtils.trimToNull(httpRequest.getQueryParams().get(ACCOUNT_REQUEST_PARAM));
+        final String consentString = consentStringFromQueryStringParams(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
-        final Map<String, String> ampData = ampDataFromQueryString(httpRequest);
+        final Long timeout = timeoutFromQueryString(httpRequest);
 
-        final String requestConsentParam = httpRequest.getQueryParams().get(CONSENT_PARAM);
-        final String requestGdprConsentParam = httpRequest.getQueryParams().get(GDPR_CONSENT_PARAM);
-        final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(createSite(httpRequest))
+                .user(createUser(consentString))
+                .regs(createRegs(consentString))
+                .test(debug)
+                .tmax(timeout)
+                .ext(createExt(httpRequest, tagId, debug))
+                .build();
 
-        String gdprConsent = null;
-        String ccpaConsent = null;
-        if (StringUtils.isNotBlank(consentString)) {
-            gdprConsent = TcfDefinerService.isConsentStringValid(consentString) ? consentString : null;
-            ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
+        validateOriginalBidRequest(bidRequest, consentString, auctionContext);
 
-            if (StringUtils.isAllBlank(gdprConsent, ccpaConsent)) {
-                final String message = String.format(
-                        "Amp request parameter consent_string or gdpr_consent have invalid format: %s", consentString);
-                logger.debug(message);
-                auctionContext.getPrebidErrors().add(message);
-            }
-        }
+        return Future.succeededFuture(bidRequest);
+    }
 
+    private static Site createSite(HttpRequestContext httpRequest) {
+        final String accountId = StringUtils.trimToNull(httpRequest.getQueryParams().get(ACCOUNT_REQUEST_PARAM));
         final String canonicalUrl = StringUtils.trimToNull(canonicalUrl(httpRequest));
         final String domain = StringUtils.trimToNull(HttpUtil.getHostFromUrl(canonicalUrl));
 
-        final Long timeout = timeoutFromQueryString(httpRequest);
-
-        final Site site = !StringUtils.isAllBlank(accountId, canonicalUrl, domain)
+        return !StringUtils.isAllBlank(accountId, canonicalUrl, domain)
                 ? Site.builder()
                 .publisher(Publisher.builder().id(accountId).build())
                 .page(canonicalUrl)
                 .domain(domain)
                 .build()
                 : null;
-        final User user = StringUtils.isNotBlank(gdprConsent)
-                ? User.builder().ext(ExtUser.builder().consent(gdprConsent).build()).build()
-                : null;
-        final Regs regs = StringUtils.isNotBlank(ccpaConsent)
-                ? Regs.of(null, ExtRegs.of(null, ccpaConsent))
-                : null;
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .storedrequest(ExtStoredRequest.of(tagId))
-                .amp(ExtRequestPrebidAmp.of(ampData))
-                .debug(debug)
-                .build());
+    }
 
-        return Future.succeededFuture(BidRequest.builder()
-                .site(site)
-                .user(user)
-                .regs(regs)
-                .test(debug)
-                .tmax(timeout)
-                .ext(ext)
+    private static User createUser(String consentString) {
+        return StringUtils.isNotBlank(consentString) && TcfDefinerService.isConsentStringValid(consentString)
+                ? User.builder().ext(ExtUser.builder().consent(consentString).build()).build()
+                : null;
+    }
+
+    private static Regs createRegs(String consentString) {
+        return StringUtils.isNotBlank(consentString) && Ccpa.isValid(consentString)
+                ? Regs.of(null, ExtRegs.of(null, consentString))
+                : null;
+    }
+
+    private static ExtRequest createExt(HttpRequestContext httpRequest, String tagId, Integer debug) {
+        return ExtRequest.of(ExtRequestPrebid.builder()
+                .storedrequest(ExtStoredRequest.of(tagId))
+                .amp(ExtRequestPrebidAmp.of(ampDataFromQueryString(httpRequest)))
+                .debug(debug)
                 .build());
     }
 
@@ -223,6 +219,13 @@ public class AmpRequestFactory {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    private static String consentStringFromQueryStringParams(HttpRequestContext httpRequest) {
+        final String requestConsentParam = httpRequest.getQueryParams().get(CONSENT_PARAM);
+        final String requestGdprConsentParam = httpRequest.getQueryParams().get(GDPR_CONSENT_PARAM);
+
+        return ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
     }
 
     private static Long timeoutFromQueryString(HttpRequestContext httpRequest) {
@@ -244,6 +247,30 @@ public class AmpRequestFactory {
     private static Map<String, String> ampDataFromQueryString(HttpRequestContext httpRequest) {
         return httpRequest.getQueryParams().entries().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (value1, value2) -> value1));
+    }
+
+    private static void validateOriginalBidRequest(
+            BidRequest bidRequest,
+            String requestConsentString,
+            AuctionContext auctionContext) {
+
+        final User user = bidRequest.getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final String gdprConsentString = extUser != null ? extUser.getConsent() : null;
+
+        final Regs regs = bidRequest.getRegs();
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
+
+        if (StringUtils.isAllBlank(gdprConsentString, usPrivacy)) {
+            final String message = String.format(
+                    "Amp request parameter %s or %s have invalid format: %s",
+                    CONSENT_PARAM,
+                    GDPR_CONSENT_PARAM,
+                    requestConsentString);
+            logger.debug(message);
+            auctionContext.getPrebidErrors().add(message);
+        }
     }
 
     /**
