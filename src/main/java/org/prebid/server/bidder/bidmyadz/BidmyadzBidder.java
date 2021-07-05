@@ -104,7 +104,7 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(JsonNode ext) {
-        final JsonNode mediaTypeNode = ext == null ? null : ext.get("mediaType");
+        final JsonNode mediaTypeNode = ext != null ? ext.get("mediaType") : null;
         final String mediaType = mediaTypeNode != null && mediaTypeNode.isTextual() ? mediaTypeNode.asText() : null;
         if (StringUtils.isEmpty(mediaType)) {
             throw new PreBidException("Missed mediaType");
