@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,9 +77,7 @@ public class BidmyadzBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors())
-                .hasSize(1)
-                .containsExactly(BidderError.badInput("IP/IPv6 is a required field"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("IP/IPv6 is a required field"));
     }
 
     @Test
@@ -91,9 +90,7 @@ public class BidmyadzBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors())
-                .hasSize(1)
-                .containsExactly(BidderError.badInput("User-Agent is a required field"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("User-Agent is a required field"));
     }
 
     @Test
@@ -106,7 +103,6 @@ public class BidmyadzBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .hasSize(1)
                 .containsExactly(BidderError.badInput("Bidder does not support multi impression"));
     }
 
@@ -119,13 +115,15 @@ public class BidmyadzBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .hasSize(1)
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
     }
 
     @Test
@@ -137,32 +135,10 @@ public class BidmyadzBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getErrors())
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
-                });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfVidDoesNotHaveBidType() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Failed to find impression 123");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -172,19 +148,35 @@ public class BidmyadzBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .ext(mapper.createObjectNode().put("mediaType", "banner")))));
 
         // when
         final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.banner);
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfSeatBidIsEmpty() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
+
+        // when
+        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
