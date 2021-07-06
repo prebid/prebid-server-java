@@ -122,7 +122,15 @@ public class Ortb2RequestFactory {
                 .build();
     }
 
-    public Future<Account> fetchAccount(AuctionContext auctionContext, boolean isLookupStoredRequest) {
+    public Future<Account> fetchAccountWithoutStoredRequestLookup(AuctionContext auctionContext) {
+        return fetchAccount(auctionContext, false);
+    }
+
+    public Future<Account> fetchAccount(AuctionContext auctionContext) {
+        return fetchAccount(auctionContext, true);
+    }
+
+    private Future<Account> fetchAccount(AuctionContext auctionContext, boolean isLookupStoredRequest) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Timeout timeout = auctionContext.getTimeout();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
