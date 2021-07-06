@@ -1,5 +1,5 @@
 adapters:
-  evolution:
+  e_volution:
     enabled: false
     endpoint: http://service.e-volution.ai/pbserver
     pbs-enforces-gdpr: true
@@ -22,6 +22,6 @@ adapters:
     usersync:
       url: https://sync.e-volution.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect=
       redirect-url: /setuid?bidder=e_volution&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=[UID]
-      cookie-family-name: evolution
+      cookie-family-name: e_volution
       type: redirect
       support-cors: false

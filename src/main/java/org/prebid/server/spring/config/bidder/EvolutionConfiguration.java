@@ -21,7 +21,7 @@ import javax.validation.constraints.NotBlank;
 @PropertySource(value = "classpath:/bidder-config/evolution.yaml", factory = YamlPropertySourceFactory.class)
 public class EvolutionConfiguration {
 
-    private static final String BIDDER_NAME = "evolution";
+    private static final String BIDDER_NAME = "e_volution";
 
     @Value("${external-url}")
     @NotBlank

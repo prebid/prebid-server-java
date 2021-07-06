@@ -42,7 +42,7 @@ public class EvolutionTest extends IntegrationTest {
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/evolution/test-auction-evolution-response.json",
-                response, singletonList("evolution"));
+                response, singletonList("e_volution"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

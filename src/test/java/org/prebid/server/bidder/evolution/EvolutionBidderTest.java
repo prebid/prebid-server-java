@@ -1,7 +1,10 @@
 package org.prebid.server.bidder.evolution;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -17,9 +20,9 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.util.Arrays;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +47,23 @@ public class EvolutionBidderTest extends VertxTest {
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new EvolutionBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnOnlyOneRequestForAllImps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        Imp.builder().id("123").banner(Banner.builder().build()).build(),
+                        Imp.builder().id("456").video(Video.builder().build()).build()))
+                .build();
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> requests = evolutionBidder.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(requests.getErrors()).isEmpty();
+        assertThat(requests.getValue()).hasSize(1);
     }
 
     @Test
@@ -133,7 +153,7 @@ public class EvolutionBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Bid... bids) {
         return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(Arrays.asList(bids)).build()))
+                .seatbid(singletonList(SeatBid.builder().bid(asList(bids)).build()))
                 .build();
     }
 

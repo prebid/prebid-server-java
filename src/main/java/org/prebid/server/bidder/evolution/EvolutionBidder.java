@@ -1,13 +1,13 @@
 package org.prebid.server.bidder.evolution;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.evolution.model.EvolutionBidResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -19,12 +19,10 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Evolution {@link Bidder} implementation.
@@ -41,17 +39,14 @@ public class EvolutionBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        return Result.withValue(createRequest(request));
-    }
-
-    private HttpRequest<BidRequest> createRequest(BidRequest request) {
-        return HttpRequest.<BidRequest>builder()
+        final HttpRequest<BidRequest> internalRequest = HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(request)
                 .body(mapper.encode(request))
                 .build();
+        return Result.withValue(internalRequest);
     }
 
     @Override
@@ -72,23 +67,18 @@ public class EvolutionBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-        final List<Bid> bidList = bidResponse.getSeatbid().stream()
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        return CollectionUtils.emptyIfNull(firstSeatBid.getBid()).stream()
                 .filter(Objects::nonNull)
-                .findFirst()
-                .map(SeatBid::getBid)
-                .orElse(null);
-        return Stream.of(bidList)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidMediaType(bid.getExt()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidType getBidMediaType(Bid bid) {
+    private BidType getBidMediaType(JsonNode bidExt) {
+        final JsonNode mediaTypeNode = bidExt != null ? bidExt.get("mediaType") : null;
         try {
-            final EvolutionBidResponse evolutionBidResponse = mapper.mapper().convertValue(
-                    bid.getExt(), EvolutionBidResponse.class);
-            return evolutionBidResponse != null ? evolutionBidResponse.getMediaType() : BidType.banner;
+            return ObjectUtils.defaultIfNull(mapper.mapper()
+                    .convertValue(mediaTypeNode, BidType.class), BidType.banner);
         } catch (IllegalArgumentException e) {
             return BidType.banner;
         }
