@@ -4,12 +4,8 @@
     {
       "id": "impId001",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "loopme": {
@@ -18,22 +14,6 @@
       }
     }
   ],
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

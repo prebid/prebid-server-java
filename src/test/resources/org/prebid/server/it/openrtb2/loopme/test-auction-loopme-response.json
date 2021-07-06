@@ -15,15 +15,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "3.30",
-                "hb_size_loopme": "300x250",
-                "hb_bidder_loopme": "loopme",
-                "hb_size": "300x250",
-                "hb_bidder": "loopme",
-                "hb_pb_loopme": "3.30"
-              }
+              "type": "banner"
             },
             "origbidcpm" : 3.33
           }
@@ -36,7 +28,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "loopme": "{{ loopme.response_time_ms }}"
+      "loopme": 1000
     },
     "prebid": {
       "auctiontimestamp": 1000

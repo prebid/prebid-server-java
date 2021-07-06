@@ -25,6 +25,7 @@ import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompare;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.ValueMatcher;
@@ -35,6 +36,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -124,7 +126,7 @@ public abstract class IntegrationTest extends VertxTest {
         }
 
         final Object cacheVal = response.path("ext.responsetimemillis.cache");
-        final Integer cacheResponseTime = val instanceof Integer ? (Integer) cacheVal : null;
+        final Integer cacheResponseTime = cacheVal instanceof Integer ? (Integer) cacheVal : null;
         if (cacheResponseTime != null) {
             expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ cache\\.response_time_ms }}\"",
                     cacheResponseTime.toString());
@@ -185,6 +187,17 @@ public abstract class IntegrationTest extends VertxTest {
         return new CustomComparator(
                 JSONCompareMode.NON_EXTENSIBLE,
                 new Customization("ext.debug.httpcalls.cache", arrayValueMatcher));
+    }
+
+    static void assertJSONEquals(String file, String bidder, String response, Customization... customizations)
+            throws IOException, JSONException {
+        final List<Customization> fullCustomizations = new ArrayList<>(Arrays.asList(customizations));
+        fullCustomizations.add(new Customization("ext.prebid.auctiontimestamp", (o1, o2) -> true));
+        fullCustomizations.add(new Customization(String.format("ext.responsetimemillis.%s", bidder), (o1, o2) -> true));
+
+        JSONAssert.assertEquals(jsonFrom(file), response,
+                new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
+                        fullCustomizations.stream().toArray(Customization[]::new)));
     }
 
     static BidCacheRequestPattern equalToBidCacheRequest(String json) {
