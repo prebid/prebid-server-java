@@ -23,6 +23,7 @@ import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
+import org.prebid.server.model.Endpoint;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -43,6 +44,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -81,6 +83,16 @@ public abstract class IntegrationTest extends VertxTest {
                 .setConfig(RestAssuredConfig.config()
                         .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
                 .build();
+    }
+
+    protected static Response responseFor(String file, Endpoint endpoint) throws IOException {
+        return given(SPEC)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "193.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                .body(jsonFrom(file))
+                .post(endpoint.value());
     }
 
     protected static String jsonFrom(String file) throws IOException {
@@ -189,7 +201,7 @@ public abstract class IntegrationTest extends VertxTest {
                 new Customization("ext.debug.httpcalls.cache", arrayValueMatcher));
     }
 
-    static void assertJSONEquals(String file, String bidder, String response, Customization... customizations)
+    protected static void assertJSONEquals(String file, String bidder, String response, Customization... customizations)
             throws IOException, JSONException {
         final List<Customization> fullCustomizations = new ArrayList<>(Arrays.asList(customizations));
         fullCustomizations.add(new Customization("ext.prebid.auctiontimestamp", (o1, o2) -> true));

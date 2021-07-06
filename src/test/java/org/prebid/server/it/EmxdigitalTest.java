@@ -4,6 +4,7 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.model.Endpoint;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -15,7 +16,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.restassured.RestAssured.given;
 
 @RunWith(SpringRunner.class)
 public class EmxdigitalTest extends IntegrationTest {
@@ -36,13 +36,8 @@ public class EmxdigitalTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/emxdigital/test-emxdigital-bid-response.json"))));
 
         // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                .body(jsonFrom("openrtb2/emxdigital/test-auction-emxdigital-request.json"))
-                .post("/openrtb2/auction");
+        final Response response =
+                responseFor("openrtb2/emxdigital/test-auction-emxdigital-request.json", Endpoint.openrtb2_auction);
 
         // then
         assertJSONEquals("openrtb2/emxdigital/test-auction-emxdigital-response.json",
