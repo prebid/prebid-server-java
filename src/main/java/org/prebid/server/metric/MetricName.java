@@ -121,7 +121,17 @@ public enum MetricName {
     initialize,
     update,
     hit,
-    miss;
+    miss,
+
+    // hooks
+    call,
+    success,
+    noop,
+    reject,
+    unknown,
+    failure,
+    execution_error("execution-error"),
+    duration;
 
     private final String name;
 

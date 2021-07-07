@@ -15,13 +15,26 @@
         "ext": {
           "origbidcpm": 3.33,
           "prebid": {
+            "type": "video",
             "meta": {
               "advertiserId": 1,
               "secondaryCatIds": [
                 "id1",
                 "id2"
               ],
-              "networkId" : 123
+              "networkId": 123
+            }
+          },
+          "bidder": {
+            "prebid": {
+              "meta": {
+                "advertiserId": 1,
+                "secondaryCatIds": [
+                  "id1",
+                  "id2"
+                ],
+                "networkId": 123
+              }
             }
           }
         }

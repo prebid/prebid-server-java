@@ -40,6 +40,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
@@ -212,7 +213,8 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings,
-            IpAddressHelper ipAddressHelper) {
+            IpAddressHelper ipAddressHelper,
+            HookStageExecutor hookStageExecutor) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
@@ -225,7 +227,8 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 storedRequestProcessor,
                 applicationSettings,
-                ipAddressHelper);
+                ipAddressHelper,
+                hookStageExecutor);
     }
 
     @Bean
@@ -505,6 +508,7 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             WinningBidComparatorFactory winningBidComparatorFactory,
             IdGenerator bidIdGenerator,
+            HookStageExecutor hookStageExecutor,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
@@ -517,6 +521,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 winningBidComparatorFactory,
                 bidIdGenerator,
+                hookStageExecutor,
                 truncateAttrChars,
                 clock,
                 mapper);
@@ -535,6 +540,7 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
+            HookStageExecutor hookStageExecutor,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -551,6 +557,7 @@ public class ServiceConfiguration {
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                hookStageExecutor,
                 metrics,
                 clock,
                 mapper);

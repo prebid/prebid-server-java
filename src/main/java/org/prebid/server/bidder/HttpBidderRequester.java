@@ -7,7 +7,6 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
@@ -20,6 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -69,14 +69,15 @@ public class HttpBidderRequester {
     public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder,
                                                  BidderRequest bidderRequest,
                                                  Timeout timeout,
-                                                 RoutingContext routingContext,
+                                                 CaseInsensitiveMultiMap requestHeaders,
                                                  boolean debugEnabled) {
+
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
         final List<HttpRequest<T>> httpRequests =
-                enrichRequests(httpRequestsWithErrors.getValue(), routingContext, bidRequest);
+                enrichRequests(httpRequestsWithErrors.getValue(), requestHeaders, bidRequest);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
@@ -108,11 +109,12 @@ public class HttpBidderRequester {
     }
 
     private <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
-                                                    RoutingContext routingContext,
+                                                    CaseInsensitiveMultiMap requestHeaders,
                                                     BidRequest bidRequest) {
+
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
-                .headers(requestEnricher.enrichHeaders(httpRequest.getHeaders(),
-                        routingContext.request().headers(), bidRequest))
+                .headers(requestEnricher.enrichHeaders(
+                        httpRequest.getHeaders(), requestHeaders, bidRequest))
                 .build())
                 .collect(Collectors.toList());
     }
