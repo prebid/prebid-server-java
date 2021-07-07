@@ -16,7 +16,7 @@
       "ext": {
         "criteo": {
           "zoneId": 123456,
-          "networkId": 78910
+          "networkid": 78910
         }
       }
     }
