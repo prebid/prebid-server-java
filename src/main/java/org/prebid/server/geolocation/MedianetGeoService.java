@@ -34,7 +34,7 @@ public class MedianetGeoService implements GeoLocationService {
             return Future.failedFuture(
                     new TimeoutException("Timeout has been exceeded while executing geo service"));
         }
-        return httpClient.get(endpoint, responseTimeout)
+        return httpClient.get(endpoint + ip, responseTimeout)
                 .map(this::parseResponse);
     }
 
