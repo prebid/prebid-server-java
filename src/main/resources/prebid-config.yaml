@@ -56,3 +56,10 @@ admin-endpoints:
     enabled: true
     on-application-port: true
     protected: false
+geolocation:
+  enabled: true
+  type: medianet
+  circuit-breaker: true
+  medianet:
+    endpoint: http://ipservice.ipservice.svc.cluster.local:9000/ipinfo/
+    timeout: 5000

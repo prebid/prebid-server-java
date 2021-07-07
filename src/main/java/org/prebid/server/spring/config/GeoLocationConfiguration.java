@@ -2,14 +2,20 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
+import org.mapstruct.factory.Mappers;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
+import org.prebid.server.geolocation.MedianetGeoService;
+import org.prebid.server.geolocation.model.medianet.GeoInfoMapper;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
+import org.prebid.server.spring.config.model.MedianetGeoServiceProperties;
 import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -81,4 +87,67 @@ public class GeoLocationConfiguration {
             return maxMindGeoLocationService;
         }
     }
+
+    @Configuration
+    @ConditionalOnExpression("${geolocation.enabled} == true and '${geolocation.type}' == 'medianet'")
+    static class MediaNetGeoLocationConfiguration {
+
+        @Bean
+        @ConditionalOnProperty(prefix = "geolocation.circuit-breaker", name = "enabled", havingValue = "true")
+        @ConfigurationProperties(prefix = "geolocation.circuit-breaker")
+        CircuitBreakerProperties mediaNetCircuitBreakerProperties() {
+            return new CircuitBreakerProperties();
+        }
+
+        @Bean
+        @ConfigurationProperties(prefix = "geolocation.medianet")
+        MedianetGeoServiceProperties medianetGeoServiceProperties() {
+            return new MedianetGeoServiceProperties();
+        }
+
+        @Bean
+        @ConditionalOnProperty(
+                prefix = "geolocation.circuit-breaker",
+                name = "enabled",
+                havingValue = "false",
+                matchIfMissing = true)
+        GeoLocationService basicGeoLocationService(
+                HttpClient httpClient,
+                JacksonMapper jacksonMapper,
+                MedianetGeoServiceProperties mediaNetGeoServiceProperties) {
+            return createGeoLocationService(httpClient, jacksonMapper, mediaNetGeoServiceProperties);
+        }
+
+        @Bean
+        @ConditionalOnProperty(prefix = "geolocation.circuit-breaker", name = "enabled", havingValue = "true")
+        CircuitBreakerSecuredGeoLocationService circuitBreakerSecuredGeoLocationService(
+                HttpClient httpClient,
+                JacksonMapper jacksonMapper,
+                MedianetGeoServiceProperties mediaNetGeoServiceProperties,
+                Vertx vertx,
+                Metrics metrics,
+                @Qualifier("mediaNetCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
+                Clock clock) {
+
+            return new CircuitBreakerSecuredGeoLocationService(
+                vertx,
+                createGeoLocationService(httpClient, jacksonMapper, mediaNetGeoServiceProperties),
+                metrics,
+                circuitBreakerProperties.getOpeningThreshold(),
+                circuitBreakerProperties.getOpeningIntervalMs(),
+                circuitBreakerProperties.getClosingIntervalMs(),
+                clock);
+        }
+
+        private GeoLocationService createGeoLocationService(
+                HttpClient httpClient,
+                JacksonMapper jacksonMapper,
+                MedianetGeoServiceProperties mediaNetGeoServiceProperties) {
+            GeoInfoMapper geoInfoMapper = Mappers.getMapper(GeoInfoMapper.class);
+            String endpoint = mediaNetGeoServiceProperties.getEndpoint();
+            long timeout = mediaNetGeoServiceProperties.getTimeout();
+            return new MedianetGeoService(httpClient, jacksonMapper, geoInfoMapper, endpoint, timeout);
+        }
+    }
+
 }
