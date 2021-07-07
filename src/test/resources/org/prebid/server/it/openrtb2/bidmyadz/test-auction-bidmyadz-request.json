@@ -1,0 +1,38 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "banner": {
+        "w": 320,
+        "h": 480
+      },
+      "ext": {
+        "bidmyadz": {
+          "placementId": "tbanner"
+        }
+      }
+    }
+  ],
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        }
+      },
+      "auctiontimestamp": 1000
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}
