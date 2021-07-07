@@ -72,6 +72,46 @@ public class OutbrainBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldModifyImpTagIdOnlyIfItPresentInExt() {
+        // given
+        final Imp firstImp = Imp.builder()
+                .id("123")
+                .tagid("123")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOutbrain.of(
+                        ExtImpOutbrainPublisher.of("testId", "testName", "testDomain"),
+                        null, singletonList("testBcat"), singletonList("testBadv")))))
+                .build();
+
+        final Imp secondImp = Imp.builder()
+                .id("456")
+                .tagid("456")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOutbrain.of(
+                        ExtImpOutbrainPublisher.of("testId", "testName", "testDomain"),
+                        "", singletonList("testBcat"), singletonList("testBadv")))))
+                .build();
+
+        final Imp thirdImp = Imp.builder()
+                .id("789")
+                .tagid("789")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOutbrain.of(
+                        ExtImpOutbrainPublisher.of("testId", "testName", "testDomain"),
+                        "098", singletonList("testBcat"), singletonList("testBadv")))))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(firstImp, secondImp, thirdImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = outbrainBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .containsExactlyInAnyOrder(firstImp, secondImp, thirdImp.toBuilder().tagid("098").build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldUpdatePresentedAppWithPublisherParamsFromExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
