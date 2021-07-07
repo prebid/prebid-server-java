@@ -145,7 +145,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
-    private static final Set<Integer> USER_SEGTAXES = ImmutableSet.of(3);
+    private static final Set<Integer> USER_SEGTAXES = ImmutableSet.of(4);
     private static final Set<Integer> SITE_SEGTAXES = ImmutableSet.of(1, 2);
 
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
