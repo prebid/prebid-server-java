@@ -9,12 +9,17 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.ntv.EventTrackingMethod;
+import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.EventTracker;
+import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.ix.proto.NativeWrapper;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -33,8 +38,10 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -94,13 +101,7 @@ public class IxBidder implements Bidder<BidRequest> {
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
-                .map(request -> HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encode(request))
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .build())
+                .map(this::createRequest)
                 .collect(Collectors.toList());
 
         return Result.of(httpRequests, errors);
@@ -112,6 +113,16 @@ public class IxBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+    }
+
+    private HttpRequest<BidRequest> createRequest(BidRequest request) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .body(mapper.encode(request))
+                .headers(HttpUtil.headers())
+                .payload(request)
+                .build();
     }
 
     private static List<BidRequest> makeBidRequests(BidRequest bidRequest,
@@ -238,6 +249,11 @@ public class IxBidder implements Bidder<BidRequest> {
                     bidBuilder.cat(Collections.singletonList(extVideo.getPrimaryCategory())).build();
                 }
             }
+
+            if (bidType == BidType.xNative) {
+                handleNative(bidBuilder, bid.getAdm());
+            }
+
             bid = bidBuilder.build();
         }
 
@@ -258,7 +274,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Unmatched impression id %s", impId));
+        throw new PreBidException(String.format("unmatched impression id %s", impId));
     }
 
     private ExtBidPrebid parseBidExt(ObjectNode bidExt) {
@@ -273,5 +289,52 @@ public class IxBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ExtBidPrebid.builder()
                 .video(ExtBidPrebidVideo.of(duration, null))
                 .build());
+    }
+
+    private void handleNative(Bid.BidBuilder bidBuilder, String adm) {
+        final NativeWrapper nativeWrapper = parseBidAdm(adm, NativeWrapper.class);
+        final Response native11Response = nativeWrapper != null ? nativeWrapper.getNativeResponse() : null;
+        if (CollectionUtils.isNotEmpty(getEventTrackersFromResponse(native11Response))) {
+            bidBuilder.adm(getAdmFromNativeResponse(native11Response));
+        }
+
+        final Response native12Response = parseBidAdm(adm, Response.class);
+        if (CollectionUtils.isNotEmpty(getEventTrackersFromResponse(native12Response))) {
+            bidBuilder.adm(getAdmFromNativeResponse(native12Response));
+        }
+    }
+
+    private <T> T parseBidAdm(String adm, Class<T> clazz) {
+        try {
+             return mapper.decodeValue(adm, clazz);
+        } catch (DecodeException e) {
+            return null;
+        }
+    }
+
+    private List<EventTracker> getEventTrackersFromResponse(Response response) {
+        return response != null ? response.getEventtrackers() : null;
+    }
+
+    private String getAdmFromNativeResponse(Response response) {
+        try {
+            return mapper.mapper().writeValueAsString(mergeNativeImpTrackers(response));
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private Response mergeNativeImpTrackers(Response bidNative) {
+        final Set<String> impTrackers = new HashSet<>(CollectionUtils.emptyIfNull(bidNative.getImptrackers()));
+        final Set<String> eventTrackerUrls = bidNative.getEventtrackers().stream()
+                .filter(Objects::nonNull)
+                .filter(tracker -> EventType.IMPRESSION.getValue().equals(tracker.getEvent()) &&
+                        EventTrackingMethod.IMAGE.getValue().equals(tracker.getMethod()))
+                .map(EventTracker::getUrl)
+                .collect(Collectors.toSet());
+
+        return bidNative.toBuilder()
+                .imptrackers(CollectionUtils.collate(impTrackers, eventTrackerUrls))
+                .build();
     }
 }
