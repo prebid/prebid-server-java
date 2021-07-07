@@ -25,11 +25,6 @@
                 "hb_pb_bidscube": "3.30"
               }
             },
-            "bidder":{
-              "prebid":{
-                "type":"banner"
-              }
-            },
             "origbidcpm": 3.33
           }
         }
