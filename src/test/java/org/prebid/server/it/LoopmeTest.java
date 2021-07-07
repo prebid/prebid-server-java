@@ -13,6 +13,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class LoopmeTest extends IntegrationTest {
@@ -29,6 +30,7 @@ public class LoopmeTest extends IntegrationTest {
                 responseFor("openrtb2/loopme/test-auction-loopme-request.json", Endpoint.openrtb2_auction);
 
         // then
-        assertJSONEquals("openrtb2/loopme/test-auction-loopme-response.json", "loopme", response.asString());
+        assertJsonEquals("openrtb2/loopme/test-auction-loopme-response.json",
+                singletonList("loopme"), response.asString());
     }
 }

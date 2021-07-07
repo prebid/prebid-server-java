@@ -16,6 +16,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class EmxdigitalTest extends IntegrationTest {
@@ -40,8 +41,8 @@ public class EmxdigitalTest extends IntegrationTest {
                 responseFor("openrtb2/emxdigital/test-auction-emxdigital-request.json", Endpoint.openrtb2_auction);
 
         // then
-        assertJSONEquals("openrtb2/emxdigital/test-auction-emxdigital-response.json",
-                "emx_digital", response.asString());
+        assertJsonEquals("openrtb2/emxdigital/test-auction-emxdigital-response.json",
+                singletonList("emx_digital"), response.asString());
     }
 }
 

@@ -1,8 +1,8 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "banner": {
         "w": 300,
         "h": 250
@@ -29,7 +29,7 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 2000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
