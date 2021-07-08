@@ -21,9 +21,7 @@
               }
             },
             "origbidcpm": 0.01,
-            "bidder": {
-              "format": "VIDEO"
-            }
+            "format": "VIDEO"
           }
         }
       ],

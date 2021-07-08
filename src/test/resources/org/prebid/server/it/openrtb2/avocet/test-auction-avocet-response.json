@@ -18,10 +18,8 @@
           "w": 1024,
           "h": 576,
           "ext": {
-            "bidder": {
-              "avocet": {
-                "duration": 30
-              }
+            "avocet": {
+              "duration": 30
             },
             "prebid": {
               "type": "video",

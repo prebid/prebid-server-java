@@ -18,17 +18,15 @@
               "imp": "http://localhost:8080/event?t=imp&b=21521324&a=5001&ts=1000&bidder=rubicon&f=i&int="
             }
           },
-          "bidder": {
-            "rp": {
-              "targeting": [
-                {
-                  "key": "rpfl_1001",
-                  "values": [
-                    "2_tier0100"
-                  ]
-                }
-              ]
-            }
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
           },
           "origbidcpm": 12.43
         },
@@ -57,14 +55,12 @@
               "imp": "http://localhost:8080/event?t=imp&b=7706636740145184841&a=5001&ts=1000&bidder=appnexus&f=i&int="
             }
           },
-          "bidder": {
-            "appnexus": {
-              "brand_id": 1,
-              "auction_id": 8189378542222915032,
-              "bidder_id": 2,
-              "bid_ad_type": 1,
-              "ranking_price": 0.0
-            }
+          "appnexus": {
+            "brand_id": 1,
+            "auction_id": 8189378542222915032,
+            "bidder_id": 2,
+            "bid_ad_type": 1,
+            "ranking_price": 0.0
           },
           "origbidcpm": 5.5,
           "origbidcur": "USD"
@@ -90,17 +86,15 @@
               "imp": "http://localhost:8080/event?t=imp&b=880290288&a=5001&ts=1000&bidder=rubicon&f=i&int="
             }
           },
-          "bidder": {
-            "rp": {
-              "targeting": [
-                {
-                  "key": "rpfl_1001",
-                  "values": [
-                    "2_tier0100"
-                  ]
-                }
-              ]
-            }
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
           },
           "origbidcpm": 8.43
         },
@@ -132,14 +126,12 @@
               "imp": "http://localhost:8080/event?t=imp&b=222214214214&a=5001&ts=1000&bidder=appnexus&f=i&int="
             }
           },
-          "bidder": {
-            "appnexus": {
-              "brand_id": 1,
-              "brand_category_id": 1,
-              "auction_id": 5607483846416358664,
-              "bidder_id": 2,
-              "bid_ad_type": 1
-            }
+          "appnexus": {
+            "brand_id": 1,
+            "brand_category_id": 1,
+            "auction_id": 5607483846416358664,
+            "bidder_id": 2,
+            "bid_ad_type": 1
           },
           "origbidcpm": 2,
           "origbidcur": "USD"
