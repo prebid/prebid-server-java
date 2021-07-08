@@ -1,5 +1,7 @@
-package org.prebid.server.bidder.sa_lunamedia;
+package org.prebid.server.bidder.salunamedia;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -18,15 +20,14 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * SaLunamedia {@link Bidder} implementation
  */
+@SuppressWarnings("checkstyle:EmptyLineSeparator")
 public class SaLunamediaBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -39,14 +40,13 @@ public class SaLunamediaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                 .uri(endpointUrl)
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
                 .payload(request)
                 .body(mapper.encode(request))
-                .build();
-        return Result.withValue(httpRequest);
+                .build());
     }
 
     @Override
@@ -54,7 +54,7 @@ public class SaLunamediaBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
-        } catch (DecodeException e) {
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
@@ -65,21 +65,26 @@ public class SaLunamediaBidder implements Bidder<BidRequest> {
             throw new PreBidException("Empty SeatBid");
         }
 
-        final SeatBid firstSeatBid = CollectionUtils.isNotEmpty(seatBids) ? seatBids.get(0) : null;
+        final SeatBid firstSeatBid = seatBids.get(0);
         final List<Bid> bids = firstSeatBid != null ? firstSeatBid.getBid() : null;
-
         if (CollectionUtils.isEmpty(bids)) {
             throw new PreBidException("Empty SeatBid.Bids");
         }
 
         final Bid firstBid = bids.get(0);
-        final BidType bidType;
-        try {
-            bidType = mapper.mapper().convertValue(firstBid.getExt(), BidType.class);
-        } catch (IllegalArgumentException e) {
+        final ObjectNode firstBidExt = firstBid != null ? firstBid.getExt() : null;
+        final BidType firstBidType = firstBidExt != null ? getBidType(firstBidExt) : null;
+        if (firstBidType == null) {
             throw new PreBidException("Missing BidExt");
         }
+        return Collections.singletonList(BidderBid.of(firstBid, getBidType(firstBidExt), bidResponse.getCur()));
+    }
 
-        return Collections.singletonList(BidderBid.of(firstBid, bidType, bidResponse.getCur()));
+    private BidType getBidType(ObjectNode node) {
+        try {
+            return mapper.mapper().treeToValue(node.get("mediaType"), BidType.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 }
