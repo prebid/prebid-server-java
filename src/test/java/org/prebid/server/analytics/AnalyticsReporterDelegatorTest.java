@@ -21,6 +21,7 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -128,6 +129,22 @@ public class AnalyticsReporterDelegatorTest {
     }
 
     @Test
+    public void shouldTolerateWithMissingBidRequest() {
+        // given
+        final AuctionEvent givenAuctionEventWithoutContext = AuctionEvent.builder().build();
+        final AuctionEvent givenAuctionEventWithoutBidRequest = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder().build())
+                .build();
+
+        // when
+        target.processEvent(givenAuctionEventWithoutContext, TcfContext.empty());
+        target.processEvent(givenAuctionEventWithoutBidRequest, TcfContext.empty());
+
+        // then
+        verify(vertx, times(4)).runOnContext(any());
+    }
+
+    @Test
     public void shouldPassOnlyAdapterRelatedEntriesToAnalyticReporters() {
         // given
         final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
@@ -197,6 +214,20 @@ public class AnalyticsReporterDelegatorTest {
         // then
         verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.err);
         verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.err);
+    }
+
+    @Test
+    public void shouldUpdateInvalidRequestMetricsWhenFutureContainsInvalidRequestException() {
+        // given
+        given(firstReporter.processEvent(any())).willReturn(Future.failedFuture(new InvalidRequestException("cause")));
+        given(secondReporter.processEvent(any())).willReturn(Future.failedFuture(new InvalidRequestException("cause")));
+
+        // when
+        target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
+
+        // then
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.badinput);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.badinput);
     }
 
     @Test

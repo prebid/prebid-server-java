@@ -24,31 +24,20 @@ public class FacebookTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromFacebook() throws IOException, JSONException {
         // given
-        // facebook bid response for impId001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-1.json"))));
 
-        // facebook bid response for impId002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-2.json"))));
 
-        // facebook bid response for impId003
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-3.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/facebook/test-cache-facebook-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/facebook/test-cache-matcher-facebook.json")));
 
         // when
         final Response response = given(SPEC)
@@ -66,7 +55,6 @@ public class FacebookTest extends IntegrationTest {
                 "openrtb2/facebook/test-auction-facebook-response.json",
                 response, singletonList("audienceNetwork"));
 
-        final String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

@@ -8,15 +8,11 @@
         "w": 300,
         "h": 250
       },
-      "bidfloor": 12.2345,
-      "bidfloorcur": "RUB",
       "secure": 0,
       "ext": {
         "bidder": {
           "host": "lbs-ru1.ads",
-          "publisher_id": "publisherTestID",
-          "bid_floor": 12.2345,
-          "bid_floor_cur": "RUB"
+          "publisher_id": "publisherTestID"
         }
       }
     }
@@ -69,9 +65,6 @@
         },
         "includewinners": true,
         "includebidderkeys": true
-      },
-      "cache": {
-        "bids": {}
       },
       "auctiontimestamp": 1000,
       "channel": {

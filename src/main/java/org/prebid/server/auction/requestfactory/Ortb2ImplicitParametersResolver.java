@@ -9,10 +9,8 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +24,8 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -106,24 +106,23 @@ public class Ortb2ImplicitParametersResolver {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     BidRequest resolve(BidRequest bidRequest,
-                       RoutingContext context,
+                       HttpRequestContext httpRequest,
                        TimeoutResolver timeoutResolver) {
         checkBlacklistedApp(bidRequest);
 
         final BidRequest result;
-        final HttpServerRequest request = context.request();
 
         final Device device = bidRequest.getDevice();
-        final Device populatedDevice = populateDevice(device, bidRequest.getApp(), request);
+        final Device populatedDevice = populateDevice(device, bidRequest.getApp(), httpRequest);
 
         final Site site = bidRequest.getSite();
-        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
+        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, httpRequest);
 
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source);
 
         final List<Imp> imps = bidRequest.getImp();
-        final List<Imp> populatedImps = populateImps(imps, request);
+        final List<Imp> populatedImps = populateImps(imps, httpRequest);
 
         final Integer at = bidRequest.getAt();
         final Integer resolvedAt = resolveAt(at);
@@ -172,7 +171,7 @@ public class Ortb2ImplicitParametersResolver {
      * Populates the request body's 'device' section from the incoming http request if the original is partially filled
      * and the request contains necessary info (User-Agent, IP-address).
      */
-    private Device populateDevice(Device device, App app, HttpServerRequest request) {
+    private Device populateDevice(Device device, App app, HttpRequestContext httpRequest) {
         final String deviceIp = device != null ? device.getIp() : null;
         final String deviceIpv6 = device != null ? device.getIpv6() : null;
 
@@ -180,7 +179,7 @@ public class Ortb2ImplicitParametersResolver {
         String resolvedIpv6 = sanitizeIp(deviceIpv6, IpAddress.IP.v6);
 
         if (resolvedIp == null && resolvedIpv6 == null) {
-            final IpAddress requestIp = findIpFromRequest(request);
+            final IpAddress requestIp = findIpFromRequest(httpRequest);
 
             resolvedIp = getIpIfVersionIs(requestIp, IpAddress.IP.v4);
             resolvedIpv6 = getIpIfVersionIs(requestIp, IpAddress.IP.v6);
@@ -189,7 +188,7 @@ public class Ortb2ImplicitParametersResolver {
         logWarnIfNoIp(resolvedIp, resolvedIpv6);
 
         final String ua = device != null ? device.getUa() : null;
-        final Integer dnt = resolveDntHeader(request);
+        final Integer dnt = resolveDntHeader(httpRequest);
         final Integer lmt = resolveLmt(device, app);
 
         if (!Objects.equals(deviceIp, resolvedIp)
@@ -201,7 +200,7 @@ public class Ortb2ImplicitParametersResolver {
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
 
             if (StringUtils.isBlank(ua)) {
-                builder.ua(paramsExtractor.uaFrom(request));
+                builder.ua(paramsExtractor.uaFrom(httpRequest));
             }
             if (dnt != null) {
                 builder.dnt(dnt);
@@ -221,8 +220,8 @@ public class Ortb2ImplicitParametersResolver {
         return null;
     }
 
-    private Integer resolveDntHeader(HttpServerRequest request) {
-        final String dnt = request.getHeader(HttpUtil.DNT_HEADER.toString());
+    private Integer resolveDntHeader(HttpRequestContext request) {
+        final String dnt = request.getHeaders().get(HttpUtil.DNT_HEADER.toString());
         return StringUtils.equalsAny(dnt, "0", "1") ? Integer.valueOf(dnt) : null;
     }
 
@@ -231,8 +230,10 @@ public class Ortb2ImplicitParametersResolver {
         return ipAddress != null && ipAddress.getVersion() == version ? ipAddress.getIp() : null;
     }
 
-    private IpAddress findIpFromRequest(HttpServerRequest request) {
-        final List<String> requestIps = paramsExtractor.ipFrom(request);
+    private IpAddress findIpFromRequest(HttpRequestContext request) {
+        final CaseInsensitiveMultiMap headers = request.getHeaders();
+        final String remoteHost = request.getRemoteHost();
+        final List<String> requestIps = paramsExtractor.ipFrom(headers, remoteHost);
         return requestIps.stream()
                 .map(ipAddressHelper::toIpAddress)
                 .filter(Objects::nonNull)
@@ -336,9 +337,9 @@ public class Ortb2ImplicitParametersResolver {
      * Populates the request body's 'site' section from the incoming http request if the original is partially filled
      * and the request contains necessary info (domain, page).
      */
-    private Site populateSite(Site site, HttpServerRequest request) {
+    private Site populateSite(Site site, HttpRequestContext httpRequest) {
         final String page = site != null ? StringUtils.trimToNull(site.getPage()) : null;
-        final String updatedPage = page == null ? paramsExtractor.refererFrom(request) : null;
+        final String updatedPage = page == null ? paramsExtractor.refererFrom(httpRequest) : null;
 
         final String domain = site != null ? StringUtils.trimToNull(site.getDomain()) : null;
         final String updatedDomain = domain == null
@@ -414,12 +415,12 @@ public class Ortb2ImplicitParametersResolver {
      * - Updates imps with security 1, when secured request was received and imp security was not defined.
      * - Moves bidder parameters from imp.ext._bidder_ to imp.ext.prebid.bidder._bidder_
      */
-    private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
+    private List<Imp> populateImps(List<Imp> imps, HttpRequestContext httpRequest) {
         if (CollectionUtils.isEmpty(imps)) {
             return null;
         }
 
-        final Integer secureFromRequest = paramsExtractor.secureFrom(request);
+        final Integer secureFromRequest = paramsExtractor.secureFrom(httpRequest);
 
         if (!shouldModifyImps(imps, secureFromRequest)) {
             return imps;
@@ -519,7 +520,7 @@ public class Ortb2ImplicitParametersResolver {
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
 
-            return ExtRequest.of(prebidBuilder
+            final ExtRequest updatedExt = ExtRequest.of(prebidBuilder
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
                     .cache(ObjectUtils.defaultIfNull(updatedCache,
@@ -527,6 +528,9 @@ public class Ortb2ImplicitParametersResolver {
                     .channel(ObjectUtils.defaultIfNull(updatedChannel,
                             getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
                     .build());
+            updatedExt.addProperties(ext.getProperties());
+
+            return updatedExt;
         }
 
         return null;

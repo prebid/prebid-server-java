@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Loopme Adapter Params",
+  "description": "A schema which validates params accepted by the Loopme adapter",
+  "type": "object",
+
+  "properties": {
+    "accountId": {
+      "type": "string",
+      "description": "Account ID"
+    }
+  },
+
+  "required": ["accountId"]
+}

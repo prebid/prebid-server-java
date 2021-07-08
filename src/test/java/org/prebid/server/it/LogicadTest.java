@@ -25,19 +25,12 @@ public class LogicadTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromLogicad() throws IOException, JSONException {
         // given
-        // Logicad bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/logicad-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/logicad/test-logicad-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/logicad/test-logicad-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/logicad/test-cache-logicad-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/logicad/test-cache-logicad-response.json"))));
 
         // when
         final Response response = given(SPEC)

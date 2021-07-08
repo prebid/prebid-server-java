@@ -1,0 +1,293 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "880290288",
+          "impid": "impId1",
+          "price": 8.43,
+          "adm": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[Raw bidder response hook have been here]]></Impression><Impression><![CDATA[Processed bidder response hook have been here]]></Impression><Impression><![CDATA[Auction response hook have been here too]]></Impression>",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "rubicon",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId1",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                },
+                {
+                  "w": 300,
+                  "h": 600
+                }
+              ]
+            },
+            "ext": {
+              "prebid": {
+                "bidder": {
+                  "rubicon": {
+                    "accountId": 2001,
+                    "siteId": 3001,
+                    "zoneId": 4001
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "www.example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "6001"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "ip": "222.111.222.0",
+          "language": "fr"
+        },
+        "user": {
+          "ext": {
+            "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
+          }
+        },
+        "at": 1,
+        "tmax": 5000,
+        "cur": [
+          "USD"
+        ],
+        "ext": {
+          "prebid": {
+            "debug": 1,
+            "trace": "verbose",
+            "auctiontimestamp": 1000,
+            "channel": {
+              "name": "web"
+            }
+          },
+          "sample-it-module": {
+            "raw-auction-request-trace": "I've been here",
+            "processed-auction-request-trace": "I've been here"
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "rubicon": "{{ rubicon.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 1000,
+      "modules": {
+        "trace": {
+          "stages": [
+            {
+              "stage": "entrypoint",
+              "outcomes": [
+                {
+                  "entity": "http-request",
+                  "groups": [
+                    {
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "entrypoint"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "raw-auction-request",
+              "outcomes": [
+                {
+                  "entity": "auction-request",
+                  "groups": [
+                    {
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "raw-auction-request"
+                          },
+                          "status": "success",
+                          "action": "update",
+                          "debugmessages": [
+                            "raw auction request debug message 1",
+                            "raw auction request debug message 1"
+                          ],
+                          "analyticstags": {
+                            "activities": [
+                              {
+                                "name": "device-id",
+                                "status": "success",
+                                "results": [
+                                  {
+                                    "status": "success",
+                                    "values": {
+                                      "some-field": "some-value"
+                                    },
+                                    "appliedto": {
+                                      "impids": [
+                                        "impId1"
+                                      ],
+                                      "request": true
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "processed-auction-request",
+              "outcomes": [
+                {
+                  "entity": "auction-request",
+                  "groups": [
+                    {
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "processed-auction-request"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "bidder-request",
+              "outcomes": [
+                {
+                  "entity": "rubicon",
+                  "groups": [
+                    {
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "bidder-request"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "raw-bidder-response",
+              "outcomes": [
+                {
+                  "entity": "rubicon",
+                  "groups": [
+                    {
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "raw-bidder-response"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "processed-bidder-response",
+              "outcomes": [
+                {
+                  "entity": "rubicon",
+                  "groups": [
+                    {
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "processed-bidder-response"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "stage": "auction-response",
+              "outcomes": [
+                {
+                  "entity": "auction-response",
+                  "groups": [
+                    {
+                      "invocationresults": [
+                        {
+                          "hookid": {
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "auction-response"
+                          },
+                          "status": "success",
+                          "action": "update"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

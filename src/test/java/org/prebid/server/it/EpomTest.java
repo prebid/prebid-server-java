@@ -23,15 +23,9 @@ public class EpomTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheMediaEpom() throws IOException, JSONException {
         // given
-        // Epom bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/epom-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/epom/test-epom-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/epom/test-epom-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/epom/test-cache-epom-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/epom/test-cache-epom-response.json"))));
 
         // when
         final Response response = given(SPEC)

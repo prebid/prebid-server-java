@@ -129,3 +129,9 @@ Following metrics are collected and submitted if account is configured with `det
 - `privacy.usp.opt-out` - number of requests that required privacy enforcement according to CCPA rules
 - `privacy.lmt` - number of requests that required privacy enforcement according to LMT flag
 - `privacy.coppa` - number of requests that required privacy enforcement according to COPPA rules
+
+## Analytics metrics
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).ok` - number of succeeded processed event requests
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause

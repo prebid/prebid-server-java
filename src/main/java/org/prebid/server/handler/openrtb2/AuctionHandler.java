@@ -83,8 +83,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         auctionRequestFactory.fromRequest(routingContext, startTime)
 
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
-                .map(context -> updateAppAndNoCookieAndImpsMetrics(context))
-
+                .map(this::updateAppAndNoCookieAndImpsMetrics)
                 .compose(context -> exchangeService.holdAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
@@ -98,14 +97,18 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
-        final BidRequest bidRequest = context.getBidRequest();
-        final UidsCookie uidsCookie = context.getUidsCookie();
+        if (!context.isRequestRejected()) {
+            final BidRequest bidRequest = context.getBidRequest();
+            final UidsCookie uidsCookie = context.getUidsCookie();
 
-        final List<Imp> imps = bidRequest.getImp();
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                imps.size());
+            final List<Imp> imps = bidRequest.getImp();
+            metrics.updateAppAndNoCookieAndImpsRequestedMetrics(
+                    bidRequest.getApp() != null,
+                    uidsCookie.hasLiveUids(),
+                    imps.size());
 
-        metrics.updateImpTypesMetrics(imps);
+            metrics.updateImpTypesMetrics(imps);
+        }
 
         return context;
     }

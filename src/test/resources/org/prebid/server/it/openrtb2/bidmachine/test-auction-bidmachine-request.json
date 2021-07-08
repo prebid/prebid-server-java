@@ -1,0 +1,52 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "banner": {
+        "battr": [
+          1
+        ],
+        "mimes": [
+          "image/jpeg",
+          "image/jpg",
+          "image/gif",
+          "image/png"
+        ],
+        "w": 320,
+        "h": 480
+      },
+      "ext": {
+        "prebid": {
+          "is_rewarded_inventory": 1
+        },
+        "bidmachine": {
+          "host": "api-us",
+          "path": "auction/rtb/v2",
+          "seller_id": "1"
+        }
+      }
+    }
+  ],
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        }
+      },
+      "auctiontimestamp": 1000
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

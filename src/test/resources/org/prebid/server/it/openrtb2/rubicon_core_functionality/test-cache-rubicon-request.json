@@ -13,6 +13,9 @@
         "w": 300,
         "h": 250,
         "ext": {
+          "prebid": {
+            "type": "video"
+          },
           "origbidcpm": 3.33
         }
       }

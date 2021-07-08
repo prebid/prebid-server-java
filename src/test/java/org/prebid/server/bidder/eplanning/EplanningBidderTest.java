@@ -110,6 +110,26 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder
+                        .site(Site.builder().domain("invalid domain").build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage())
+                            .startsWith("Invalid url: https://eplanning.com/clientId/1/invalid domain/ROS");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                });
+    }
+
+    @Test
     public void makeHttpRequestsShouldSendSingleGetRequestWithNullBody() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -374,8 +394,9 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A1x1"
-                        + "&ip=123.321.321.123");
+                .containsExactly(
+                        "https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A1x1"
+                                + "&ip=123.321.321.123");
     }
 
     @Test

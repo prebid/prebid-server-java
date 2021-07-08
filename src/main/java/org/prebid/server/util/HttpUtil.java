@@ -1,11 +1,13 @@
 package org.prebid.server.util;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.model.HttpRequestContext;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -13,6 +15,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -22,7 +25,7 @@ import java.util.stream.Collectors;
 public final class HttpUtil {
 
     public static final String APPLICATION_JSON_CONTENT_TYPE =
-            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "="
+            HttpHeaderValues.APPLICATION_JSON + ";" + HttpHeaderValues.CHARSET + "="
                     + StandardCharsets.UTF_8.toString().toLowerCase();
 
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
@@ -30,7 +33,7 @@ public final class HttpUtil {
     public static final CharSequence X_REQUEST_AGENT_HEADER = HttpHeaders.createOptimized("X-Request-Agent");
     public static final CharSequence ORIGIN_HEADER = HttpHeaders.createOptimized("Origin");
     public static final CharSequence ACCEPT_HEADER = HttpHeaders.createOptimized("Accept");
-    public static final CharSequence SEC_GPC = HttpHeaders.createOptimized("Sec-GPC");
+    public static final CharSequence SEC_GPC_HEADER = HttpHeaders.createOptimized("Sec-GPC");
     public static final CharSequence CONTENT_TYPE_HEADER = HttpHeaders.createOptimized("Content-Type");
     public static final CharSequence X_REQUESTED_WITH_HEADER = HttpHeaders.createOptimized("X-Requested-With");
     public static final CharSequence REFERER_HEADER = HttpHeaders.createOptimized("Referer");
@@ -47,6 +50,7 @@ public final class HttpUtil {
     public static final CharSequence CONNECTION_HEADER = HttpHeaders.createOptimized("Connection");
     public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
+    public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
 
     private HttpUtil() {
     }
@@ -116,6 +120,19 @@ public final class HttpUtil {
         } catch (MalformedURLException e) {
             return null;
         }
+    }
+
+    public static Map<String, String> cookiesAsMap(HttpRequestContext httpRequest) {
+        final String cookieHeader = httpRequest.getHeaders().get(HttpHeaders.COOKIE);
+        if (cookieHeader == null) {
+            return Collections.emptyMap();
+        }
+
+        return ServerCookieDecoder.STRICT.decode(cookieHeader).stream()
+                .collect(Collectors.toMap(
+                        io.netty.handler.codec.http.cookie.Cookie::name,
+                        io.netty.handler.codec.http.cookie.Cookie::value));
+
     }
 
     public static Map<String, String> cookiesAsMap(RoutingContext routingContext) {

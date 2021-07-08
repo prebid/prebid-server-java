@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -27,6 +28,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -240,6 +244,35 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnExpectedBannerRequestWithSchain() {
+        // given
+        final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
+                "pbshostcompany.com", "00001", null, null, null, null, null);
+        final ExtRequestPrebidSchainSchain expectedSchain = ExtRequestPrebidSchainSchain.of(
+                null, null, singletonList(globalNode), null);
+
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .video(null)
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(100).h(300).build()))
+                                .build()),
+                requestBuilder -> requestBuilder
+                        .source(Source.builder().ext(ExtSource.of(expectedSchain)).build())
+        );
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontBannerRequest.class))
+                .extracting(BeachfrontBannerRequest::getSchain)
+                .containsExactly(expectedSchain);
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnExpectedBannerRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -345,6 +378,79 @@ public class BeachfrontBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
                 .extracting(BeachfrontVideoRequest::getVideoResponseType)
                 .containsExactly("adm");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedBidFloorFromBidRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .video(Video.builder().w(1).h(1).build())
+                        .bidfloor(BigDecimal.ONE)
+                        .secure(1));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
+                .extracting(BeachfrontVideoRequest::getRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ONE);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseDefaultBidFloorIfNoInRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpBeachfront.of("appId",
+                                        ExtImpBeachfrontAppIds.of("videoIds", "bannerIds"),
+                                        null, "adm"))))
+                        .video(Video.builder().w(1).h(1).build())
+                        .secure(1));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
+                .extracting(BeachfrontVideoRequest::getRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ZERO);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseImpBidFloor() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpBeachfront.of("appId",
+                                        ExtImpBeachfrontAppIds.of("videoIds", "bannerIds"),
+                                        BigDecimal.TEN, "adm"))))
+                        .video(Video.builder().w(1).h(1).build())
+                        .bidfloor(BigDecimal.ONE)
+                        .secure(1));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
+                .extracting(BeachfrontVideoRequest::getRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ONE);
     }
 
     @Test

@@ -23,7 +23,6 @@ public class ZeroclickfraudTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromZeroclickfraud() throws IOException, JSONException {
         // given
-        // Zeroclickfraud bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/zeroclickfraud-exchange"))
                 .withQueryParam("sid", equalTo("1"))
                 .withRequestBody(
@@ -31,22 +30,12 @@ public class ZeroclickfraudTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-response-1.json"))));
 
-        // Zeroclickfraud bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/zeroclickfraud-exchange"))
                 .withQueryParam("sid", equalTo("2"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-request-2.json")))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-response-2.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/zeroclickfraud/test-cache-zeroclickfraud-request.json")))
-                .willReturn(aResponse()
-                        .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName",
-                                "openrtb2/zeroclickfraud/test-cache-matcher-zeroclickfraud.json")));
 
         // when
         final Response response = given(SPEC)

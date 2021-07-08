@@ -367,7 +367,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 tcfDefinerService.resultForBidderNames(biddersToSync, tcfContext, accountGdprConfig)
                         .setHandler(tcfResponseResult -> respondByTcfResultForBidders(tcfResponseResult,
                                 biddersToSync, cookieSyncContext));
-
             } else {
                 // Reject all bidders when Host TCF response has blocked pixel
                 final RejectedBidders rejectedBidders = RejectedBidders.of(biddersToSync, Collections.emptySet());

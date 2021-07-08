@@ -22,6 +22,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pangle.model.BidExt;
+import org.prebid.server.bidder.pangle.model.NetworkIds;
 import org.prebid.server.bidder.pangle.model.PangleBidExt;
 import org.prebid.server.bidder.pangle.model.WrappedImpExtBidder;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -86,7 +87,8 @@ public class PangleBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(extPrebid, ExtImpPangle.of("token"), null)))
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(extPrebid, ExtImpPangle.of(
+                                "token", null, null), null, true, null)))
                         .build()))
                 .build();
 
@@ -95,7 +97,7 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedExt = mapper
-                .valueToTree(WrappedImpExtBidder.of(extPrebid, ExtImpPangle.of("token"), 7));
+                .valueToTree(WrappedImpExtBidder.of(extPrebid, ExtImpPangle.of("token", null, null), 7, true, null));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -111,7 +113,8 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .instl(1)
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), null)))
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", null, null), null, true, null)))
                         .build()))
                 .build();
 
@@ -120,7 +123,8 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedExt = mapper
-                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), 8));
+                .valueToTree(WrappedImpExtBidder.of(null,
+                        ExtImpPangle.of("token", null, null), 8, true, null));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -136,7 +140,8 @@ public class PangleBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .instl(1)
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), null)))
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", null, null), null, true, null)))
                         .build()))
                 .build();
 
@@ -145,7 +150,7 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedExt = mapper
-                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), 2));
+                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token", null, null), 2, true, null));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -160,7 +165,8 @@ public class PangleBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), null)))
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", null, null), null, true, null)))
                         .build()))
                 .build();
 
@@ -169,7 +175,8 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedExt = mapper
-                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), 1));
+                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                        "token", null, null), 1, true, null));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -184,7 +191,8 @@ public class PangleBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .xNative(Native.builder().request("someRequest").build())
-                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), null)))
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", null, null), null, true, null)))
                         .build()))
                 .build();
 
@@ -193,7 +201,8 @@ public class PangleBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedExt = mapper
-                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), 5));
+                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                        "token", null, null), 5, true, null));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -208,7 +217,8 @@ public class PangleBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .audio(Audio.builder().build())
-                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of("token"), null)))
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", null, null), null, true, null)))
                         .build()))
                 .build();
 
@@ -470,6 +480,101 @@ public class PangleBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
     }
 
+    @Test
+    public void makeHttpRequestsShouldUpdateImpExtWithNetworkIds() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", "2", "2"),
+                                null, true, NetworkIds.of("1", "1"))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pangleBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedExt = mapper
+                .valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                        "token", "2", "2"),
+                        1, true, NetworkIds.of("2", "2")));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedExt);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddErrorAndSkipImpressionIfAppIdIsNotPresentAndPlacementIdIsPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", null, "1"),
+                                null, true, NetworkIds.of("1", "1"))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pangleBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddErrorAndSkipImpressionIfPlacementIdIsNotPresentAndAppIdIsPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", "1", null),
+                                null, true, NetworkIds.of("1", "1"))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pangleBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotUpdateImpExtWithNetworkIdsIfNetworkIdsAreAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .ext(mapper.valueToTree(WrappedImpExtBidder.of(null, ExtImpPangle.of(
+                                "token", null, null),
+                                null, true, null)))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pangleBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedExt = mapper
+                .valueToTree(WrappedImpExtBidder.of(null,
+                        ExtImpPangle.of("token", null, null), 1, true, null));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedExt);
+    }
+
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
@@ -487,7 +592,7 @@ public class PangleBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPangle.of("token"))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPangle.of("token", null, null))))
                 .build();
     }
 

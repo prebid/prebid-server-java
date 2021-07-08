@@ -60,7 +60,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(googleRecaptchaVerifier.verify(anyString())).willReturn(Future.succeededFuture());
 
         given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("cookie", "value"));
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         optoutHandler = new OptoutHandler(googleRecaptchaVerifier, uidsCookieService,

@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -32,6 +33,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -157,8 +160,8 @@ public class BeachfrontBidder implements Bidder<Void> {
                 final ExtImpBeachfront extImpBeachfront = parseImpExt(imp);
                 final String appId = getAppId(extImpBeachfront, true);
 
-                slots.add(BeachfrontSlot.of(imp.getId(), appId, checkBidFloor(extImpBeachfront.getBidfloor()),
-                        makeBeachfrontSizes(imp.getBanner())));
+                slots.add(BeachfrontSlot.of(imp.getId(), appId, getBidFloor(
+                        extImpBeachfront.getBidfloor(), imp.getBidfloor()), makeBeachfrontSizes(imp.getBanner())));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -204,6 +207,12 @@ public class BeachfrontBidder implements Bidder<Void> {
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(bundle));
         }
 
+        final ExtRequestPrebidSchainSchain schain = getSchain(bidRequest);
+
+        if (schain != null) {
+            requestBuilder.schain(schain);
+        }
+
         return requestBuilder.build();
     }
 
@@ -235,8 +244,20 @@ public class BeachfrontBidder implements Bidder<Void> {
         throw new PreBidException("unable to determine the appId(s) from the supplied extension");
     }
 
-    private static BigDecimal checkBidFloor(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(MIN_BID_FLOOR) > 0 ? bidFloor : BigDecimal.ZERO;
+    private static BigDecimal getBidFloor(BigDecimal extImpBidfloor, BigDecimal impBidfloor) {
+        final BigDecimal impNonNullBidfloor = zeroIfNull(impBidfloor);
+        final BigDecimal extImpNonNullBidfloor = zeroIfNull(extImpBidfloor);
+        if (impNonNullBidfloor.compareTo(MIN_BID_FLOOR) > 0) {
+            return impNonNullBidfloor;
+        } else if (extImpNonNullBidfloor.compareTo(MIN_BID_FLOOR) > 0) {
+            return extImpNonNullBidfloor;
+        } else {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private static BigDecimal zeroIfNull(BigDecimal bigDecimal) {
+        return bigDecimal == null ? BigDecimal.ZERO : bigDecimal;
     }
 
     /**
@@ -286,6 +307,13 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private static int getSecure(String page) {
         return StringUtils.contains(page, "https") ? 1 : 0;
+    }
+
+    private static ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
+        final Source source = bidRequest.getSource();
+        final ExtSource extSource = source != null ? source.getExt() : null;
+
+        return extSource != null ? extSource.getSchain() : null;
     }
 
     private List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest, List<Imp> videoImps,
@@ -354,7 +382,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                     .banner(null)
                     .ext(null)
                     .secure(secure)
-                    .bidfloor(checkBidFloor(extImpBeachfront.getBidfloor()));
+                    .bidfloor(getBidFloor(extImpBeachfront.getBidfloor(), imp.getBidfloor()));
 
             final Video video = imp.getVideo();
             final Integer videoHeight = video.getH();

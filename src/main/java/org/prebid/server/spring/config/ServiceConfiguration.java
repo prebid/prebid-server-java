@@ -32,6 +32,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
+import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
@@ -39,6 +40,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
@@ -115,8 +117,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService) {
-        return new VastModifier(bidderCatalog, eventsService);
+    VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService, Metrics metrics) {
+        return new VastModifier(bidderCatalog, eventsService, metrics);
     }
 
     @Bean
@@ -211,7 +213,8 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings,
-            IpAddressHelper ipAddressHelper) {
+            IpAddressHelper ipAddressHelper,
+            HookStageExecutor hookStageExecutor) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
@@ -224,7 +227,8 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 storedRequestProcessor,
                 applicationSettings,
-                ipAddressHelper);
+                ipAddressHelper,
+                hookStageExecutor);
     }
 
     @Bean
@@ -462,9 +466,19 @@ public class ServiceConfiguration {
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
-            BidderErrorNotifier bidderErrorNotifier) {
+            BidderErrorNotifier bidderErrorNotifier,
+            HttpBidderRequestEnricher requestEnricher) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+        return new HttpBidderRequester(httpClient,
+                bidderRequestCompletionTrackerFactory,
+                bidderErrorNotifier,
+                requestEnricher);
+    }
+
+    @Bean
+    HttpBidderRequestEnricher httpBidderRequestEnricher(VersionInfo versionInfo) {
+
+        return new HttpBidderRequestEnricher(versionInfo.getVersion());
     }
 
     @Bean
@@ -494,6 +508,7 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             WinningBidComparatorFactory winningBidComparatorFactory,
             IdGenerator bidIdGenerator,
+            HookStageExecutor hookStageExecutor,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
@@ -506,6 +521,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 winningBidComparatorFactory,
                 bidIdGenerator,
+                hookStageExecutor,
                 truncateAttrChars,
                 clock,
                 mapper);
@@ -524,6 +540,7 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
+            HookStageExecutor hookStageExecutor,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
@@ -540,6 +557,7 @@ public class ServiceConfiguration {
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
+                hookStageExecutor,
                 metrics,
                 clock,
                 mapper);
@@ -704,8 +722,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpInteractionLogger httpInteractionLogger() {
-        return new HttpInteractionLogger();
+    HttpInteractionLogger httpInteractionLogger(JacksonMapper mapper) {
+        return new HttpInteractionLogger(mapper);
     }
 
     @Bean
