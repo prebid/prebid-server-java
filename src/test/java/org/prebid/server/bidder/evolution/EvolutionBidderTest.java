@@ -11,7 +11,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.evolution.model.EvolutionBidResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -158,7 +157,8 @@ public class EvolutionBidderTest extends VertxTest {
     }
 
     private static Bid givenBid(String impid, BidType bidType) {
-        return Bid.builder().impid(impid).ext(mapper.valueToTree(EvolutionBidResponse.of(bidType))).build();
+        return Bid.builder().impid(impid).ext(mapper.valueToTree(
+                mapper.createObjectNode().put("mediaType", bidType.getName()))).build();
     }
 
     private static Bid givenBid(String impid, String bidType) {
