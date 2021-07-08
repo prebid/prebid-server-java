@@ -101,7 +101,7 @@ public class BmtmBidder implements Bidder<BidRequest> {
         }
     }
 
-    private MultiMap createHeaders(BidRequest request) {
+    private static MultiMap createHeaders(BidRequest request) {
 
         final MultiMap headers = HttpUtil.headers();
         final Device device = request.getDevice();
@@ -128,7 +128,7 @@ public class BmtmBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
