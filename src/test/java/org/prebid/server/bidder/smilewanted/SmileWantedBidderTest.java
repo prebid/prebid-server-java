@@ -9,6 +9,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -51,7 +52,7 @@ public class SmileWantedBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectlyAddHeadersAndSetAtToDefaultValue() {
+    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -61,17 +62,30 @@ public class SmileWantedBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .flatExtracting(res -> res.getHeaders().entries())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
                         tuple("sw-integration-type", "prebid_server"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAtToOne() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smileWantedBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getAt)
-                .isEqualTo(singletonList(1));
+                .containsExactly(1);
     }
 
     @Test

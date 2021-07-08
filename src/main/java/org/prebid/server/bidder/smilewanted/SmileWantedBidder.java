@@ -42,18 +42,21 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final BidRequest internalBidRequest = request.toBuilder().at(DEFAULT_AT).build();
-        final MultiMap headers = HttpUtil.headers()
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION)
-                .add("sw-integration-type", SW_INTEGRATION_TYPE);
-        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
+        final BidRequest outgoingRequest = request.toBuilder().at(DEFAULT_AT).build();
+
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(headers)
-                .payload(internalBidRequest)
-                .body(mapper.encode(internalBidRequest))
-                .build();
-        return Result.withValue(httpRequest);
+                .headers(createHeaders())
+                .payload(outgoingRequest)
+                .body(mapper.encode(outgoingRequest))
+                .build());
+    }
+
+    private static MultiMap createHeaders() {
+        return HttpUtil.headers()
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION)
+                .add("sw-integration-type", SW_INTEGRATION_TYPE);
     }
 
     @Override
@@ -77,12 +80,11 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
         return CollectionUtils.emptyIfNull(firstSeatBid.getBid()).stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getMediaTypeForImp(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getMediaTypeForImp(String impid, List<Imp> imps) {
+    private static BidType getBidType(String impid, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impid) && imp.getVideo() != null) {
                 return BidType.video;
