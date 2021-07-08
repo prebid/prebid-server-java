@@ -118,7 +118,7 @@ public class VideoResponseFactory {
 
     private Map<String, String> targeting(Bid bid) {
         final ObjectNode bidExt = bid.getExt();
-        if (bidExt == null) {
+        if (bidExt == null || !bidExt.hasNonNull(PREBID_EXT)) {
             return Collections.emptyMap();
         }
 

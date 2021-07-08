@@ -194,15 +194,14 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
-        final ObjectNode ext = bid.getExt();
-
-        if (ext == null) {
+        final ObjectNode bidExt = bid.getExt();
+        if (bidExt == null || !bidExt.hasNonNull(PREBID_EXT)) {
             return Collections.emptyMap();
         }
 
         final ExtBidPrebid extBidPrebid;
         try {
-            extBidPrebid = mapper.mapper().convertValue(ext.get(PREBID_EXT), ExtBidPrebid.class);
+            extBidPrebid = mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
                     String.format("Critical error while unpacking AMP targets: %s", e.getMessage()), e);
@@ -214,7 +213,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         if (targeting != null && targeting.keySet().stream()
                 .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
 
-            return enrichWithCustomTargeting(targeting, ext, bidder);
+            return enrichWithCustomTargeting(targeting, bidExt, bidder);
         }
 
         return Collections.emptyMap();
