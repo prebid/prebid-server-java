@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -29,6 +30,7 @@ import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -71,7 +73,9 @@ public class BmtmBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpUtil.USER_AGENT_HEADER.toString(), bidRequest.getDevice().getUa()),
+                .contains(tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), bidRequest.getDevice().getUa()),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), bidRequest.getDevice().getIp()),
                         tuple(HttpUtil.REFERER_HEADER.toString(), bidRequest.getSite().getPage()));
     }
@@ -96,9 +100,7 @@ public class BmtmBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpUtil.USER_AGENT_HEADER.toString(), bidRequest.getDevice().getUa()),
-                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), bidRequest.getDevice().getIp()),
-                        tuple(HttpUtil.REFERER_HEADER.toString(), bidRequest.getSite().getPage()));
+                .contains(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), bidRequest.getDevice().getIp()));
     }
 
     @Test
@@ -121,9 +123,7 @@ public class BmtmBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpUtil.USER_AGENT_HEADER.toString(), bidRequest.getDevice().getUa()),
-                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), bidRequest.getDevice().getIpv6()),
-                        tuple(HttpUtil.REFERER_HEADER.toString(), bidRequest.getSite().getPage()));
+                .contains(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), bidRequest.getDevice().getIpv6()));
     }
 
     @Test
@@ -219,6 +219,21 @@ public class BmtmBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bmtmBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .containsExactly("Missing bidder ext in impression with id: 123");
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -311,6 +326,19 @@ public class BmtmBidderTest extends VertxTest {
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBmtm.of("placement_id")))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 }

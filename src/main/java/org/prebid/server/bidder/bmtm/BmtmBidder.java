@@ -10,6 +10,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -76,14 +77,20 @@ public class BmtmBidder implements Bidder<BidRequest> {
         return Result.of(httpRequests, errors);
     }
 
-    private BidRequest createRequest(BidRequest request, Imp modifiedImp) {
+    private static void validateImp(Imp imp) {
+        if (imp.getBanner() == null && imp.getVideo() == null) {
+            throw new PreBidException(String.format("For Imp ID %s Banner or Video is undefined", imp.getId()));
+        }
+    }
+
+    private static Imp modifyImp(Imp imp, ExtImpBmtm impExt) {
+        return imp.toBuilder().tagid(impExt.getPlacementId()).ext(null).build();
+    }
+
+    private static BidRequest createRequest(BidRequest request, Imp modifiedImp) {
         return request.toBuilder()
                 .imp(Collections.singletonList(modifiedImp))
                 .build();
-    }
-
-    private Imp modifyImp(Imp imp, ExtImpBmtm impExt) {
-        return imp.toBuilder().tagid(impExt.getPlacementId()).ext(null).build();
     }
 
     private ExtImpBmtm parseImpExt(Imp imp) {
@@ -94,22 +101,14 @@ public class BmtmBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void validateImp(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("For Imp ID %s Banner or Video is undefined", imp.getId()));
-        }
-    }
-
     private MultiMap createHeaders(BidRequest request) {
 
         final MultiMap headers = HttpUtil.headers();
         final Device device = request.getDevice();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-            if (!headers.contains(HttpUtil.X_FORWARDED_FOR_HEADER)) {
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
+                    StringUtils.defaultIfEmpty(device.getIp(), device.getIpv6()));
         }
 
         final Site site = request.getSite();
@@ -150,8 +149,8 @@ public class BmtmBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
-                if (imp.getBanner() == null) {
-                    return BidType.video;
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
                 } else if (imp.getVideo() != null) {
                     return BidType.video;
                 }
