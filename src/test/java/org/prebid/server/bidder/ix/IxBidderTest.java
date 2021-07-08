@@ -5,15 +5,21 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.ntv.EventTrackingMethod;
+import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.EventTracker;
+import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.ix.proto.NativeWrapper;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -405,6 +411,96 @@ public class IxBidderTest extends VertxTest {
                 .extracting(ExtBidPrebid::getVideo)
                 .extracting(ExtBidPrebidVideo::getDuration, ExtBidPrebidVideo::getPrimaryCategory)
                 .containsExactly(tuple(1, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnValidAdmIfNativeIsPresentInImpAndAdm11() throws JsonProcessingException {
+        // given
+        final Native xNative = Native.builder().build();
+        final String adm = mapper.writeValueAsString(
+                Response.builder()
+                        .imptrackers(singletonList("someImptracker"))
+                        .eventtrackers(singletonList(
+                                EventTracker.builder()
+                                        .event(EventType.IMPRESSION.getValue())
+                                        .method(EventTrackingMethod.IMAGE.getValue())
+                                        .url("someUrl")
+                                        .build()))
+                        .build());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").xNative(xNative).build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .adm(adm)
+                        .ext(mapper.valueToTree(ExtBidPrebid.builder()
+                                .video(ExtBidPrebidVideo.of(1, "cat"))
+                                .build())))));
+
+        // when
+        Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
+        // then
+        final Response expectedNativeResponse = Response.builder()
+                .imptrackers(asList("someImptracker", "someUrl"))
+                .eventtrackers(singletonList(EventTracker.builder()
+                        .method(EventTrackingMethod.IMAGE.getValue())
+                        .event(EventType.IMPRESSION.getValue())
+                        .url("someUrl")
+                        .build()))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .isEqualTo(singletonList(mapper.writeValueAsString(expectedNativeResponse)));
+    }
+
+    @Test
+    public void makeBidsShouldReturnValidAdmIfNativeIsPresentInImpAndAdm12() throws JsonProcessingException {
+        // given
+        final Native xNative = Native.builder().build();
+        final String adm = mapper.writeValueAsString(NativeWrapper.of(
+                Response.builder()
+                        .imptrackers(singletonList("someImptracker"))
+                        .eventtrackers(singletonList(
+                                EventTracker.builder()
+                                        .event(EventType.IMPRESSION.getValue())
+                                        .method(EventTrackingMethod.IMAGE.getValue())
+                                        .url("someUrl")
+                                        .build()))
+                        .build()));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").xNative(xNative).build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .adm(adm)
+                        .ext(mapper.valueToTree(ExtBidPrebid.builder()
+                                .video(ExtBidPrebidVideo.of(1, "cat"))
+                                .build())))));
+
+        // when
+        Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
+        // then
+        final Response expectedNativeResponse = Response.builder()
+                .imptrackers(asList("someImptracker", "someUrl"))
+                .eventtrackers(singletonList(EventTracker.builder()
+                        .method(EventTrackingMethod.IMAGE.getValue())
+                        .event(EventType.IMPRESSION.getValue())
+                        .url("someUrl")
+                        .build()))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .isEqualTo(singletonList(mapper.writeValueAsString(expectedNativeResponse)));
     }
 
     private static BidRequest givenBidRequest(
