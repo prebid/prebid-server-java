@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.salunamedia;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
@@ -27,7 +26,6 @@ import java.util.Objects;
 /**
  * SaLunamedia {@link Bidder} implementation
  */
-@SuppressWarnings("checkstyle:EmptyLineSeparator")
 public class SaLunamediaBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -82,8 +80,8 @@ public class SaLunamediaBidder implements Bidder<BidRequest> {
 
     private BidType getBidType(ObjectNode node) {
         try {
-            return mapper.mapper().treeToValue(node.get("mediaType"), BidType.class);
-        } catch (JsonProcessingException e) {
+            return mapper.mapper().convertValue(node.get("mediaType"), BidType.class);
+        } catch (IllegalArgumentException e) {
             return null;
         }
     }
