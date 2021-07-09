@@ -48,17 +48,15 @@
               }
             },
             "origbidcpm": 12.43,
-            "bidder": {
-              "rp": {
-                "targeting": [
-                  {
-                    "key": "rpfl_1001",
-                    "values": [
-                      "2_tier0100"
-                    ]
-                  }
-                ]
-              }
+            "rp": {
+              "targeting": [
+                {
+                  "key": "rpfl_1001",
+                  "values": [
+                    "2_tier0100"
+                  ]
+                }
+              ]
             }
           }
         },
@@ -100,17 +98,15 @@
               }
             },
             "origbidcpm": 8.43,
-            "bidder": {
-              "rp": {
-                "targeting": [
-                  {
-                    "key": "rpfl_1001",
-                    "values": [
-                      "2_tier0100"
-                    ]
-                  }
-                ]
-              }
+            "rp": {
+              "targeting": [
+                {
+                  "key": "rpfl_1001",
+                  "values": [
+                    "2_tier0100"
+                  ]
+                }
+              ]
             }
           }
         }
@@ -162,14 +158,12 @@
             },
             "origbidcpm": 5.5,
             "origbidcur": "USD",
-            "bidder": {
-              "appnexus": {
-                "brand_id": 1,
-                "auction_id": 8189378542222915032,
-                "bidder_id": 2,
-                "bid_ad_type": 1,
-                "ranking_price": 0.0
-              }
+            "appnexus": {
+              "brand_id": 1,
+              "auction_id": 8189378542222915032,
+              "bidder_id": 2,
+              "bid_ad_type": 1,
+              "ranking_price": 0.0
             }
           }
         },
@@ -209,14 +203,12 @@
             },
             "origbidcpm": 2.0,
             "origbidcur": "USD",
-            "bidder": {
-              "appnexus": {
-                "brand_id": 1,
-                "brand_category_id": 1,
-                "auction_id": 5607483846416358664,
-                "bidder_id": 2,
-                "bid_ad_type": 1
-              }
+            "appnexus": {
+              "brand_id": 1,
+              "brand_category_id": 1,
+              "auction_id": 5607483846416358664,
+              "bidder_id": 2,
+              "bid_ad_type": 1
             }
           }
         }

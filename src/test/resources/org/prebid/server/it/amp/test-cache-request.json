@@ -11,6 +11,9 @@
         "w": 300,
         "h": 600,
         "ext": {
+          "prebid": {
+            "type": "banner"
+          },
           "rp": {
             "targeting": [
               {
@@ -23,7 +26,8 @@
           },
           "origbidcpm": 12.09
         }
-      }
+      },
+      "aid":"tid"
     },
     {
       "type": "json",
@@ -42,6 +46,9 @@
         "w": 300,
         "h": 250,
         "ext": {
+          "prebid": {
+            "type": "banner"
+          },
           "appnexus": {
             "brand_id": 1,
             "auction_id": 8189378542222915032,
@@ -52,7 +59,8 @@
           "origbidcpm": 5.5,
           "origbidcur": "USD"
         }
-      }
+      },
+      "aid":"tid"
     }
   ]
 }

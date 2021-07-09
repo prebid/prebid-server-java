@@ -28,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -103,7 +104,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
 
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
         return imp.toBuilder()
-                .bidfloor(sovrnExt.getBidfloor())
+                .bidfloor(resolveBidFloor(imp.getBidfloor(), sovrnExt.getBidfloor()))
                 .tagid(ObjectUtils.defaultIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
                 .build();
     }
@@ -118,6 +119,14 @@ public class SovrnBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+    }
+
+    private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal extBidFloor) {
+        return !isValidBidFloor(impBidFloor) && isValidBidFloor(extBidFloor) ? extBidFloor : impBidFloor;
+    }
+
+    private static boolean isValidBidFloor(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private static MultiMap headers(BidRequest bidRequest) {

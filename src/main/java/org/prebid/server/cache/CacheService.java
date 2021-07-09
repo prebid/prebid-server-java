@@ -282,10 +282,11 @@ public class CacheService {
         final Account account = auctionContext.getAccount();
         final String bidRequestId = auctionContext.getBidRequest().getId();
         final String accountId = account.getId();
+        final String requestId = auctionContext.getBidRequest().getId();
         final List<CachedCreative> cachedCreatives = Stream.concat(
                 bids.stream().map(cacheBid ->
                         createJsonPutObjectOpenrtb(cacheBid, bidRequestId, accountId, eventsContext)),
-                videoBids.stream().map(this::createXmlPutObjectOpenrtb))
+                videoBids.stream().map(videoBid -> createXmlPutObjectOpenrtb(videoBid, requestId)))
                 .collect(Collectors.toList());
 
         if (cachedCreatives.isEmpty()) {
@@ -397,6 +398,7 @@ public class CacheService {
         }
 
         final PutObject payload = PutObject.builder()
+                .aid(auctionId)
                 .type("json")
                 .value(bidObjectNode)
                 .expiry(cacheBid.getTtl())
@@ -408,12 +410,13 @@ public class CacheService {
     /**
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid) {
+    private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid, String requestId) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final String vastXml = bid.getAdm();
 
         final PutObject payload = PutObject.builder()
+                .aid(requestId)
                 .type("xml")
                 .value(vastXml != null ? new TextNode(vastXml) : null)
                 .expiry(cacheBid.getTtl())

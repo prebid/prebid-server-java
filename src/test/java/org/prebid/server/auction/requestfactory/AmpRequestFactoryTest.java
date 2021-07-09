@@ -13,11 +13,11 @@ import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -33,6 +33,9 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -51,9 +54,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
-import org.prebid.server.settings.model.Account;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -65,6 +68,7 @@ import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,12 +79,13 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class AmpRequestFactoryTest extends VertxTest {
-
-    private static final String ACCOUNT_ID = "acc_id";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -118,9 +123,21 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
-        given(httpRequest.getParam(eq("tag_id"))).willReturn("tagId");
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(routingContext.request()).willReturn(httpRequest);
+        given(routingContext.queryParams()).willReturn(
+                MultiMap.caseInsensitiveMultiMap()
+                        .add("tag_id", "tagId"));
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
+
+        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
+                .prebidErrors(new ArrayList<>())
+                .build());
+        given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
+                .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
+        given(ortb2RequestFactory.restoreResultFromRejection(any()))
+                .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+
         given(fpdResolver.resolveApp(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveSite(any(), any()))
@@ -152,7 +169,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestHasNoTagId() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn(null);
+        routingContext.queryParams().set("tag_id", (String) null);
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
@@ -213,26 +230,58 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfStoredBidRequestHasNoExt() {
+    public void shouldUseQueryParamsModifiedByEntrypointHooks() {
         // given
-        givenBidRequest(
-                builder -> builder.ext(null),
-                Imp.builder().build());
+        routingContext.queryParams().set("debug", "0");
+
+        doAnswer(invocation -> Future.succeededFuture(HttpRequestContext.builder()
+                .queryParams(CaseInsensitiveMultiMap.builder()
+                        .add("tag_id", "tagId")
+                        .add("debug", "1")
+                        .build())
+                .build()))
+                .when(ortb2RequestFactory)
+                .executeEntrypointHooks(any(), any(), any());
+
+        givenBidRequest();
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
-        assertThat(((InvalidRequestException) future.cause()).getMessages())
-                .hasSize(1).containsOnly("AMP requests require Ext to be set");
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getDebug)
+                .containsExactly(1);
     }
 
     @Test
-    public void shouldReturnBidRequestWithDefaultPrebidValuesIfPrebidIsNull() {
+    public void shouldReturnFailedFutureIfEntrypointHookRejectedRequest() {
         // given
-        givenBidRequest(builder -> builder.ext(ExtRequest.empty()), Imp.builder().build());
+        givenBidRequest();
+
+        final Throwable exception = new RuntimeException();
+        doAnswer(invocation -> Future.failedFuture(exception))
+                .when(ortb2RequestFactory)
+                .executeEntrypointHooks(any(), any(), any());
+
+        final AuctionContext auctionContext = AuctionContext.builder().requestRejected(true).build();
+        doReturn(Future.succeededFuture(auctionContext))
+                .when(ortb2RequestFactory)
+                .restoreResultFromRejection(eq(exception));
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).succeededWith(auctionContext);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithDefaultPrebidValuesIfPrebidIsNullInStoredRequest() {
+        // given
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -244,6 +293,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .containsExactly(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("tagId"))
+                        .amp(ExtRequestPrebidAmp.of(singletonMap("tag_id", "tagId")))
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2,
                                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
@@ -260,10 +311,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldCallOrtbTypeResolver() {
         // given
-        givenBidRequest(
-                builder -> builder
-                        .ext(givenRequestExt(null)),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         target.fromRequest(routingContext, 0L).result();
@@ -275,10 +323,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultTargetingIfStoredBidRequestExtHasNoTargeting() {
         // given
-        givenBidRequest(
-                builder -> builder
-                        .ext(givenRequestExt(null)),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -461,10 +506,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultCachingIfStoredBidRequestExtHasNoCaching() {
         // given
-        givenBidRequest(
-                builder -> builder
-                        .ext(givenRequestExt(null)),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -479,10 +521,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithChannelIfStoredBidRequestExtHasNoChannel() {
         // given
-        givenBidRequest(
-                builder -> builder
-                        .ext(givenRequestExt(null)),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -517,10 +556,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithImpSecureEqualsToOneIfInitiallyItWasNotSecured() {
         // given
-        givenBidRequest(
-                builder -> builder
-                        .ext(givenRequestExt(null)),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -533,56 +569,65 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithBidRequestWithTestFlagOn() {
+    public void shouldReturnBidRequestWithExtPrebidDebugOneWhenDebugQueryParamIsOne() {
         // given
-        given(httpRequest.getParam("debug")).willReturn("1");
+        routingContext.queryParams().add("debug", "1");
 
-        givenBidRequest(
-                builder -> builder
-                        .test(0)
-                        .ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
-        target.fromRequest(routingContext, 0L);
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(ortb2ImplicitParametersResolver).resolve(captor.capture(), any(), any());
-
-        assertThat(captor.getValue().getTest()).isEqualTo(1);
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getDebug)
+                .containsOnly(1);
     }
 
     @Test
-    public void shouldRespondWithBidRequestWithDebugFlagOn() {
+    public void shouldReturnBidRequestWithExtPrebidDebugZeroWhenDebugQueryParamIsZero() {
         // given
-        given(httpRequest.getParam("debug")).willReturn("1");
+        routingContext.queryParams().add("debug", "0");
 
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(0).build())),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
-        target.fromRequest(routingContext, 0L);
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(ortb2ImplicitParametersResolver).resolve(captor.capture(), any(), any());
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getDebug)
+                .containsOnly(0);
+    }
 
-        final ExtRequest extRequest = captor.getValue().getExt();
-        assertThat(extRequest.getPrebid().getDebug()).isEqualTo(1);
+    @Test
+    public void shouldReturnBidRequestWithoutExtPrebidDebugWhenDebugQueryParamIsNotValid() {
+        // given
+        routingContext.queryParams().add("debug", "3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getDebug)
+                .containsNull();
     }
 
     @Test
     public void shouldReturnBidRequestWithOverriddenTagIdBySlotParamValue() {
         // given
-        given(httpRequest.getParam("slot")).willReturn("Overridden-tagId");
+        routingContext.queryParams().add("slot", "Overridden-tagId");
 
-        givenBidRequest(
-                builder -> builder
-                        .ext(givenRequestExt(null)),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -597,9 +642,9 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldSetBidRequestSiteExt() {
         // given
-        given(httpRequest.getParam("curl")).willReturn("");
+        routingContext.queryParams().add("curl", "");
 
-        givenBidRequest(Function.identity(), Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -612,15 +657,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenSitePageAndDomainByCurlParamValue() {
+    public void shouldReturnBidRequestWithSitePageAndDomainFromCurlQueryParam() {
         // given
-        given(httpRequest.getParam("curl")).willReturn("http://overridden.site.page:8080/path");
+        routingContext.queryParams().add("curl", "http://overridden.site.page:8080/path");
 
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty())
-                        .site(Site.builder().page("http://will.be.overridden/path").build()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -634,87 +675,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithSitePageAndDomainContainingCurlParamValueWhenSiteNotInRequest() {
+    public void shouldReturnBidRequestWithSitePublisherIdFromAccountQueryParam() {
         // given
-        given(httpRequest.getParam("curl")).willReturn("http://overridden.site.page:8080/path");
+        routingContext.queryParams().add("account", "accountId");
 
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty())
-                        .site(null),
-                Imp.builder().build());
-
-        // when
-        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(singletonList(request))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPage, Site::getDomain, Site::getExt)
-                .containsOnly(tuple(
-                        "http://overridden.site.page:8080/path", "overridden.site.page", ExtSite.of(1, null)));
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithSitePublisherIdOverriddenWithAccountParamValue() {
-        // given
-        final String accountId = "accountId";
-        given(httpRequest.getParam("account")).willReturn(accountId);
-
-        givenBidRequest(Function.identity(), Imp.builder().build());
-
-        given(ortb2RequestFactory.fetchAccountAndCreateAuctionContext(any(), any(), any(), eq(true), anyLong(),
-                any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(
-                        AuctionContext.builder()
-                                .routingContext(routingContext)
-                                .account(Account.builder().id(accountId).build())
-                                .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
-                                .build()));
-
-        // when
-        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
-
-        // then
-        assertThat(singletonList(result.result().getBidRequest()))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher, Site::getExt)
-                .containsOnly(tuple(
-                        Publisher.builder().id(accountId).build(),
-                        ExtSite.of(1, null)));
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithSitePublisherIdFromAccountParamWhenSiteDoesNotExist() {
-        // given
-        given(httpRequest.getParam("account")).willReturn("accountId");
-
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty())
-                        .site(null),
-                Imp.builder().build());
-
-        // when
-        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(singletonList(request))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher, Site::getExt)
-                .containsOnly(tuple(
-                        Publisher.builder().id("accountId").build(),
-                        ExtSite.of(1, null)));
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithSitePublisherIdFromAccountParamWhenSitePublisherDoesNotExist() {
-        // given
-        given(httpRequest.getParam("account")).willReturn("accountId");
-
-        givenBidRequest(
-                Function.identity(),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -731,14 +696,14 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnRequestWithOverriddenBannerFormatByOverwriteWHParamsRespectingThemOverWH() {
         // given
-        given(httpRequest.getParam("w")).willReturn("10");
-        given(httpRequest.getParam("ow")).willReturn("1000");
-        given(httpRequest.getParam("h")).willReturn("20");
-        given(httpRequest.getParam("oh")).willReturn("2000");
-        given(httpRequest.getParam("ms")).willReturn("44x88,66x99");
+        routingContext.queryParams().add("w", "10");
+        routingContext.queryParams().add("ow", "1000");
+        routingContext.queryParams().add("h", "20");
+        routingContext.queryParams().add("oh", "2000");
+        routingContext.queryParams().add("ms", "44x88,66x99");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -762,13 +727,13 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOverriddenBannerFromOWAndHParamAndMultiListIfOHIsMissed() {
         // given
-        given(httpRequest.getParam("ow")).willReturn("10");
-        given(httpRequest.getParam("w")).willReturn("30");
-        given(httpRequest.getParam("h")).willReturn("40");
-        given(httpRequest.getParam("ms")).willReturn("50x60");
+        routingContext.queryParams().add("ow", "10");
+        routingContext.queryParams().add("w", "30");
+        routingContext.queryParams().add("h", "40");
+        routingContext.queryParams().add("ms", "50x60");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -792,13 +757,13 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOverriddenBannerFromWAndOHParamAndMultiListIfOWIsMissed() {
         // given
-        given(httpRequest.getParam("oh")).willReturn("20");
-        given(httpRequest.getParam("w")).willReturn("30");
-        given(httpRequest.getParam("h")).willReturn("40");
-        given(httpRequest.getParam("ms")).willReturn("50x60");
+        routingContext.queryParams().add("oh", "20");
+        routingContext.queryParams().add("w", "30");
+        routingContext.queryParams().add("h", "40");
+        routingContext.queryParams().add("ms", "50x60");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -822,12 +787,12 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithBannerFromHWParamsAndMultiList() {
         // given
-        given(httpRequest.getParam("w")).willReturn("30");
-        given(httpRequest.getParam("h")).willReturn("40");
-        given(httpRequest.getParam("ms")).willReturn("50x60");
+        routingContext.queryParams().add("w", "30");
+        routingContext.queryParams().add("h", "40");
+        routingContext.queryParams().add("ms", "50x60");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -851,11 +816,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOverriddenBannerFromWAndHParamsIfOwOhAndMultiListAreMissed() {
         // given
-        given(httpRequest.getParam("w")).willReturn("30");
-        given(httpRequest.getParam("h")).willReturn("40");
+        routingContext.queryParams().add("w", "30");
+        routingContext.queryParams().add("h", "40");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -879,10 +844,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithUpdatedWidthForAllBannerFormatsWhenOnlyWIsPresentInParams() {
         // given
-        given(httpRequest.getParam("w")).willReturn("30");
+        routingContext.queryParams().add("w", "30");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(asList(Format.builder().w(1).h(2).build(),
@@ -904,10 +869,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithUpdatedHeightForAllBannerFormatsWhenOnlyHIsPresentInParams() {
         // given
-        given(httpRequest.getParam("h")).willReturn("40");
+        routingContext.queryParams().add("h", "40");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(asList(Format.builder().w(1).h(2).build(),
@@ -929,10 +894,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOverriddenBannerFormatsByMultiSizeParams() {
         // given
-        given(httpRequest.getParam("ms")).willReturn("44x88,66x99");
+        routingContext.queryParams().add("ms", "44x88,66x99");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -956,10 +921,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginalBannerFormatsWhenMultiSizeParamContainsCompletelyInvalidValue() {
         // given
-        given(httpRequest.getParam("ms")).willReturn(",");
+        routingContext.queryParams().add("ms", ",");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -983,10 +948,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginBannerFormatsWhenMultiSizeParamContainsAtLeastOneInvalidValue() {
         // given
-        given(httpRequest.getParam("ms")).willReturn(",33x,44x77,abc,");
+        routingContext.queryParams().add("ms", ",33x,44x77,abc,");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1010,10 +975,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestOverriddenBannerFormatsWhenMsParamSizePairHasOneInvalidValue() {
         // given
-        given(httpRequest.getParam("ms")).willReturn("900xZ");
+        routingContext.queryParams().add("ms", "900xZ");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1037,10 +1002,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginBannerFormatsWhenMultiSizeParamContainsAtLeastOneZeroPairSize() {
         // given
-        given(httpRequest.getParam("ms")).willReturn("44x77, 0x0");
+        routingContext.queryParams().add("ms", "44x77, 0x0");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1064,10 +1029,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOverriddenBannerFormatsWhenMultiSizeParamContainsPartiallyInvalidParams() {
         // given
-        given(httpRequest.getParam("ms")).willReturn("33x,44x77");
+        routingContext.queryParams().add("ms", "33x,44x77");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1091,14 +1056,14 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginBannerFormatsWhenAllParametersAreZero() {
         // given
-        given(httpRequest.getParam("ow")).willReturn("0");
-        given(httpRequest.getParam("oh")).willReturn("0");
-        given(httpRequest.getParam("w")).willReturn("0");
-        given(httpRequest.getParam("h")).willReturn("0");
-        given(httpRequest.getParam("ms")).willReturn("0x0");
+        routingContext.queryParams().add("ow", "0");
+        routingContext.queryParams().add("oh", "0");
+        routingContext.queryParams().add("w", "0");
+        routingContext.queryParams().add("h", "0");
+        routingContext.queryParams().add("ms", "0x0");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1122,12 +1087,12 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOverriddenBannerWhenInvalidParamTreatedAsZeroValue() {
         // given
-        given(httpRequest.getParam("ow")).willReturn("100");
-        given(httpRequest.getParam("oh")).willReturn("invalid");
-        given(httpRequest.getParam("h")).willReturn("200");
+        routingContext.queryParams().add("ow", "100");
+        routingContext.queryParams().add("oh", "invalid");
+        routingContext.queryParams().add("h", "200");
 
         givenBidRequest(
-                Function.identity(),
+                identity(),
                 Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder()
@@ -1149,14 +1114,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenTmaxWhenTimeoutParamIsAvailable() {
+    public void shouldReturnBidRequestWithTmaxFromTimeoutQueryParam() {
         // given
-        given(httpRequest.getParam("timeout")).willReturn("1000");
+        routingContext.queryParams().add("timeout", "1000");
 
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -1166,64 +1128,25 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithUnmodifiedUserWhenGdprConsentParamIsNullOrBlank() {
+    public void shouldReturnBidRequestWithoutUserWhenGdprConsentQueryParamIsBlank() {
         // given
-        given(httpRequest.getParam("gdpr_consent")).willReturn(null, "");
+        routingContext.queryParams().add("gdpr_consent", "");
 
-        givenBidRequest(
-                builder -> builder
-                        .user(User.builder()
-                                .ext(ExtUser.builder().consent("should-remain").build())
-                                .build())
-                        .ext(ExtRequest.empty()),
-                Imp.builder().build());
-
-        // when
-        final BidRequest firstResult = target.fromRequest(routingContext, 0L).result().getBidRequest();
-        final BidRequest secondResult = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        final User expectedUser = User.builder()
-                .ext(ExtUser.builder().consent("should-remain").build())
-                .build();
-
-        assertThat(firstResult.getUser()).isEqualTo(expectedUser);
-        assertThat(secondResult.getUser()).isEqualTo(expectedUser);
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithOverriddenUserExtConsentWhenGdprConsentParamIsValid() {
-        // given
-        given(httpRequest.getParam("gdpr_consent")).willReturn("BONV8oqONXwgmADACHENAO7pqzAAppY");
-
-        givenBidRequest(
-                builder -> builder
-                        .user(User.builder()
-                                .id("1")
-                                .ext(ExtUser.builder().consent("should-be-overridden").build())
-                                .build())
-                        .ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(result.getUser())
-                .isEqualTo(User.builder()
-                        .id("1")
-                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
-                        .build());
+        assertThat(result.getUser()).isNull();
     }
 
     @Test
-    public void shouldReturnBidRequestWithNewUserThatContainsUserExtConsentWhenInitialUserIsMissing() {
+    public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentQueryParamIsValid() {
         // given
-        given(httpRequest.getParam("gdpr_consent")).willReturn("BONV8oqONXwgmADACHENAO7pqzAAppY");
+        routingContext.queryParams().add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY");
 
-        givenBidRequest(
-                Function.identity(),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -1236,56 +1159,46 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldKeepEmptyUserWhenGdprConsentIsInvalid() {
+    public void shouldReturnBidRequestWithoutUserWhenGdprConsentQueryParamIsInvalid() {
         // given
-        given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
+        routingContext.queryParams().add("gdpr_consent", "consent-value");
 
-        givenBidRequest(
-                builder -> builder
-                        .user(User.builder().build())
-                        .ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(result.getUser())
-                .isEqualTo(User.builder().build());
+        assertThat(result.getUser()).isNull();
     }
 
     @Test
-    public void shouldReturnAddErrorToAuctionContextWhenPrivacyIsNotValid() {
+    public void shouldAddErrorToAuctionContextWhenGdprConsentQueryParamIsInvalid() {
         // given
-        given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
+        routingContext.queryParams().add("gdpr_consent", "consent-value");
 
-        givenBidRequest(
-                builder -> builder
-                        .user(User.builder().build())
-                        .ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidErrors()).contains("Amp request parameter consent_string or gdpr_consent have"
-                + " invalid format: consent-value");
+        assertThat(result.getPrebidErrors())
+                .contains("Amp request parameter consent_string or gdpr_consent have invalid format: consent-value");
     }
 
     @Test
     public void shouldReturnBidRequestWithExtPrebidDataBiddersUpdatedByFpdResolver() throws JsonProcessingException {
         // given
-        given(httpRequest.getParam("targeting"))
-                .willReturn(mapper.writeValueAsString(Targeting.of(Arrays.asList("appnexus", "rubicon"), null, null)));
+        routingContext.queryParams()
+                .add("targeting", mapper.writeValueAsString(
+                        Targeting.of(Arrays.asList("appnexus", "rubicon"), null, null)));
 
         given(fpdResolver.resolveBidRequestExt(any(), any()))
                 .willReturn(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
 
-        givenBidRequest(
-                Function.identity(),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -1301,16 +1214,15 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestImpExtContextDataWithTargetingAttributes() throws JsonProcessingException {
         // given
-        given(httpRequest.getParam("targeting"))
-                .willReturn(mapper.writeValueAsString(Targeting.of(Arrays.asList("appnexus", "rubicon"), null, null)));
+        routingContext.queryParams()
+                .add("targeting", mapper.writeValueAsString(
+                        Targeting.of(Arrays.asList("appnexus", "rubicon"), null, null)));
 
         given(fpdResolver.resolveImpExt(any(), any()))
                 .willReturn(mapper.createObjectNode().set("context", mapper.createObjectNode()
                         .set("data", mapper.createObjectNode().put("attr1", "value1").put("attr2", "value2"))));
 
-        givenBidRequest(
-                Function.identity(),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -1327,11 +1239,9 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldThrowInvalidRequestExceptionWhenTargetingHasTypeOtherToObject() {
         // given
-        given(httpRequest.getParam("targeting")).willReturn("[\"a\"]", null, null);
+        routingContext.queryParams().add("targeting", "[\"a\"]");
 
-        givenBidRequest(
-                Function.identity(),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
@@ -1346,9 +1256,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithoutRegsExtWhenNoPrivacyPolicyIsExist() {
         // given
-        givenBidRequest(
-                builder -> builder.ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -1358,13 +1266,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenUsPrivacyParamIsValid() {
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenGdprConsentQueryParamIsValidUsPrivacyString() {
         // given
-        given(httpRequest.getParam("gdpr_consent")).willReturn("1N--");
+        routingContext.queryParams().add("gdpr_consent", "1N--");
 
-        givenBidRequest(
-                builder -> builder.ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -1375,57 +1281,29 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenConsentStringIsValid() {
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenConsentStringQueryParamIsValid() {
         // given
-        given(httpRequest.getParam("consent_string")).willReturn("1Y-N");
+        routingContext.queryParams().add("consent_string", "1Y-N");
 
-        givenBidRequest(
-                builder -> builder
-                        .user(User.builder().build())
-                        .regs(Regs.of(1, ExtRegs.of(1, "replaced")))
-                        .ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(result.getUser())
-                .isEqualTo(User.builder().build());
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(1, ExtRegs.of(1, "1Y-N")));
-    }
-
-    @Test
-    public void shouldPassExtPrebidDebugFlagIfPresent() {
-        // given
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(1).build())),
-                Imp.builder().build());
-
-        // when
-        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(singletonList(request))
-                .extracting(BidRequest::getExt)
-                .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getDebug)
-                .containsOnly(1);
+                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1Y-N")));
     }
 
     @SuppressWarnings("unchecked")
     @Test
     public void shouldReturnBidRequestWithCreatedExtPrebidAmpData() {
         // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+        routingContext.queryParams()
                 .add("queryParam1", "value1")
-                .add("queryParam2", "value2"));
+                .add("queryParam2", "value2");
 
-        givenBidRequest(
-                builder -> builder.ext(ExtRequest.of(null)),
-                Imp.builder().build());
+        givenBidRequest();
 
         // when
         final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -1434,39 +1312,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final Map<String, String> expectedAmpData = new HashMap<>();
         expectedAmpData.put("queryParam1", "value1");
         expectedAmpData.put("queryParam2", "value2");
-        assertThat(singletonList(result))
-                .extracting(BidRequest::getExt)
-                .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getAmp)
-                .extracting(ExtRequestPrebidAmp::getData)
-                .containsOnly(expectedAmpData);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void shouldReturnBidRequestWithUpdatedExtPrebidAmpData() {
-        // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add("queryParam1", "value1")
-                .add("queryParam2", "value2"));
-
-        final Map<String, String> existingAmpData = new HashMap<>();
-        existingAmpData.put("queryParam2", "value2InRequest");
-        existingAmpData.put("queryParam3", "value3");
-        givenBidRequest(
-                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .amp(ExtRequestPrebidAmp.of(existingAmpData))
-                        .build())),
-                Imp.builder().build());
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        final Map<String, String> expectedAmpData = new HashMap<>();
-        expectedAmpData.put("queryParam1", "value1");
-        expectedAmpData.put("queryParam2", "value2");
-        expectedAmpData.put("queryParam3", "value3");
+        expectedAmpData.put("tag_id", "tagId");
         assertThat(singletonList(result))
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
@@ -1478,9 +1324,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnModifiedBidRequestWhenRequestWasPopulatedWithImplicitParams() {
         // given
-        givenBidRequest(
-                builder -> builder.ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any()))
@@ -1494,11 +1338,9 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnPopulatedPrivacyContextAndGetWhenPrivacyEnforcementReturnContext() {
+    public void shouldReturnPopulatedPrivacyContextAndGeoWhenPrivacyEnforcementReturnContext() {
         // given
-        givenBidRequest(
-                builder -> builder.ext(ExtRequest.empty()),
-                Imp.builder().build());
+        givenBidRequest();
 
         final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").city("found").build();
         final PrivacyContext privacyContext = PrivacyContext.of(
@@ -1515,6 +1357,66 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(result.getGeoInfo()).isEqualTo(geoInfo);
     }
 
+    @Test
+    public void shouldPassAmpEndpointAndRequestMetricType() {
+        // given
+        givenBidRequest();
+
+        // when
+        target.fromRequest(routingContext, 0L);
+
+        // then
+        verify(ortb2RequestFactory).createAuctionContext(eq(Endpoint.openrtb2_amp), eq(MetricName.amp));
+    }
+
+    @Test
+    public void shouldUseBidRequestModifiedByProcessedAuctionRequestHooks() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .site(Site.builder().domain("example.com").build())
+                        .ext(ExtRequest.empty()),
+                Imp.builder().build());
+
+        final BidRequest modifiedBidRequest = BidRequest.builder()
+                .app(App.builder().bundle("org.company.application").build())
+                .build();
+        doAnswer(invocation -> Future.succeededFuture(modifiedBidRequest))
+                .when(ortb2RequestFactory)
+                .executeProcessedAuctionRequestHooks(any());
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+
+        // then
+
+        final BidRequest resultBidRequest = result.result().getBidRequest();
+        assertThat(resultBidRequest.getSite()).isNull();
+        assertThat(resultBidRequest.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfProcessedAuctionRequestHookRejectedRequest() {
+        // given
+        givenBidRequest();
+
+        final Throwable exception = new RuntimeException();
+        doAnswer(invocation -> Future.failedFuture(exception))
+                .when(ortb2RequestFactory)
+                .executeProcessedAuctionRequestHooks(any());
+
+        final AuctionContext auctionContext = AuctionContext.builder().requestRejected(true).build();
+        doReturn(Future.succeededFuture(auctionContext))
+                .when(ortb2RequestFactory)
+                .restoreResultFromRejection(eq(exception));
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).succeededWith(auctionContext);
+    }
+
     private void givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> storedBidRequestBuilderCustomizer,
             Imp... imps) {
@@ -1527,26 +1429,48 @@ public class AmpRequestFactoryTest extends VertxTest {
                             storedBidRequestBuilderCustomizer.apply(argument.toBuilder().imp(impList)).build());
                 });
 
-        final MetricName metricName = MetricName.amp;
-        given(ortb2RequestFactory.fetchAccountAndCreateAuctionContext(any(), any(), eq(metricName), eq(true),
-                anyLong(), any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(
-                        AuctionContext.builder()
-                                .routingContext((RoutingContext) invocationOnMock.getArguments()[0])
-                                .bidRequest((BidRequest) invocationOnMock.getArguments()[1])
-                                .prebidErrors(new ArrayList<>())
-                                .build()));
+        given(ortb2RequestFactory.enrichAuctionContext(any(), any(), any(), anyLong()))
+                .willAnswer(invocationOnMock -> ((AuctionContext) invocationOnMock.getArguments()[0]).toBuilder()
+                        .httpRequest((HttpRequestContext) invocationOnMock.getArguments()[1])
+                        .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
+                        .build());
+        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any())).willAnswer(
                 answerWithFirstArgument());
         given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
 
-        given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any(), any(), any()))
-                .willAnswer(answerWithFirstArgument());
+        given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
+                .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
+        given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
+                .willAnswer(invocation -> Future.succeededFuture(
+                        ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
+    }
+
+    private void givenBidRequest() {
+        givenBidRequest(identity(), Imp.builder().build());
     }
 
     private Answer<Object> answerWithFirstArgument() {
         return invocationOnMock -> invocationOnMock.getArguments()[0];
+    }
+
+    private static Future<HttpRequestContext> toHttpRequest(RoutingContext routingContext, String body) {
+        return Future.succeededFuture(HttpRequestContext.builder()
+                .absoluteUri(routingContext.request().absoluteURI())
+                .queryParams(toCaseInsensitiveMultiMap(routingContext.queryParams()))
+                .headers(toCaseInsensitiveMultiMap(routingContext.request().headers()))
+                .body(body)
+                .scheme(routingContext.request().scheme())
+                .remoteHost(routingContext.request().remoteAddress().host())
+                .build());
+    }
+
+    private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {
+        final CaseInsensitiveMultiMap.Builder mapBuilder = CaseInsensitiveMultiMap.builder();
+        originalMap.entries().forEach(entry -> mapBuilder.add(entry.getKey(), entry.getValue()));
+
+        return mapBuilder.build();
     }
 
     private static ExtRequest givenRequestExt(ExtRequestTargeting extRequestTargeting) {

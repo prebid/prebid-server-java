@@ -442,9 +442,9 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(3)
                 .containsOnly(
-                        PutObject.builder().type("json").value(mapper.valueToTree(bid1)).build(),
-                        PutObject.builder().type("json").value(mapper.valueToTree(bid2)).build(),
-                        PutObject.builder().type("xml").value(new TextNode(receivedBid2Adm)).build());
+                        PutObject.builder().aid("auctionId").type("json").value(mapper.valueToTree(bid1)).build(),
+                        PutObject.builder().aid("auctionId").type("json").value(mapper.valueToTree(bid2)).build(),
+                        PutObject.builder().aid("auctionId").type("xml").value(new TextNode(receivedBid2Adm)).build());
     }
 
     @Test
@@ -864,7 +864,11 @@ public class CacheServiceTest extends VertxTest {
         if (bids != null) {
             putObjects = new ArrayList<>();
             for (Bid bid : bids) {
-                putObjects.add(PutObject.builder().type("json").value(mapper.valueToTree(bid)).build());
+                putObjects.add(PutObject.builder()
+                        .aid("auctionId")
+                        .type("json")
+                        .value(mapper.valueToTree(bid))
+                        .build());
             }
         } else {
             putObjects = null;

@@ -26,13 +26,6 @@ public class AvocetTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/avocet/test-avocet-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/avocet/test-avocet-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("openrtb2/avocet/test-cache-avocet-request.json")))
-                .willReturn(aResponse().withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName", "openrtb2/avocet/test-cache-matcher-avocet.json")));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

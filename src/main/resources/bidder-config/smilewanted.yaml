@@ -1,0 +1,25 @@
+adapters:
+  smilewanted:
+    enabled: false
+    endpoint: http://prebid-server.smilewanted.com
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: { }
+    meta-info:
+      maintainer-email: tech@smilewanted.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 639
+    usersync:
+      url: https://csync.smilewanted.com/getuid?source=prebid-server&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+      redirect-url: /setuid?bidder=smilewanted&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: smilewanted
+      type: redirect
+      support-cors: false

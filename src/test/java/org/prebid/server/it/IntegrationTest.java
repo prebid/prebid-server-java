@@ -21,6 +21,7 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
@@ -29,6 +30,7 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.ValueMatcher;
 import org.skyscreamer.jsonassert.comparator.CustomComparator;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -42,7 +44,8 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static java.lang.String.format;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@TestPropertySource("test-application.properties")
+@TestPropertySource({"test-application.properties", "test-application-hooks.properties"})
+@Import(TestHooksConfiguration.class)
 public abstract class IntegrationTest extends VertxTest {
 
     private static final int APP_PORT = 8080;
@@ -59,7 +62,7 @@ public abstract class IntegrationTest extends VertxTest {
     @Rule
     public WireMockClassRule instanceRule = WIRE_MOCK_RULE;
 
-    static final RequestSpecification SPEC = spec(APP_PORT);
+    protected static final RequestSpecification SPEC = spec(APP_PORT);
 
     @BeforeClass
     public static void setUp() throws IOException {
@@ -78,12 +81,12 @@ public abstract class IntegrationTest extends VertxTest {
                 .build();
     }
 
-    static String jsonFrom(String file) throws IOException {
+    protected static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
     }
 
-    static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
+    protected static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
             throws IOException {
 
         return auctionResponseFrom(templatePath, response, "ext.responsetimemillis.%s", bidders);
