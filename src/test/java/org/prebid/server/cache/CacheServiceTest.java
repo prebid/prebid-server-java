@@ -64,7 +64,6 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
@@ -112,7 +111,7 @@ public class CacheServiceTest extends VertxTest {
                 clock,
                 jacksonMapper);
 
-        eventsContext = EventsContext.builder().build();
+        eventsContext = EventsContext.builder().auctionId("auctionId").build();
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -212,6 +211,12 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldStoreWinUrl() {
+        //given
+        final EventsContext eventsContext = EventsContext.builder()
+                .auctionId("auctionId")
+                .enabledForAccount(true)
+                .enabledForRequest(true)
+                .build();
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidInfo(builder -> builder.id("bidId1"))),
@@ -219,16 +224,14 @@ public class CacheServiceTest extends VertxTest {
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .build(),
-                EventsContext.builder().enabledForAccount(true).enabledForRequest(true).build());
+                eventsContext);
 
         // then
         verify(eventsService).winUrl(
                 eq("bidId1"),
-                eq("auctionId"),
                 eq("bidder"),
                 eq("accountId"),
-                isNull(),
-                isNull());
+                eq(eventsContext));
     }
 
     @Test
@@ -419,7 +422,10 @@ public class CacheServiceTest extends VertxTest {
         final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2").adm(receivedBid2Adm).ext(bidExt2),
                 BidType.video, "bidder2");
 
-        final EventsContext eventsContext = EventsContext.builder().auctionTimestamp(1000L).build();
+        final EventsContext eventsContext = EventsContext.builder()
+                .auctionId("auctionId")
+                .auctionTimestamp(1000L)
+                .build();
 
         // when
         cacheService.cacheBidsOpenrtb(

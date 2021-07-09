@@ -99,9 +99,6 @@ public class BidResponseCreator {
 
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
-    private static final String ORIGINAL_BID_CPM = "origbidcpm";
-    private static final String ORIGINAL_BID_CURRENCY = "origbidcur";
-    private static final String SKADN_PROPERTY = "skadn";
     private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
 
     private final CacheService cacheService;
@@ -219,7 +216,6 @@ public class BidResponseCreator {
 
         final Account account = auctionContext.getAccount();
         final List<String> debugWarnings = auctionContext.getDebugWarnings();
-        final String requestId = auctionContext.getBidRequest().getId();
 
         final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
                 ? bidIdGenerator.generateId()
@@ -231,7 +227,6 @@ public class BidResponseCreator {
                         bid,
                         bidType,
                         bidder,
-                        requestId,
                         account,
                         eventsContext,
                         effectiveBidId,
@@ -240,7 +235,6 @@ public class BidResponseCreator {
                         bid,
                         bidType,
                         bidder,
-                        requestId,
                         account,
                         videoStoredDataResult,
                         eventsContext,
@@ -253,7 +247,6 @@ public class BidResponseCreator {
             Bid bid,
             BidType bidType,
             String bidder,
-            String requestId,
             Account account,
             EventsContext eventsContext,
             String effectiveBidId,
@@ -266,7 +259,7 @@ public class BidResponseCreator {
                 bidAdm,
                 bid.getNurl(),
                 effectiveBidId,
-                requestId,
+                eventsContext.getAuctionId(),
                 account.getId(),
                 eventsContext,
                 debugWarnings)
@@ -276,7 +269,6 @@ public class BidResponseCreator {
     private ObjectNode updateBidExt(Bid bid,
                                     BidType bidType,
                                     String bidder,
-                                    String requestId,
                                     Account account,
                                     VideoStoredDataResult videoStoredDataResult,
                                     EventsContext eventsContext,
@@ -287,7 +279,7 @@ public class BidResponseCreator {
                 bid,
                 bidType,
                 bidder,
-                requestId,
+                eventsContext.getAuctionId(),
                 account,
                 videoStoredDataResult,
                 eventsContext,
@@ -1177,6 +1169,7 @@ public class BidResponseCreator {
 
     private EventsContext createEventsContext(AuctionContext auctionContext) {
         return EventsContext.builder()
+                .auctionId(auctionContext.getBidRequest().getId())
                 .enabledForAccount(eventsEnabledForAccount(auctionContext))
                 .enabledForRequest(eventsEnabledForRequest(auctionContext))
                 .auctionTimestamp(auctionTimestamp(auctionContext))

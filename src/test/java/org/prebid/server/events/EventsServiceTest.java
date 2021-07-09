@@ -36,8 +36,10 @@ public class EventsServiceTest {
 
     @Test
     public void winUrlShouldReturnExpectedUrl() {
+        //given
+        final EventsContext eventsContext = EventsContext.builder().integration("pbjs").auctionTimestamp(1000L).build();
         // when
-        final String winUrl = eventsService.winUrl("bidId", "", "bidder", "accountId", 1000L, "pbjs");
+        final String winUrl = eventsService.winUrl("bidId", "bidder", "accountId", eventsContext);
 
         // then
         assertThat(winUrl).isEqualTo(

@@ -285,7 +285,7 @@ public class CacheService {
         final String requestId = auctionContext.getBidRequest().getId();
         final List<CachedCreative> cachedCreatives = Stream.concat(
                 bids.stream().map(cacheBid ->
-                        createJsonPutObjectOpenrtb(cacheBid, bidRequestId, accountId, eventsContext)),
+                        createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
                 videoBids.stream().map(videoBid -> createXmlPutObjectOpenrtb(videoBid, requestId)))
                 .collect(Collectors.toList());
 
@@ -384,7 +384,6 @@ public class CacheService {
      * Used for OpenRTB auction request. Also, adds win url to result object if events are enabled.
      */
     private CachedCreative createJsonPutObjectOpenrtb(CacheBid cacheBid,
-                                                      String auctionId,
                                                       String accountId,
                                                       EventsContext eventsContext) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
@@ -392,13 +391,16 @@ public class CacheService {
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
 
         final String eventUrl =
-                generateWinUrl(bidInfo.getBidId(), auctionId, bidInfo.getBidder(), accountId, eventsContext);
+                generateWinUrl(bidInfo.getBidId(),
+                        bidInfo.getBidder(),
+                        accountId,
+                        eventsContext);
         if (eventUrl != null) {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }
 
         final PutObject payload = PutObject.builder()
-                .aid(auctionId)
+                .aid(eventsContext.getAuctionId())
                 .type("json")
                 .value(bidObjectNode)
                 .expiry(cacheBid.getTtl())
@@ -426,19 +428,12 @@ public class CacheService {
     }
 
     private String generateWinUrl(String bidId,
-                                  String auctionId,
                                   String bidder,
                                   String accountId,
                                   EventsContext eventsContext) {
 
         if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
-            return eventsService.winUrl(
-                    bidId,
-                    auctionId,
-                    bidder,
-                    accountId,
-                    eventsContext.getAuctionTimestamp(),
-                    eventsContext.getIntegration());
+            return eventsService.winUrl(bidId, bidder, accountId, eventsContext);
         }
 
         return null;

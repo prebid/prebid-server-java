@@ -372,6 +372,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 same(auctionContext),
                 contextArgumentCaptor.capture(),
                 eq(EventsContext.builder()
+                        .auctionId("123")
                         .enabledForAccount(true)
                         .enabledForRequest(true)
                         .auctionTimestamp(1000L)
@@ -432,7 +433,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidsArgumentCaptor.capture(),
                 same(auctionContext),
                 any(),
-                eq(EventsContext.builder().auctionTimestamp(1000L).build()));
+                eq(EventsContext.builder().auctionId("123").auctionTimestamp(1000L).build()));
 
         assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getId())
                 .containsOnly("bidId1", "bidId2");
@@ -490,6 +491,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final EventsContext expectedEventContext = EventsContext.builder()
+                .auctionId("123")
                 .enabledForAccount(true)
                 .enabledForRequest(true)
                 .auctionTimestamp(1000L)
@@ -577,7 +579,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidsArgumentCaptor.capture(),
                 same(auctionContext),
                 eq(CacheContext.builder().build()),
-                eq(EventsContext.builder().auctionTimestamp(1000L).build()));
+                eq(EventsContext.builder().auctionId("123").auctionTimestamp(1000L).build()));
 
         assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getId())
                 .containsOnly("bidId1");

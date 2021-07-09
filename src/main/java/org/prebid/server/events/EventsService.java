@@ -46,21 +46,16 @@ public class EventsService {
     /**
      * Returns url for win tracking.
      */
-    public String winUrl(String bidId,
-                         String auctionId,
-                         String bidder,
-                         String accountId,
-                         Long timestamp,
-                         String integration) {
+    public String winUrl(String bidId, String bidder, String accountId, EventsContext eventsContext) {
         return eventUrl(
                 EventRequest.Type.win,
                 bidId,
-                auctionId,
+                eventsContext.getAuctionId(),
                 bidder,
                 accountId,
-                timestamp,
+                eventsContext.getAuctionTimestamp(),
                 EventRequest.Format.image,
-                integration);
+                eventsContext.getIntegration());
     }
 
     /**
