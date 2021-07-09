@@ -22,6 +22,7 @@ settings:
     stored-imps-dir:
     stored-responses-dir: storedresponse
 gdpr:
+  host-vendor-id: 142
   vendorlist:
     v2:
       cache-dir: /var/tmp/vendor2
@@ -62,4 +63,4 @@ geolocation:
   circuit-breaker: true
   medianet:
     endpoint: http://ipservice.ipservice.svc.cluster.local:9000/ipinfo/
-    timeout: 5000
+    timeout: 5
