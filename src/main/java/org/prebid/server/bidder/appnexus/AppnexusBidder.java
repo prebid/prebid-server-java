@@ -178,9 +178,21 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         final List<Imp> processedImps = new ArrayList<>();
         final Set<String> memberIds = new HashSet<>();
+        Boolean adPodId = null;
         for (final Imp imp : bidRequest.getImp()) {
             try {
-                final ImpWithMemberId impWithMemberId = makeImpWithMemberId(imp, defaultDisplayManagerVer);
+                validateImpAudio(imp);
+                final ExtImpAppnexus appnexusExt = parseAndValidateAppnexusExt(imp);
+
+                if (adPodId == null) {
+                    adPodId = appnexusExt.getGenerateAdPodId();
+                } else if (!adPodId.equals(appnexusExt.getGenerateAdPodId())) {
+                    return Result.withError(
+                            BidderError.badInput("generate ad pod option should be same for all pods in request"));
+                }
+
+                final ImpWithMemberId impWithMemberId = makeImpWithMemberId(imp, appnexusExt, defaultDisplayManagerVer);
+
                 processedImps.add(impWithMemberId.getImp());
                 memberIds.add(impWithMemberId.getMemberId());
             } catch (PreBidException e) {
@@ -210,6 +222,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 : bidRequest;
 
         return Result.of(splitHttpRequests(outgoingRequest, processedImps, url, MAX_IMP_PER_REQUEST), errors);
+    }
+
+    private void validateImpAudio(Imp imp) {
+        if (imp.getAudio() != null) {
+            throw new PreBidException(
+                    String.format("Appnexus doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
+        }
     }
 
     private String makeDefaultDisplayManagerVer(BidRequest bidRequest) {
@@ -294,14 +313,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ImpWithMemberId makeImpWithMemberId(Imp imp, String defaultDisplayManagerVer) {
-        if (imp.getAudio() != null) {
-            throw new PreBidException(
-                    String.format("Appnexus doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
-        }
-
-        final ExtImpAppnexus appnexusExt = parseAndValidateAppnexusExt(imp);
-
+    private ImpWithMemberId makeImpWithMemberId(Imp imp, ExtImpAppnexus appnexusExt, String defaultDisplayManagerVer) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .banner(makeBanner(imp.getBanner(), appnexusExt))
                 .ext(mapper.mapper().valueToTree(makeAppnexusImpExt(appnexusExt)));

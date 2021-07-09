@@ -42,4 +42,6 @@ public class ExtImpAppnexus {
     Boolean usePmtRule;
 
     ObjectNode privateSizes; // At this time we do no processing on the private sizes, so just leaving it as a JSON blob
+
+    Boolean generateAdPodId;
 }

@@ -779,6 +779,31 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestShouldReturnErrorWhenAdPodIsNotTheSame() {
+        // given
+        final Imp impWithAdPod = Imp.builder()
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAppnexus.builder()
+                        .placementId(1)
+                        .generateAdPodId(true)
+                        .build())))
+                .build();
+        final Imp impWithoutAdPod = Imp.builder()
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAppnexus.builder().placementId(2).build())))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(impWithAdPod, impWithoutAdPod)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.badInput("generate ad pod option should be same for all pods in request"));
+
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
