@@ -87,35 +87,35 @@ public class MaxMindGeoLocationService implements GeoLocationService, RemoteFile
         }
     }
 
-    private String resolveContinent(CityResponse cityResponse) {
+    private static String resolveContinent(CityResponse cityResponse) {
         final Continent continent = cityResponse != null ? cityResponse.getContinent() : null;
         final String code = continent != null ? continent.getCode() : null;
         return StringUtils.lowerCase(code);
     }
 
-    private String resolveCountry(CityResponse cityResponse) {
+    private static String resolveCountry(CityResponse cityResponse) {
         final Country country = cityResponse != null ? cityResponse.getCountry() : null;
         final String isoCode = country != null ? country.getIsoCode() : null;
         return StringUtils.lowerCase(isoCode);
     }
 
-    private String resolveRegion(CityResponse cityResponse) throws IOException, GeoIp2Exception {
+    private static String resolveRegion(CityResponse cityResponse) throws IOException, GeoIp2Exception {
         final List<Subdivision> subdivisions = cityResponse != null ? cityResponse.getSubdivisions() : null;
         final Subdivision firstSubdivision = CollectionUtils.isEmpty(subdivisions) ? null : subdivisions.get(0);
         return firstSubdivision != null ? firstSubdivision.getIsoCode() : null;
     }
 
-    private String resolveCity(CityResponse cityResponse) {
+    private static String resolveCity(CityResponse cityResponse) {
         final City city = cityResponse != null ? cityResponse.getCity() : null;
         return city != null ? city.getName() : null;
     }
 
-    private Float resolveLatitude(Location location) {
+    private static Float resolveLatitude(Location location) {
         final Double latitude = location != null ? location.getLatitude() : null;
         return latitude != null ? latitude.floatValue() : null;
     }
 
-    private Float resolveLongitude(Location location) {
+    private static Float resolveLongitude(Location location) {
         final Double longitude = location != null ? location.getLongitude() : null;
         return longitude != null ? longitude.floatValue() : null;
     }
