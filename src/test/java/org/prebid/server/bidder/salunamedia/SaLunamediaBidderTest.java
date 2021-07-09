@@ -18,8 +18,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 
 import java.util.List;
 import java.util.function.Function;
@@ -27,9 +25,10 @@ import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class SaLunamediaBidderTest extends VertxTest {
@@ -158,13 +157,18 @@ public class SaLunamediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactlyInAnyOrder(BidderError.badServerResponse("Missing BidExt"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
+                });
     }
 
     @Test
-    public void makeBidsShouldReturnOnlyFirstBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBidIfExtMediatypeIsNative() throws JsonProcessingException {
         // given
-        final ObjectNode mediaTypeObjectNode = jacksonMapper.mapper().createObjectNode().put("mediaType", "native");
+        final ObjectNode mediaTypeObjectNode = jacksonMapper.mapper()
+                .createObjectNode().put("mediaType", "native");
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().build()))
@@ -182,25 +186,48 @@ public class SaLunamediaBidderTest extends VertxTest {
                 Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), xNative, null));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    @Test
+    public void makeBidsShouldReturnBannerBidIfExtMediatypeIsBanner() throws JsonProcessingException {
+        // given
+        final ObjectNode mediaTypeObjectNode = jacksonMapper.mapper()
+                .createObjectNode().put("mediaType", "banner");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponses(asList(
+                        bidBuilder -> bidBuilder.impid("123").ext(mediaTypeObjectNode),
+                        bidBuilder -> bidBuilder.impid("345").ext(mediaTypeObjectNode)))));
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+        // when
+        final Result<List<BidderBid>> result = saLunamediaBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(
+                Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), banner, null));
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
-    }
+    @Test
+    public void makeBidsShouldReturnVideoBidIfExtMediatypeIsVideo() throws JsonProcessingException {
+        // given
+        final ObjectNode mediaTypeObjectNode = jacksonMapper.mapper()
+                .createObjectNode().put("mediaType", "video");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponses(asList(
+                        bidBuilder -> bidBuilder.impid("123").ext(mediaTypeObjectNode),
+                        bidBuilder -> bidBuilder.impid("345").ext(mediaTypeObjectNode)))));
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
-                .build();
+        // when
+        final Result<List<BidderBid>> result = saLunamediaBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(BidderBid.of(
+                Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), video, null));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

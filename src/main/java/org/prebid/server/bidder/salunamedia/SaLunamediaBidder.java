@@ -71,18 +71,18 @@ public class SaLunamediaBidder implements Bidder<BidRequest> {
 
         final Bid firstBid = bids.get(0);
         final ObjectNode firstBidExt = firstBid != null ? firstBid.getExt() : null;
-        final BidType firstBidType = firstBidExt != null ? getBidType(firstBidExt) : null;
-        if (firstBidType == null) {
+        if (firstBidExt == null) {
             throw new PreBidException("Missing BidExt");
         }
+
         return Collections.singletonList(BidderBid.of(firstBid, getBidType(firstBidExt), bidResponse.getCur()));
     }
 
-    private BidType getBidType(ObjectNode node) {
+    private BidType getBidType(ObjectNode bidExt) {
         try {
-            return mapper.mapper().convertValue(node.get("mediaType"), BidType.class);
+            return mapper.mapper().convertValue(bidExt.get("mediaType"), BidType.class);
         } catch (IllegalArgumentException e) {
-            return null;
+            throw new PreBidException(e.getMessage());
         }
     }
 }
