@@ -227,11 +227,7 @@ public class CacheServiceTest extends VertxTest {
                 eventsContext);
 
         // then
-        verify(eventsService).winUrl(
-                eq("bidId1"),
-                eq("bidder"),
-                eq("accountId"),
-                eq(eventsContext));
+        verify(eventsService).winUrl("bidId1", "bidder", "accountId", eventsContext);
     }
 
     @Test

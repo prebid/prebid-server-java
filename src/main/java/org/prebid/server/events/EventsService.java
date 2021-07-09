@@ -18,29 +18,23 @@ public class EventsService {
      */
     public Events createEvent(String bidId,
                               String bidder,
-                              String auctionId,
                               String accountId,
-                              Long timestamp,
-                              String integration) {
+                              EventsContext eventsContext) {
         return Events.of(
                 eventUrl(
                         EventRequest.Type.win,
                         bidId,
-                        auctionId,
                         bidder,
                         accountId,
-                        timestamp,
                         EventRequest.Format.image,
-                        integration),
+                        eventsContext),
                 eventUrl(
                         EventRequest.Type.imp,
                         bidId,
-                        auctionId,
                         bidder,
                         accountId,
-                        timestamp,
                         EventRequest.Format.image,
-                        integration));
+                        eventsContext));
     }
 
     /**
@@ -50,51 +44,43 @@ public class EventsService {
         return eventUrl(
                 EventRequest.Type.win,
                 bidId,
-                eventsContext.getAuctionId(),
                 bidder,
                 accountId,
-                eventsContext.getAuctionTimestamp(),
                 EventRequest.Format.image,
-                eventsContext.getIntegration());
+                eventsContext);
     }
 
     /**
      * Returns url for VAST tracking.
      */
     public String vastUrlTracking(String bidId,
-                                  String auctionId,
                                   String bidder,
                                   String accountId,
-                                  Long timestamp,
-                                  String integration) {
+                                  EventsContext eventsContext) {
         return eventUrl(EventRequest.Type.imp,
                 bidId,
-                auctionId,
                 bidder,
                 accountId,
-                timestamp,
                 EventRequest.Format.blank,
-                integration);
+                eventsContext);
     }
 
     private String eventUrl(EventRequest.Type type,
                             String bidId,
-                            String auctionId,
                             String bidder,
                             String accountId,
-                            Long timestamp,
                             EventRequest.Format format,
-                            String integration) {
+                            EventsContext eventsContext) {
 
         final EventRequest eventRequest = EventRequest.builder()
                 .type(type)
                 .bidId(bidId)
-                .auctionId(auctionId)
+                .auctionId(eventsContext.getAuctionId())
                 .accountId(accountId)
                 .bidder(bidder)
-                .timestamp(timestamp)
+                .timestamp(eventsContext.getAuctionTimestamp())
                 .format(format)
-                .integration(integration)
+                .integration(eventsContext.getIntegration())
                 .build();
 
         return EventUtil.toUrl(externalUrl, eventRequest);

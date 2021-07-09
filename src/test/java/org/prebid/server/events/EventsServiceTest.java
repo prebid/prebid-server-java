@@ -23,8 +23,14 @@ public class EventsServiceTest {
 
     @Test
     public void createEventsShouldReturnExpectedEvent() {
+        //given
+        final EventsContext eventsContext = EventsContext.builder().auctionId("auctionId")
+                .integration("pbjs")
+                .auctionTimestamp(1000L)
+                .build();
+
         // when
-        final Events events = eventsService.createEvent("bidId", "bidder", "auctionId", "accountId", 1000L, "pbjs");
+        final Events events = eventsService.createEvent("bidId", "bidder", "accountId", eventsContext);
 
         // then
         assertThat(events).isEqualTo(Events.of(
@@ -38,6 +44,7 @@ public class EventsServiceTest {
     public void winUrlShouldReturnExpectedUrl() {
         //given
         final EventsContext eventsContext = EventsContext.builder().integration("pbjs").auctionTimestamp(1000L).build();
+
         // when
         final String winUrl = eventsService.winUrl("bidId", "bidder", "accountId", eventsContext);
 
@@ -48,9 +55,14 @@ public class EventsServiceTest {
 
     @Test
     public void vastUrlShouldReturnExpectedUrl() {
+        //given
+        final EventsContext eventsContext = EventsContext.builder().auctionId("auctionId")
+                .integration("pbjs")
+                .auctionTimestamp(1000L)
+                .build();
+
         // when
-        final String vastUrl = eventsService.vastUrlTracking("bidId", "auctionId", "bidder",
-                "accountId", 1000L, "pbjs");
+        final String vastUrl = eventsService.vastUrlTracking("bidId", "bidder", "accountId", eventsContext);
 
         // then
         assertThat(vastUrl).isEqualTo(

@@ -277,7 +277,6 @@ public class BidResponseCreator {
                 bid,
                 bidType,
                 bidder,
-                eventsContext.getAuctionId(),
                 account,
                 videoStoredDataResult,
                 eventsContext,
@@ -300,7 +299,6 @@ public class BidResponseCreator {
             Bid bid,
             BidType bidType,
             String bidder,
-            String requestId,
             Account account,
             VideoStoredDataResult videoStoredDataResult,
             EventsContext eventsContext,
@@ -308,7 +306,7 @@ public class BidResponseCreator {
             String effectiveBidId) {
 
         final Video storedVideo = videoStoredDataResult.getImpIdToStoredVideo().get(bid.getImpid());
-        final Events events = createEvents(bidder, requestId, account, effectiveBidId, eventsContext);
+        final Events events = createEvents(bidder, account, effectiveBidId, eventsContext);
         final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
 
         final ExtBidPrebid extBidPrebid = getExtPrebid(bid.getExt());
@@ -1230,19 +1228,12 @@ public class BidResponseCreator {
     }
 
     private Events createEvents(String bidder,
-                                String requestId,
                                 Account account,
                                 String bidId,
                                 EventsContext eventsContext) {
 
         return eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()
-                ? eventsService.createEvent(
-                bidId,
-                bidder,
-                requestId,
-                account.getId(),
-                eventsContext.getAuctionTimestamp(),
-                eventsContext.getIntegration())
+                ? eventsService.createEvent(bidId, bidder, account.getId(), eventsContext)
                 : null;
     }
 
