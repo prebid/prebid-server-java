@@ -4,6 +4,7 @@ import com.maxmind.db.Reader;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
+import com.maxmind.geoip2.record.Country;
 import com.maxmind.geoip2.record.Location;
 import com.maxmind.geoip2.record.Subdivision;
 import io.vertx.core.Future;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Implementation of of the {@link GeoLocationService}
+ * Implementation of the {@link GeoLocationService}
  * backed by <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/">MaxMind free database</a>
  */
 public class MaxMindGeoLocationService implements GeoLocationService, RemoteFileProcessor {
@@ -68,7 +69,7 @@ public class MaxMindGeoLocationService implements GeoLocationService, RemoteFile
             return Future.succeededFuture(GeoInfo.builder()
                     .vendor(VENDOR)
                     .continent(getCity(inetAddress).getContinent().getCode().toLowerCase())
-                    .country(getCity(inetAddress).getCountry().getIsoCode().toLowerCase())
+                    .country(getIsoCode(inetAddress))
                     .region(getRegionCode(inetAddress))
                     //metro code is skipped as Max Mind uses Google's version (Nielsen DMAs required)
                     .city(getCity(inetAddress).getCity().getName())
@@ -87,6 +88,12 @@ public class MaxMindGeoLocationService implements GeoLocationService, RemoteFile
     private String getRegionCode(InetAddress inetAddress) throws IOException, GeoIp2Exception {
         final List<Subdivision> subdivisions = getCity(inetAddress).getSubdivisions();
         return CollectionUtils.isEmpty(subdivisions) ? null : subdivisions.get(0).getIsoCode();
+    }
+
+    private String getIsoCode(InetAddress inetAddress) throws IOException, GeoIp2Exception {
+        final Country country = getCity(inetAddress).getCountry();
+        final String isoCode = country != null ? country.getIsoCode() : null;
+        return isoCode != null ? isoCode.toLowerCase() : null;
     }
 
     private Location getLocation(InetAddress inetAddress) throws IOException, GeoIp2Exception {

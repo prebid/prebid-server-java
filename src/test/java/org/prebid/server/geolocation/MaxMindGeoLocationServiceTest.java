@@ -94,4 +94,40 @@ public class MaxMindGeoLocationServiceTest {
                         .lon(2.3522f)
                         .build());
     }
+
+    @Test
+    public void lookupShouldTolerateMissingGeoInfo() throws IOException, GeoIp2Exception, NoSuchFieldException {
+        // given
+        final Country country = new Country(null, null, null, null, null);
+        final Continent continent = new Continent(null, "eu", null, null);
+        final City city = new City(singletonList("test"), null, null, singletonMap("test", "Paris"));
+        final Location location = new Location(null, null, 48.8566, 2.3522,
+                null, null, null);
+        final ArrayList<Subdivision> subdivisions = new ArrayList<>();
+        subdivisions.add(new Subdivision(null, null, null, "paris", null));
+        final CityResponse cityResponse = new CityResponse(city, continent, country, location, null,
+                null, null, null, subdivisions, null);
+
+        final DatabaseReader databaseReader = Mockito.mock(DatabaseReader.class);
+        given(databaseReader.city(any())).willReturn(cityResponse);
+
+        FieldSetter.setField(maxMindGeoLocationService,
+                maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"), databaseReader);
+
+        // when
+        final Future<GeoInfo> future = maxMindGeoLocationService.lookup(TEST_IP, null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result())
+                .isEqualTo(GeoInfo.builder()
+                        .vendor("maxmind")
+                        .continent("eu")
+                        .country(null)
+                        .region("paris")
+                        .city("Paris")
+                        .lat(48.8566f)
+                        .lon(2.3522f)
+                        .build());
+    }
 }
