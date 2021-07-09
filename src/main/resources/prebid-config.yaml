@@ -1,4 +1,5 @@
 status-response: "ok"
+external-url: https://prebid-s2s.media.net
 vertx:
   enable-per-client-endpoint-metrics: true
 adapters:
