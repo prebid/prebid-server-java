@@ -223,8 +223,7 @@ public class BidResponseCreator {
         final String effectiveBidId = ObjectUtils.defaultIfNull(generatedBidId, bid.getId());
 
         return bid.toBuilder()
-                .adm(updateBidAdm(
-                        bid,
+                .adm(updateBidAdm(bid,
                         bidType,
                         bidder,
                         account,
@@ -259,7 +258,6 @@ public class BidResponseCreator {
                 bidAdm,
                 bid.getNurl(),
                 effectiveBidId,
-                eventsContext.getAuctionId(),
                 account.getId(),
                 eventsContext,
                 debugWarnings)

@@ -124,8 +124,7 @@ public class VastModifierTest {
 
         // when
         final String result = target
-                .createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID,
-                        AUCTION_ID, ACCOUNT_ID, eventsContext(), emptyList());
+                .createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
         assertThat(result).isEqualTo(adm());
@@ -134,7 +133,7 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldInjectBidNurlWhenBidAdmIsNullAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(BIDDER, null, BID_NURL, BID_ID, AUCTION_ID, ACCOUNT_ID,
+        final String result = target.createBidVastXml(BIDDER, null, BID_NURL, BID_ID, ACCOUNT_ID,
                 givenEventsContext(false), emptyList());
 
         // then
@@ -144,7 +143,7 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldInjectBidNurlWhenBidAdmIsEmptyAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(BIDDER, "", BID_NURL, BID_ID, AUCTION_ID, ACCOUNT_ID,
+        final String result = target.createBidVastXml(BIDDER, "", BID_NURL, BID_ID, ACCOUNT_ID,
                 givenEventsContext(false), emptyList());
 
         // then
@@ -154,7 +153,7 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldReturnAdmWhenBidAdmIsPresentAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, AUCTION_ID, ACCOUNT_ID,
+        final String result = target.createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID,
                 givenEventsContext(false), emptyList());
 
         // then
@@ -166,8 +165,7 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<Wrapper><Impression>http:/test.com</Impression></Wrapper>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID,
-                        AUCTION_ID, ACCOUNT_ID, eventsContext(), emptyList());
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, AUCTION_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
@@ -182,8 +180,7 @@ public class VastModifierTest {
         final String bidAdm = "<InLine><Impression>http:/test.com</Impression>"
                 + "<Impression>http:/test2.com</Impression><Creatives></Creatives></InLine>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID,
-                        AUCTION_ID, ACCOUNT_ID, eventsContext(), emptyList());
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, AUCTION_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
@@ -198,8 +195,7 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<wrapper><Impression>http:/test.com</Impression></wrapper>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID,
-                        AUCTION_ID, ACCOUNT_ID, eventsContext(), emptyList());
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, AUCTION_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
@@ -213,8 +209,7 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<Inline><Impression>http:/test.com</Impression></Inline>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, AUCTION_ID,
-                        ACCOUNT_ID, eventsContext(), emptyList());
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, AUCTION_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
@@ -228,8 +223,7 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<InLine></InLine>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, AUCTION_ID,
-                        ACCOUNT_ID, eventsContext(), emptyList());
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, AUCTION_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
@@ -243,7 +237,7 @@ public class VastModifierTest {
         final String adm = "<Impression>http:/test.com</Impression>";
         final List<String> warnings = new ArrayList<>();
         final String result = target
-                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, AUCTION_ID, ACCOUNT_ID, eventsContext(), warnings);
+                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings);
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, AUCTION_ID, BIDDER, ACCOUNT_ID, AUCTION_TIMESTAMP, INTEGRATION);
@@ -256,7 +250,7 @@ public class VastModifierTest {
     public void createBidVastXmlShouldNotModifyWhenEventsEnabledAndAdmHaveNoImpression() {
         // when
         final String admWithNoImpression = "no impression";
-        final String result = target.createBidVastXml(BIDDER, admWithNoImpression, BID_NURL, BID_ID, AUCTION_ID,
+        final String result = target.createBidVastXml(BIDDER, admWithNoImpression, BID_NURL, BID_ID,
                 ACCOUNT_ID, eventsContext(), new ArrayList<>());
 
         // then
@@ -302,6 +296,7 @@ public class VastModifierTest {
     public static EventsContext givenEventsContext(boolean accountEnabled) {
         return EventsContext.builder()
                 .enabledForAccount(accountEnabled)
+                .auctionId(AUCTION_ID)
                 .auctionTimestamp(AUCTION_TIMESTAMP)
                 .integration(INTEGRATION)
                 .build();

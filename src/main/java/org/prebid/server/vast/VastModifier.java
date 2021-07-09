@@ -62,7 +62,6 @@ public class VastModifier {
                                    String bidAdm,
                                    String bidNurl,
                                    String eventBidId,
-                                   String auctionId,
                                    String accountId,
                                    EventsContext eventsContext,
                                    List<String> debugWarnings) {
@@ -78,7 +77,7 @@ public class VastModifier {
         final Long auctionTimestamp = eventsContext.getAuctionTimestamp();
         final String integration = eventsContext.getIntegration();
 
-        final String vastUrl = eventsService.vastUrlTracking(eventBidId, auctionId, bidder,
+        final String vastUrl = eventsService.vastUrlTracking(eventBidId, eventsContext.getAuctionId(), bidder,
                 accountId, auctionTimestamp, integration);
         try {
             return appendTrackingUrlToVastXml(vastXml, vastUrl, bidder);

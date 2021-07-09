@@ -480,7 +480,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         final String modifiedAdm = "modifiedAdm";
-        given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(modifiedAdm);
 
         // just a stub to get through method call chain
@@ -498,7 +498,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         verify(vastModifier)
-                .createBidVastXml(eq(bidder1), eq(null), eq(BID_NURL), eq(bidId1), eq("123"),
+                .createBidVastXml(eq(bidder1), eq(null), eq(BID_NURL), eq(bidId1),
                         eq(accountId), eq(expectedEventContext), any());
 
         final ArgumentCaptor<List<BidInfo>> bidInfoCaptor = ArgumentCaptor.forClass(List.class);
@@ -537,7 +537,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final String modifiedVast = "modifiedVast";
         given(vastModifier
                 .createBidVastXml(anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString(), any(), any()))
+                        anyString(), anyString(), any(), any()))
                 .willReturn(modifiedVast);
 
         // when
@@ -551,8 +551,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly(modifiedVast);
 
         verify(vastModifier)
-                .createBidVastXml(eq(bidder), eq(BID_ADM), eq(BID_NURL), eq(bidId),
-                        eq("123"), eq("accountId"), any(), any());
+                .createBidVastXml(eq(bidder), eq(BID_ADM), eq(BID_NURL), eq(bidId), eq("accountId"), any(), any());
     }
 
     @SuppressWarnings("unchecked")
