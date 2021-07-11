@@ -174,15 +174,6 @@ public abstract class IntegrationTest extends VertxTest {
 
     /**
      * Cache debug fields "requestbody" and "responsebody" are escaped JSON strings.
-     * This comparator allows to compare them with actual values as usual JSON objects.
-     */
-    static CustomComparator openrtbCacheDebugComparator() {
-
-        return new CustomComparator(JSONCompareMode.NON_EXTENSIBLE, openrtbCacheDebugCustomization());
-    }
-
-    /**
-     * Cache debug fields "requestbody" and "responsebody" are escaped JSON strings.
      * This customization allows to compare them with actual values as usual JSON objects.
      */
     static Customization openrtbCacheDebugCustomization() {

@@ -45,6 +45,6 @@ public class DatablocksTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/datablocks/test-auction-datablocks-response.json",
-                response, singletonList("datablocks"), openrtbCacheDebugCustomization());
+                response, singletonList("datablocks"));
     }
 }

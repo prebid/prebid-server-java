@@ -37,8 +37,7 @@ public class KubientTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        assertJsonEquals("openrtb2/kubient/test-auction-kubient-response.json",
-                response, singletonList("kubient"), openrtbCacheDebugCustomization());
+        assertJsonEquals("openrtb2/kubient/test-auction-kubient-response.json", response, singletonList("kubient"));
     }
 }
 

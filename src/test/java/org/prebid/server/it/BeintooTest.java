@@ -47,7 +47,6 @@ public class BeintooTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        assertJsonEquals("openrtb2/beintoo/test-auction-beintoo-response.json",
-                response, singletonList("beintoo"), openrtbCacheDebugCustomization());
+        assertJsonEquals("openrtb2/beintoo/test-auction-beintoo-response.json", response, singletonList("beintoo"));
     }
 }
