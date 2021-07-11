@@ -1,0 +1,27 @@
+adapters:
+  e_volution:
+    enabled: false
+    endpoint: http://service.e-volution.ai/pbserver
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: { }
+    meta-info:
+      maintainer-email: admin@e-volution.ai
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 957
+    usersync:
+      url: https://sync.e-volution.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect=
+      redirect-url: /setuid?bidder=e_volution&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[UID]
+      cookie-family-name: e_volution
+      type: redirect
+      support-cors: false

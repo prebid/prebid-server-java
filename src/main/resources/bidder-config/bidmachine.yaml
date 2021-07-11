@@ -14,7 +14,7 @@ adapters:
         - video
       site-media-types:
       supported-vendors:
-      vendor-id: 724
+      vendor-id: 736
     usersync:
       url:
       redirect-url:

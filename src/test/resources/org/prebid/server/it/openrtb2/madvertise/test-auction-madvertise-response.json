@@ -1,0 +1,46 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "impId001",
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "3.30",
+                "hb_size_madvertise": "300x250",
+                "hb_bidder_madvertise": "madvertise",
+                "hb_size": "300x250",
+                "hb_bidder": "madvertise",
+                "hb_pb_madvertise": "3.30"
+              }
+            },
+            "origbidcpm": 3.33
+          }
+        }
+      ],
+      "seat": "madvertise",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "madvertise": "{{ madvertise.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 2000
+  }
+}

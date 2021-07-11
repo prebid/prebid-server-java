@@ -2,15 +2,18 @@
   "puts": [
     {
       "type": "xml",
-      "value": "some-test-ad-3"
+      "value": "some-test-ad-3",
+      "aid":"bid_id"
     },
     {
       "type": "xml",
-      "value": "some-test-ad"
+      "value": "some-test-ad",
+      "aid":"bid_id"
     },
     {
       "type": "xml",
-      "value": "some-test-ad-2"
+      "value": "some-test-ad-2",
+      "aid":"bid_id"
     }
   ]
 }

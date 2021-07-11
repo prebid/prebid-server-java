@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.Bid;
@@ -11,7 +10,6 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -34,9 +32,7 @@ import java.util.stream.Collectors;
 
 public class VideoResponseFactory {
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
-            };
+    public static final String PREBID_EXT = "prebid";
 
     private final JacksonMapper mapper;
 
@@ -121,14 +117,18 @@ public class VideoResponseFactory {
     }
 
     private Map<String, String> targeting(Bid bid) {
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
+        final ObjectNode bidExt = bid.getExt();
+        if (bidExt == null || !bidExt.hasNonNull(PREBID_EXT)) {
+            return Collections.emptyMap();
+        }
+
+        final ExtBidPrebid extBidPrebid;
         try {
-            extBid = mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
+            extBidPrebid = mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (IllegalArgumentException e) {
             return Collections.emptyMap();
         }
 
-        final ExtBidPrebid extBidPrebid = extBid != null ? extBid.getPrebid() : null;
         final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
         return targeting != null ? targeting : Collections.emptyMap();
     }
