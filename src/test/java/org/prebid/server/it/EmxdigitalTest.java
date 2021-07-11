@@ -33,7 +33,7 @@ public class EmxdigitalTest extends IntegrationTest {
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("Referer", equalTo("http://www.example.com"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/emxdigital/test-emxdigital-bid-request.json"),
-                        true, true))
+                        true, false))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/emxdigital/test-emxdigital-bid-response.json"))));
 
         // when
@@ -42,7 +42,7 @@ public class EmxdigitalTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/emxdigital/test-auction-emxdigital-response.json",
-                singletonList("emx_digital"), response.asString());
+                response, singletonList("emx_digital"));
     }
 }
 

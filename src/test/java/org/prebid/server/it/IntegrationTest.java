@@ -123,15 +123,6 @@ public abstract class IntegrationTest extends VertxTest {
         return result;
     }
 
-    private static String replaceStaticInfo(String json) {
-
-        return json.replaceAll("\\{\\{ cache.endpoint }}", CACHE_ENDPOINT)
-                .replaceAll("\\{\\{ cache.resource_url }}", CACHE_ENDPOINT + "?uuid=")
-                .replaceAll("\\{\\{ cache.host }}", HOST_AND_PORT)
-                .replaceAll("\\{\\{ cache.path }}", CACHE_PATH)
-                .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
-    }
-
     private static String setResponseTime(Response response, String expectedResponseJson, String bidder,
                                           String responseTimePath) {
         final Object val = response.path(format(responseTimePath, bidder));
@@ -186,6 +177,15 @@ public abstract class IntegrationTest extends VertxTest {
      * This comparator allows to compare them with actual values as usual JSON objects.
      */
     static CustomComparator openrtbCacheDebugComparator() {
+
+        return new CustomComparator(JSONCompareMode.NON_EXTENSIBLE, openrtbCacheDebugCustomization());
+    }
+
+    /**
+     * Cache debug fields "requestbody" and "responsebody" are escaped JSON strings.
+     * This customization allows to compare them with actual values as usual JSON objects.
+     */
+    static Customization openrtbCacheDebugCustomization() {
         final ValueMatcher<Object> jsonStringValueMatcher = (actual, expected) -> {
             try {
                 return !JSONCompare.compareJSON(actual.toString(), expected.toString(), JSONCompareMode.NON_EXTENSIBLE)
@@ -200,25 +200,41 @@ public abstract class IntegrationTest extends VertxTest {
                 new Customization("ext.debug.httpcalls.cache[*].requestbody", jsonStringValueMatcher),
                 new Customization("ext.debug.httpcalls.cache[*].responsebody", jsonStringValueMatcher)));
 
-        return new CustomComparator(
-                JSONCompareMode.NON_EXTENSIBLE,
-                new Customization("ext.debug.httpcalls.cache", arrayValueMatcher));
+        return new Customization("ext.debug.httpcalls.cache", arrayValueMatcher);
     }
 
     protected static void assertJsonEquals(String file,
-                                           List<String> bidders, String response,
+                                           Response response,
+                                           List<String> bidders,
                                            Customization... customizations) throws IOException, JSONException {
         final List<Customization> fullCustomizations = new ArrayList<>(Arrays.asList(customizations));
         fullCustomizations.add(new Customization("ext.prebid.auctiontimestamp", (o1, o2) -> true));
         fullCustomizations.add(new Customization("ext.responsetimemillis.cache", (o1, o2) -> true));
+        String expectedRequest = replaceStaticInfo(jsonFrom(file));
         for (String bidder : bidders) {
+            expectedRequest = replaceBidderRelatedStaticInfo(expectedRequest, bidder);
             fullCustomizations.add(new Customization(
                     String.format("ext.responsetimemillis.%s", bidder), (o1, o2) -> true));
         }
 
-        JSONAssert.assertEquals(replaceStaticInfo(jsonFrom(file)), response,
+        JSONAssert.assertEquals(expectedRequest, response.asString(),
                 new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
                         fullCustomizations.stream().toArray(Customization[]::new)));
+    }
+
+    private static String replaceStaticInfo(String json) {
+
+        return json.replaceAll("\\{\\{ cache.endpoint }}", CACHE_ENDPOINT)
+                .replaceAll("\\{\\{ cache.resource_url }}", CACHE_ENDPOINT + "?uuid=")
+                .replaceAll("\\{\\{ cache.host }}", HOST_AND_PORT)
+                .replaceAll("\\{\\{ cache.path }}", CACHE_PATH)
+                .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
+    }
+
+    private static String replaceBidderRelatedStaticInfo(String json, String bidder) {
+
+        return json.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
+                "http://" + HOST_AND_PORT + "/" + bidder + "-exchange");
     }
 
     static BidCacheRequestPattern equalToBidCacheRequest(String json) {

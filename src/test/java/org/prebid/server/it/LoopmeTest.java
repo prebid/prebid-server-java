@@ -30,7 +30,6 @@ public class LoopmeTest extends IntegrationTest {
                 responseFor("openrtb2/loopme/test-auction-loopme-request.json", Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/loopme/test-auction-loopme-response.json",
-                singletonList("loopme"), response.asString());
+        assertJsonEquals("openrtb2/loopme/test-auction-loopme-response.json", response, singletonList("loopme"));
     }
 }
