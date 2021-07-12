@@ -7,7 +7,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -37,48 +36,30 @@ public class AxonixBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAxonix>>() {
             };
 
-    private static final String RESERVE_ENDPOINT_URL = "https://openrtb-us-east-1.axonix.com/supply/prebid-server/{{SupplyId}}";
-
     private final JacksonMapper mapper;
     private final String endpointUrl;
 
     public AxonixBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = endpointUrl != null ? HttpUtil.validateUrl(endpointUrl) : null;
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final Imp firstImp = request.getImp().get(0);
-        final String supplyId;
-
         try {
-            final ExtPrebid<?, ExtImpAxonix> extPrebid = mapper.mapper().convertValue(firstImp.getExt(),
-                    AXONIX_EXT_TYPE_REFERENCE);
-            final ExtImpAxonix extImpAxonix = extPrebid != null ? extPrebid.getBidder() : null;
+            final ExtImpAxonix extImpAxonix = mapper.mapper().convertValue(request.getImp().get(0).getExt(),
+                    AXONIX_EXT_TYPE_REFERENCE).getBidder();
 
-            supplyId = extImpAxonix != null ? extImpAxonix.getSupplyId() : null;
-            if (StringUtils.isEmpty(supplyId)) {
-                return Result.withError(BidderError.badInput("Empty supplyId"));
-            }
-        } catch (IllegalArgumentException e) {
+            return Result.withValue(HttpRequest.<BidRequest>builder()
+                    .method(HttpMethod.POST)
+                    .uri(HttpUtil.encodeUrl(endpointUrl.replace("{{SupplyId}}", extImpAxonix.getSupplyId())))
+                    .headers(HttpUtil.headers())
+                    .payload(request)
+                    .body(mapper.encode(request))
+                    .build());
+        } catch (IllegalArgumentException | PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
-        return Result.withValue(createRequest(request, supplyId));
-    }
-
-    private HttpRequest<BidRequest> createRequest(BidRequest request, String supplyId) {
-        final String uri = StringUtils.isNotEmpty(endpointUrl) ? endpointUrl
-                : HttpUtil.encodeUrl(RESERVE_ENDPOINT_URL.replace("{{SupplyId}}", supplyId));
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(uri)
-                .headers(HttpUtil.headers())
-                .payload(request)
-                .body(mapper.encode(request))
-                .build();
     }
 
     @Override
