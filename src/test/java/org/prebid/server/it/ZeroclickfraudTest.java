@@ -4,7 +4,6 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -49,10 +48,7 @@ public class ZeroclickfraudTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/zeroclickfraud/test-auction-zeroclickfraud-response.json",
+        assertJsonEquals("openrtb2/zeroclickfraud/test-auction-zeroclickfraud-response.json",
                 response, singletonList("zeroclickfraud"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }

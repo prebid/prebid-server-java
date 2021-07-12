@@ -4,7 +4,6 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -41,11 +40,8 @@ public class TripleliftTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/triplelift/test-auction-triplelift-response.json",
+        assertJsonEquals("openrtb2/triplelift/test-auction-triplelift-response.json",
                 response, singletonList("triplelift"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }
 
