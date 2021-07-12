@@ -233,7 +233,7 @@ public class IxBidder implements Bidder<BidRequest> {
         final boolean bidHasNoSizes = bid.getH() == null || bid.getW() == null;
         final Banner banner = bidRequest.getImp().get(0).getBanner();
 
-        if ((bidHasNoSizes && banner != null) || (extVideo != null)) {
+        if (bidHasNoSizes && banner != null || extVideo != null) {
             final Bid.BidBuilder bidBuilder = bid.toBuilder();
 
             if (bidType == BidType.banner && bidHasNoSizes && banner != null) {
@@ -306,7 +306,7 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private <T> T parseBidAdm(String adm, Class<T> clazz) {
         try {
-             return mapper.decodeValue(adm, clazz);
+            return mapper.decodeValue(adm, clazz);
         } catch (DecodeException e) {
             return null;
         }
@@ -328,8 +328,8 @@ public class IxBidder implements Bidder<BidRequest> {
         final Set<String> impTrackers = new HashSet<>(CollectionUtils.emptyIfNull(bidNative.getImptrackers()));
         final Set<String> eventTrackerUrls = bidNative.getEventtrackers().stream()
                 .filter(Objects::nonNull)
-                .filter(tracker -> EventType.IMPRESSION.getValue().equals(tracker.getEvent()) &&
-                        EventTrackingMethod.IMAGE.getValue().equals(tracker.getMethod()))
+                .filter(tracker -> EventType.IMPRESSION.getValue().equals(tracker.getEvent())
+                        && EventTrackingMethod.IMAGE.getValue().equals(tracker.getMethod()))
                 .map(EventTracker::getUrl)
                 .collect(Collectors.toSet());
 
