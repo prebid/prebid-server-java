@@ -1,7 +1,7 @@
 adapters:
   sa_lunamedia:
     enabled: false
-    endpoint: https://mobile.mng-ads.com/bidrequest{{ZoneID}}
+    endpoint: http://balancer.lmgssp.com/pserver
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true

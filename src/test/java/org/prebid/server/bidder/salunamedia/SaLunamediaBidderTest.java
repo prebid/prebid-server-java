@@ -33,7 +33,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class SaLunamediaBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com/{{ZoneID}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com";
 
     private SaLunamediaBidder saLunamediaBidder;
 
