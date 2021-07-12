@@ -1,8 +1,8 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId021",
+      "id": "imp_id1",
       "banner": {
         "format": [
           {
@@ -22,7 +22,7 @@
       }
     },
     {
-      "id": "impId022",
+      "id": "imp_id2",
       "video": {
         "mimes": [
           "video/mp4"
@@ -37,47 +37,7 @@
       }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0
