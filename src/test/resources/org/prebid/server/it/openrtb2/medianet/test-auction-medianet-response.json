@@ -1,0 +1,59 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "randomid",
+          "impid": "test-imp-id",
+          "price": 0.5,
+          "adm": "some-test-ad",
+          "adid": "12345678",
+          "cid": "987",
+          "crid": "12345678",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "0.50",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_medianet": "{{ cache.path }}",
+                "hb_size": "300x250",
+                "hb_cache_id_medianet": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                "hb_bidder": "medianet",
+                "hb_pb_medianet": "0.50",
+                "hb_cache_id": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_bidder_medianet": "medianet",
+                "hb_size_medianet": "300x250",
+                "hb_cache_host_medianet": "{{ cache.host }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                  "cacheId": "a5d3a873-d06e-4f2f-8556-120e05d62b28"
+                }
+              }
+            },
+            "origbidcpm": 0.5
+          }
+        }
+      ],
+      "seat": "medianet",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "medianet": "{{ medianet.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}

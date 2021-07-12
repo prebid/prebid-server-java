@@ -1,0 +1,27 @@
+adapters:
+  medianet:
+    enabled: true
+    endpoint: http://common.rtb.svc.cluster.local:7017?src={{PREBID_SERVER_ENDPOINT}}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: prebid@media.net
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 10
+    usersync:
+      url: https://prebid.media.net/usersync
+      redirect-url:
+      cookie-family-name: medianet
+      type: redirect
+      support-cors: false
