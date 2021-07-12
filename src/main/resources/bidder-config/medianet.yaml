@@ -1,7 +1,7 @@
 adapters:
   medianet:
     enabled: true
-    endpoint: http://prebid.media.net?src={{PREBID_SERVER_ENDPOINT}}
+    endpoint: http://common.rtb.svc.cluster.local:7017?src={{PREBID_SERVER_ENDPOINT}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
