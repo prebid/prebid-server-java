@@ -455,7 +455,7 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
-                .isEqualTo(singletonList(mapper.writeValueAsString(expectedNativeResponse)));
+                .containsExactly(mapper.writeValueAsString(expectedNativeResponse));
     }
 
     @Test
@@ -500,7 +500,7 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
-                .isEqualTo(singletonList(mapper.writeValueAsString(expectedNativeResponse)));
+                .containsExactly(mapper.writeValueAsString(expectedNativeResponse));
     }
 
     private static BidRequest givenBidRequest(

@@ -312,7 +312,7 @@ public class IxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<EventTracker> getEventTrackersFromResponse(Response response) {
+    private static List<EventTracker> getEventTrackersFromResponse(Response response) {
         return response != null ? response.getEventtrackers() : null;
     }
 
@@ -324,7 +324,7 @@ public class IxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Response mergeNativeImpTrackers(Response bidNative) {
+    private static Response mergeNativeImpTrackers(Response bidNative) {
         final Set<String> impTrackers = new HashSet<>(CollectionUtils.emptyIfNull(bidNative.getImptrackers()));
         final Set<String> eventTrackerUrls = bidNative.getEventtrackers().stream()
                 .filter(Objects::nonNull)
