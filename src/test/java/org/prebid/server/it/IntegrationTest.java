@@ -6,6 +6,7 @@ import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
@@ -42,6 +43,7 @@ import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static io.restassured.RestAssured.given;
@@ -54,6 +56,7 @@ public abstract class IntegrationTest extends VertxTest {
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
+    private static final String ANY_SYMBOL_REGEX = ".*";
 
     @SuppressWarnings("unchecked")
     @ClassRule
@@ -230,6 +233,10 @@ public abstract class IntegrationTest extends VertxTest {
 
     static BidCacheRequestPattern equalToBidCacheRequest(String json) {
         return new BidCacheRequestPattern(json);
+    }
+
+    protected static StringValuePattern notEmpty() {
+        return matching(ANY_SYMBOL_REGEX);
     }
 
     public static class CacheResponseTransformer extends ResponseTransformer {

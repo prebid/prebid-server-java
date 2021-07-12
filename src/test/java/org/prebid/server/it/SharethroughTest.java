@@ -13,7 +13,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
@@ -21,8 +20,6 @@ import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class SharethroughTest extends IntegrationTest {
-
-    private static final String DATE_REGEX = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\+\\d{2}:\\d{2}$";
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSharethrough() throws IOException, JSONException {
@@ -38,7 +35,7 @@ public class SharethroughTest extends IntegrationTest {
                 .withQueryParam("height", equalTo("50"))
                 .withQueryParam("width", equalTo("50"))
                 .withQueryParam("supplyId", equalTo("FGMrCMMc"))
-                .withQueryParam("adRequestAt", matching(DATE_REGEX))
+                .withQueryParam("adRequestAt", notEmpty())
                 .withQueryParam("ttduid", equalTo("id"))
                 .withQueryParam("strVersion", equalTo("8"))
                 .withHeader("Accept", equalTo("application/json"))
