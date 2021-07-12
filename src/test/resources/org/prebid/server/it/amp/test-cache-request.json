@@ -26,7 +26,8 @@
           },
           "origbidcpm": 12.09
         }
-      }
+      },
+      "aid":"tid"
     },
     {
       "type": "json",
@@ -58,7 +59,8 @@
           "origbidcpm": 5.5,
           "origbidcur": "USD"
         }
-      }
+      },
+      "aid":"tid"
     }
   ]
 }
