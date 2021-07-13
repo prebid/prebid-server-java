@@ -6,6 +6,7 @@ import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
@@ -23,8 +24,10 @@ import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
+import org.prebid.server.model.Endpoint;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompare;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.ValueMatcher;
@@ -35,12 +38,15 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -50,6 +56,7 @@ public abstract class IntegrationTest extends VertxTest {
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
+    private static final String ANY_SYMBOL_REGEX = ".*";
 
     @SuppressWarnings("unchecked")
     @ClassRule
@@ -63,6 +70,9 @@ public abstract class IntegrationTest extends VertxTest {
     public WireMockClassRule instanceRule = WIRE_MOCK_RULE;
 
     protected static final RequestSpecification SPEC = spec(APP_PORT);
+    private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;
+    private static final String CACHE_PATH = "/cache";
+    private static final String CACHE_ENDPOINT = "http://" + HOST_AND_PORT + CACHE_PATH;
 
     @BeforeClass
     public static void setUp() throws IOException {
@@ -81,6 +91,16 @@ public abstract class IntegrationTest extends VertxTest {
                 .build();
     }
 
+    protected static Response responseFor(String file, Endpoint endpoint) throws IOException {
+        return given(SPEC)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "193.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                .body(jsonFrom(file))
+                .post(endpoint.value());
+    }
+
     protected static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
@@ -94,20 +114,12 @@ public abstract class IntegrationTest extends VertxTest {
 
     private static String auctionResponseFrom(String templatePath, Response response, String responseTimePath,
                                               List<String> bidders) throws IOException {
-        final String hostAndPort = "localhost:" + WIREMOCK_PORT;
-        final String cachePath = "/cache";
-        final String cacheEndpoint = "http://" + hostAndPort + cachePath;
 
-        String result = jsonFrom(templatePath)
-                .replaceAll("\\{\\{ cache.endpoint }}", cacheEndpoint)
-                .replaceAll("\\{\\{ cache.resource_url }}", cacheEndpoint + "?uuid=")
-                .replaceAll("\\{\\{ cache.host }}", hostAndPort)
-                .replaceAll("\\{\\{ cache.path }}", cachePath)
-                .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
+        String result = replaceStaticInfo(jsonFrom(templatePath));
 
         for (final String bidder : bidders) {
             result = result.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
-                    "http://" + hostAndPort + "/" + bidder + "-exchange");
+                    "http://" + HOST_AND_PORT + "/" + bidder + "-exchange");
             result = setResponseTime(response, result, bidder, responseTimePath);
         }
 
@@ -124,7 +136,7 @@ public abstract class IntegrationTest extends VertxTest {
         }
 
         final Object cacheVal = response.path("ext.responsetimemillis.cache");
-        final Integer cacheResponseTime = val instanceof Integer ? (Integer) cacheVal : null;
+        final Integer cacheResponseTime = cacheVal instanceof Integer ? (Integer) cacheVal : null;
         if (cacheResponseTime != null) {
             expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ cache\\.response_time_ms }}\"",
                     cacheResponseTime.toString());
@@ -165,9 +177,9 @@ public abstract class IntegrationTest extends VertxTest {
 
     /**
      * Cache debug fields "requestbody" and "responsebody" are escaped JSON strings.
-     * This comparator allows to compare them with actual values as usual JSON objects.
+     * This customization allows to compare them with actual values as usual JSON objects.
      */
-    static CustomComparator openrtbCacheDebugComparator() {
+    static Customization openrtbCacheDebugCustomization() {
         final ValueMatcher<Object> jsonStringValueMatcher = (actual, expected) -> {
             try {
                 return !JSONCompare.compareJSON(actual.toString(), expected.toString(), JSONCompareMode.NON_EXTENSIBLE)
@@ -182,13 +194,49 @@ public abstract class IntegrationTest extends VertxTest {
                 new Customization("ext.debug.httpcalls.cache[*].requestbody", jsonStringValueMatcher),
                 new Customization("ext.debug.httpcalls.cache[*].responsebody", jsonStringValueMatcher)));
 
-        return new CustomComparator(
-                JSONCompareMode.NON_EXTENSIBLE,
-                new Customization("ext.debug.httpcalls.cache", arrayValueMatcher));
+        return new Customization("ext.debug.httpcalls.cache", arrayValueMatcher);
+    }
+
+    protected static void assertJsonEquals(String file,
+                                           Response response,
+                                           List<String> bidders,
+                                           Customization... customizations) throws IOException, JSONException {
+        final List<Customization> fullCustomizations = new ArrayList<>(Arrays.asList(customizations));
+        fullCustomizations.add(new Customization("ext.prebid.auctiontimestamp", (o1, o2) -> true));
+        fullCustomizations.add(new Customization("ext.responsetimemillis.cache", (o1, o2) -> true));
+        String expectedRequest = replaceStaticInfo(jsonFrom(file));
+        for (String bidder : bidders) {
+            expectedRequest = replaceBidderRelatedStaticInfo(expectedRequest, bidder);
+            fullCustomizations.add(new Customization(
+                    String.format("ext.responsetimemillis.%s", bidder), (o1, o2) -> true));
+        }
+
+        JSONAssert.assertEquals(expectedRequest, response.asString(),
+                new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
+                        fullCustomizations.stream().toArray(Customization[]::new)));
+    }
+
+    private static String replaceStaticInfo(String json) {
+
+        return json.replaceAll("\\{\\{ cache.endpoint }}", CACHE_ENDPOINT)
+                .replaceAll("\\{\\{ cache.resource_url }}", CACHE_ENDPOINT + "?uuid=")
+                .replaceAll("\\{\\{ cache.host }}", HOST_AND_PORT)
+                .replaceAll("\\{\\{ cache.path }}", CACHE_PATH)
+                .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
+    }
+
+    private static String replaceBidderRelatedStaticInfo(String json, String bidder) {
+
+        return json.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
+                "http://" + HOST_AND_PORT + "/" + bidder + "-exchange");
     }
 
     static BidCacheRequestPattern equalToBidCacheRequest(String json) {
         return new BidCacheRequestPattern(json);
+    }
+
+    protected static StringValuePattern notEmpty() {
+        return matching(ANY_SYMBOL_REGEX);
     }
 
     public static class CacheResponseTransformer extends ResponseTransformer {

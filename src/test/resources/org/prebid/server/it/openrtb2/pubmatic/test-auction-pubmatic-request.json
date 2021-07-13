@@ -37,6 +37,13 @@
             "version": 1,
             "profile": 5123
           }
+        },
+        "data": {
+          "adserver": {
+            "name": "gam",
+            "adslot": "thirdPbAdSlot"
+          },
+          "pbadslot": "firstPbAdSlot"
         }
       }
     },
@@ -68,6 +75,9 @@
             "version": 1,
             "profile": 5123
           }
+        },
+        "data": {
+          "pbadslot": "SecondPbAdSlot"
         }
       }
     }

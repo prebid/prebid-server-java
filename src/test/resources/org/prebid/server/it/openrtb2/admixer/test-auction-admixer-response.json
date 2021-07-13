@@ -8,9 +8,7 @@
           "cid": "test_cid",
           "crid": "test_banner_crid",
           "ext": {
-            "bidder": {
-              "format": "BANNER"
-            },
+            "format": "BANNER",
             "prebid": {
               "type": "banner",
               "targeting": {
