@@ -5,13 +5,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.util.HttpUtil;
 
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,9 +28,6 @@ import java.util.stream.Stream;
 public class BidderDetailsHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(BidderDetailsHandler.class);
-
-    private static final Map<CharSequence, CharSequence> HEADERS = Collections.singletonMap(
-            HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
     private static final String BIDDER_NAME_PARAM = "bidderName";
     private static final String ALL_PARAM_VALUE = "all";
@@ -83,17 +82,20 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
+        final Consumer<HttpServerResponse> responseConsumer;
 
-        final HttpResponseSender responseSender = HttpResponseSender.from(routingContext, logger);
         if (bidderInfos.containsKey(bidderName)) {
-            responseSender
-                    .headers(HEADERS)
-                    .body(bidderInfos.get(bidderName));
+            responseConsumer = response -> response
+                    .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                    .end(bidderInfos.get(bidderName));
         } else {
-            responseSender
-                    .status(HttpResponseStatus.NOT_FOUND);
+            responseConsumer = response -> response
+                    .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+                    .end();
         }
-        responseSender.send();
+
+        final String endpoint = String.format("%s/%s", Endpoint.info_bidders.value(), bidderName);
+        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
     }
 
     @Value(staticConstructor = "of")

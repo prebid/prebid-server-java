@@ -107,8 +107,8 @@ public class VideoRequestFactory {
                 .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
     }
 
-    private String extractAndValidateBody(RoutingContext context) {
-        final String body = context.getBodyAsString();
+    private String extractAndValidateBody(RoutingContext routingContext) {
+        final String body = routingContext.getBodyAsString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
         }

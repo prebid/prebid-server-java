@@ -2,23 +2,20 @@ package org.prebid.server.handler;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class GetuidsHandler implements Handler<RoutingContext> {
-
-    private static final Logger logger = LoggerFactory.getLogger(GetuidsHandler.class);
 
     private final UidsCookieService uidsCookieService;
     private final JacksonMapper mapper;
@@ -33,9 +30,7 @@ public class GetuidsHandler implements Handler<RoutingContext> {
         final Map<String, String> uids = uidsFrom(routingContext);
         final String body = mapper.encode(BuyerUids.of(uids));
 
-        HttpResponseSender.from(routingContext, logger)
-                .body(body)
-                .send();
+        HttpUtil.executeSafely(routingContext, Endpoint.getuids, response -> response.end(body));
     }
 
     private Map<String, String> uidsFrom(RoutingContext routingContext) {

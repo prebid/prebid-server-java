@@ -5,8 +5,13 @@ import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
 import java.io.UnsupportedEncodingException;
@@ -17,12 +22,16 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
  * This class consists of {@code static} utility methods for operating HTTP requests.
  */
 public final class HttpUtil {
+
+    private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     public static final String APPLICATION_JSON_CONTENT_TYPE =
             HttpHeaderValues.APPLICATION_JSON + ";" + HttpHeaderValues.CHARSET + "="
@@ -142,5 +151,31 @@ public final class HttpUtil {
 
     public static String toSetCookieHeaderValue(Cookie cookie) {
         return String.join("; ", cookie.encode(), "SameSite=None; Secure");
+    }
+
+    public static boolean executeSafely(RoutingContext routingContext, Endpoint endpoint,
+                                        Consumer<HttpServerResponse> responseConsumer) {
+        return executeSafely(routingContext, endpoint.value(), responseConsumer);
+    }
+
+    public static boolean executeSafely(RoutingContext routingContext, String endpoint,
+                                        Consumer<HttpServerResponse> responseConsumer) {
+
+        final HttpServerResponse response = routingContext.response();
+
+        if (response.closed()) {
+            conditionalLogger.warn(
+                    String.format("Client already closed connection, response to %s will be skipped", endpoint),
+                    0.01);
+            return false;
+        }
+
+        try {
+            responseConsumer.accept(response);
+            return true;
+        } catch (Throwable e) {
+            logger.warn("Failed to send {0} response: {1}", endpoint, e.getMessage());
+            return false;
+        }
     }
 }

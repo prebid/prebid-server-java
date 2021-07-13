@@ -2,42 +2,44 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.settings.CachingApplicationSettings;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Handles HTTP requests for invalidating account settings cache.
  */
 public class AccountCacheInvalidationHandler implements Handler<RoutingContext> {
 
-    private static final Logger logger = LoggerFactory.getLogger(AccountCacheInvalidationHandler.class);
-
     private static final String ACCOUNT_ID_PARAM = "account";
 
     private final CachingApplicationSettings cachingApplicationSettings;
+    private final String endpoint;
 
-    public AccountCacheInvalidationHandler(CachingApplicationSettings cachingApplicationSettings) {
+    public AccountCacheInvalidationHandler(CachingApplicationSettings cachingApplicationSettings, String endpoint) {
         this.cachingApplicationSettings = Objects.requireNonNull(cachingApplicationSettings);
+        this.endpoint = Objects.requireNonNull(endpoint);
     }
 
     @Override
     public void handle(RoutingContext routingContext) {
         final String accountId = routingContext.request().getParam(ACCOUNT_ID_PARAM);
+        final Consumer<HttpServerResponse> responseConsumer;
 
-        final HttpResponseSender responseSender = HttpResponseSender.from(routingContext, logger);
         if (StringUtils.isBlank(accountId)) {
-            responseSender
-                    .status(HttpResponseStatus.BAD_REQUEST)
-                    .body("Account id is not defined");
+            responseConsumer = response -> response
+                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                    .end("Account id is not defined");
         } else {
             cachingApplicationSettings.invalidateAccountCache(accountId);
+            responseConsumer = HttpServerResponse::end;
         }
-        responseSender.send();
+
+        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
     }
 }

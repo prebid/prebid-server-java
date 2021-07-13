@@ -3,20 +3,18 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.model.HttpLogSpec;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class HttpInteractionLogHandler implements Handler<RoutingContext> {
-
-    private static final Logger logger = LoggerFactory.getLogger(HttpInteractionLogHandler.class);
 
     private static final String ENDPOINT_PARAMETER = "endpoint";
     private static final String STATUS_CODE_PARAMETER = "statusCode";
@@ -25,17 +23,19 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
 
     private final int maxLimit;
     private final HttpInteractionLogger httpInteractionLogger;
+    private final String endpoint;
 
-    public HttpInteractionLogHandler(int maxLimit, HttpInteractionLogger httpInteractionLogger) {
+    public HttpInteractionLogHandler(int maxLimit, HttpInteractionLogger httpInteractionLogger, String endpoint) {
         this.maxLimit = maxLimit;
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
+        this.endpoint = Objects.requireNonNull(endpoint);
     }
 
     @Override
     public void handle(RoutingContext routingContext) {
         final MultiMap parameters = routingContext.request().params();
+        Consumer<HttpServerResponse> responseConsumer = HttpServerResponse::end;
 
-        final HttpResponseSender responseSender = HttpResponseSender.from(routingContext, logger);
         try {
             httpInteractionLogger.setSpec(HttpLogSpec.of(
                     readEndpoint(parameters),
@@ -43,11 +43,12 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
                     readAccount(parameters),
                     readLimit(parameters)));
         } catch (InvalidRequestException e) {
-            responseSender
-                    .status(HttpResponseStatus.BAD_REQUEST)
-                    .body(e.getMessage());
+            responseConsumer = response -> response
+                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                    .end(e.getMessage());
         }
-        responseSender.send();
+
+        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
     }
 
     private HttpLogSpec.Endpoint readEndpoint(MultiMap parameters) {

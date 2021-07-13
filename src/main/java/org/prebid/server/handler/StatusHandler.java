@@ -2,22 +2,21 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class StatusHandler implements Handler<RoutingContext> {
-
-    private static final Logger logger = LoggerFactory.getLogger(StatusHandler.class);
 
     private final List<HealthChecker> healthCheckers;
     private final JacksonMapper mapper;
@@ -29,19 +28,18 @@ public class StatusHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-        final HttpResponseStatus status;
-        final String body;
+        final Consumer<HttpServerResponse> responseConsumer;
+
         if (CollectionUtils.isEmpty(healthCheckers)) {
-            status = HttpResponseStatus.NO_CONTENT;
-            body = null;
+            responseConsumer = response -> response
+                    .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+                    .end();
         } else {
-            status = HttpResponseStatus.OK;
-            body = mapper.encode(new TreeMap<>(healthCheckers.stream()
-                    .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status))));
+            responseConsumer = response -> response
+                    .end(mapper.encode(new TreeMap<>(healthCheckers.stream()
+                            .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status)))));
         }
-        HttpResponseSender.from(routingContext, logger)
-                .status(status)
-                .body(body)
-                .send();
+
+        HttpUtil.executeSafely(routingContext, Endpoint.status, responseConsumer);
     }
 }

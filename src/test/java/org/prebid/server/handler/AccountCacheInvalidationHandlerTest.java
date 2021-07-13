@@ -36,7 +36,7 @@ public class AccountCacheInvalidationHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        handler = new AccountCacheInvalidationHandler(cachingApplicationSettings);
+        handler = new AccountCacheInvalidationHandler(cachingApplicationSettings, "/endpoint");
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);

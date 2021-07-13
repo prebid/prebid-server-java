@@ -10,14 +10,12 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -28,14 +26,15 @@ import java.util.concurrent.TimeUnit;
 public class CurrencyRatesHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(CurrencyRatesHandler.class);
-    private static final Map<CharSequence, CharSequence> HEADERS = Collections.singletonMap(
-            HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
     private final CurrencyConversionService currencyConversionService;
+    private final String endpoint;
     private final JacksonMapper mapper;
 
-    public CurrencyRatesHandler(CurrencyConversionService currencyConversionService, JacksonMapper mapper) {
+    public CurrencyRatesHandler(CurrencyConversionService currencyConversionService, String endpoint,
+                                JacksonMapper mapper) {
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.endpoint = Objects.requireNonNull(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -59,22 +58,22 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
         return refreshPeriod != null ? TimeUnit.MILLISECONDS.toNanos(refreshPeriod) : null;
     }
 
-    private static void respondWithOk(RoutingContext routingContext, String body) {
-        HttpResponseSender.from(routingContext, logger)
-                .headers(HEADERS)
-                .body(body)
-                .send();
+    private void respondWithOk(RoutingContext routingContext, String body) {
+        respondWith(routingContext, HttpResponseStatus.OK, body);
     }
 
-    private static void respondWithServerError(RoutingContext routingContext, Throwable exception) {
+    private void respondWithServerError(RoutingContext routingContext, Throwable exception) {
         final String message = "Critical error when marshaling latest currency rates update response";
         logger.error(message, exception);
 
-        HttpResponseSender.from(routingContext, logger)
-                .status(HttpResponseStatus.INTERNAL_SERVER_ERROR)
-                .headers(HEADERS)
-                .body(message)
-                .send();
+        respondWith(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR, message);
+    }
+
+    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
+        HttpUtil.executeSafely(routingContext, endpoint, response -> response
+                .setStatusCode(status.code())
+                .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                .end(body));
     }
 
     @AllArgsConstructor(staticName = "of")

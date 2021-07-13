@@ -23,7 +23,7 @@ public class EventsServiceTest {
 
     @Test
     public void createEventsShouldReturnExpectedEvent() {
-        //given
+        // given
         final EventsContext eventsContext = EventsContext.builder().auctionId("auctionId")
                 .integration("pbjs")
                 .auctionTimestamp(1000L)
@@ -42,7 +42,7 @@ public class EventsServiceTest {
 
     @Test
     public void winUrlShouldReturnExpectedUrl() {
-        //given
+        // given
         final EventsContext eventsContext = EventsContext.builder().integration("pbjs").auctionTimestamp(1000L).build();
 
         // when
@@ -55,7 +55,7 @@ public class EventsServiceTest {
 
     @Test
     public void vastUrlShouldReturnExpectedUrl() {
-        //given
+        // given
         final EventsContext eventsContext = EventsContext.builder().auctionId("auctionId")
                 .integration("pbjs")
                 .auctionTimestamp(1000L)

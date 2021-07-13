@@ -22,12 +22,12 @@ import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.util.HttpUtil;
@@ -145,16 +145,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.toList());
                 final String message = String.join("\n", errorMessages);
-
-                conditionalLogger.info(String.format("%s, Referer: %s", message,
-                        routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
+                final String referer = routingContext.request().headers().get(HttpUtil.REFERER_HEADER);
+                conditionalLogger.info(String.format("%s, Referer: %s", message, referer), 0.01);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String message = exception.getMessage();
-                conditionalLogger.info(message, 100);
+                conditionalLogger.info(message, 0.01);
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED;
@@ -196,11 +195,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
                              MetricName requestType, MetricName metricRequestStatus, AuctionEvent event,
                              TcfContext tcfContext) {
 
-        final boolean responseSent = HttpResponseSender.from(routingContext, logger)
-                .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
-                .status(status)
-                .body(body)
-                .send();
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_auction,
+                response -> response
+                        .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
+                        .setStatusCode(status.code())
+                        .end(body));
 
         if (responseSent) {
             metrics.updateRequestTimeMetric(clock.millis() - startTime);

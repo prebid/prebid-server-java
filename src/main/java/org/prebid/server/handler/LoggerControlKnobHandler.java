@@ -3,12 +3,11 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.log.LoggerControlKnob;
+import org.prebid.server.util.HttpUtil;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -16,10 +15,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class LoggerControlKnobHandler implements Handler<RoutingContext> {
-
-    private static final Logger logger = LoggerFactory.getLogger(LoggerControlKnobHandler.class);
 
     private static final String LEVEL_PARAMETER = "level";
     private static final String DURATION_PARAMETER = "duration";
@@ -29,24 +27,28 @@ public class LoggerControlKnobHandler implements Handler<RoutingContext> {
 
     private final long maxDurationMs;
     private final LoggerControlKnob loggerControlKnob;
+    private final String endpoint;
 
-    public LoggerControlKnobHandler(long maxDurationMs, LoggerControlKnob loggerControlKnob) {
+    public LoggerControlKnobHandler(long maxDurationMs, LoggerControlKnob loggerControlKnob, String endpoint) {
         this.maxDurationMs = maxDurationMs;
         this.loggerControlKnob = Objects.requireNonNull(loggerControlKnob);
+        this.endpoint = Objects.requireNonNull(endpoint);
     }
 
     @Override
     public void handle(RoutingContext routingContext) {
-        final HttpResponseSender responseSender = HttpResponseSender.from(routingContext, logger);
+        Consumer<HttpServerResponse> responseConsumer = HttpServerResponse::end;
+
         try {
             final MultiMap parameters = routingContext.request().params();
             loggerControlKnob.changeLogLevel(readLevel(parameters), readDuration(parameters));
         } catch (InvalidRequestException e) {
-            responseSender
-                    .status(HttpResponseStatus.BAD_REQUEST)
-                    .body(e.getMessage());
+            responseConsumer = response -> response
+                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                    .end(e.getMessage());
         }
-        responseSender.send();
+
+        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
     }
 
     private String readLevel(MultiMap parameters) {

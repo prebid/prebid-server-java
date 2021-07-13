@@ -121,7 +121,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(routingContext.response()).willReturn(httpResponse);
-        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
 
         given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(
@@ -150,16 +151,12 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody()).willReturn(null);
 
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
         // when
         cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse).closed();
         verify(httpResponse).setStatusCode(400);
-        verify(httpResponse).setStatusMessage(anyString());
         verify(httpResponse).end("Invalid request format: Request has no body");
         verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
@@ -174,16 +171,12 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("{"));
 
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
         // when
         cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse).closed();
         verify(httpResponse).setStatusCode(400);
-        verify(httpResponse).setStatusMessage(anyString());
         verify(httpResponse).end("Invalid request format: Request body cannot be parsed");
         verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
@@ -201,16 +194,12 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
 
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
         // when
         cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse).closed();
         verify(httpResponse).setStatusCode(401);
-        verify(httpResponse).setStatusMessage(anyString());
         verify(httpResponse).end("Unauthorized: Sync is not allowed for this uids");
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
 
@@ -225,16 +214,12 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(emptyList()).gdpr(1).build()));
 
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
-
         // when
         cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse).closed();
         verify(httpResponse).setStatusCode(400);
-        verify(httpResponse).setStatusMessage(anyString());
         verify(httpResponse).end("Invalid request format: gdpr_consent is required if gdpr is 1");
         verify(metrics).updateUserSyncBadRequestMetric();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);

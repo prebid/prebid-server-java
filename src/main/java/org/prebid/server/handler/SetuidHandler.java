@@ -7,6 +7,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -23,10 +24,10 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedUidsException;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -39,6 +40,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class SetuidHandler implements Handler<RoutingContext> {
@@ -220,10 +222,10 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 final HttpResponseStatus status = new HttpResponseStatus(UNAVAILABLE_FOR_LEGAL_REASONS,
                         "Unavailable for legal reasons");
 
-                HttpResponseSender.from(routingContext, logger)
-                        .status(status)
-                        .body("The gdpr_consent param prevents cookies from being saved")
-                        .send();
+                HttpUtil.executeSafely(routingContext, Endpoint.setuid, response -> response
+                        .setStatusCode(status.code())
+                        .setStatusMessage(status.reasonPhrase())
+                        .end("The gdpr_consent param prevents cookies from being saved"));
 
                 analyticsDelegator.processEvent(SetuidEvent.error(status.code()), tcfContext);
             }
@@ -258,19 +260,22 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
         addCookie(routingContext, cookie);
 
+        final Consumer<HttpServerResponse> responseConsumer;
         final HttpResponseStatus status = HttpResponseStatus.OK;
 
         final String format = routingContext.request().getParam(UsersyncUtil.FORMAT_PARAMETER);
         if (shouldRespondWithPixel(format, setuidContext.getSyncType())) {
-            HttpResponseSender.from(routingContext, logger)
+            responseConsumer = response -> response
                     .sendFile(PIXEL_FILE_PATH);
         } else {
-            HttpResponseSender.from(routingContext, logger)
-                    .status(status)
-                    .addHeader(HttpHeaders.CONTENT_LENGTH, "0")
-                    .addHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
-                    .send();
+            responseConsumer = response -> response
+                    .setStatusCode(status.code())
+                    .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
+                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
+                    .end();
         }
+
+        HttpUtil.executeSafely(routingContext, Endpoint.setuid, responseConsumer);
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         analyticsDelegator.processEvent(SetuidEvent.builder()
@@ -305,10 +310,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
             logger.warn(body, error);
         }
 
-        HttpResponseSender.from(routingContext, logger)
-                .status(status)
-                .body(body)
-                .send();
+        HttpUtil.executeSafely(routingContext, Endpoint.setuid, response -> response
+                .setStatusCode(status.code())
+                .end(body));
 
         final SetuidEvent setuidEvent = SetuidEvent.error(status.code());
         if (tcfContext == null) {

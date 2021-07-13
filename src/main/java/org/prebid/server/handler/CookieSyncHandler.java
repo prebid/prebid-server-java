@@ -29,13 +29,13 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedUidsException;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -66,9 +66,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
     private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
-
-    private static final Map<CharSequence, CharSequence> HEADERS = Collections.singletonMap(
-            HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
@@ -449,13 +446,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final String cookieSyncStatus = uidsCookie.hasLiveUids() ? "ok" : "no_cookie";
 
         final HttpResponseStatus status = HttpResponseStatus.OK;
-        final CookieSyncResponse response = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
+        final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
+        final String body = mapper.encode(cookieSyncResponse);
 
-        HttpResponseSender.from(cookieSyncContext.getRoutingContext(), logger)
-                .status(status)
-                .headers(HEADERS)
-                .body(mapper.encode(response))
-                .send();
+        HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync, response -> response
+                .setStatusCode(status.code())
+                .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                .end(body));
 
         final CookieSyncEvent event = CookieSyncEvent.builder()
                 .status(status.code())
@@ -660,10 +657,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             logger.warn(body, error);
         }
 
-        HttpResponseSender.from(routingContext, logger)
-                .status(status)
-                .body(body)
-                .send();
+        HttpUtil.executeSafely(routingContext, Endpoint.cookie_sync, response -> response
+                .setStatusCode(status.code())
+                .end(body));
 
         final CookieSyncEvent cookieSyncEvent = CookieSyncEvent.error(status.code(), body);
         if (tcfContext == null) {

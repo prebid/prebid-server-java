@@ -211,7 +211,7 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldStoreWinUrl() {
-        //given
+        // given
         final EventsContext eventsContext = EventsContext.builder()
                 .auctionId("auctionId")
                 .enabledForAccount(true)

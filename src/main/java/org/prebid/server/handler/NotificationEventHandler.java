@@ -6,6 +6,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -18,16 +19,16 @@ import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Accepts notifications from browsers and mobile application for further processing by {@link AnalyticsReporter}
@@ -145,17 +146,17 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {
-        final Map<CharSequence, CharSequence> headers = respondWithPixel
-                ? Collections.singletonMap(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
-                : null;
-        final Buffer body = respondWithPixel
-                ? Buffer.buffer(trackingPixel.getContent())
-                : null;
+        final Consumer<HttpServerResponse> responseConsumer;
 
-        HttpResponseSender.from(routingContext, logger)
-                .headers(headers)
-                .body(body)
-                .send();
+        if (respondWithPixel) {
+            responseConsumer = response -> response
+                    .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
+                    .end(Buffer.buffer(trackingPixel.getContent()));
+        } else {
+            responseConsumer = HttpServerResponse::end;
+        }
+
+        HttpUtil.executeSafely(routingContext, Endpoint.event, responseConsumer);
     }
 
     private static void respondWithBadRequest(RoutingContext routingContext, String message) {
@@ -173,10 +174,9 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpResponseSender.from(routingContext, logger)
-                .status(status)
-                .body(body)
-                .send();
+        HttpUtil.executeSafely(routingContext, Endpoint.event, response -> response
+                .setStatusCode(status.code())
+                .end(body));
     }
 
     /**

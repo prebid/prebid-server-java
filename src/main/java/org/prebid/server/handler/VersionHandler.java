@@ -3,14 +3,18 @@ package org.prebid.server.handler;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
+
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Handles HTTP request for pbs project version.
@@ -19,9 +23,12 @@ public class VersionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionHandler.class);
 
+    private final String endpoint;
+
     private final String revisionResponseBody;
 
-    public VersionHandler(String version, String commitHash, JacksonMapper mapper) {
+    public VersionHandler(String version, String commitHash, JacksonMapper mapper, String endpoint) {
+        this.endpoint = Objects.requireNonNull(endpoint);
         this.revisionResponseBody = createRevisionResponseBody(version, commitHash, mapper);
     }
 
@@ -39,19 +46,18 @@ public class VersionHandler implements Handler<RoutingContext> {
      */
     @Override
     public void handle(RoutingContext routingContext) {
-        final HttpResponseStatus status;
-        final String body;
+        final Consumer<HttpServerResponse> responseConsumer;
+
         if (StringUtils.isNotBlank(revisionResponseBody)) {
-            status = HttpResponseStatus.OK;
-            body = revisionResponseBody;
+            responseConsumer = response -> response
+                    .end(revisionResponseBody);
         } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = null;
+            responseConsumer = response -> response
+                    .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                    .end();
         }
-        HttpResponseSender.from(routingContext, logger)
-                .status(status)
-                .body(body)
-                .send();
+
+        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
     }
 
     @AllArgsConstructor(staticName = "of")

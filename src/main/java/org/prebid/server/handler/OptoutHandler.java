@@ -10,7 +10,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.execution.HttpResponseSender;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.optout.model.RecaptchaResponse;
 import org.prebid.server.util.HttpUtil;
@@ -63,25 +63,25 @@ public class OptoutHandler implements Handler<RoutingContext> {
     }
 
     private void respondWithRedirect(RoutingContext routingContext) {
-        HttpResponseSender.from(routingContext, logger)
-                .status(HttpResponseStatus.MOVED_PERMANENTLY)
-                .addHeader(HttpUtil.LOCATION_HEADER, optoutRedirectUrl)
-                .send();
+        HttpUtil.executeSafely(routingContext, Endpoint.optout, response -> response
+                .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
+                .putHeader(HttpUtil.LOCATION_HEADER, optoutRedirectUrl)
+                .end());
     }
 
     private void respondWithUnauthorized(RoutingContext routingContext, Throwable exception) {
         logger.warn("Opt Out failed optout", exception);
-        HttpResponseSender.from(routingContext, logger)
-                .status(HttpResponseStatus.UNAUTHORIZED)
-                .send();
+        HttpUtil.executeSafely(routingContext, Endpoint.optout, response -> response
+                .setStatusCode(HttpResponseStatus.UNAUTHORIZED.code())
+                .end());
     }
 
     private void respondWithRedirectAndCookie(RoutingContext routingContext, Cookie cookie, String url) {
-        HttpResponseSender.from(routingContext, logger)
-                .status(HttpResponseStatus.MOVED_PERMANENTLY)
-                .addHeader(HttpUtil.LOCATION_HEADER, url)
-                .addHeader(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie))
-                .send();
+        HttpUtil.executeSafely(routingContext, Endpoint.optout, response -> response
+                .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
+                .putHeader(HttpUtil.LOCATION_HEADER, url)
+                .putHeader(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie))
+                .end());
     }
 
     private static boolean isOptout(RoutingContext routingContext) {

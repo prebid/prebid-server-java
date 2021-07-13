@@ -17,10 +17,10 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.response.VideoResponse;
@@ -151,11 +151,11 @@ public class VideoHandler implements Handler<RoutingContext> {
                              VideoEvent event,
                              TcfContext tcfContext) {
 
-        final boolean responseSent = HttpResponseSender.from(routingContext, logger)
-                .exceptionHandler(this::handleResponseException)
-                .status(status)
-                .body(body)
-                .send();
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_video,
+                response -> response
+                        .exceptionHandler(this::handleResponseException)
+                        .setStatusCode(status.code())
+                        .end(body));
 
         if (responseSent) {
             metrics.updateRequestTimeMetric(clock.millis() - startTime);

@@ -17,14 +17,15 @@ import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.HttpResponseSender;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -127,10 +128,9 @@ public class VtrackHandler implements Handler<RoutingContext> {
      * Returns fallback {@link Account} if account not found or propagate error if fetching failed.
      */
     private static Future<Account> handleAccountExceptionOrFallback(Throwable exception, String accountId) {
-        if (exception instanceof PreBidException) {
-            return Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build());
-        }
-        return Future.failedFuture(exception);
+        return exception instanceof PreBidException
+                ? Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build())
+                : Future.failedFuture(exception);
     }
 
     private void handleAccountResult(AsyncResult<Account> asyncAccount,
@@ -189,9 +189,8 @@ public class VtrackHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpResponseSender.from(routingContext, logger)
-                .status(status)
-                .body(body)
-                .send();
+        HttpUtil.executeSafely(routingContext, Endpoint.vtrack, response -> response
+                .setStatusCode(status.code())
+                .end(body));
     }
 }
