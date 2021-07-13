@@ -3,20 +3,11 @@
   "imp": [
     {
       "id": "imp_id",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 640,
-        "h": 480
+      "banner": {
+        "w": 300,
+        "h": 250
       },
-      "tagid": "AdUnitId",
-      "ext": {
-        "bidder": {
-          "tagId": "tag_id",
-          "adUnitId": "AdUnitId"
-        }
-      }
+      "tagid": "test"
     }
   ],
   "site": {
@@ -30,8 +21,8 @@
     }
   },
   "device": {
-    "ua": "test-user-agent",
-    "ip": "123.123.123.123"
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
   },
   "at": 1,
   "tmax": 5000,
