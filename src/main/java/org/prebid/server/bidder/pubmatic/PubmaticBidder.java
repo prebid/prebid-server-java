@@ -102,7 +102,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (validImps.size() == 0) {
+        if (validImps.isEmpty()) {
             return Result.withErrors(errors);
         }
 
