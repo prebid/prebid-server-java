@@ -39,7 +39,6 @@ public class AdoceanTest extends IntegrationTest {
         final Response response = responseFor("openrtb2/adocean/test-auction-adocean-request.json",
                 Endpoint.openrtb2_auction);
 
-        System.out.println(response.prettyPrint());
         // then
         assertJsonEquals("openrtb2/adocean/test-auction-adocean-response.json", response,
                 singletonList("adocean"));

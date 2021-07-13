@@ -1,15 +1,15 @@
 {
-  "id": "req1-unit1-unit1",
+  "id": "request_id-adunit",
   "imp": [
     {
-      "id": "imp1",
+      "id": "imp_id",
       "banner": {
         "w": 100,
         "h": 200
       },
       "ext": {
         "bidder": {
-          "adunit": "unit1",
+          "adunit": "adunit",
           "client": "testClient"
         }
       }
@@ -19,7 +19,6 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -28,51 +27,16 @@
   },
   "device": {
     "ua": "userAgent",
-    "dnt": 2,
-    "ip": "193.168.244.1",
-    "pxratio": 4.2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "user": {
-    "buyeruid": "AP-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 3000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "auctiontimestamp": 1000,
-      "channel": {
-        "name": "web"
-      }
     }
   }
 }
