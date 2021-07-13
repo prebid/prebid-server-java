@@ -1,7 +1,7 @@
 adapters:
   marsmedia:
     enabled: false
-    endpoint: https://bid306.rtbsrv.com/bidder/?bid=f3xtet
+    endpoint: https://bidd.rtbsrv.com/bidder/?bid=f3xtet
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
