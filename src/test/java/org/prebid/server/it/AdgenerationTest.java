@@ -4,6 +4,7 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.model.Endpoint;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -25,13 +26,12 @@ public class AdgenerationTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/adgeneration-exchange"))
                 .withQueryParam("posall", equalTo("SSPLOC"))
-                .withQueryParam("id", equalTo("58278"))
+                .withQueryParam("id", equalTo("id"))
                 .withQueryParam("sdktype", equalTo("0"))
                 .withQueryParam("hb", equalTo("true"))
                 .withQueryParam("t", equalTo("json3"))
                 .withQueryParam("currency", equalTo("USD"))
                 .withQueryParam("sdkname", equalTo("prebidserver"))
-                .withQueryParam("sizes", equalTo("300x250"))
                 .withQueryParam("tp", equalTo("http://www.example.com"))
                 .withQueryParam("adapterver", equalTo("1.0.2"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -41,20 +41,11 @@ public class AdgenerationTest extends IntegrationTest {
                         .withBody(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
 
         // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                .cookie("uids", "eyJ1aWRzIjp7ImFkZ2VuZXJhdGlvbiI6IkFHLVVJRCJ9fQ==")
-                .body(jsonFrom("openrtb2/adgeneration/test-auction-adgeneration-request.json"))
-                .post("/openrtb2/auction");
+        final Response response = responseFor("openrtb2/adgeneration/test-auction-adgeneration-request.json",
+                Endpoint.openrtb2_auction);
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/adgeneration/test-auction-adgeneration-response.json",
-                response, singletonList("adgeneration"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("openrtb2/adgeneration/test-auction-adgeneration-response.json", response,
+                singletonList("adgeneration"));
     }
 }
