@@ -109,63 +109,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(createRequest(request, validImps, pubId, wrapper)), errors);
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request,
-                                                  List<Imp> imps,
-                                                  String pubId,
-                                                  ObjectNode wrapper) {
-        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder().imp(imps);
-
-        if (wrapper != null) {
-            requestBuilder.ext(
-                    mapper.fillExtension(ExtRequest.empty(),
-                            mapper.mapper().createObjectNode().set("wrapper", wrapper)));
-        }
-
-        if (pubId != null) {
-            updateRequestWithPubIdParam(requestBuilder, request.getSite(), request.getApp(), pubId);
-        }
-
-        final BidRequest modifiedRequest = requestBuilder.build();
-        final String body = mapper.encode(modifiedRequest);
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(body)
-                .headers(HttpUtil.headers())
-                .payload(modifiedRequest)
-                .build();
-    }
-
-    private static void updateRequestWithPubIdParam(BidRequest.BidRequestBuilder requestBuilder,
-                                                    Site site,
-                                                    App app,
-                                                    String pubId) {
-        if (site != null) {
-            modifySite(pubId, site, requestBuilder);
-        } else if (app != null) {
-            modifyApp(pubId, app, requestBuilder);
-        }
-    }
-
-    private static void modifySite(String pubId, Site site, BidRequest.BidRequestBuilder bidRequestBuilder) {
-        if (site.getPublisher() != null) {
-            final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(pubId).build();
-            bidRequestBuilder.site(site.toBuilder().publisher(modifiedPublisher).build());
-        } else {
-            bidRequestBuilder.site(site.toBuilder().publisher(Publisher.builder().id(pubId).build()).build());
-        }
-    }
-
-    private static void modifyApp(String pubId, App app, BidRequest.BidRequestBuilder bidRequestBuilder) {
-        if (app.getPublisher() != null) {
-            final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(pubId).build();
-            bidRequestBuilder.app(app.toBuilder().publisher(modifiedPublisher).build());
-        } else {
-            bidRequestBuilder.app(app.toBuilder().publisher(Publisher.builder().id(pubId).build()).build());
-        }
-    }
-
     private PubmaticBidderImpExt parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), PubmaticBidderImpExt.class);
@@ -302,6 +245,63 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             keywords.put(IMP_EXT_AD_UNIT_KEY, adSeverAdSlot);
         } else if (StringUtils.isNotEmpty(pbaAdSlot)) {
             keywords.put(IMP_EXT_AD_UNIT_KEY, pbaAdSlot);
+        }
+    }
+
+    private HttpRequest<BidRequest> createRequest(BidRequest request,
+                                                  List<Imp> imps,
+                                                  String pubId,
+                                                  ObjectNode wrapper) {
+        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder().imp(imps);
+
+        if (wrapper != null) {
+            requestBuilder.ext(
+                    mapper.fillExtension(ExtRequest.empty(),
+                            mapper.mapper().createObjectNode().set("wrapper", wrapper)));
+        }
+
+        if (pubId != null) {
+            updateRequestWithPubIdParam(requestBuilder, request.getSite(), request.getApp(), pubId);
+        }
+
+        final BidRequest modifiedRequest = requestBuilder.build();
+        final String body = mapper.encode(modifiedRequest);
+
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .body(body)
+                .headers(HttpUtil.headers())
+                .payload(modifiedRequest)
+                .build();
+    }
+
+    private static void updateRequestWithPubIdParam(BidRequest.BidRequestBuilder requestBuilder,
+                                                    Site site,
+                                                    App app,
+                                                    String pubId) {
+        if (site != null) {
+            modifySite(pubId, site, requestBuilder);
+        } else if (app != null) {
+            modifyApp(pubId, app, requestBuilder);
+        }
+    }
+
+    private static void modifySite(String pubId, Site site, BidRequest.BidRequestBuilder bidRequestBuilder) {
+        if (site.getPublisher() != null) {
+            final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(pubId).build();
+            bidRequestBuilder.site(site.toBuilder().publisher(modifiedPublisher).build());
+        } else {
+            bidRequestBuilder.site(site.toBuilder().publisher(Publisher.builder().id(pubId).build()).build());
+        }
+    }
+
+    private static void modifyApp(String pubId, App app, BidRequest.BidRequestBuilder bidRequestBuilder) {
+        if (app.getPublisher() != null) {
+            final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(pubId).build();
+            bidRequestBuilder.app(app.toBuilder().publisher(modifiedPublisher).build());
+        } else {
+            bidRequestBuilder.app(app.toBuilder().publisher(Publisher.builder().id(pubId).build()).build());
         }
     }
 
