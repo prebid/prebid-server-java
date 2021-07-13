@@ -20,7 +20,7 @@ adapters:
       supported-vendors:
       vendor-id: 10
     usersync:
-      url: https://prebid.media.net/usersync
+      url: https://cs.media.net/cksync.php
       redirect-url:
       cookie-family-name: medianet
       type: redirect
