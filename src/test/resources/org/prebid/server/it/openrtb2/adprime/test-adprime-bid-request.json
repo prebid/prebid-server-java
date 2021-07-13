@@ -7,13 +7,10 @@
         "w": 300,
         "h": 250
       },
-      "bidfloor": 20,
+      "tagid": "tag_id",
       "ext": {
-        "adtarget": {
-          "aid": 1000,
-          "placementId": 10,
-          "siteId": 1234,
-          "bidFloor": 20
+        "bidder": {
+          "TagID": "tag_id"
         }
       }
     }
@@ -34,7 +31,9 @@
   },
   "at": 1,
   "tmax": 5000,
-  "cur" : [ "USD" ],
+  "cur": [
+    "USD"
+  ],
   "regs": {
     "ext": {
       "gdpr": 0
