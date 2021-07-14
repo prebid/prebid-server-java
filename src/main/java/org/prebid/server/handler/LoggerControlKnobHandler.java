@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class LoggerControlKnobHandler implements Handler<RoutingContext> {
 
@@ -37,18 +36,18 @@ public class LoggerControlKnobHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-        Consumer<HttpServerResponse> responseConsumer = HttpServerResponse::end;
-
         try {
             final MultiMap parameters = routingContext.request().params();
             loggerControlKnob.changeLogLevel(readLevel(parameters), readDuration(parameters));
-        } catch (InvalidRequestException e) {
-            responseConsumer = response -> response
-                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                    .end(e.getMessage());
-        }
 
-        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    HttpServerResponse::end);
+        } catch (InvalidRequestException e) {
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                            .end(e.getMessage()));
+        }
     }
 
     private String readLevel(MultiMap parameters) {

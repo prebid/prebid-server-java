@@ -63,25 +63,28 @@ public class OptoutHandler implements Handler<RoutingContext> {
     }
 
     private void respondWithRedirect(RoutingContext routingContext) {
-        HttpUtil.executeSafely(routingContext, Endpoint.optout, response -> response
-                .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
-                .putHeader(HttpUtil.LOCATION_HEADER, optoutRedirectUrl)
-                .end());
+        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+                response -> response
+                        .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
+                        .putHeader(HttpUtil.LOCATION_HEADER, optoutRedirectUrl)
+                        .end());
     }
 
     private void respondWithUnauthorized(RoutingContext routingContext, Throwable exception) {
         logger.warn("Opt Out failed optout", exception);
-        HttpUtil.executeSafely(routingContext, Endpoint.optout, response -> response
-                .setStatusCode(HttpResponseStatus.UNAUTHORIZED.code())
-                .end());
+        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+                response -> response
+                        .setStatusCode(HttpResponseStatus.UNAUTHORIZED.code())
+                        .end());
     }
 
     private void respondWithRedirectAndCookie(RoutingContext routingContext, Cookie cookie, String url) {
-        HttpUtil.executeSafely(routingContext, Endpoint.optout, response -> response
-                .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
-                .putHeader(HttpUtil.LOCATION_HEADER, url)
-                .putHeader(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie))
-                .end());
+        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+                response -> response
+                        .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
+                        .putHeader(HttpUtil.LOCATION_HEADER, url)
+                        .putHeader(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie))
+                        .end());
     }
 
     private static boolean isOptout(RoutingContext routingContext) {

@@ -7,7 +7,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -40,7 +39,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class SetuidHandler implements Handler<RoutingContext> {
@@ -222,10 +220,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 final HttpResponseStatus status = new HttpResponseStatus(UNAVAILABLE_FOR_LEGAL_REASONS,
                         "Unavailable for legal reasons");
 
-                HttpUtil.executeSafely(routingContext, Endpoint.setuid, response -> response
-                        .setStatusCode(status.code())
-                        .setStatusMessage(status.reasonPhrase())
-                        .end("The gdpr_consent param prevents cookies from being saved"));
+                HttpUtil.executeSafely(routingContext, Endpoint.setuid,
+                        response -> response
+                                .setStatusCode(status.code())
+                                .setStatusMessage(status.reasonPhrase())
+                                .end("The gdpr_consent param prevents cookies from being saved"));
 
                 analyticsDelegator.processEvent(SetuidEvent.error(status.code()), tcfContext);
             }
@@ -260,22 +259,21 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
         addCookie(routingContext, cookie);
 
-        final Consumer<HttpServerResponse> responseConsumer;
         final HttpResponseStatus status = HttpResponseStatus.OK;
 
         final String format = routingContext.request().getParam(UsersyncUtil.FORMAT_PARAMETER);
         if (shouldRespondWithPixel(format, setuidContext.getSyncType())) {
-            responseConsumer = response -> response
-                    .sendFile(PIXEL_FILE_PATH);
+            HttpUtil.executeSafely(routingContext, Endpoint.setuid,
+                    response -> response
+                            .sendFile(PIXEL_FILE_PATH));
         } else {
-            responseConsumer = response -> response
-                    .setStatusCode(status.code())
-                    .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
-                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
-                    .end();
+            HttpUtil.executeSafely(routingContext, Endpoint.setuid,
+                    response -> response
+                            .setStatusCode(status.code())
+                            .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
+                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
+                            .end());
         }
-
-        HttpUtil.executeSafely(routingContext, Endpoint.setuid, responseConsumer);
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         analyticsDelegator.processEvent(SetuidEvent.builder()
@@ -310,9 +308,10 @@ public class SetuidHandler implements Handler<RoutingContext> {
             logger.warn(body, error);
         }
 
-        HttpUtil.executeSafely(routingContext, Endpoint.setuid, response -> response
-                .setStatusCode(status.code())
-                .end(body));
+        HttpUtil.executeSafely(routingContext, Endpoint.setuid,
+                response -> response
+                        .setStatusCode(status.code())
+                        .end(body));
 
         final SetuidEvent setuidEvent = SetuidEvent.error(status.code());
         if (tcfContext == null) {

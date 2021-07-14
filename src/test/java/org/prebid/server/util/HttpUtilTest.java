@@ -5,6 +5,7 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -36,6 +37,13 @@ public class HttpUtilTest {
 
     @Mock
     private RoutingContext routingContext;
+    @Mock
+    private HttpServerResponse httpResponse;
+
+    @Before
+    public void setUp() {
+        given(routingContext.response()).willReturn(httpResponse);
+    }
 
     @Test
     public void validateUrlShouldFailOnInvalidUrl() {
@@ -170,11 +178,8 @@ public class HttpUtilTest {
     @Test
     public void executeSafelyShouldSkipResponseIfClientClosedConnection() {
         // given
-        final HttpServerResponse response = mock(HttpServerResponse.class);
+        given(httpResponse.closed()).willReturn(true);
         final Consumer responseConsumer = mock(Consumer.class);
-
-        given(routingContext.response()).willReturn(response);
-        given(response.closed()).willReturn(true);
 
         // when
         HttpUtil.executeSafely(routingContext, "endpoint", responseConsumer);
@@ -187,16 +192,13 @@ public class HttpUtilTest {
     @Test
     public void executeSafelyShouldRespondToClient() {
         // given
-        final HttpServerResponse response = mock(HttpServerResponse.class);
         final Consumer responseConsumer = mock(Consumer.class);
-
-        given(routingContext.response()).willReturn(response);
 
         // when
         final boolean result = HttpUtil.executeSafely(routingContext, "endpoint", responseConsumer);
 
         // then
-        verify(responseConsumer).accept(eq(response));
+        verify(responseConsumer).accept(eq(httpResponse));
         assertThat(result).isTrue();
     }
 
@@ -204,10 +206,7 @@ public class HttpUtilTest {
     @Test
     public void executeSafelyShouldReturnFalseIfResponseFailed() {
         // given
-        final HttpServerResponse response = mock(HttpServerResponse.class);
         final Consumer responseConsumer = mock(Consumer.class);
-
-        given(routingContext.response()).willReturn(response);
         doThrow(new RuntimeException("error")).when(responseConsumer).accept(any());
 
         // when

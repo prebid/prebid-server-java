@@ -70,10 +70,11 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
     }
 
     private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpUtil.executeSafely(routingContext, endpoint, response -> response
-                .setStatusCode(status.code())
-                .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                .end(body));
+        HttpUtil.executeSafely(routingContext, endpoint,
+                response -> response
+                        .setStatusCode(status.code())
+                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                        .end(body));
     }
 
     @AllArgsConstructor(staticName = "of")

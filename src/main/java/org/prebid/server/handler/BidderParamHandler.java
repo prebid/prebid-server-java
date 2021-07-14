@@ -18,7 +18,8 @@ public class BidderParamHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-        HttpUtil.executeSafely(routingContext, Endpoint.bidder_params, response -> response
-                .end(bidderParamValidator.schemas()));
+        HttpUtil.executeSafely(routingContext, Endpoint.bidder_params,
+                response -> response
+                        .end(bidderParamValidator.schemas()));
     }
 }

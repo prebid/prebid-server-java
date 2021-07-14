@@ -30,8 +30,9 @@ public class BiddersHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-        HttpUtil.executeSafely(routingContext, Endpoint.info_bidders, response -> response
-                .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                .end(body));
+        HttpUtil.executeSafely(routingContext, Endpoint.info_bidders,
+                response -> response
+                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                        .end(body));
     }
 }

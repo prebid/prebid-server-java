@@ -95,14 +95,16 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
     }
 
     private void respondWithBadRequest(RoutingContext routingContext, String body) {
-        HttpUtil.executeSafely(routingContext, endpoint, response -> response
-                .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                .end(body));
+        HttpUtil.executeSafely(routingContext, endpoint,
+                response -> response
+                        .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                        .end(body));
     }
 
     private void respondWith(RoutingContext routingContext, HttpResponseStatus status) {
-        HttpUtil.executeSafely(routingContext, endpoint, response -> response
-                .setStatusCode(status.code())
-                .end());
+        HttpUtil.executeSafely(routingContext, endpoint,
+                response -> response
+                        .setStatusCode(status.code())
+                        .end());
     }
 }

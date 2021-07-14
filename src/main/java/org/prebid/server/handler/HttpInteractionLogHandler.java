@@ -12,7 +12,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 public class HttpInteractionLogHandler implements Handler<RoutingContext> {
 
@@ -34,7 +33,6 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         final MultiMap parameters = routingContext.request().params();
-        Consumer<HttpServerResponse> responseConsumer = HttpServerResponse::end;
 
         try {
             httpInteractionLogger.setSpec(HttpLogSpec.of(
@@ -42,13 +40,15 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
                     readStatusCode(parameters),
                     readAccount(parameters),
                     readLimit(parameters)));
-        } catch (InvalidRequestException e) {
-            responseConsumer = response -> response
-                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                    .end(e.getMessage());
-        }
 
-        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    HttpServerResponse::end);
+        } catch (InvalidRequestException e) {
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                            .end(e.getMessage()));
+        }
     }
 
     private HttpLogSpec.Endpoint readEndpoint(MultiMap parameters) {

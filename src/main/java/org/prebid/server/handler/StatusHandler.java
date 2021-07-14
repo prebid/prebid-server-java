@@ -2,10 +2,10 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.health.HealthChecker;
+import org.prebid.server.health.model.StatusResponse;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.HttpUtil;
@@ -13,7 +13,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class StatusHandler implements Handler<RoutingContext> {
@@ -28,18 +27,18 @@ public class StatusHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-        final Consumer<HttpServerResponse> responseConsumer;
-
         if (CollectionUtils.isEmpty(healthCheckers)) {
-            responseConsumer = response -> response
-                    .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-                    .end();
+            HttpUtil.executeSafely(routingContext, Endpoint.status,
+                    response -> response
+                            .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+                            .end());
         } else {
-            responseConsumer = response -> response
-                    .end(mapper.encode(new TreeMap<>(healthCheckers.stream()
-                            .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status)))));
-        }
+            final TreeMap<String, StatusResponse> nameToStatus = new TreeMap<>(healthCheckers.stream()
+                    .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status)));
 
-        HttpUtil.executeSafely(routingContext, Endpoint.status, responseConsumer);
+            HttpUtil.executeSafely(routingContext, Endpoint.status,
+                    response -> response
+                            .end(mapper.encode(nameToStatus)));
+        }
     }
 }

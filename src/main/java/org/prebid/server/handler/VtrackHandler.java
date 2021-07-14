@@ -189,8 +189,9 @@ public class VtrackHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpUtil.executeSafely(routingContext, Endpoint.vtrack, response -> response
-                .setStatusCode(status.code())
-                .end(body));
+        HttpUtil.executeSafely(routingContext, Endpoint.vtrack,
+                response -> response
+                        .setStatusCode(status.code())
+                        .end(body));
     }
 }

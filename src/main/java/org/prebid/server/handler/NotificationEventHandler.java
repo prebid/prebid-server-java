@@ -28,7 +28,6 @@ import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Accepts notifications from browsers and mobile application for further processing by {@link AnalyticsReporter}
@@ -146,17 +145,15 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {
-        final Consumer<HttpServerResponse> responseConsumer;
-
         if (respondWithPixel) {
-            responseConsumer = response -> response
-                    .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
-                    .end(Buffer.buffer(trackingPixel.getContent()));
+            HttpUtil.executeSafely(routingContext, Endpoint.event,
+                    response -> response
+                            .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
+                            .end(Buffer.buffer(trackingPixel.getContent())));
         } else {
-            responseConsumer = HttpServerResponse::end;
+            HttpUtil.executeSafely(routingContext, Endpoint.event,
+                    HttpServerResponse::end);
         }
-
-        HttpUtil.executeSafely(routingContext, Endpoint.event, responseConsumer);
     }
 
     private static void respondWithBadRequest(RoutingContext routingContext, String message) {
@@ -174,9 +171,10 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpUtil.executeSafely(routingContext, Endpoint.event, response -> response
-                .setStatusCode(status.code())
-                .end(body));
+        HttpUtil.executeSafely(routingContext, Endpoint.event,
+                response -> response
+                        .setStatusCode(status.code())
+                        .end(body));
     }
 
     /**

@@ -9,7 +9,6 @@ import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Handles HTTP requests for invalidating account settings cache.
@@ -29,17 +28,16 @@ public class AccountCacheInvalidationHandler implements Handler<RoutingContext> 
     @Override
     public void handle(RoutingContext routingContext) {
         final String accountId = routingContext.request().getParam(ACCOUNT_ID_PARAM);
-        final Consumer<HttpServerResponse> responseConsumer;
 
         if (StringUtils.isBlank(accountId)) {
-            responseConsumer = response -> response
-                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                    .end("Account id is not defined");
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                            .end("Account id is not defined"));
         } else {
             cachingApplicationSettings.invalidateAccountCache(accountId);
-            responseConsumer = HttpServerResponse::end;
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    HttpServerResponse::end);
         }
-
-        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
     }
 }

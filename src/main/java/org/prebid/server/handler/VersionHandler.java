@@ -3,7 +3,6 @@ package org.prebid.server.handler;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -14,7 +13,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Handles HTTP request for pbs project version.
@@ -46,18 +44,16 @@ public class VersionHandler implements Handler<RoutingContext> {
      */
     @Override
     public void handle(RoutingContext routingContext) {
-        final Consumer<HttpServerResponse> responseConsumer;
-
         if (StringUtils.isNotBlank(revisionResponseBody)) {
-            responseConsumer = response -> response
-                    .end(revisionResponseBody);
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .end(revisionResponseBody));
         } else {
-            responseConsumer = response -> response
-                    .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-                    .end();
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                            .end());
         }
-
-        HttpUtil.executeSafely(routingContext, endpoint, responseConsumer);
     }
 
     @AllArgsConstructor(staticName = "of")
