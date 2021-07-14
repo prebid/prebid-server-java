@@ -10,8 +10,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,9 +22,6 @@ public class AdyoulikeTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdyoulike() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adyoulike-exchange"))
-                .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
-                .withHeader("x-openrtb-version", equalToIgnoreCase("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adyoulike/test-adyoulike-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adyoulike/test-adyoulike-bid-response.json"))));
 

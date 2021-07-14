@@ -50,8 +50,12 @@
   },
   "at": 1,
   "tmax": 5000,
-  "bcat" : [ "bcatVal" ],
-  "badv" : [ "badvVal" ],
+  "bcat": [
+    "bcatVal"
+  ],
+  "badv": [
+    "badvVal"
+  ],
   "cur": [
     "USD"
   ],

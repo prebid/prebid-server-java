@@ -34,12 +34,16 @@
   "user": {
     "ext": {
       "consent": "consentValue",
-      "eids": [{
-        "source": "criteo.com",
-        "uids": [{
-          "id": "criteo-eid"
-        }]
-      }]
+      "eids": [
+        {
+          "source": "criteo.com",
+          "uids": [
+            {
+              "id": "criteo-eid"
+            }
+          ]
+        }
+      ]
     }
   },
   "at": 1,

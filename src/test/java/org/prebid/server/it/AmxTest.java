@@ -10,8 +10,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,8 +22,6 @@ public class AmxTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAmx() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/amx-exchange"))
-                .withQueryParam("v", equalTo("pbs1.1"))
-                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/amx/test-amx-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/amx/test-amx-bid-response.json"))));

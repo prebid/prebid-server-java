@@ -4,29 +4,8 @@
     {
       "bid": [
         {
-          "id": "bid_id2",
-          "impid": "imp_id2",
-          "price": 2.25,
-          "adm": "adm022",
-          "adid": "2002",
-          "adomain": [
-            "video-example.com"
-          ],
-          "cid": "1001",
-          "crid": "crid022",
-          "cat": [
-            "IAB2"
-          ],
-          "ext": {
-            "prebid": {
-              "type": "video"
-            },
-            "origbidcpm": 2.25
-          }
-        },
-        {
-          "id": "bid_id1",
-          "impid": "imp_id1",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "adm021",
           "adid": "19005",

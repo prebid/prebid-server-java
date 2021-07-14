@@ -2,13 +2,10 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id2",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 640,
-        "h": 480
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
       }
     }
   ],

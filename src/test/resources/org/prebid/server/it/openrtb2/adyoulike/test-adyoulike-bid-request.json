@@ -31,7 +31,9 @@
   },
   "at": 1,
   "tmax": 5000,
-  "cur": [ "USD" ],
+  "cur": [
+    "USD"
+  ],
   "regs": {
     "ext": {
       "gdpr": 0

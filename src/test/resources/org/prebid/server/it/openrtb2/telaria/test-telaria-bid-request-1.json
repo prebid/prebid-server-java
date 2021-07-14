@@ -28,7 +28,7 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "my-seatcode",
-      "domain" : "example.com"
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

@@ -19,7 +19,7 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "domain" : "example.com"
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

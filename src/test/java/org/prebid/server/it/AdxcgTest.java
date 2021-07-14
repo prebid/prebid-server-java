@@ -10,8 +10,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,8 +22,6 @@ public class AdxcgTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdxcg() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adxcg-exchange"))
-                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
-                .withHeader("Accept", equalTo("application/json"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adxcg/test-adxcg-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adxcg/test-adxcg-bid-response.json"))));
 

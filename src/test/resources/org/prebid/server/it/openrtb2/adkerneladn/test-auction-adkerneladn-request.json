@@ -2,37 +2,14 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id1",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          },
-          {
-            "w": 300,
-            "h": 200
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "adkernelAdn": {
           "pubId": 101
-        }
-      }
-    },
-    {
-      "id": "imp_id2",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 640,
-        "h": 480
-      },
-      "ext": {
-        "adkernelAdn": {
-          "pubId": 102
         }
       }
     }

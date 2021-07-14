@@ -10,8 +10,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,12 +22,7 @@ public class BeintooTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromBeintoo() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/beintoo-exchange"))
-                .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/beintoo/test-beintoo-bid-request.json"),
-                        true, true))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/beintoo/test-beintoo-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/beintoo/test-beintoo-bid-response.json"))));
 
         // when

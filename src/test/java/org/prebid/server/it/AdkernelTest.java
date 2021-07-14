@@ -10,8 +10,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,13 +22,8 @@ public class AdkernelTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdkernel() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adkernel-exchange"))
-                .withQueryParam("zone", equalTo("101"))
-                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
-                .withHeader("Accept", equalTo("application/json"))
-                .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adkernel/test-adkernel-bid-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/adkernel/test-adkernel-bid-response.json"))));
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adkernel/test-adkernel-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/adkernel/test-auction-adkernel-request.json",

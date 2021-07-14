@@ -10,7 +10,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -23,8 +22,6 @@ public class BidscubeTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromBidscube() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/bidscube-exchange"))
-                .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/bidscube/test-bidscube-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/bidscube/test-bidscube-bid-response.json"))));
 

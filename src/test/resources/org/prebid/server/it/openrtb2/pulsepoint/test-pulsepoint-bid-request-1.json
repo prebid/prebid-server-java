@@ -47,7 +47,7 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "321",
-      "domain" : "example.com"
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0

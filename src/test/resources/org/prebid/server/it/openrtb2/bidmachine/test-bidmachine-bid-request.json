@@ -6,7 +6,9 @@
       "banner": {
         "w": 320,
         "h": 480,
-        "battr" : [ 16 ]
+        "battr": [
+          16
+        ]
       },
       "ext": {
         "prebid": {

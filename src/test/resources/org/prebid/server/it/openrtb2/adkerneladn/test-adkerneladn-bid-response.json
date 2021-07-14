@@ -4,8 +4,8 @@
     {
       "bid": [
         {
-          "id": "bid_id1",
-          "impid": "imp_id1",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "cid": "3706",
           "crid": "crid021",
@@ -23,5 +23,5 @@
       ]
     }
   ],
-  "bidid": "bid_id1"
+  "bidid": "bid_id"
 }
