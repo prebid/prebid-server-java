@@ -29,8 +29,8 @@
         ]
       },
       "ext": {
-        "synacormedia":{
-          "seatId":"1987",
+        "synacormedia": {
+          "seatId": "1987",
           "tagId": "demo1"
         }
       }
@@ -67,12 +67,6 @@
               "increment": 0.1
             }
           ]
-        }
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
         }
       },
       "auctiontimestamp": 1000

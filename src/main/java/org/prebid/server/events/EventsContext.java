@@ -14,6 +14,8 @@ public class EventsContext {
 
     boolean enabledForRequest;
 
+    String auctionId;
+
     Long auctionTimestamp;
 
     String integration;

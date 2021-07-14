@@ -1,6 +1,5 @@
 package org.prebid.server.handler.openrtb2;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -22,12 +21,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
+import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -42,14 +41,15 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.AmpResponse;
+import org.prebid.server.proto.response.ExtAmpVideoPrebid;
+import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -67,12 +67,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(AmpHandler.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
-            };
-    private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
-            new TypeReference<ExtBidResponse>() {
-            };
+    public static final String PREBID_EXT = "prebid";
     private static final MetricName REQUEST_TYPE_METRIC = MetricName.amp;
 
     private final AmpRequestFactory ampRequestFactory;
@@ -134,7 +129,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         Tuple3.of(
                                 result.getLeft(),
                                 result.getRight(),
-                                toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
+                                toAmpResponse(result.getRight(), result.getLeft())))
 
                 .compose((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(
@@ -155,19 +150,21 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
-        final BidRequest bidRequest = context.getBidRequest();
-        final UidsCookie uidsCookie = context.getUidsCookie();
+        if (!context.isRequestRejected()) {
+            final BidRequest bidRequest = context.getBidRequest();
+            final UidsCookie uidsCookie = context.getUidsCookie();
 
-        final List<Imp> imps = bidRequest.getImp();
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                imps.size());
+            final List<Imp> imps = bidRequest.getImp();
+            metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
+                    imps.size());
 
-        metrics.updateImpTypesMetrics(imps);
+            metrics.updateImpTypesMetrics(imps);
+        }
 
         return context;
     }
 
-    private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private AmpResponse toAmpResponse(AuctionContext auctionContext, BidResponse bidResponse) {
         // Fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
@@ -183,48 +180,49 @@ public class AmpHandler implements Handler<RoutingContext> {
         final ExtResponseDebug extResponseDebug;
         final Map<String, List<ExtBidderError>> errors;
         // Fetch debug and errors information from response if requested
-        if (isDebugEnabled(bidRequest)) {
-            final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
+        if (auctionContext.getDebugContext().isDebugEnabled()) {
+            final ExtBidResponse extBidResponse = bidResponse.getExt();
 
-            extResponseDebug = extResponseDebugFrom(extBidResponse);
-            errors = errorsFrom(extBidResponse);
+            extResponseDebug = extBidResponse != null ? extBidResponse.getDebug() : null;
+            errors = extBidResponse != null ? extBidResponse.getErrors() : null;
         } else {
             extResponseDebug = null;
             errors = null;
         }
 
-        return AmpResponse.of(targeting, extResponseDebug, errors);
+        return AmpResponse.of(targeting, extResponseDebug, errors, extResponseFrom(bidResponse));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
+        final ObjectNode bidExt = bid.getExt();
+        if (bidExt == null || !bidExt.hasNonNull(PREBID_EXT)) {
+            return Collections.emptyMap();
+        }
+
+        final ExtBidPrebid extBidPrebid;
         try {
-            extBid = mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
+            extBidPrebid = mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
                     String.format("Critical error while unpacking AMP targets: %s", e.getMessage()), e);
         }
 
-        if (extBid != null) {
-            final ExtBidPrebid extBidPrebid = extBid.getPrebid();
+        // Need to extract the targeting parameters from the response, as those are all that
+        // go in the AMP response
+        final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
+        if (targeting != null && targeting.keySet().stream()
+                .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
 
-            // Need to extract the targeting parameters from the response, as those are all that
-            // go in the AMP response
-            final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
-            if (targeting != null && targeting.keySet().stream()
-                    .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
-
-                return enrichWithCustomTargeting(targeting, extBid, bidder);
-            }
+            return enrichWithCustomTargeting(targeting, bidExt, bidder);
         }
 
         return Collections.emptyMap();
     }
 
     private Map<String, String> enrichWithCustomTargeting(
-            Map<String, String> targeting, ExtPrebid<ExtBidPrebid, ObjectNode> extBid, String bidder) {
+            Map<String, String> targeting, ObjectNode bidExt, String bidder) {
 
-        final Map<String, String> customTargeting = customTargetingFrom(extBid.getBidder(), bidder);
+        final Map<String, String> customTargeting = customTargetingFrom(bidExt, bidder);
         if (!customTargeting.isEmpty()) {
             final Map<String, String> enrichedTargeting = new HashMap<>(targeting);
             enrichedTargeting.putAll(customTargeting);
@@ -243,33 +241,12 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
-    /**
-     * Determines debug flag from {@link BidRequest}.
-     */
-    private boolean isDebugEnabled(BidRequest bidRequest) {
-        if (Objects.equals(bidRequest.getTest(), 1)) {
-            return true;
-        }
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
-    }
+    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
+        final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
 
-    private ExtBidResponse extResponseFrom(BidResponse bidResponse) {
-        try {
-            return mapper.mapper().convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
-        }
-    }
-
-    private static ExtResponseDebug extResponseDebugFrom(ExtBidResponse extBidResponse) {
-        return extBidResponse != null ? extBidResponse.getDebug() : null;
-    }
-
-    private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
-        return extBidResponse != null ? extBidResponse.getErrors() : null;
+        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
     }
 
     private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,

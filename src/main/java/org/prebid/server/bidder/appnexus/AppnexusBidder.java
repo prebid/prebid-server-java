@@ -312,7 +312,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final BigDecimal reserve = appnexusExt.getReserve();
-        if (reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0) {
+        if (!bidFloorIsValid(imp.getBidfloor()) && bidFloorIsValid(reserve)) {
             impBuilder.bidfloor(reserve); // This will be broken for non-USD currency.
         }
 
@@ -322,6 +322,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         return ImpWithMemberId.of(impBuilder.build(), appnexusExt.getMember());
+    }
+
+    private static boolean bidFloorIsValid(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private static AppnexusImpExt makeAppnexusImpExt(ExtImpAppnexus appnexusExt) {
@@ -444,14 +448,17 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final String iabCategory = iabCategory(appnexus.getBrandCategoryId());
+
+        List<String> cat = bid.getCat();
         if (iabCategory != null) {
-            bid.setCat(Collections.singletonList(iabCategory));
+            cat = Collections.singletonList(iabCategory);
         } else if (CollectionUtils.isNotEmpty(bid.getCat())) {
             //create empty categories array to force bid to be rejected
-            bid.setCat(Collections.emptyList());
+            cat = Collections.emptyList();
         }
 
-        return BidderBid.of(bid, bidType(appnexus.getBidAdType()), currency);
+        final Bid modifiedBid = bid.toBuilder().cat(cat).build();
+        return BidderBid.of(modifiedBid, bidType(appnexus.getBidAdType()), currency);
     }
 
     private static String iabCategory(Integer brandId) {

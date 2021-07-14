@@ -1,0 +1,82 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impStoredBidResponse",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "rubicon": {
+              "accountId": 2001,
+              "siteId": 3001,
+              "zoneId": 4001
+            }
+          },
+          "storedbidresponse": {
+            "bidder": "rubicon",
+            "id": "test-stored-bid-response"
+          }
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "site": {
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        }
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "auctiontimestamp": 1000
+    }
+  },
+  "user": {
+    "buyeruid": "revcontent-UID"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

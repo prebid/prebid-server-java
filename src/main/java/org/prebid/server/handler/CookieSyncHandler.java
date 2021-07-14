@@ -13,6 +13,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
@@ -21,6 +22,8 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.CookieSyncContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncInfoAssembler;
+import org.prebid.server.bidder.UsersyncMethodChooser;
+import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -32,6 +35,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
@@ -45,6 +49,7 @@ import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.util.HttpUtil;
 
@@ -61,11 +66,18 @@ import java.util.stream.Collectors;
 public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
+    private static final ConditionalLogger BAD_REQUEST_LOGGER = new ConditionalLogger(logger);
+
     private static final Map<CharSequence, AsciiString> JSON_HEADERS_MAP = Collections.singletonMap(
             HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
     private static final String REJECTED_BY_TCF = "Rejected by TCF";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
+    private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
+
+    // Probably this should be moved to config since hardcoding of "uid" param is not ideal
+    private static final String HOST_BIDDER_USERSYNC_URL_TEMPLATE =
+            "%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%s";
 
     private final String externalUrl;
     private final long defaultTimeout;
@@ -76,7 +88,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final TcfDefinerService tcfDefinerService;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final Integer gdprHostVendorId;
-    private final boolean defaultCoopSync;
+    private final Boolean defaultCoopSync;
     private final List<Collection<String>> listOfCoopSyncBidders;
     private final Set<String> setOfCoopSyncBidders;
     private final AnalyticsReporterDelegator analyticsDelegator;
@@ -164,6 +176,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
                                 .cookieSyncRequest(cookieSyncRequest)
+                                .usersyncMethodChooser(
+                                        UsersyncMethodChooser.from(cookieSyncRequest.getFilterSettings()))
                                 .timeout(timeout)
                                 .account(account)
                                 .privacyContext(privacyContext)
@@ -189,45 +203,49 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return StringUtils.isBlank(accountId)
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                        .otherwise(Account.empty(accountId));
+                .otherwise(Account.empty(accountId));
     }
 
     private void handleCookieSyncContextResult(AsyncResult<CookieSyncContext> cookieSyncContextResult,
                                                RoutingContext routingContext) {
+
         if (cookieSyncContextResult.succeeded()) {
             final CookieSyncContext cookieSyncContext = cookieSyncContextResult.result();
 
             final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-            final Exception validationException = validateCookieSyncContext(cookieSyncContext);
-            if (validationException != null) {
-                handleErrors(validationException, routingContext, tcfContext);
+            try {
+                validateCookieSyncContext(cookieSyncContext);
+            } catch (InvalidRequestException | UnauthorizedUidsException e) {
+                handleErrors(e, routingContext, tcfContext);
                 return;
             }
 
-            final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
-            final Set<String> biddersToSync = biddersToSync(cookieSyncRequest);
-
             isAllowedForHostVendorId(tcfContext)
-                    .setHandler(hostTcfResponseResult ->
-                            respondByTcfResponse(hostTcfResponseResult, biddersToSync, cookieSyncContext));
+                    .setHandler(hostTcfResponseResult -> respondByTcfResponse(
+                            hostTcfResponseResult,
+                            biddersToSync(cookieSyncContext),
+                            cookieSyncContext));
         } else {
-            final Throwable error = cookieSyncContextResult.cause();
-            handleErrors(error, routingContext, null);
+            handleErrors(cookieSyncContextResult.cause(), routingContext, null);
         }
     }
 
-    private static Exception validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
+    private void validateCookieSyncContext(CookieSyncContext cookieSyncContext) {
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
         if (!uidsCookie.allowsSync()) {
-            return new UnauthorizedUidsException("Sync is not allowed for this uids");
+            throw new UnauthorizedUidsException("Sync is not allowed for this uids");
         }
 
         final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
         if (isGdprParamsNotConsistent(cookieSyncRequest)) {
-            return new InvalidRequestException("gdpr_consent is required if gdpr is 1");
+            throw new InvalidRequestException("gdpr_consent is required if gdpr is 1");
         }
 
-        return null;
+        final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
+        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+            metrics.updateUserSyncTcfInvalidMetric();
+            throw new InvalidRequestException("Consent string is invalid");
+        }
     }
 
     private static boolean isGdprParamsNotConsistent(CookieSyncRequest request) {
@@ -239,23 +257,40 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * <p>
      * If bidder list was omitted in request, that means sync should be done for all bidders.
      */
-    private Set<String> biddersToSync(CookieSyncRequest cookieSyncRequest) {
+    private Set<String> biddersToSync(CookieSyncContext cookieSyncContext) {
+        final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
+
         final List<String> requestBidders = cookieSyncRequest.getBidders();
+
         if (CollectionUtils.isEmpty(requestBidders)) {
             return activeBidders;
         }
 
-        final Boolean requestCoopSync = cookieSyncRequest.getCoopSync();
-        final boolean coop = requestCoopSync != null ? requestCoopSync : defaultCoopSync;
+        final Account account = cookieSyncContext.getAccount();
 
-        if (coop) {
-            final Integer limit = cookieSyncRequest.getLimit();
-            return limit == null
+        if (coopSyncAllowed(cookieSyncRequest, account)) {
+            final Integer requestLimit = resolveLimit(cookieSyncContext);
+
+            return requestLimit == null
                     ? addAllCoopSyncBidders(requestBidders)
-                    : addCoopSyncBidders(requestBidders, limit);
+                    : addCoopSyncBidders(requestBidders, requestLimit);
         }
 
         return new HashSet<>(requestBidders);
+    }
+
+    private Boolean coopSyncAllowed(CookieSyncRequest cookieSyncRequest, Account account) {
+        final Boolean requestCoopSync = cookieSyncRequest.getCoopSync();
+        if (requestCoopSync != null) {
+            return requestCoopSync;
+        }
+
+        final AccountCookieSyncConfig accountCookieSyncConfig = account.getCookieSync();
+        final Boolean accountCoopSync = accountCookieSyncConfig != null
+                ? accountCookieSyncConfig.getDefaultCoopSync()
+                : null;
+
+        return ObjectUtils.firstNonNull(accountCoopSync, defaultCoopSync);
     }
 
     /**
@@ -265,7 +300,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return gdprHostVendorId == null
                 ? Future.succeededFuture(HostVendorTcfResponse.allowedVendor())
                 : tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), tcfContext)
-                        .map(this::toHostVendorTcfResponse);
+                .map(this::toHostVendorTcfResponse);
     }
 
     private HostVendorTcfResponse toHostVendorTcfResponse(TcfResponse<Integer> tcfResponse) {
@@ -317,16 +352,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return allBidders;
     }
 
-    /**
-     * Determines original bidder's name.
-     */
-    private String bidderNameFor(String bidder) {
-        return bidderCatalog.isAlias(bidder) ? bidderCatalog.nameByAlias(bidder) : bidder;
-    }
-
     private void respondByTcfResponse(AsyncResult<HostVendorTcfResponse> hostTcfResponseResult,
                                       Set<String> biddersToSync,
                                       CookieSyncContext cookieSyncContext) {
+
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         if (hostTcfResponseResult.succeeded()) {
 
@@ -339,7 +368,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 tcfDefinerService.resultForBidderNames(biddersToSync, tcfContext, accountGdprConfig)
                         .setHandler(tcfResponseResult -> respondByTcfResultForBidders(tcfResponseResult,
                                 biddersToSync, cookieSyncContext));
-
             } else {
                 // Reject all bidders when Host TCF response has blocked pixel
                 final RejectedBidders rejectedBidders = RejectedBidders.of(biddersToSync, Collections.emptySet());
@@ -394,7 +422,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private Set<String> extractCcpaEnforcedBidders(Account account, Collection<String> biddersToSync, Privacy privacy) {
         if (privacyEnforcementService.isCcpaEnforced(privacy.getCcpa(), account)) {
             return biddersToSync.stream()
-                    .filter(bidder -> bidderCatalog.bidderInfoByName(bidderNameFor(bidder)).isCcpaEnforced())
+                    .filter(bidder -> bidderCatalog.bidderInfoByName(bidder).isCcpaEnforced())
                     .collect(Collectors.toSet());
         }
         return Collections.emptySet();
@@ -406,22 +434,22 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void respondWithRejectedBidders(CookieSyncContext cookieSyncContext,
                                             Collection<String> bidders,
                                             RejectedBidders rejectedBidders) {
+
         updateCookieSyncTcfMetrics(bidders, rejectedBidders.getRejectedByTcf());
 
         final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
         final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
-        final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
-                .map(bidder -> bidderStatusFor(bidder, routingContext, uidsCookie, rejectedBidders, privacy))
+                .map(bidder -> bidderStatusFor(bidder, cookieSyncContext, rejectedBidders))
                 .filter(Objects::nonNull) // skip bidder with live UID
                 .collect(Collectors.toList());
 
         updateCookieSyncMatchMetrics(bidders, bidderStatuses);
 
-        final CookieSyncRequest cookieSyncRequest = cookieSyncContext.getCookieSyncRequest();
-        final Integer limit = cookieSyncRequest.getLimit();
-        final List<BidderUsersyncStatus> updatedBidderStatuses = trimBiddersToLimit(limit, bidderStatuses);
+        final List<BidderUsersyncStatus> updatedBidderStatuses =
+                trimBiddersToLimit(bidderStatuses, resolveLimit(cookieSyncContext));
         final String status = uidsCookie.hasLiveUids() ? "ok" : "no_cookie";
+
         final CookieSyncResponse response = CookieSyncResponse.of(status, updatedBidderStatuses);
 
         final String body = mapper.encode(response);
@@ -437,7 +465,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void updateCookieSyncTcfMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
         for (String bidder : syncBidders) {
             if (rejectedBidders.contains(bidder)) {
-                metrics.updateCookieSyncTcfBlockedMetric(bidder);
+                metrics.updateCookieSyncTcfBlockedMetric(
+                        bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER);
             } else {
                 metrics.updateCookieSyncGenMetric(bidder);
             }
@@ -448,54 +477,55 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * Creates {@link BidderUsersyncStatus} for given bidder.
      */
     private BidderUsersyncStatus bidderStatusFor(String bidder,
-                                                 RoutingContext context,
-                                                 UidsCookie uidsCookie,
-                                                 RejectedBidders rejectedBidders,
-                                                 Privacy privacy) {
+                                                 CookieSyncContext cookieSyncContext,
+                                                 RejectedBidders rejectedBidders) {
 
-        final boolean isNotAlias = !bidderCatalog.isAlias(bidder);
         final Set<String> biddersRejectedByTcf = rejectedBidders.getRejectedByTcf();
         final Set<String> biddersRejectedByCcpa = rejectedBidders.getRejectedByCcpa();
 
-        if (isNotAlias && !bidderCatalog.isValidName(bidder)) {
+        if (!bidderCatalog.isValidName(bidder)) {
             return bidderStatusBuilder(bidder)
                     .error("Unsupported bidder")
                     .build();
-        } else if (isNotAlias && !bidderCatalog.isActive(bidder)) {
+        } else if (!bidderCatalog.isActive(bidder)) {
             return bidderStatusBuilder(bidder)
                     .error(String.format("%s is not configured properly on this Prebid Server deploy. "
                             + "If you believe this should work, contact the company hosting the service "
                             + "and tell them to check their configuration.", bidder))
                     .build();
-        } else if (isNotAlias && biddersRejectedByTcf.contains(bidder)) {
+        } else if (biddersRejectedByTcf.contains(bidder)) {
             return bidderStatusBuilder(bidder)
                     .error(REJECTED_BY_TCF)
                     .build();
-        } else if (isNotAlias && biddersRejectedByCcpa.contains(bidder)) {
+        } else if (biddersRejectedByCcpa.contains(bidder)) {
             return bidderStatusBuilder(bidder)
                     .error(REJECTED_BY_CCPA)
                     .build();
-        } else {
-            final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
-
-            if (StringUtils.isEmpty(usersyncer.getUsersyncUrl())) {
-                // there is nothing to sync
-                return null;
-            }
-
-            final UsersyncInfo hostBidderUsersyncInfo = hostBidderUsersyncInfo(context, privacy, usersyncer);
-
-            if (hostBidderUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {
-                return bidderStatusBuilder(bidder)
-                        .noCookie(true)
-                        .usersync(ObjectUtils.defaultIfNull(
-                                hostBidderUsersyncInfo,
-                                UsersyncInfoAssembler.from(usersyncer).withPrivacy(privacy).assemble()))
-                        .build();
-            }
         }
 
-        return null;
+        final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidder);
+
+        final Usersyncer.UsersyncMethod usersyncMethod =
+                cookieSyncContext.getUsersyncMethodChooser().choose(usersyncer, bidder);
+        if (usersyncMethod == null) {
+            // there is nothing to sync
+            return null;
+        }
+
+        final RoutingContext routingContext = cookieSyncContext.getRoutingContext();
+        final UidsCookie uidsCookie = cookieSyncContext.getUidsCookie();
+        final String cookieFamilyName = usersyncer.getCookieFamilyName();
+        final String uidFromHostCookieToSet = resolveUidFromHostCookie(routingContext, cookieFamilyName);
+        if (uidFromHostCookieToSet == null && uidsCookie.hasLiveUidFrom(cookieFamilyName)) {
+            return null;
+        }
+
+        final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
+
+        return bidderStatusBuilder(bidder)
+                .noCookie(true)
+                .usersync(toUsersyncInfo(usersyncMethod, cookieFamilyName, uidFromHostCookieToSet, privacy))
+                .build();
     }
 
     private static BidderUsersyncStatus.BidderUsersyncStatusBuilder bidderStatusBuilder(String bidder) {
@@ -503,8 +533,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     /**
-     * Returns {@link UsersyncInfo} with updated usersync-url (pointed directly to Prebid Server /setuid endpoint)
-     * or null if normal usersync flow should be applied.
+     * Returns UID from host cookie to sync with uids cookie or null if normal usersync flow should be applied.
      * <p>
      * Uids cookie should be in sync with host-cookie value, so the next conditions must be satisfied:
      * <p>
@@ -514,31 +543,59 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * <p>
      * 3. Host-bidder uid value in uids cookie should not exist or be different from host-cookie uid value.
      */
-    private UsersyncInfo hostBidderUsersyncInfo(RoutingContext context, Privacy privacy, Usersyncer usersyncer) {
-        final String cookieFamilyName = usersyncer.getCookieFamilyName();
-        if (Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
-
-            final Map<String, String> cookies = HttpUtil.cookiesAsMap(context);
-            final String hostCookieUid = uidsCookieService.parseHostCookie(cookies);
-
-            if (hostCookieUid != null) {
-                final Uids parsedUids = uidsCookieService.parseUids(cookies);
-                final Map<String, UidWithExpiry> uidsMap = parsedUids != null ? parsedUids.getUids() : null;
-                final UidWithExpiry uidWithExpiry = uidsMap != null ? uidsMap.get(cookieFamilyName) : null;
-                final String uid = uidWithExpiry != null ? uidWithExpiry.getUid() : null;
-
-                if (!Objects.equals(hostCookieUid, uid)) {
-                    final String url = String.format("%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
-                                    + "&us_privacy={{us_privacy}}&uid=%s", externalUrl, cookieFamilyName,
-                            HttpUtil.encodeUrl(hostCookieUid));
-                    return UsersyncInfoAssembler.from(usersyncer)
-                            .withUrl(url)
-                            .withPrivacy(privacy)
-                            .assemble();
-                }
-            }
+    private String resolveUidFromHostCookie(RoutingContext context, String cookieFamilyName) {
+        if (!Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
+            return null;
         }
-        return null;
+
+        final Map<String, String> cookies = HttpUtil.cookiesAsMap(context);
+        final String hostCookieUid = uidsCookieService.parseHostCookie(cookies);
+
+        if (hostCookieUid == null) {
+            return null;
+        }
+
+        final Uids parsedUids = uidsCookieService.parseUids(cookies);
+        final Map<String, UidWithExpiry> uidsMap = parsedUids != null ? parsedUids.getUids() : null;
+        final UidWithExpiry uidWithExpiry = uidsMap != null ? uidsMap.get(cookieFamilyName) : null;
+        final String uid = uidWithExpiry != null ? uidWithExpiry.getUid() : null;
+
+        if (Objects.equals(hostCookieUid, uid)) {
+            return null;
+        }
+
+        return hostCookieUid;
+    }
+
+    private UsersyncInfo toUsersyncInfo(Usersyncer.UsersyncMethod usersyncMethod,
+                                        String cookieFamilyName,
+                                        String uidFromHostCookieToSet,
+                                        Privacy privacy) {
+
+        final UsersyncInfoAssembler usersyncInfoAssembler = UsersyncInfoAssembler.from(usersyncMethod);
+
+        return (uidFromHostCookieToSet == null
+                ? usersyncInfoAssembler
+                : usersyncInfoAssembler
+                .withUrl(toHostBidderUsersyncUrl(cookieFamilyName, usersyncMethod, uidFromHostCookieToSet)))
+                .withPrivacy(privacy)
+                .assemble();
+    }
+
+    /**
+     * Returns updated usersync-url pointed directly to Prebid Server /setuid endpoint.
+     */
+    private String toHostBidderUsersyncUrl(String cookieFamilyName,
+                                           Usersyncer.UsersyncMethod usersyncMethod,
+                                           String hostCookieUid) {
+
+        final String url = String.format(
+                HOST_BIDDER_USERSYNC_URL_TEMPLATE,
+                externalUrl,
+                cookieFamilyName,
+                HttpUtil.encodeUrl(hostCookieUid));
+
+        return UsersyncUtil.enrichUsersyncUrlWithFormat(url, usersyncMethod.getType());
     }
 
     private void updateCookieSyncMatchMetrics(Collection<String> syncBidders,
@@ -548,14 +605,33 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .forEach(metrics::updateCookieSyncMatchesMetric);
     }
 
-    private static List<BidderUsersyncStatus> trimBiddersToLimit(Integer limit,
-                                                                 List<BidderUsersyncStatus> bidderStatuses) {
+    private static Integer resolveLimit(CookieSyncContext cookieSyncContext) {
+        final Integer limit = cookieSyncContext.getCookieSyncRequest().getLimit();
+
+        final AccountCookieSyncConfig cookieSyncConfig = cookieSyncContext.getAccount().getCookieSync();
+        if (cookieSyncConfig == null) {
+            return limit;
+        }
+
+        final Integer resolvedLimit = ObjectUtils.defaultIfNull(limit, cookieSyncConfig.getDefaultLimit());
+        if (resolvedLimit == null) {
+            return null;
+        }
+
+        final Integer maxLimit = cookieSyncConfig.getMaxLimit();
+
+        return maxLimit == null ? resolvedLimit : Math.min(resolvedLimit, maxLimit);
+    }
+
+    private static List<BidderUsersyncStatus> trimBiddersToLimit(List<BidderUsersyncStatus> bidderStatuses,
+                                                                 Integer limit) {
+
         if (limit != null && limit > 0 && limit < bidderStatuses.size()) {
             Collections.shuffle(bidderStatuses);
             return bidderStatuses.subList(0, limit);
-        } else {
-            return bidderStatuses;
         }
+
+        return bidderStatuses;
     }
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
@@ -566,13 +642,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             metrics.updateUserSyncBadRequestMetric();
             status = HttpResponseStatus.BAD_REQUEST.code();
             body = String.format("Invalid request format: %s", message);
-            logger.info(message, error);
-
+            BAD_REQUEST_LOGGER.info(message, 0.01);
         } else if (error instanceof UnauthorizedUidsException) {
             metrics.updateUserSyncOptoutMetric();
             status = HttpResponseStatus.UNAUTHORIZED.code();
             body = String.format("Unauthorized: %s", message);
-
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
             body = String.format("Unexpected setuid processing error: %s", message);

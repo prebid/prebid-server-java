@@ -25,7 +25,6 @@ public class LunamediaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromLunamedia() throws IOException, JSONException {
         // given
-        // Lunamedia bid response for imp
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lunamedia-exchange"))
                 .withQueryParam("pubid", equalTo("19f1b372c7548ec1fe734d2c9f8dc688"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
@@ -34,12 +33,6 @@ public class LunamediaTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/lunamedia/test-lunamedia-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/lunamedia/test-lunamedia-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/lunamedia/test-cache-lunamedia-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/lunamedia/test-cache-lunamedia-response.json"))));
 
         // when
         final Response response = given(SPEC)

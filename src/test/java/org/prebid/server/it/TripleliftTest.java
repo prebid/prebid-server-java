@@ -4,8 +4,6 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -30,11 +28,6 @@ public class TripleliftTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/triplelift/test-triplelift-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/triplelift/test-triplelift-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/triplelift/test-cache-triplelift-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/triplelift/test-cache-triplelift-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
@@ -47,11 +40,8 @@ public class TripleliftTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/triplelift/test-auction-triplelift-response.json",
+        assertJsonEquals("openrtb2/triplelift/test-auction-triplelift-response.json",
                 response, singletonList("triplelift"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
 

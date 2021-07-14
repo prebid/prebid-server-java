@@ -31,11 +31,6 @@ public class CpmStarTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/cpmstar/test-cpmstar-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/cpmstar/test-cpmstar-bid-response-1.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/cpmstar/test-cache-cpmstar-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/cpmstar/test-cache-cpmstar-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")

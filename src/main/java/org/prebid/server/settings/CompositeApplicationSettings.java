@@ -2,8 +2,8 @@ package org.prebid.server.settings;
 
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.helper.StoredDataFetcher;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -49,15 +49,6 @@ public class CompositeApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return proxy.getAccountById(accountId, timeout);
-    }
-
-    /**
-     * Runs a process to get AdUnit config by id from a chain of retrievers
-     * and returns {@link Future&lt;{@link String}&gt;}.
-     */
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return proxy.getAdUnitConfigById(adUnitConfigId, timeout);
     }
 
     /**
@@ -114,12 +105,6 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                     next != null ? next::getAccountById : null);
         }
 
-        @Override
-        public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-            return getConfig(adUnitConfigId, timeout, applicationSettings::getAdUnitConfigById,
-                    next != null ? next::getAdUnitConfigById : null);
-        }
-
         private static <T> Future<T> getConfig(String key, Timeout timeout,
                                                BiFunction<String, Timeout, Future<T>> retriever,
                                                BiFunction<String, Timeout, Future<T>> nextRetriever) {
@@ -167,7 +152,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                             nextRetriever == null || retrieverResult.getErrors().isEmpty()
                                     ? Future.succeededFuture(retrieverResult)
                                     : getRemainingStoredResponses(responseIds, timeout,
-                                    retrieverResult.getStoredSeatBid(), nextRetriever));
+                                    retrieverResult.getIdToStoredResponses(), nextRetriever));
         }
 
         private static Future<StoredDataResult> getStoredRequests(
@@ -203,7 +188,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
 
             return retriever.apply(subtractSets(responseIds, storedSeatBids.keySet()), timeout)
                     .map(result -> StoredResponseDataResult.of(
-                            combineMaps(storedSeatBids, result.getStoredSeatBid()),
+                            combineMaps(storedSeatBids, result.getIdToStoredResponses()),
                             result.getErrors()));
         }
 

@@ -4,8 +4,6 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -24,7 +22,6 @@ public class ZeroclickfraudTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromZeroclickfraud() throws IOException, JSONException {
         // given
-        // Zeroclickfraud bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/zeroclickfraud-exchange"))
                 .withQueryParam("sid", equalTo("1"))
                 .withRequestBody(
@@ -32,20 +29,12 @@ public class ZeroclickfraudTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-response-1.json"))));
 
-        // Zeroclickfraud bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/zeroclickfraud-exchange"))
                 .withQueryParam("sid", equalTo("2"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-request-2.json")))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-response-2.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/zeroclickfraud/test-cache-zeroclickfraud-request.json")))
-                .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/zeroclickfraud/test-cache-zeroclickfraud-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -59,10 +48,7 @@ public class ZeroclickfraudTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/zeroclickfraud/test-auction-zeroclickfraud-response.json",
+        assertJsonEquals("openrtb2/zeroclickfraud/test-auction-zeroclickfraud-response.json",
                 response, singletonList("zeroclickfraud"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

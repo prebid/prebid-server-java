@@ -24,16 +24,10 @@ public class AdponeTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdpone() throws IOException, JSONException {
         // given
-        // Adpone bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adpone-exchange"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adpone/test-adpone-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adpone/test-adpone-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adpone/test-cache-adpone-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adpone/test-cache-adpone-response.json"))));
 
         // when
         final Response response = given(SPEC)

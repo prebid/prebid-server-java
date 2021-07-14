@@ -122,7 +122,7 @@
     {
       "id": "impId131",
       "native": {
-        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}},{\"required\":1,\"img\":{\"type\":3,\"wmin\":1,\"hmin\":1}},{\"required\":0,\"data\":{\"len\":200}},{\"required\":0,\"data\":{\"type\":2,\"len\":15000}},{\"required\":0,\"data\":{\"len\":40}},{\"required\":0,\"data\":{\"type\":11}}]}",
+        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}},{\"required\":1,\"img\":{\"type\":3,\"wmin\":1,\"hmin\":1}},{\"required\":0,\"data\":{\"type\":4,\"len\":200}},{\"required\":0,\"data\":{\"type\":2,\"len\":15000}},{\"required\":0,\"data\":{\"len\":40}},{\"required\":0,\"data\":{\"type\":11}}]}",
         "ver": "1.1"
       },
       "ext": {
@@ -169,31 +169,12 @@
           }
         }
       }
-    },
-    {
-      "id": "impStoredBidResponse",
-      "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
-      },
-      "ext": {
-        "prebid": {
-          "storedbidresponse": {
-            "bidder": "rubicon",
-            "id": "test-stored-bid-response"
-          }
-        }
-      }
     }
   ],
   "device": {
     "pxratio": 4.2,
     "dnt": 2,
-    "ip": "80.215.195.122",
+    "ip": "80.215.195.0",
     "language": "en",
     "ifa": "ifaId",
     "ext": {
@@ -290,8 +271,23 @@
     }
   },
   "user": {
+    "data": [
+      {
+        "ext": {
+          "segtax": 4
+        },
+        "segment": [
+          {
+            "id": "segmentId1"
+          },
+          {
+            "id": "segmentId2"
+          }
+        ]
+      }
+    ],
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "eids": [
         {
           "source": "adserver.org",

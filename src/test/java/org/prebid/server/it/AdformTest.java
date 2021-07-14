@@ -14,9 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
@@ -27,7 +25,6 @@ public class AdformTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdform() throws IOException, JSONException {
         // given
-        // adform bid response for imp 12
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/adform-exchange"))
                 .withQueryParam("CC", equalTo("1"))
                 .withQueryParam("rp", equalTo("4"))
@@ -39,9 +36,9 @@ public class AdformTest extends IntegrationTest {
                 .withQueryParam("gdpr", equalTo("0"))
                 .withQueryParam("gdpr_consent", equalTo("consentValue"))
                 .withQueryParam("url", equalTo("https://adform.com?a=b"))
-                // bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
-                // "mid=15&rcur=USD&mkv=color:red&mkw=red&cdims=300X600&minp=2.50"
-                .withQueryParam("bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA",
+                // bWlkPTE1JnJjdXI9Q1pLJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA is Base64 encoded
+                // "mid=15&rcur=CZK&mkv=color:red&mkw=red&cdims=300x600&minp=2.50"
+                .withQueryParam("bWlkPTE1JnJjdXI9Q1pLJm1rdj1jb2xvcjpyZWQmbWt3PXJlZCZjZGltcz0zMDB4NjAwJm1pbnA9Mi41MA",
                         equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -51,11 +48,6 @@ public class AdformTest extends IntegrationTest {
                 .withHeader("Cookie", equalTo("uid=AF-UID"))
                 .withRequestBody(absent())
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adform/test-adform-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adform/test-cache-adform-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adform/test-cache-adform-response.json"))));
 
         // when
         final Response response = given(SPEC)

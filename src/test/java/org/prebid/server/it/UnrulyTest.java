@@ -23,20 +23,13 @@ public class UnrulyTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromUnruly() throws IOException, JSONException {
         // given
-        // Unruly bid response for imp 001
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/unruly-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/unruly/test-unruly-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/unruly/test-unruly-bid-response-1.json"))));
 
-        // Unruly bid response for imp 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/unruly-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/unruly/test-unruly-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/unruly/test-unruly-bid-response-2.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/unruly/test-cache-unruly-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/unruly/test-cache-unruly-response.json"))));
 
         // when
         final Response response = given(SPEC)

@@ -27,15 +27,9 @@ public class ConversantTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromConversant() throws IOException, JSONException {
         // given
-        // conversant bid response for imp 4
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/conversant-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-conversant-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/test-conversant-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-cache-conversant-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/test-cache-conversant-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -59,17 +53,10 @@ public class ConversantTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromConversantAlias() throws IOException, JSONException {
         // given
-        // conversant bid response for imp 4 with alias parameters
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/conversant-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/alias/test-conversant-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/conversant/alias/test-conversant-bid-response.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/alias/test-cache-conversant-request.json")))
-                .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/conversant/alias/test-cache-conversant-response.json"))));
 
         // when
         final Response response = given(SPEC)

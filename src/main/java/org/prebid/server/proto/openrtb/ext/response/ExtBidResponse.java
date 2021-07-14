@@ -1,6 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.ext
  */
-@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 @Value
 public class ExtBidResponse {
 
@@ -19,6 +19,11 @@ public class ExtBidResponse {
      * Defines the contract for bidresponse.ext.errors
      */
     Map<String, List<ExtBidderError>> errors;
+
+    /**
+     * Defines the contract for bidresponse.ext.warnings
+     */
+    Map<String, List<ExtBidderError>> warnings;
 
     /**
      * Defines the contract for bidresponse.ext.responsetimemillis

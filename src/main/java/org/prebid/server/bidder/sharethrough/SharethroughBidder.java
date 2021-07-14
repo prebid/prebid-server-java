@@ -62,11 +62,6 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
         this.requestUtil = new SharethroughRequestUtil();
     }
 
-    /**
-     * Makes the HTTP requests which should be made to fetch bids.
-     * <p>
-     * Creates POST http request with all parameters in url and headers with empty body.
-     */
     @Override
     public Result<List<HttpRequest<SharethroughRequestBody>>> makeHttpRequests(BidRequest request) {
         final String page = requestUtil.getPage(request.getSite());
@@ -87,11 +82,13 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                     String.format("Error occurred parsing sharethrough parameters %s", e.getMessage())));
         }
         final MultiMap headers = makeHeaders(request.getDevice(), page);
-        final List<HttpRequest<SharethroughRequestBody>> httpRequests = strUriParameters.stream()
-                .map(strUriParameter -> makeHttpRequest(headers, date, strUriParameter))
-                .collect(Collectors.toList());
 
-        return Result.withValues(httpRequests);
+        final List<BidderError> errors = new ArrayList<>();
+        final List<HttpRequest<SharethroughRequestBody>> httpRequests = strUriParameters.stream()
+                .map(strUriParameter -> makeHttpRequest(headers, date, strUriParameter, errors))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        return Result.of(httpRequests, errors);
     }
 
     /**
@@ -172,17 +169,24 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
      * Make {@link HttpRequest} from uri and headers.
      */
     private HttpRequest<SharethroughRequestBody> makeHttpRequest(
-            MultiMap headers, Date date, StrUriParameters strUriParameter) {
+            MultiMap headers, Date date, StrUriParameters strUriParameter, List<BidderError> errors) {
 
-        final String uri = SharethroughUriBuilderUtil.buildSharethroughUrl(
-                endpointUrl, SUPPLY_ID, VERSION, DATE_FORMAT.format(date), strUriParameter);
+        final String uri;
+        try {
+            uri = SharethroughUriBuilderUtil.buildSharethroughUrl(
+                    endpointUrl, SUPPLY_ID, VERSION, DATE_FORMAT.format(date), strUriParameter);
+        } catch (IllegalArgumentException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return null;
+        }
+
         final SharethroughRequestBody body = strUriParameter.getBody();
 
         return HttpRequest.<SharethroughRequestBody>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)
-                .body(mapper.encode(body))
                 .headers(headers)
+                .body(mapper.encode(body))
                 .payload(body)
                 .build();
     }

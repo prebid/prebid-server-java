@@ -21,6 +21,7 @@ class AccountMetrics extends UpdatableMetrics {
     private final RequestMetrics requestsMetrics;
     private final CacheMetrics cacheMetrics;
     private final ResponseMetrics responseMetrics;
+    private final HooksMetrics hooksMetrics;
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
@@ -32,6 +33,7 @@ class AccountMetrics extends UpdatableMetrics {
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(account));
         cacheMetrics = new CacheMetrics(metricRegistry, counterType, createPrefix(account));
         responseMetrics = new ResponseMetrics(metricRegistry, counterType, createPrefix(account));
+        hooksMetrics = new HooksMetrics(metricRegistry, counterType, createPrefix(account));
     }
 
     private static String createPrefix(String account) {
@@ -60,5 +62,9 @@ class AccountMetrics extends UpdatableMetrics {
 
     ResponseMetrics response() {
         return responseMetrics;
+    }
+
+    HooksMetrics hooks() {
+        return hooksMetrics;
     }
 }

@@ -4,8 +4,6 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -37,11 +35,6 @@ public class BeintooTest extends IntegrationTest {
                         true, true))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/beintoo/test-beintoo-bid-response.json"))));
 
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/beintoo/test-cache-beintoo-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/beintoo/test-cache-beintoo-response.json"))));
-
         // when
         final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
@@ -54,10 +47,6 @@ public class BeintooTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/beintoo/test-auction-beintoo-response.json",
-                response, singletonList("beintoo"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("openrtb2/beintoo/test-auction-beintoo-response.json", response, singletonList("beintoo"));
     }
 }

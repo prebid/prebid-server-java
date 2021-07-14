@@ -4,8 +4,6 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -23,15 +21,9 @@ public class AvocetTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAvocet() throws IOException, JSONException {
         // given
-        // Avocet bid response for imp 001 and 002
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/avocet-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/avocet/test-avocet-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/avocet/test-avocet-bid-response-1.json"))));
-
-        // pre-bid cache
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/avocet/test-cache-avocet-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/avocet/test-cache-avocet-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -45,12 +37,6 @@ public class AvocetTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/avocet/test-auction-avocet-response.json",
-                response, singletonList("avocet"));
-
-        final String actualStr = response.asString();
-
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("openrtb2/avocet/test-auction-avocet-response.json", response, singletonList("avocet"));
     }
 }
