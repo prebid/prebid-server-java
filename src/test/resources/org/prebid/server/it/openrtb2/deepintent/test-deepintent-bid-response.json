@@ -1,5 +1,5 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
@@ -7,8 +7,8 @@
           "crid": "24080",
           "adid": "2068416",
           "price": 0.01,
-          "id": "testid",
-          "impid": "testimpid",
+          "id": "bid_id",
+          "impid": "imp_id",
           "cid": "8048"
         }
       ],

@@ -1,24 +1,18 @@
 {
-  "id": "some-request-id",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "testid",
-          "impid": "testimpid",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.01,
           "adid": "2068416",
           "cid": "8048",
           "crid": "24080",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "0.00",
-                "hb_bidder_deepintent": "deepintent",
-                "hb_bidder": "deepintent",
-                "hb_pb_deepintent": "0.00"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           }
@@ -36,6 +30,6 @@
     "prebid": {
       "auctiontimestamp": 1000
     },
-    "tmaxrequest": 1000
+    "tmaxrequest": 5000
   }
 }

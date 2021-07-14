@@ -4,15 +4,13 @@
     {
       "id": "imp_id",
       "banner": {
-        "w": 320,
+        "w": 300,
         "h": 250
       },
-      "displaymanager": "di_prebid",
-      "displaymanagerver": "2.0.0",
-      "tagid": "tag_id",
       "ext": {
         "bidder": {
-          "tagId": "tag_id"
+          "host": "localhost:8090",
+          "sourceId": 1
         }
       }
     }
