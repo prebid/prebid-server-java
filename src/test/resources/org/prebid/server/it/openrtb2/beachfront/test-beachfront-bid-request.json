@@ -1,7 +1,7 @@
 {
   "slots": [
     {
-      "slot": "impId03",
+      "slot": "imp_id",
       "id": "beachfrontAppId",
       "bidfloor": 3,
       "sizes": [
@@ -17,24 +17,9 @@
   "secure": 0,
   "isMobile": 0,
   "ua": "userAgent",
-  "dnt": 2,
-  "user": {
-    "buyeruid": "BF-UID"
-  },
   "adapterName": "BF_PREBID_S2S",
   "adapterVersion": "0.9.2",
   "ip": "193.168.244.1",
-  "requestId": "tid",
-  "real204": true,
-  "schain": {
-    "ver": "1.0",
-    "complete": 1,
-    "nodes": [
-      {
-        "asi": "superads.com",
-        "sid": "123",
-        "hp": 1
-      }
-    ]
-  }
+  "requestId": "request_id",
+  "real204": true
 }
