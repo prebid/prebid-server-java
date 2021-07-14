@@ -5,19 +5,17 @@
       "id": "imp_id",
       "banner": {
         "w": 300,
-        "h": 600
+        "h": 250
       },
-      "displaymanager": "prebid-s2s",
-      "displaymanagerver": "2.0.0",
+      "tagid": "tag_id",
       "ext": {
         "bidder": {
-          "site_id": "site_id"
+          "TagID": "tag_id"
         }
       }
     }
   ],
   "site": {
-    "id": "site_id",
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {

@@ -36,6 +36,6 @@
     "prebid": {
       "auctiontimestamp": 1000
     },
-    "tmaxrequest": 1000
+    "tmaxrequest": 5000
   }
 }

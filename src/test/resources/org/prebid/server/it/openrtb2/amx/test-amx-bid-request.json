@@ -10,11 +10,11 @@
         "w": 640,
         "h": 480
       },
-      "tagid": "AdUnitId",
+      "tagid": "adUnitId",
       "ext": {
         "bidder": {
           "tagId": "tag_id",
-          "adUnitId": "AdUnitId"
+          "adUnitId": "adUnitId"
         }
       }
     }
@@ -23,6 +23,7 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
+      "id": "tag_id",
       "domain": "example.com"
     },
     "ext": {
@@ -30,8 +31,8 @@
     }
   },
   "device": {
-    "ua": "test-user-agent",
-    "ip": "123.123.123.123"
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
   },
   "at": 1,
   "tmax": 5000,
