@@ -7,13 +7,11 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "tag_id",
+      "tagid": "slot9",
       "ext": {
-        "bidder": {
-          "accountId": "orbidder-test",
-          "placementId": "test-placement",
-          "bidfloor": 0.1
-        }
+        "pmZoneId": "Zone1,Zone2",
+        "preference": "sports,movies",
+        "dfp_ad_unit_code": "thirdPbAdSlot"
       }
     }
   ],
@@ -21,6 +19,7 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
+      "id": "publisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -39,6 +38,12 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "wrapper": {
+      "version": 1,
+      "profile": 5123
     }
   }
 }

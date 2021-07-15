@@ -1,21 +1,21 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId03",
-      "video": {
-        "mimes": [
-          "video/x-flv",
-          "video/mp4"
-        ],
-        "w": 900,
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
         "h": 250
       },
       "tagid": "539439964",
       "bidfloor": 0.1,
       "ext": {
         "customParams": {
-          "foo": "bar"
+          "foo": "bar",
+          "multifoo": [
+            "bar1",
+            "bar2"
+          ]
         }
       }
     }
@@ -24,7 +24,6 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -33,27 +32,13 @@
   },
   "device": {
     "ua": "userAgent",
-    "dnt": 2,
-    "ip": "193.168.244.1",
-    "pxratio": 4.2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "user": {
-    "buyeruid": "OX-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "ip": "193.168.244.1"
   },
   "at": 1,
   "tmax": 5000,
   "cur": [
     "USD"
   ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
   "regs": {
     "ext": {
       "gdpr": 0

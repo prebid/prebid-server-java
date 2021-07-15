@@ -1,12 +1,12 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "seat": "rtbhouse",
       "bid": [
         {
-          "id": "randomid",
-          "impid": "test-imp-id",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.500000,
           "adid": "12345678",
           "adm": "some-test-ad",
@@ -18,5 +18,5 @@
       ]
     }
   ],
-  "bidid": "bid01"
+  "bidid": "bid_id"
 }

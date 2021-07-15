@@ -7,12 +7,12 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "tag_id",
       "ext": {
         "bidder": {
-          "accountId": "orbidder-test",
-          "placementId": "test-placement",
-          "bidfloor": 0.1
+          "placementId": "72721",
+          "zone": "1r",
+          "path": "mvo",
+          "S2S": true
         }
       }
     }

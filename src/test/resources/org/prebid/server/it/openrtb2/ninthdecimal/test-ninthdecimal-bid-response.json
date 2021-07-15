@@ -1,15 +1,15 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "crid": "24080",
-          "adid": "2068416",
+          "crid": "crid",
+          "adid": "adid",
           "price": 0.01,
-          "id": "testid",
-          "impid": "testimpid",
-          "cid": "8048"
+          "id": "bid_id",
+          "impid": "imp_id",
+          "cid": "cid"
         }
       ],
       "type": "banner"

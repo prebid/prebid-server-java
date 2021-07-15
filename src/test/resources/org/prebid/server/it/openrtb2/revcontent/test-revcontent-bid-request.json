@@ -7,13 +7,8 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "tag_id",
       "ext": {
-        "bidder": {
-          "accountId": "orbidder-test",
-          "placementId": "test-placement",
-          "bidfloor": 0.1
-        }
+        "bidder": {}
       }
     }
   ],

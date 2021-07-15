@@ -7,12 +7,10 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "tag_id",
       "ext": {
         "bidder": {
-          "accountId": "orbidder-test",
-          "placementId": "test-placement",
-          "bidfloor": 0.1
+          "zone_id": 1,
+          "app_auth_token": "4fd53a12b78af4b39835de9e449c3082"
         }
       }
     }
@@ -28,6 +26,7 @@
     }
   },
   "device": {
+    "os": "someos",
     "ua": "userAgent",
     "ip": "193.168.244.1"
   },

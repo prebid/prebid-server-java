@@ -1,13 +1,13 @@
 {
-  "id": "bidRequest00",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "600527796",
-          "impid": "impId04",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 5.78,
-          "adm": "adm003",
+          "adm": "adm00",
           "crid": "crid00",
           "w": 300,
           "h": 250
