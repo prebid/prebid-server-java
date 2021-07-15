@@ -4,23 +4,21 @@
     {
       "id": "imp_id",
       "banner": {
-        "w": 300,
-        "h": 250
+        "w": -1,
+        "h": 50
       },
-      "ext": {
-        "bidder": {
-        }
-      }
+      "tagid": "pub1_place1"
     }
   ],
-  "site": {
-    "domain": "www.example.com",
-    "page": "http://www.example.com",
+  "app": {
     "publisher": {
-      "domain": "example.com"
-    },
+      "id": "pub1"
+    }
+  },
+  "user": {
+    "buyeruid": "buyer_id",
     "ext": {
-      "amp": 0
+      "consent": "consentValue"
     }
   },
   "device": {
@@ -36,5 +34,9 @@
     "ext": {
       "gdpr": 0
     }
+  },
+  "ext": {
+    "authentication_id": "48b7d18b921be9887a5351f31cc85f1326e3da1d8c402dec2bd338cf10bd6b43",
+    "platformid": "101"
   }
 }

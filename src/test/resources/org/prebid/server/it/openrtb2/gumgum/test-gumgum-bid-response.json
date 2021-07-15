@@ -6,12 +6,13 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 10,
-          "adomain": [],
-          "crid": "crid"
+          "price": 1.25,
+          "crid": "crid001",
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001"
         }
       ]
     }
-  ],
-  "cur": "USD"
+  ]
 }

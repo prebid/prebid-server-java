@@ -9,6 +9,11 @@
       },
       "ext": {
         "bidder": {
+          "placementId": 13245,
+          "size": {
+            "w": 300,
+            "h": 250
+          }
         }
       }
     }

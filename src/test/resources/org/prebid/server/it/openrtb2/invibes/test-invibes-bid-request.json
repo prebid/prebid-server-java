@@ -1,9 +1,9 @@
 {
-  "BidParamsJson": "{\"PlacementIds\":[\"plcId\"],\"BidVersion\":\"4\",\"Properties\":{\"plcId\":{\"Formats\":[{\"w\":300,\"h\":250}],\"ImpID\":\"impId001\"}}}",
+  "BidParamsJson": "{\"PlacementIds\":[\"plcId\"],\"BidVersion\":\"4\",\"Properties\":{\"plcId\":{\"Formats\":[{\"w\":300,\"h\":250}],\"ImpID\":\"imp_id\"}}}",
   "Location": "http://www.example.com",
-  "Lid": "IV-UID",
+  "Lid": "",
   "IsTestBid": false,
-  "GdprConsent": "consentValue",
+  "GdprConsent": "",
   "Gdpr": false,
   "InvibBVLog": false,
   "VideoAdDebug": false
