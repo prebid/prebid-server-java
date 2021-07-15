@@ -4,12 +4,17 @@
     {
       "id": "imp_id",
       "banner": {
-        "w": 300,
-        "h": 250
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
       },
       "ext": {
         "bidder": {
-          "unit": "possible_unit_value"
+          "access_token": "test-token-1",
+          "publisher_id": "test-publisher-1"
         }
       }
     }

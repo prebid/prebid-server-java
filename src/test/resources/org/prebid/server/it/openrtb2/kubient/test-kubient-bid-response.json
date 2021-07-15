@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "7706636740145184841",
-          "impid": "test-imp-banner-id",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.500000,
           "adid": "29681110",
           "adm": "some-test-ad",

@@ -9,7 +9,7 @@
       },
       "ext": {
         "bidder": {
-          "unit": "possible_unit_value"
+          "zone": "zone_1"
         }
       }
     }

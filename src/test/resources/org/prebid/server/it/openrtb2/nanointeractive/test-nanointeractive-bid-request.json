@@ -9,7 +9,13 @@
       },
       "ext": {
         "bidder": {
-          "unit": "possible_unit_value"
+          "pid": "58bfec94eb0a1916fa380163",
+          "nq": [
+            "search query"
+          ],
+          "category": "Automotive",
+          "subId": "a23",
+          "ref": "https://nanointeractive.com"
         }
       }
     }
@@ -17,6 +23,7 @@
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
+    "ref": "https://nanointeractive.com",
     "publisher": {
       "domain": "example.com"
     },
