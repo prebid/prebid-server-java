@@ -43,7 +43,7 @@ public class LoggerControlKnobHandlerTest {
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        handler = new LoggerControlKnobHandler(10000L, loggerControlKnob);
+        handler = new LoggerControlKnobHandler(10000L, loggerControlKnob, "endpoint");
     }
 
     @Test

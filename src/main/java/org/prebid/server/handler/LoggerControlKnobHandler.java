@@ -3,9 +3,11 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.log.LoggerControlKnob;
+import org.prebid.server.util.HttpUtil;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -24,24 +26,28 @@ public class LoggerControlKnobHandler implements Handler<RoutingContext> {
 
     private final long maxDurationMs;
     private final LoggerControlKnob loggerControlKnob;
+    private final String endpoint;
 
-    public LoggerControlKnobHandler(long maxDurationMs, LoggerControlKnob loggerControlKnob) {
+    public LoggerControlKnobHandler(long maxDurationMs, LoggerControlKnob loggerControlKnob, String endpoint) {
         this.maxDurationMs = maxDurationMs;
         this.loggerControlKnob = Objects.requireNonNull(loggerControlKnob);
+        this.endpoint = Objects.requireNonNull(endpoint);
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        final MultiMap parameters = context.request().params();
-
+    public void handle(RoutingContext routingContext) {
         try {
+            final MultiMap parameters = routingContext.request().params();
             loggerControlKnob.changeLogLevel(readLevel(parameters), readDuration(parameters));
-        } catch (InvalidRequestException e) {
-            context.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(e.getMessage());
-            return;
-        }
 
-        context.response().end();
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    HttpServerResponse::end);
+        } catch (InvalidRequestException e) {
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                            .end(e.getMessage()));
+        }
     }
 
     private String readLevel(MultiMap parameters) {

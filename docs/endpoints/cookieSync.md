@@ -22,7 +22,7 @@ must supply a JSON object to define the list of bidders that may need to be sync
             "filter": "exclude"
         },
        "image": {
-            "bidders": ["appnexus"], //only this bidder is allowed to sync image pixels
+            "bidders": ["appnexus"], // only this bidder is allowed to sync image pixels
             "filter": "include"
        }
     }

@@ -27,6 +27,7 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.util.HttpUtil;
@@ -124,14 +125,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
-        final int status;
+        final HttpResponseStatus status;
         final String body;
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
-            status = HttpResponseStatus.OK.code();
+            status = HttpResponseStatus.OK;
             routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
             body = mapper.encode(responseResult.result().getLeft());
         } else {
@@ -144,19 +145,18 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.toList());
                 final String message = String.join("\n", errorMessages);
+                final String referer = routingContext.request().headers().get(HttpUtil.REFERER_HEADER);
+                conditionalLogger.info(String.format("%s, Referer: %s", message, referer), 0.01);
 
-                conditionalLogger.info(String.format("%s, Referer: %s", message,
-                        routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
-
-                status = HttpResponseStatus.BAD_REQUEST.code();
+                status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String message = exception.getMessage();
-                conditionalLogger.info(message, 100);
+                conditionalLogger.info(message, 0.01);
                 errorMessages = Collections.singletonList(message);
 
-                status = HttpResponseStatus.UNAUTHORIZED.code();
+                status = HttpResponseStatus.UNAUTHORIZED;
                 body = message;
                 final String accountId = ((UnauthorizedAccountException) exception).getAccountId();
                 metrics.updateAccountRequestRejectedMetrics(accountId);
@@ -168,7 +168,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
-                status = HttpResponseStatus.FORBIDDEN.code();
+                status = HttpResponseStatus.FORBIDDEN;
                 body = message;
             } else {
                 metricRequestStatus = MetricName.err;
@@ -177,35 +177,36 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 final String message = exception.getMessage();
                 errorMessages = Collections.singletonList(message);
 
-                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
 
-        final AuctionEvent auctionEvent = auctionEventBuilder.status(status).errors(errorMessages).build();
+        final AuctionEvent auctionEvent = auctionEventBuilder.status(status.code()).errors(errorMessages).build();
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
         respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent,
                 tcfContext);
 
-        httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status, body);
+        httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status.code(), body);
     }
 
-    private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,
-                             MetricName metricRequestStatus, AuctionEvent event, TcfContext tcfContext) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
-        } else {
-            context.response()
-                    .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
-                    .setStatusCode(status)
-                    .end(body);
+    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
+                             MetricName requestType, MetricName metricRequestStatus, AuctionEvent event,
+                             TcfContext tcfContext) {
 
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_auction,
+                response -> response
+                        .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
+                        .setStatusCode(status.code())
+                        .end(body));
+
+        if (responseSent) {
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
+        } else {
+            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
         }
     }
 

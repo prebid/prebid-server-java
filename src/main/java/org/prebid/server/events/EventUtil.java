@@ -40,8 +40,8 @@ public class EventUtil {
     private EventUtil() {
     }
 
-    public static void validateType(RoutingContext context) {
-        final String type = context.request().params().get(TYPE_PARAMETER);
+    public static void validateType(RoutingContext routingContext) {
+        final String type = routingContext.request().params().get(TYPE_PARAMETER);
         if (ObjectUtils.notEqual(type, IMP_TYPE) && ObjectUtils.notEqual(type, WIN_TYPE)) {
             throw new IllegalArgumentException(String.format(
                     "Type '%s' is required query parameter. Possible values are %s and %s, but was %s",
@@ -49,24 +49,24 @@ public class EventUtil {
         }
     }
 
-    public static void validateAccountId(RoutingContext context) {
-        final String accountId = context.request().params().get(ACCOUNT_ID_PARAMETER);
+    public static void validateAccountId(RoutingContext routingContext) {
+        final String accountId = routingContext.request().params().get(ACCOUNT_ID_PARAMETER);
         if (StringUtils.isBlank(accountId)) {
             throw new IllegalArgumentException(String.format(
                     "Account '%s' is required query parameter and can't be empty", ACCOUNT_ID_PARAMETER));
         }
     }
 
-    public static void validateBidId(RoutingContext context) {
-        final String bidId = context.request().params().get(BID_ID_PARAMETER);
+    public static void validateBidId(RoutingContext routingContext) {
+        final String bidId = routingContext.request().params().get(BID_ID_PARAMETER);
         if (StringUtils.isBlank(bidId)) {
             throw new IllegalArgumentException(String.format(
                     "BidId '%s' is required query parameter and can't be empty", BID_ID_PARAMETER));
         }
     }
 
-    public static void validateFormat(RoutingContext context) {
-        final String format = context.request().params().get(FORMAT_PARAMETER);
+    public static void validateFormat(RoutingContext routingContext) {
+        final String format = routingContext.request().params().get(FORMAT_PARAMETER);
         if (StringUtils.isNotEmpty(format) && !format.equals(BLANK_FORMAT) && !format.equals(IMAGE_FORMAT)) {
             throw new IllegalArgumentException(String.format(
                     "Format '%s' query parameter is invalid. Possible values are %s and %s, but was %s",
@@ -74,8 +74,8 @@ public class EventUtil {
         }
     }
 
-    public static void validateAnalytics(RoutingContext context) {
-        final String analytics = context.request().params().get(ANALYTICS_PARAMETER);
+    public static void validateAnalytics(RoutingContext routingContext) {
+        final String analytics = routingContext.request().params().get(ANALYTICS_PARAMETER);
         if (StringUtils.isNotEmpty(analytics) && !analytics.equals(ENABLED_ANALYTICS)
                 && !analytics.equals(DISABLED_ANALYTICS)) {
             throw new IllegalArgumentException(String.format(
@@ -84,8 +84,8 @@ public class EventUtil {
         }
     }
 
-    public static void validateTimestamp(RoutingContext context) {
-        final String timestamp = StringUtils.stripToNull(context.request().params().get(TIMESTAMP_PARAMETER));
+    public static void validateTimestamp(RoutingContext routingContext) {
+        final String timestamp = StringUtils.stripToNull(routingContext.request().params().get(TIMESTAMP_PARAMETER));
         if (timestamp != null) {
             try {
                 Long.parseLong(timestamp);
@@ -96,8 +96,8 @@ public class EventUtil {
         }
     }
 
-    public static void validateIntegration(RoutingContext context) {
-        final String value = context.request().getParam(INTEGRATION_PARAMETER);
+    public static void validateIntegration(RoutingContext routingContext) {
+        final String value = routingContext.request().getParam(INTEGRATION_PARAMETER);
         if (StringUtils.isNotEmpty(value)) {
             if (value.length() > INTEGRATION_PARAMETER_MAX_LENGTH) {
                 throw new IllegalArgumentException(String.format(
@@ -113,8 +113,8 @@ public class EventUtil {
         }
     }
 
-    public static EventRequest from(RoutingContext context) {
-        final MultiMap queryParams = context.request().params();
+    public static EventRequest from(RoutingContext routingContext) {
+        final MultiMap queryParams = routingContext.request().params();
 
         final String typeAsString = queryParams.get(TYPE_PARAMETER);
         final EventRequest.Type type = typeAsString.equals(WIN_TYPE) ? EventRequest.Type.win : EventRequest.Type.imp;
@@ -158,7 +158,7 @@ public class EventUtil {
     private static String optionalParameters(EventRequest eventRequest) {
         final StringBuilder result = new StringBuilder();
 
-        // auctionID
+        // auction ID
         if (StringUtils.isNotEmpty(eventRequest.getAuctionId())) {
             result.append(nameValueAsQueryString(AUCTION_ID, eventRequest.getAuctionId()));
         }
