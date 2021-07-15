@@ -9,8 +9,6 @@
           "price": 4.7,
           "adm": "adm6",
           "crid": "crid6",
-          "w": 300,
-          "h": 250,
           "ext": {
             "prebid": {
               "type": "banner",
@@ -18,8 +16,6 @@
                 "hb_pb_ix": "4.70",
                 "hb_bidder_ix": "ix",
                 "hb_pb": "4.70",
-                "hb_size_ix": "300x250",
-                "hb_size": "300x250",
                 "hb_bidder": "ix"
               }
             },
