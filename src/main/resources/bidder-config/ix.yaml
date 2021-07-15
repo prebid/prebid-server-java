@@ -22,8 +22,8 @@ adapters:
       supported-vendors:
       vendor-id: 10
     usersync:
-      url: https://ssum.casalemedia.com/usermatchredir?s=189517&gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&cb=
-      redirect-url: /setuid?bidder=ix&gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&uid=
+      url: https://ssum.casalemedia.com/usermatchredir?s=189517&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
+      redirect-url: /setuid?bidder=ix&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: ix
       type: redirect
       support-cors: false
