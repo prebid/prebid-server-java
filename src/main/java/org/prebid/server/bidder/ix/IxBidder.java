@@ -256,9 +256,8 @@ public class IxBidder implements Bidder<BidRequest> {
     private void updateWithNativeAttributes(Bid.BidBuilder bidBuilder, String adm) {
         final NativeV11Wrapper nativeV11 = parseBidAdm(adm, NativeV11Wrapper.class);
         final Response v11Response = getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
-        final boolean isV11 = v11Response != null;
         final Response response = v11Response != null ? v11Response : parseBidAdm(adm, Response.class);
-        final String updatedAdm = updateAdm(response, isV11);
+        final String updatedAdm = updateAdm(response, v11Response != null);
         if (updatedAdm != null) {
             bidBuilder.adm(updatedAdm);
         }
