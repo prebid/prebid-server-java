@@ -1,5 +1,7 @@
 status-response: "ok"
 external-url: https://prebid-s2s.media.net
+default-timeout-ms: 400
+max-timeout-ms: 400
 vertx:
   enable-per-client-endpoint-metrics: true
 adapters:
