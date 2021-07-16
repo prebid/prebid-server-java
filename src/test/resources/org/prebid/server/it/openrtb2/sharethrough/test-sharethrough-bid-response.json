@@ -1,6 +1,6 @@
 {
   "adserverRequestId": "arid",
-  "bidId": "bid",
+  "bidId": "bid_id",
   "creatives": [
     {
       "cpm": 10,
