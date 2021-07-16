@@ -32,7 +32,7 @@
       "e_volution": "{{ e_volution.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }
