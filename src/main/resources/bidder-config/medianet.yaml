@@ -18,7 +18,7 @@ adapters:
         - video
         - native
       supported-vendors:
-      vendor-id: 10
+      vendor-id: 142
     usersync:
       url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&redirect=
       redirect-url: /setuid?bidder=medianet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=<vsid>
