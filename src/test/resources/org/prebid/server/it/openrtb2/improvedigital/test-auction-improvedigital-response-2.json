@@ -12,11 +12,9 @@
           "adomain": [ "improvedigital.com" ],
           "cid": "25076",
           "ext": {
-            "bidder": {
-              "improvedigital": {
-                "buying_type": "rtb",
-                "line_item_id": 5555
-              }
+            "improvedigital": {
+              "buying_type": "rtb",
+              "line_item_id": 5555
             },
             "prebid": {
               "type": "native",
@@ -41,11 +39,9 @@
           "dealid": "6666",
           "adomain": [ "example.com" ],
           "ext": {
-            "bidder": {
-              "improvedigital": {
-                "buying_type": "classic",
-                "line_item_id": 6666
-              }
+            "improvedigital": {
+              "buying_type": "classic",
+              "line_item_id": 6666
             },
             "prebid": {
               "type": "video",

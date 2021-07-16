@@ -29,11 +29,9 @@
                 "hb_deal_improvedigital": "321329"
               }
             },
-            "bidder": {
-              "improvedigital": {
-                "buying_type": "classic",
-                "line_item_id": 321329
-              }
+            "improvedigital": {
+              "buying_type": "classic",
+              "line_item_id": 321329
             },
             "origbidcpm": 3.33
           }
