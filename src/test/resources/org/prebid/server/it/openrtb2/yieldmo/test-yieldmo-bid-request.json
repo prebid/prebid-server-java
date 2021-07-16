@@ -8,9 +8,7 @@
         "h": 250
       },
       "ext": {
-        "bidder": {
-          "placementId": "36891"
-        }
+        "placement_id": "123"
       }
     }
   ],

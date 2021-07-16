@@ -9,7 +9,8 @@
       },
       "ext": {
         "bidder": {
-          "placementId": "36891"
+          "host": "localhost:8090",
+          "sourceId": 1
         }
       }
     }

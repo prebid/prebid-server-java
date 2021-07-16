@@ -7,22 +7,23 @@
         "w": 300,
         "h": 250
       },
-      "secure": 1,
       "ext": {
-        "visx": {
-          "ga_parms": {
-            "place_on_page": "ATF"
-          },
-          "size": [
-            300,
-            250
-          ],
-          "uid": 7
+        "bidder": {
+          "Just_an_unused_vrtcal_param": "unused_data"
         }
       }
     }
   ],
+  "app": {},
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
   "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
   "regs": {
     "ext": {
       "gdpr": 0
