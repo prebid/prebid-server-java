@@ -31,10 +31,8 @@
             },
             "origbidcpm": 0.5,
             "origbidcur": "USD",
-            "bidder": {
-              "triplelift_pb": {
-                "format": 2
-              }
+            "triplelift_pb": {
+              "format": 2
             }
           }
         }

@@ -1,13 +1,18 @@
 package org.prebid.server.util;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -15,7 +20,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -23,8 +30,11 @@ import java.util.stream.Collectors;
  */
 public final class HttpUtil {
 
+    private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+
     public static final String APPLICATION_JSON_CONTENT_TYPE =
-            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "="
+            HttpHeaderValues.APPLICATION_JSON + ";" + HttpHeaderValues.CHARSET + "="
                     + StandardCharsets.UTF_8.toString().toLowerCase();
 
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
@@ -121,8 +131,21 @@ public final class HttpUtil {
         }
     }
 
-    public static Map<String, String> cookiesAsMap(RoutingContext context) {
-        return context.cookieMap().entrySet().stream()
+    public static Map<String, String> cookiesAsMap(HttpRequestContext httpRequest) {
+        final String cookieHeader = httpRequest.getHeaders().get(HttpHeaders.COOKIE);
+        if (cookieHeader == null) {
+            return Collections.emptyMap();
+        }
+
+        return ServerCookieDecoder.STRICT.decode(cookieHeader).stream()
+                .collect(Collectors.toMap(
+                        io.netty.handler.codec.http.cookie.Cookie::name,
+                        io.netty.handler.codec.http.cookie.Cookie::value));
+
+    }
+
+    public static Map<String, String> cookiesAsMap(RoutingContext routingContext) {
+        return routingContext.cookieMap().entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getValue()));
     }
 
@@ -130,15 +153,29 @@ public final class HttpUtil {
         return String.join("; ", cookie.encode(), "SameSite=None; Secure");
     }
 
-    /**
-     * Sends HTTP response according to the given status and body.
-     */
-    public static void respondWith(RoutingContext context, HttpResponseStatus status, String body) {
-        final HttpServerResponse response = context.response().setStatusCode(status.code());
-        if (body != null) {
-            response.end(body);
-        } else {
-            response.end();
+    public static boolean executeSafely(RoutingContext routingContext, Endpoint endpoint,
+                                        Consumer<HttpServerResponse> responseConsumer) {
+        return executeSafely(routingContext, endpoint.value(), responseConsumer);
+    }
+
+    public static boolean executeSafely(RoutingContext routingContext, String endpoint,
+                                        Consumer<HttpServerResponse> responseConsumer) {
+
+        final HttpServerResponse response = routingContext.response();
+
+        if (response.closed()) {
+            conditionalLogger.warn(
+                    String.format("Client already closed connection, response to %s will be skipped", endpoint),
+                    0.01);
+            return false;
+        }
+
+        try {
+            responseConsumer.accept(response);
+            return true;
+        } catch (Throwable e) {
+            logger.warn("Failed to send {0} response: {1}", endpoint, e.getMessage());
+            return false;
         }
     }
 }

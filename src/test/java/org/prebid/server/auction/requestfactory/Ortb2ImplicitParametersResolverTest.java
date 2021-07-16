@@ -13,9 +13,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
-import io.vertx.core.http.CaseInsensitiveHeaders;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,6 +28,8 @@ import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
@@ -79,23 +78,21 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     private Ortb2ImplicitParametersResolver target;
 
     @Mock
-    private RoutingContext routingContext;
-    @Mock
-    private HttpServerRequest httpRequest;
-    @Mock
     private TimeoutResolver timeoutResolver;
 
     private BidRequest defaultBidRequest;
+    private HttpRequestContext httpRequest;
 
     @Before
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 
+        httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.empty())
+                .build();
+
         given(idGenerator.generateId()).willReturn(null);
         given(timeoutResolver.resolve(any())).willReturn(2000L);
-
-        given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
         target = new Ortb2ImplicitParametersResolver(
                 false,
@@ -113,7 +110,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -138,7 +135,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -162,7 +159,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -192,7 +189,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -223,7 +220,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "UnitTest");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -247,19 +244,23 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.v6));
 
         // when
-        target.resolve(bidRequest, routingContext, timeoutResolver);
+        target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
-        verify(paramsExtractor, never()).ipFrom(any());
+        verify(paramsExtractor, never()).ipFrom(any(CaseInsensitiveMultiMap.class), any());
     }
 
     @Test
     public void shouldNotSetDeviceDntIfHeaderHasInvalidValue() {
         // given
-        given(httpRequest.getHeader("DNT")).willReturn("invalid");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add("DNT", "invalid")
+                        .build())
+                .build();
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getDnt()).isNull();
@@ -268,10 +269,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetDeviceDntIfHeaderExists() {
         // given
-        given(httpRequest.getHeader("DNT")).willReturn("1");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add("DNT", "1")
+                        .build())
+                .build();
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getDnt()).isOne();
@@ -280,14 +285,18 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldOverrideDeviceDntIfHeaderExists() {
         // given
-        given(httpRequest.getHeader("DNT")).willReturn("0");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add("DNT", "0")
+                        .build())
+                .build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().dnt(1).build())
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getDnt()).isZero();
@@ -304,7 +313,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -321,7 +330,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -339,7 +348,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -357,7 +366,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -375,7 +384,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -393,7 +402,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -411,7 +420,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -429,7 +438,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -447,7 +456,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -466,7 +475,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -486,7 +495,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -505,7 +514,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -524,7 +533,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -544,7 +553,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -562,7 +571,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -581,7 +590,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -601,7 +610,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -620,7 +629,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -639,7 +648,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -659,7 +668,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -678,7 +687,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -698,7 +707,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -717,7 +726,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -737,7 +746,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -756,7 +765,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -775,7 +784,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -795,7 +804,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -814,7 +823,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isZero();
@@ -834,7 +843,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isOne();
@@ -853,7 +862,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -872,7 +881,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getDevice().getLmt()).isNull();
@@ -885,7 +894,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getImp()).flatExtracting(Imp::getSecure).containsOnly(1);
@@ -901,7 +910,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -916,7 +925,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getSecure).containsOnly(1, 0);
@@ -932,7 +941,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -963,7 +972,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -1003,7 +1012,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -1035,7 +1044,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getImp()).isSameAs(imps);
@@ -1065,7 +1074,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result).isSameAs(bidRequest);
@@ -1074,7 +1083,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetSiteExtIfNoReferer() {
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite())
@@ -1090,7 +1099,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1104,7 +1113,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
 
         // when
-        final BidRequest result = target.resolve(defaultBidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite().getPage()).isNull();
@@ -1121,7 +1130,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willReturn("site.com");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         verify(paramsExtractor).domainFrom(eq("page.site.com"));
@@ -1145,7 +1154,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1172,7 +1181,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(Site.builder()
@@ -1191,7 +1200,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSite()).isEqualTo(
@@ -1207,7 +1216,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getSource())
@@ -1220,7 +1229,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().at(0).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
@@ -1232,7 +1241,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().at(null).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
@@ -1244,7 +1253,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().cur(null).build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getCur()).isEqualTo(singletonList("USD"));
@@ -1256,7 +1265,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getTmax()).isEqualTo(2000L);
@@ -1273,7 +1282,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         // result was wrapped to list because extracting method works different on iterable and not iterable objects,
@@ -1298,7 +1307,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThatThrownBy(() -> target.resolve(bidRequest, routingContext, timeoutResolver))
+        assertThatThrownBy(() -> target.resolve(bidRequest, httpRequest, timeoutResolver))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Invalid string price granularity with value: invalid");
     }
@@ -1314,7 +1323,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1343,7 +1352,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1365,7 +1374,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1387,7 +1396,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1410,7 +1419,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1441,7 +1450,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getExt())
@@ -1467,7 +1476,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1496,7 +1505,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1527,7 +1536,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1551,7 +1560,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1576,7 +1585,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1607,7 +1616,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1631,7 +1640,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(result.getExt()).isSameAs(extBidRequest);
@@ -1647,7 +1656,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1667,7 +1676,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1686,7 +1695,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1708,7 +1717,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1729,7 +1738,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.resolve(bidRequest, routingContext, timeoutResolver);
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver);
 
         // then
         assertThat(singletonList(result))
@@ -1748,14 +1757,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(BlacklistedAppException.class)
-                .isThrownBy(() -> target.resolve(bidRequest, routingContext, timeoutResolver))
+                .isThrownBy(() -> target.resolve(bidRequest, httpRequest, timeoutResolver))
                 .withMessage("Prebid-server does not process requests from App ID: bad_app");
     }
 
     private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {
         given(paramsExtractor.refererFrom(any())).willReturn(referer);
         given(paramsExtractor.domainFrom(anyString())).willReturn(domain);
-        given(paramsExtractor.ipFrom(any())).willReturn(singletonList(ip));
+        given(paramsExtractor.ipFrom(any(CaseInsensitiveMultiMap.class), any())).willReturn(singletonList(ip));
         given(ipAddressHelper.toIpAddress(eq(ip))).willReturn(IpAddress.of(ip, ipVersion));
         given(paramsExtractor.uaFrom(any())).willReturn(ua);
     }
