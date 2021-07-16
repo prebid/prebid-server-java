@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.pubmatic.proto;
+package org.prebid.server.bidder.pubmatic.model.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;

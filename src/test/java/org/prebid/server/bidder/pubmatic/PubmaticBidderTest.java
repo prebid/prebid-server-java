@@ -6,9 +6,11 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -22,12 +24,11 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.pubmatic.model.PubmaticExtAdServer;
-import org.prebid.server.bidder.pubmatic.model.PubmaticExtData;
-import org.prebid.server.bidder.pubmatic.proto.PubmaticBidExt;
-import org.prebid.server.bidder.pubmatic.proto.PubmaticImpExt;
-import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
-import org.prebid.server.bidder.pubmatic.proto.VideoCreativeInfo;
+import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
+import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
+import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
+import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
+import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
@@ -112,7 +113,7 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid adSlot provided"));
+                .containsOnly(BidderError.badInput("Invalid adSlot 'invalid ad slot@'"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -128,7 +129,7 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid size provided in adSlot"));
+                .containsOnly(BidderError.badInput("Invalid size provided in adSlot 'slot@300x200x100'"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -144,7 +145,7 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid size provided in adSlot"));
+                .containsOnly(BidderError.badInput("Invalid width provided in adSlot 'slot@widthx200'"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -160,7 +161,7 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid size provided in adSlot"));
+                .containsOnly(BidderError.badInput("Invalid height provided in adSlot 'slot@300xHeight:1'"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -218,6 +219,84 @@ public class PubmaticBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
                 .extracting(Banner::getW).containsOnly(300);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetBannerWidthAndHeightFromFormatIfMissedOriginalsOrInAdSlot() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder()
+                .format(singletonList(Format.builder().w(100).h(200).build()))
+                .build()), extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot(null));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getH).containsOnly(200);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW).containsOnly(100);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagIdForBannerImpsWithSymbolsFromAdSlotBeforeAtSign() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly("slot");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagIdForVideoImpsWithSymbolsFromAdSlotBeforeAtSign() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.banner(null).video(Video.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly("slot");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAdSlotAsTagIdIfAtSignIsMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                extImpBuilder -> extImpBuilder
+                        .adSlot("adSlot"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly("adSlot");
     }
 
     @Test
@@ -284,10 +363,10 @@ public class PubmaticBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(PubmaticImpExt.of(
+                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
                                 ExtImpPubmatic.builder().build(),
                                 PubmaticExtData.of("pbaAdSlot",
-                                        PubmaticExtAdServer.of("adServerName", "adServerAdSlot"))
+                                        PubmaticExtDataAdServer.of("adServerName", "adServerAdSlot"))
                         )))
                         .build()))
                 .build();
@@ -313,9 +392,9 @@ public class PubmaticBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(PubmaticImpExt.of(
+                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
                                 ExtImpPubmatic.builder().build(),
-                                PubmaticExtData.of("pbaAdSlot", PubmaticExtAdServer.of("gam", "adServerAdSlot"))
+                                PubmaticExtData.of("pbaAdSlot", PubmaticExtDataAdServer.of("gam", "adServerAdSlot"))
                         )))
                         .build()))
                 .build();
@@ -375,7 +454,8 @@ public class PubmaticBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsOnly(jacksonMapper.fillExtension(
-                        ExtRequest.empty(), PubmaticRequestExt.of(mapper.valueToTree(singletonMap("key", 1)))));
+                        ExtRequest.empty(), mapper.createObjectNode()
+                                .set("wrapper", mapper.valueToTree(singletonMap("key", 1)))));
     }
 
     @Test
@@ -402,6 +482,29 @@ public class PubmaticBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.site(Site.builder().build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher)
+                .extracting(Publisher::getId)
+                .containsOnly("pub id");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateSitePublisherIdFromImpExtPublisherId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.site(Site.builder()
+                        .publisher(Publisher.builder().id("anotherId").build())
+                        .build()),
                 identity(),
                 identity());
 
@@ -466,6 +569,29 @@ public class PubmaticBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getPublisher)
+                .extracting(Publisher::getId)
+                .containsOnly("pub id");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSUpdateAppPublisherIdExtPublisherIdIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder()
+                        .publisher(Publisher.builder().id("anotherId").build())
+                        .build()),
                 identity(),
                 identity());
 
@@ -716,7 +842,7 @@ public class PubmaticBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                extImpPubmaticBuilder -> extImpPubmaticBuilder.pmzoneid("pmzoneid")
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.pmZoneId("pmzoneid")
                         .keywords(singletonList(ExtImpPubmaticKeyVal.of("pmZoneId", asList("value1", "value2")))));
 
         // when
