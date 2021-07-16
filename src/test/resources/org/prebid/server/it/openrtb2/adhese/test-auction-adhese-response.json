@@ -13,13 +13,11 @@
           "w": 728,
           "h": 90,
           "ext": {
-            "bidder": {
-              "adType": "leaderboard"
-            },
+            "adType": "leaderboard",
             "prebid": {
               "type": "banner",
               "targeting": {
-               "hb_pb": "1.00",
+                "hb_pb": "1.00",
                 "hb_size_adhese": "728x90",
                 "hb_size": "728x90",
                 "hb_pb_adhese": "1.00",

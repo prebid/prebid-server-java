@@ -420,7 +420,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(BEACHFRONT, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(3);
+        assertThat(messages.size()).isEqualTo(2);
     }
 
     @Test

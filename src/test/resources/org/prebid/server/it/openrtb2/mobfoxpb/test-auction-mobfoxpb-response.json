@@ -27,12 +27,7 @@
                 "hb_pb_mobfoxpb": "3.30"
               }
             },
-            "origbidcpm": 3.33,
-            "bidder": {
-              "prebid": {
-                "type": "banner"
-              }
-            }
+            "origbidcpm": 3.33
           }
         }
       ],

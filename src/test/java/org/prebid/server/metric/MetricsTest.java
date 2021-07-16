@@ -18,6 +18,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.hooks.execution.model.ExecutionAction;
+import org.prebid.server.hooks.execution.model.ExecutionStatus;
+import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
 import java.util.EnumMap;
@@ -1041,6 +1044,163 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("settings.cache.account.hit").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updateHooksMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateHooksMetrics(
+                "module1", Stage.entrypoint, "hook1", ExecutionStatus.success, 5L, ExecutionAction.update);
+        metrics.updateHooksMetrics(
+                "module1", Stage.raw_auction_request, "hook2", ExecutionStatus.success, 5L, ExecutionAction.no_action);
+        metrics.updateHooksMetrics(
+                "module1",
+                Stage.processed_auction_request,
+                "hook3",
+                ExecutionStatus.success,
+                5L,
+                ExecutionAction.reject);
+        metrics.updateHooksMetrics(
+                "module2", Stage.bidder_request, "hook1", ExecutionStatus.failure, 6L, null);
+        metrics.updateHooksMetrics(
+                "module2", Stage.raw_bidder_response, "hook2", ExecutionStatus.timeout, 7L, null);
+        metrics.updateHooksMetrics(
+                "module2", Stage.processed_bidder_response, "hook3", ExecutionStatus.execution_failure, 5L, null);
+        metrics.updateHooksMetrics(
+                "module2", Stage.auction_response, "hook4", ExecutionStatus.invocation_failure, 5L, null);
+
+        // then
+        assertThat(metricRegistry.counter("modules.module.module1.stage.entrypoint.hook.hook1.call")
+                .getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.module1.stage.entrypoint.hook.hook1.success.update")
+                .getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module1.stage.entrypoint.hook.hook1.duration").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("modules.module.module1.stage.rawauction.hook.hook2.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.module1.stage.rawauction.hook.hook2.success.noop").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module1.stage.rawauction.hook.hook2.duration").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("modules.module.module1.stage.procauction.hook.hook3.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.module1.stage.procauction.hook.hook3.success.reject")
+                .getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module1.stage.procauction.hook.hook3.duration").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("modules.module.module2.stage.bidrequest.hook.hook1.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.module2.stage.bidrequest.hook.hook1.failure").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module2.stage.bidrequest.hook.hook1.duration").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("modules.module.module2.stage.rawbidresponse.hook.hook2.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.module2.stage.rawbidresponse.hook.hook2.timeout").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module2.stage.rawbidresponse.hook.hook2.duration").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("modules.module.module2.stage.procbidresponse.hook.hook3.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.module2.stage.procbidresponse.hook.hook3.execution-error")
+                .getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module2.stage.procbidresponse.hook.hook3.duration").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("modules.module.module2.stage.auctionresponse.hook.hook4.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("modules.module.module2.stage.auctionresponse.hook.hook4.execution-error")
+                .getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("modules.module.module2.stage.auctionresponse.hook.hook4.duration").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void updateAccountHooksMetricsShouldIncrementMetricsIfVerbosityIsDetailed() {
+        // given
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+
+        // when
+        metrics.updateAccountHooksMetrics(
+                "accountId", "module1", ExecutionStatus.success, ExecutionAction.update);
+        metrics.updateAccountHooksMetrics(
+                "accountId", "module2", ExecutionStatus.failure, null);
+        metrics.updateAccountHooksMetrics(
+                "accountId", "module3", ExecutionStatus.timeout, null);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module1.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module1.success.update").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module2.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module2.failure").getCount())
+                .isEqualTo(1);
+
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module3.call").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module3.failure").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void updateAccountHooksMetricsShouldNotIncrementMetricsIfVerbosityIsNotAtLeastDetailed() {
+        // given
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+
+        // when
+        metrics.updateAccountHooksMetrics(
+                "accountId", "module1", ExecutionStatus.success, ExecutionAction.update);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module1.call").getCount())
+                .isZero();
+        assertThat(metricRegistry.counter("account.accountId.modules.module.module1.success.update").getCount())
+                .isZero();
+    }
+
+    @Test
+    public void updateAccountModuleDurationMetricShouldIncrementMetricsIfVerbosityIsDetailed() {
+        // given
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+
+        // when
+        metrics.updateAccountModuleDurationMetric(
+                "accountId", "module1", 5L);
+        metrics.updateAccountModuleDurationMetric(
+                "accountId", "module2", 6L);
+
+        // then
+        assertThat(metricRegistry.timer("account.accountId.modules.module.module1.duration").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.modules.module.module2.duration").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void updateAccountModuleDurationMetricShouldNotIncrementMetricsIfVerbosityIsNotAtLeastDetailed() {
+        // given
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+
+        // when
+        metrics.updateAccountModuleDurationMetric(
+                "accountId", "module1", 5L);
+
+        // then
+        assertThat(metricRegistry.timer("account.accountId.modules.module.module1.duration").getCount())
+                .isZero();
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

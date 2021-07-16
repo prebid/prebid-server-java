@@ -15,10 +15,11 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -65,7 +66,6 @@ public class AuctionRequestFactory {
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        final List<String> errors = new ArrayList<>();
         final String body;
         try {
             body = extractAndValidateBody(routingContext);
@@ -73,14 +73,20 @@ public class AuctionRequestFactory {
             return Future.failedFuture(e);
         }
 
-        return parseBidRequest(body, routingContext, errors)
-                .compose(bidRequest -> ortb2RequestFactory.fetchAccountAndCreateAuctionContext(
-                        routingContext,
-                        bidRequest,
-                        requestTypeMetric(bidRequest),
-                        true,
-                        startTime,
-                        errors))
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                Endpoint.openrtb2_auction, MetricName.openrtb2web);
+
+        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
+                .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
+                        .map(bidRequest -> ortb2RequestFactory
+                                .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
+                                .with(requestTypeMetric(bidRequest))))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> updateBidRequest(auctionContext)
                         .map(auctionContext::with))
@@ -89,14 +95,16 @@ public class AuctionRequestFactory {
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(
-                                auctionContext.getBidRequest(),
-                                auctionContext.getAccount(),
-                                auctionContext.getPrivacyContext())));
+                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+
+                .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with))
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
-    private String extractAndValidateBody(RoutingContext context) {
-        final String body = context.getBodyAsString();
+    private String extractAndValidateBody(RoutingContext routingContext) {
+        final String body = routingContext.getBodyAsString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
         }
@@ -109,11 +117,11 @@ public class AuctionRequestFactory {
         return body;
     }
 
-    private Future<BidRequest> parseBidRequest(String body, RoutingContext context, List<String> errors) {
+    private Future<BidRequest> parseBidRequest(HttpRequestContext httpRequest, List<String> errors) {
         try {
-            final JsonNode bidRequestNode = bodyAsJsonNode(body);
+            final JsonNode bidRequestNode = bodyAsJsonNode(httpRequest.getBody());
 
-            final String referer = paramsExtractor.refererFrom(context.request());
+            final String referer = paramsExtractor.refererFrom(httpRequest);
             ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
 
             return Future.succeededFuture(jsonNodeAsBidRequest(bidRequestNode));
@@ -145,10 +153,10 @@ public class AuctionRequestFactory {
     private Future<BidRequest> updateBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final RoutingContext routingContext = auctionContext.getRoutingContext();
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
-                .map(resolvedBidRequest -> paramsResolver.resolve(resolvedBidRequest, routingContext, timeoutResolver))
+                .map(resolvedBidRequest -> paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver))
                 .map(ortb2RequestFactory::validateRequest)
                 .map(interstitialProcessor::process);
     }

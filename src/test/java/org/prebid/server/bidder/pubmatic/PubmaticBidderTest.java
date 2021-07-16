@@ -22,7 +22,10 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.pubmatic.model.PubmaticExtAdServer;
+import org.prebid.server.bidder.pubmatic.model.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticBidExt;
+import org.prebid.server.bidder.pubmatic.proto.PubmaticImpExt;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.bidder.pubmatic.proto.VideoCreativeInfo;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -252,7 +255,7 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpExtFromKeywords() throws IOException {
+    public void makeHttpRequestsShouldSetImpExtFromKeywords() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -264,12 +267,71 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode();
+        expectedImpExt.put("key2", "value1,value2");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsOnly(mapper.readValue("{\"key2\":\"value1,value2\"}", ObjectNode.class));
+                .containsOnly(expectedImpExt);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddImpExtAddUnitKeyKeyWordFromDataAdSlotIfAdServerNameIsNotGam() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(PubmaticImpExt.of(
+                                ExtImpPubmatic.builder().build(),
+                                PubmaticExtData.of("pbaAdSlot",
+                                        PubmaticExtAdServer.of("adServerName", "adServerAdSlot"))
+                        )))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode();
+        expectedImpExt.put("dfp_ad_unit_code", "pbaAdSlot");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsOnly(expectedImpExt);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddImpExtAddUnitKeyKeyWordFromAdServerAdSlotIfAdServerNameIsGam() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(PubmaticImpExt.of(
+                                ExtImpPubmatic.builder().build(),
+                                PubmaticExtData.of("pbaAdSlot", PubmaticExtAdServer.of("gam", "adServerAdSlot"))
+                        )))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode();
+        expectedImpExt.put("dfp_ad_unit_code", "adServerAdSlot");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsOnly(expectedImpExt);
     }
 
     @Test
@@ -286,12 +348,14 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode();
+        expectedImpExt.put("key2", "value1,value2");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsOnly(mapper.readValue("{\"key2\":\"value1,value2\"}", ObjectNode.class));
+                .containsOnly(expectedImpExt);
     }
 
     @Test

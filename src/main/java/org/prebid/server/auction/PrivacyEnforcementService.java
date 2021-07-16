@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -94,6 +95,7 @@ public class PrivacyEnforcementService {
         final Account account = auctionContext.getAccount();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Timeout timeout = auctionContext.getTimeout();
+        final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
@@ -109,7 +111,7 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(requestType, bidRequest, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                privacy, country, effectiveIpAddress, accountGdpr, requestType, requestLogInfo, timeout)
+                privacy, country, effectiveIpAddress, accountGdpr, requestType, requestLogInfo, timeout, debugWarnings)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
@@ -158,7 +160,9 @@ public class PrivacyEnforcementService {
     }
 
     private String resolveIpFromRequest(HttpServerRequest request) {
-        final List<String> requestIps = implicitParametersExtractor.ipFrom(request);
+        final MultiMap headers = request.headers();
+        final String host = request.remoteAddress().host();
+        final List<String> requestIps = implicitParametersExtractor.ipFrom(headers, host);
         return requestIps.stream()
                 .map(ipAddressHelper::toIpAddress)
                 .filter(Objects::nonNull)

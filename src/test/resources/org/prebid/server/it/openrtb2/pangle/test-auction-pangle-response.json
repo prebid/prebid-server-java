@@ -23,12 +23,10 @@
                 "hb_bidder": "pangle"
               }
             },
-            "bidder": {
-              "pangle": {
-                "adtype": 1
-              }
+            "pangle": {
+              "adtype": 1
             },
-            "origbidcpm" : 1.25
+            "origbidcpm": 1.25
           }
         }
       ],

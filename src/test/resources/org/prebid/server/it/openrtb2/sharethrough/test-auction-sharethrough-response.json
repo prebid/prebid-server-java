@@ -15,15 +15,7 @@
           "h": 50,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_bidder_sharethrough": "sharethrough",
-                "hb_pb": "10.00",
-                "hb_size_sharethrough": "50x50",
-                "hb_size": "50x50",
-                "hb_bidder": "sharethrough",
-                "hb_pb_sharethrough": "10.00"
-              }
+              "type": "banner"
             },
             "origbidcpm": 10,
             "origbidcur": "USD"
@@ -36,129 +28,11 @@
   ],
   "cur": "USD",
   "ext": {
-    "debug": {
-      "httpcalls": {
-        "sharethrough": [
-          {
-            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&us_privacy=1NYN&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt={{ TEST_FORMATTED_TIME }}&supplyId=FGMrCMMc&strVersion=8&ttduid=id&stxuid=STR-UID",
-            "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":3000,\"deadline\":\"{{ DEADLINE_FORMATTED_TIME }}\",\"bidfloor\":3.5}",
-            "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\"},\"version\":0}]}",
-            "status": 200
-          }
-        ]
-      },
-      "resolvedrequest": {
-        "id": "tid",
-        "imp": [
-          {
-            "id": "bid",
-            "banner": {
-              "format": [
-                {
-                  "w": 300,
-                  "h": 250
-                }
-              ]
-            },
-            "ext": {
-              "prebid": {
-                "bidder": {
-                  "sharethrough": {
-                    "pkey": "abc123",
-                    "iframe": true,
-                    "iframeSize": [
-                      50,
-                      50
-                    ],
-                    "bidfloor": 3.5
-                  }
-                }
-              }
-            }
-          }
-        ],
-        "site": {
-          "domain": "www.example.com",
-          "page": "http://www.example.com",
-          "publisher": {
-            "id": "publisherId",
-            "domain" : "example.com"
-          },
-          "ext": {
-            "amp": 0
-          }
-        },
-        "device": {
-          "ua": "Android Chrome/60",
-          "dnt": 2,
-          "ip": "193.168.244.1",
-          "pxratio": 4.2,
-          "language": "en",
-          "ifa": "ifaId"
-        },
-        "user": {
-          "ext": {
-            "eids": [
-              {
-                "source": "adserver.org",
-                "uids": [
-                  {
-                    "id": "id"
-                  }
-                ]
-              }
-            ],
-            "consent": "consentValue"
-          }
-        },
-        "test": 1,
-        "at": 1,
-        "tmax": 3000,
-        "cur": [
-          "USD"
-        ],
-        "badv": [
-          "testblocked"
-        ],
-        "source": {
-          "fd": 1,
-          "tid": "tid"
-        },
-        "regs": {
-          "ext": {
-            "gdpr": 0,
-            "us_privacy": "1NYN"
-          }
-        },
-        "ext": {
-          "prebid": {
-            "debug": 1,
-            "targeting": {
-              "pricegranularity": {
-                "precision": 2,
-                "ranges": [
-                  {
-                    "max": 20,
-                    "increment": 0.1
-                  }
-                ]
-              },
-              "includewinners": true,
-              "includebidderkeys": true
-            },
-            "auctiontimestamp": 1000,
-            "channel": {
-              "name": "web"
-            }
-          }
-        }
-      }
-    },
     "responsetimemillis": {
-      "sharethrough": "{{ sharethrough.response_time_ms }}"
+      "sharethrough": 0
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 3000
   }
