@@ -1,15 +1,15 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
           "adm": "<b>hi</b>",
-          "crid": "test_video_crid",
-          "cid": "test_cid",
-          "impid": "impId002",
+          "crid": "crid",
+          "cid": "cid",
+          "impid": "imp_id",
           "exp": 120,
-          "id": "1",
+          "id": "bid_id",
           "price": 0.01,
           "ext": {
             "format": "VIDEO"

@@ -3,14 +3,17 @@
   "imp": [
     {
       "id": "imp_id",
-      "banner": {
-        "w": 300,
-        "h": 250
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 800,
+        "h": 600
       },
-      "tagid": "foo",
       "ext": {
-        "bidder": {
-          "inventoryCode": "foo"
+        "unruly": {
+          "uuid": "uu_id_1",
+          "siteid": "site_id_1"
         }
       }
     }

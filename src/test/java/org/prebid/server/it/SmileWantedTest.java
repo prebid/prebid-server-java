@@ -27,7 +27,7 @@ public class SmileWantedTest extends IntegrationTest {
                         "openrtb2/smilewanted/test-smilewanted-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/smilewanted/test-auction-smilewanted-response.json",
+        final Response response = responseFor("openrtb2/smilewanted/test-auction-smilewanted-request.json",
                 Endpoint.openrtb2_auction);
 
         // then

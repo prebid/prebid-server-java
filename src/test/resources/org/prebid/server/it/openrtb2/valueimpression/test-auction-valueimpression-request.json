@@ -1,34 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
-      },
-      "ext": {
-        "valueimpression": {
-          "siteId": "123"
-        }
-      }
-    },
-    {
-      "id": "impId002",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "protocols": [
-          2,
-          5
-        ],
-        "w": 1024,
-        "h": 576
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "valueimpression": {
@@ -37,58 +14,7 @@
       }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "buyeruid": "VI-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

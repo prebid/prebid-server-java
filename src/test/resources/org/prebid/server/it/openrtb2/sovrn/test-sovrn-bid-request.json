@@ -7,10 +7,10 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "foo",
+      "tagid": "tag_id",
       "ext": {
         "bidder": {
-          "inventoryCode": "foo"
+          "tagid": "tag_id"
         }
       }
     }
