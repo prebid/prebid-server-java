@@ -23,12 +23,14 @@ public class ExtImpPubmatic {
     @JsonProperty("adSlot")
     String adSlot;
 
-    @JsonProperty("wrapper")
+    String dctr;
+
+    @JsonProperty("pmzoneid")
+    String pmZoneId;
+
     ObjectNode wrapper;
 
     List<ExtImpPubmaticKeyVal> keywords;
 
-    String dctr;
 
-    String pmzoneid;
 }
