@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.pubmatic.proto;
+package org.prebid.server.proto.openrtb.ext.request.axonix;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -6,10 +6,8 @@ import lombok.Value;
 
 @Value
 @AllArgsConstructor(staticName = "of")
-public class PubmaticBidExt {
+public class ExtImpAxonix {
 
-    @JsonProperty("BidType")
-    Integer bidType;
-
-    VideoCreativeInfo video;
+    @JsonProperty("supplyId")
+    String supplyId;
 }
