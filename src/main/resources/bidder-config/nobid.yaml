@@ -1,6 +1,6 @@
 adapters:
   nobid:
-    enabled: true
+    enabled: false
     endpoint: https://ads.servenobid.com/ortb_adreq?tek=pbs&ver=1
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

@@ -1,6 +1,6 @@
 adapters:
   lockerdome:
-    enabled: true
+    enabled: false
     endpoint: https://lockerdome.com/ladbid/prebidserver/openrtb2
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

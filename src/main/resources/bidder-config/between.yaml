@@ -1,6 +1,6 @@
 adapters:
   between:
-    enabled: true
+    enabled: false
     endpoint: http://{{Host}}.betweendigital.com/openrtb_bid?sspId={{PublisherId}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

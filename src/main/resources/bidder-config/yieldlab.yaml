@@ -1,6 +1,6 @@
 adapters:
   yieldlab:
-    enabled: true
+    enabled: false
     endpoint: https://ad.yieldlab.net/yp/
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

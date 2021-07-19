@@ -1,6 +1,6 @@
 adapters:
   amx:
-    enabled: true
+    enabled: false
     endpoint: http://pbs.amxrtb.com/auction/openrtb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

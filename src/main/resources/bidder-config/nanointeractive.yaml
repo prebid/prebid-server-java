@@ -1,6 +1,6 @@
 adapters:
   nanointeractive:
-    enabled: true
+    enabled: false
     endpoint: https://ad.audiencemanager.de/hbs
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

@@ -1,6 +1,6 @@
 adapters:
   adman:
-    enabled: true
+    enabled: false
     endpoint: http://pub.admanmedia.com/?c=o&m=ortb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

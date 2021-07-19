@@ -1,6 +1,6 @@
 adapters:
   criteo:
-    enabled: true
+    enabled: false
     endpoint: https://bidder.criteo.com/cdb?profileId=230
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

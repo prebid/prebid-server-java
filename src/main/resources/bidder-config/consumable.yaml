@@ -1,6 +1,6 @@
 adapters:
   consumable:
-    enabled: true
+    enabled: false
     endpoint: https://e.serverbid.com/api/v2
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

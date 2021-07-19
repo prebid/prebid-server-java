@@ -1,6 +1,6 @@
 adapters:
   brightroll:
-    enabled: true
+    enabled: false
     endpoint: http://east-bid.ybp.yahoo.com/bid/rubiconpbs
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

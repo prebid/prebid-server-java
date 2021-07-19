@@ -1,6 +1,6 @@
 adapters:
   synacormedia:
-    enabled: true
+    enabled: false
     endpoint: http://{{Host}}.technoratimedia.com/openrtb/bids/{{Host}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

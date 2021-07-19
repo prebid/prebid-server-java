@@ -1,6 +1,6 @@
 adapters:
   adform:
-    enabled: true
+    enabled: false
     endpoint: http://adx.adform.net/adx
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

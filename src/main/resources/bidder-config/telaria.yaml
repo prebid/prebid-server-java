@@ -1,6 +1,6 @@
 adapters:
   telaria:
-    enabled: true
+    enabled: false
     endpoint: https://ads.tremorhub.com/ad/rtb/prebid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

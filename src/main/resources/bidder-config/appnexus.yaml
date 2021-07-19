@@ -1,6 +1,6 @@
 adapters:
   appnexus:
-    enabled: true
+    enabled: false
     endpoint: http://ib.adnxs.com/openrtb2
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases:
       districtm:
-        enabled: true
+        enabled: false
     meta-info:
       maintainer-email: prebid-server@xandr.com
       app-media-types:

@@ -1,6 +1,6 @@
 adapters:
   kidoz:
-    enabled: true
+    enabled: false
     endpoint: http://prebid-adapter.kidoz.net/openrtb2/auction?src=prebid-server
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

@@ -1,6 +1,6 @@
 adapters:
   deepintent:
-    enabled: true
+    enabled: false
     endpoint: https://prebid.deepintent.com/prebid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

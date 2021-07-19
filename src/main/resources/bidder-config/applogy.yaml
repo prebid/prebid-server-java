@@ -1,6 +1,6 @@
 adapters:
   applogy:
-    enabled: true
+    enabled: false
     endpoint: http://rtb.applogy.com/v1/prebid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

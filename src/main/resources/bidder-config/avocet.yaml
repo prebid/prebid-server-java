@@ -1,6 +1,6 @@
 adapters:
   avocet:
-    enabled: true
+    enabled: false
     endpoint: https://
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

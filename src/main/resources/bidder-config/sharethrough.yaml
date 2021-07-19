@@ -1,6 +1,6 @@
 adapters:
   sharethrough:
-    enabled: true
+    enabled: false
     endpoint: http://btlr.sharethrough.com/FGMrCMMc/v1
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

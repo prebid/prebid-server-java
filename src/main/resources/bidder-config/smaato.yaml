@@ -1,6 +1,6 @@
 adapters:
   smaato:
-    enabled: true
+    enabled: false
     endpoint: https://prebid.ad.smaato.net/oapi/prebid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

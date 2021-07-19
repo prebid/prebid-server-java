@@ -1,6 +1,6 @@
 adapters:
   silvermob:
-    enabled: true
+    enabled: false
     endpoint: http://{{Host}}.silvermob.com/marketplace/api/dsp/bid/{{ZoneID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

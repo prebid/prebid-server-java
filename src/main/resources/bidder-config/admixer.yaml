@@ -1,6 +1,6 @@
 adapters:
   admixer:
-    enabled: true
+    enabled: false
     endpoint: http://inv-nets.admixer.net/pbs.aspx
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

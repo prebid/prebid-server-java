@@ -1,6 +1,6 @@
 adapters:
   pubmatic:
-    enabled: true
+    enabled: false
     endpoint: https://hbopenbid.pubmatic.com/translator?source=prebid-server
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

@@ -1,6 +1,6 @@
 adapters:
   decenterads:
-    enabled: true
+    enabled: false
     endpoint: http://supply.decenterads.com/?c=o&m=rtb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

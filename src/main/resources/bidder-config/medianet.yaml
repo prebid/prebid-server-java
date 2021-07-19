@@ -1,6 +1,6 @@
 adapters:
   medianet:
-    enabled: true
+    enabled: false
     endpoint: http://common.rtb.svc.cluster.local:7017/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

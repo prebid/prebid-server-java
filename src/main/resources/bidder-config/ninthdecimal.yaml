@@ -1,6 +1,6 @@
 adapters:
   ninthdecimal:
-    enabled: true
+    enabled: false
     endpoint: http://rtb.ninthdecimal.com/xp/get?pubid=
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

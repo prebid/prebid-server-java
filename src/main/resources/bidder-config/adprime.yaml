@@ -1,6 +1,6 @@
 adapters:
   adprime:
-    enabled: true
+    enabled: false
     endpoint: http://delta.adprime.com/?c=o&m=ortb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

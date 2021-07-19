@@ -1,6 +1,6 @@
 adapters:
   rhythmone:
-    enabled: true
+    enabled: false
     endpoint: http://tag.1rx.io/rmp
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

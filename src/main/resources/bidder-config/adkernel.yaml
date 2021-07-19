@@ -1,6 +1,6 @@
 adapters:
   adkernel:
-    enabled: true
+    enabled: false
     endpoint: http://%s/hb?zone=%s
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

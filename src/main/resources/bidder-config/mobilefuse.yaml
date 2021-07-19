@@ -1,6 +1,6 @@
 adapters:
   mobilefuse:
-    enabled: true
+    enabled: false
     endpoint: http://mfx.mobilefuse.com/openrtb?pub_id=
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

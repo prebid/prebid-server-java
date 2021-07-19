@@ -1,6 +1,6 @@
 adapters:
   verizonmedia:
-    enabled: true
+    enabled: false
     endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/MAG
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

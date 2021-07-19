@@ -1,6 +1,6 @@
 adapters:
   adkerneladn:
-    enabled: true
+    enabled: false
     endpoint: http://{{Host}}/rtbpub?account={{PublisherID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

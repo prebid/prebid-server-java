@@ -1,6 +1,6 @@
 adapters:
   somoaudience:
-    enabled: true
+    enabled: false
     endpoint: http://publisher-east.mobileadtrading.com/rtb/bid
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

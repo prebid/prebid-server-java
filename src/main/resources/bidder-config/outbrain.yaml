@@ -1,6 +1,6 @@
 adapters:
   outbrain:
-    enabled: true
+    enabled: false
     endpoint: https://prebidtest.zemanta.com/api/bidder/prebidtest/bid/
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

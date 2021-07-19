@@ -1,6 +1,6 @@
 adapters:
   algorix:
-    enabled: true
+    enabled: false
     endpoint: https://xyz.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

@@ -1,6 +1,6 @@
 adapters:
   conversant:
-    enabled: true
+    enabled: false
     endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

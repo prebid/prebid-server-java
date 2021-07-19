@@ -1,6 +1,6 @@
 adapters:
   epom:
-    enabled: true
+    enabled: false
     endpoint: https://an.epom.com/ortb
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

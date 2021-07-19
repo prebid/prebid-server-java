@@ -1,6 +1,6 @@
 adapters:
   pubnative:
-    enabled: true
+    enabled: false
     endpoint: http://dsp.pubnative.net/bid/v1/request
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

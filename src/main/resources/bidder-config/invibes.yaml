@@ -1,6 +1,6 @@
 adapters:
   invibes:
-    enabled: true
+    enabled: false
     endpoint: https://{{Host}}/bid/ServerBidAdContent
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true

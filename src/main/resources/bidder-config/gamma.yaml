@@ -1,6 +1,6 @@
 adapters:
   gamma:
-    enabled: true
+    enabled: false
     endpoint: https://hb.gammaplatform.com/adx/request/
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
