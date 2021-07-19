@@ -262,7 +262,8 @@ public class FpdResolver {
                     .data(resolvedExtRequestPrebidData != null
                             ? resolvedExtRequestPrebidData
                             : extRequestPrebidData)
-                    .bidderconfig(resolvedBidderConfig).build());
+                    .bidderconfig(resolvedBidderConfig)
+                    .build());
         }
 
         return extRequest;

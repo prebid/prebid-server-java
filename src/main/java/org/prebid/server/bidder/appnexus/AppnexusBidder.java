@@ -453,7 +453,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         if (iabCategory != null) {
             cat = Collections.singletonList(iabCategory);
         } else if (CollectionUtils.isNotEmpty(bid.getCat())) {
-            //create empty categories array to force bid to be rejected
+            // create empty categories array to force bid to be rejected
             cat = Collections.emptyList();
         }
 

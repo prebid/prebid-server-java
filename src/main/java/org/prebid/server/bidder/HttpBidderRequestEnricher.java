@@ -4,6 +4,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -27,7 +28,11 @@ public class HttpBidderRequestEnricher {
         pbsRecord = createNameVersionRecord("pbs-java", Objects.requireNonNull(pbsVersion));
     }
 
-    MultiMap enrichHeaders(MultiMap bidderRequestHeaders, MultiMap originalRequestHeaders, BidRequest bidRequest) {
+    MultiMap enrichHeaders(
+            MultiMap bidderRequestHeaders,
+            CaseInsensitiveMultiMap originalRequestHeaders,
+            BidRequest bidRequest) {
+
         // some bidders has headers on class level, so we create copy to not affect them
         final MultiMap bidderRequestHeadersCopy = copyMultiMap(bidderRequestHeaders);
 
@@ -45,7 +50,7 @@ public class HttpBidderRequestEnricher {
         return copiedMultiMap;
     }
 
-    private static void addOriginalRequestHeaders(MultiMap originalHeaders, MultiMap bidderHeaders) {
+    private static void addOriginalRequestHeaders(CaseInsensitiveMultiMap originalHeaders, MultiMap bidderHeaders) {
         originalHeaders.entries().stream()
                 .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey())
                         && !bidderHeaders.contains(entry.getKey()))

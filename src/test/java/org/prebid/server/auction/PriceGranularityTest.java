@@ -10,33 +10,15 @@ import java.math.BigDecimal;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 public class PriceGranularityTest {
 
     @Test
-    public void createFromExtPriceGranularityShouldThrowIllegalArgumentsExceptionIfRangesListNull() {
-        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromExtPriceGranularity(
-                ExtPriceGranularity.of(2, null)));
-    }
-
-    @Test
     public void createFromExtPriceGranularityShouldThrowIllegalArgumentsExceptionIfRangesListIsEmpty() {
         assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromExtPriceGranularity(
                 ExtPriceGranularity.of(2, emptyList())));
-    }
-
-    @Test
-    public void createFromExtPriceGranularityShouldTolerateWithEmptyOrMissingValues() {
-        final ExtGranularityRange granularityRangeWithNullMax = ExtGranularityRange.of(null, BigDecimal.valueOf(0.5));
-        final ExtGranularityRange granularityRange = ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.valueOf(0.5));
-        assertThatCode(() -> PriceGranularity.createFromExtPriceGranularity(
-                ExtPriceGranularity.of(2, asList(granularityRange,
-                        null, // Missed values should be skipped
-                        granularityRangeWithNullMax))))
-                .doesNotThrowAnyException();
     }
 
     @Test

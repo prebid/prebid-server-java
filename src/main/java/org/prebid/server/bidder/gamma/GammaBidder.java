@@ -254,7 +254,7 @@ public class GammaBidder implements Bidder<Void> {
 
         Bid bid = gammaBid.getBid();
         if (isVideo) {
-            //Return inline VAST XML Document (Section 6.4.2)
+            // Return inline VAST XML Document (Section 6.4.2)
             final String vastXml = gammaBid.getVastXml();
             if (StringUtils.isNotBlank(vastXml)) {
                 final Bid.BidBuilder bidBuilder = gammaBid.getBid().toBuilder().adm(vastXml);

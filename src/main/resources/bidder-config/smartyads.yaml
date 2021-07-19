@@ -20,7 +20,7 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://us.ck-ie.com/yhsfle286.gif?redir=
+      url: https://us.ck-ie.com/yhsfle286.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
       redirect-url: /setuid?bidder=smartyads&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={$PARTNER_UID}
       cookie-family-name: smartyads
       type: redirect

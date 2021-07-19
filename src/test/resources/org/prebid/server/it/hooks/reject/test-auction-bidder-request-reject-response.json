@@ -1,0 +1,14 @@
+{
+  "id": "tid",
+  "seatbid": [],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "rubicon": 0
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}
