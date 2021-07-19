@@ -232,9 +232,7 @@ public class IxBidder implements Bidder<BidRequest> {
 
             if (bidType == BidType.video) {
                 updateWithVideoAttributes(bidBuilder, bid.getExt(), bid.getCat());
-            }
-
-            if (bidType == BidType.xNative) {
+            } else {
                 updateWithNativeAttributes(bidBuilder, bid.getAdm());
             }
 
