@@ -33,7 +33,8 @@ public class YieldlabTest extends IntegrationTest {
         // then
         assertJsonEquals("openrtb2/yieldlab/test-auction-yieldlab-response.json", response,
                 singletonList("yieldlab"), new Customization("seatbid[*].bid",
-                        new ArrayValueMatcher<>(new CustomComparator(JSONCompareMode.LENIENT,
-                                new Customization("**.adm", (o1, o2) -> true)))));
+                        new ArrayValueMatcher<>(new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
+                                new Customization("**.adm", (o1, o2) -> true),
+                                new Customization("**.crid", (o1, o2) -> true)))));
     }
 }

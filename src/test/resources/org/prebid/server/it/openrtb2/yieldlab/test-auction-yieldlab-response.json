@@ -7,11 +7,11 @@
           "id": "12345",
           "impid": "imp_id",
           "price": 2.29,
-          "crid": "12345123430",
+          "crid": "",
           "dealid": "1234",
           "w": 400,
           "h": 300,
-          "adm": "${json-unit.ignore}",
+          "adm": "",
           "ext": {
             "origbidcpm": 2.01,
             "origbidcur": "EUR",
