@@ -122,10 +122,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         final Banner banner = imp.getBanner();
 
-        updateImpWithAdSlotParameters(impBuilder, impExt.getBidder().getAdSlot(), banner);
         if (banner != null) {
-            impBuilder.banner(assignSizesIfMissing(impBuilder.build().getBanner()));
+            impBuilder.banner(assignSizesIfMissing(banner));
         }
+
+        enrichImpBuilderWithAdSlotParameters(impBuilder, impExt.getBidder().getAdSlot(), banner);
 
         final ObjectNode keywordsNode = makeKeywords(impExt);
         if (!keywordsNode.isEmpty()) {
@@ -147,7 +148,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void updateImpWithAdSlotParameters(Imp.ImpBuilder impBuilder, String adSlot, Banner banner) {
+    private void enrichImpBuilderWithAdSlotParameters(Imp.ImpBuilder impBuilder, String adSlot, Banner banner) {
         final String trimmedAdSlot = StringUtils.trimToNull(adSlot);
 
         if (StringUtils.isEmpty(trimmedAdSlot)) {
