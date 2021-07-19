@@ -27,8 +27,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.emxdigital.ExtImpEmxDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -241,26 +239,8 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final Long tmax = bidRequest.getTmax();
         final int urlTimeout = tmax == 0 ? 1000 : tmax.intValue();
 
-        if (isDebugEnabled(bidRequest)) {
-            // for passing validation tests
-            return String.format("%s?t=1000&ts=2060541160", endpointUrl);
-        }
-
         return String.format("%s?t=%s&ts=%s&src=pbserver", endpointUrl, urlTimeout,
                 (int) Instant.now().getEpochSecond());
-    }
-
-    /**
-     * Determines debug flag from {@link BidRequest} or {@link ExtRequest}.
-     */
-    private boolean isDebugEnabled(BidRequest bidRequest) {
-        if (Objects.equals(bidRequest.getTest(), 1)) {
-            return true;
-        }
-
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
     }
 
     @Override

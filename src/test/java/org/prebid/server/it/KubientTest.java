@@ -4,7 +4,6 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -38,11 +37,7 @@ public class KubientTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/kubient/test-auction-kubient-response.json",
-                response, singletonList("kubient"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
+        assertJsonEquals("openrtb2/kubient/test-auction-kubient-response.json", response, singletonList("kubient"));
     }
 }
 

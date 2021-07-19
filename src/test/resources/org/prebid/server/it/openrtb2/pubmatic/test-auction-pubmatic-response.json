@@ -47,9 +47,7 @@
               }
             },
             "origbidcpm": 4.0,
-            "bidder": {
-              "BidType": 1
-            }
+            "BidType": 1
           }
         }
       ],

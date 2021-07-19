@@ -20,6 +20,7 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.response.VideoResponse;
@@ -90,19 +91,19 @@ public class VideoHandler implements Handler<RoutingContext> {
     }
 
     private void handleResult(AsyncResult<VideoResponse> responseResult, VideoEvent.VideoEventBuilder videoEventBuilder,
-                              RoutingContext context, long startTime) {
+                              RoutingContext routingContext, long startTime) {
         final boolean responseSucceeded = responseResult.succeeded();
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
-        final int status;
+        final HttpResponseStatus status;
         final String body;
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
-            status = HttpResponseStatus.OK.code();
-            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            status = HttpResponseStatus.OK;
+            routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
             body = mapper.encode(responseResult.result());
         } else {
             final Throwable exception = responseResult.cause();
@@ -111,7 +112,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                 errorMessages = ((InvalidRequestException) exception).getMessages();
                 logger.info("Invalid request format: {0}", errorMessages);
 
-                status = HttpResponseStatus.BAD_REQUEST.code();
+                status = HttpResponseStatus.BAD_REQUEST;
                 body = errorMessages.stream()
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.joining("\n"));
@@ -119,10 +120,9 @@ public class VideoHandler implements Handler<RoutingContext> {
                 metricRequestStatus = MetricName.badinput;
                 final String errorMessage = exception.getMessage();
                 logger.info("Unauthorized: {0}", errorMessage);
-
                 errorMessages = Collections.singletonList(errorMessage);
 
-                status = HttpResponseStatus.UNAUTHORIZED.code();
+                status = HttpResponseStatus.UNAUTHORIZED;
                 body = String.format("Unauthorised: %s", errorMessage);
             } else {
                 metricRequestStatus = MetricName.err;
@@ -131,32 +131,38 @@ public class VideoHandler implements Handler<RoutingContext> {
                 final String message = exception.getMessage();
                 errorMessages = Collections.singletonList(message);
 
-                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
-        final VideoEvent videoEvent = videoEventBuilder.status(status).errors(errorMessages).build();
+
+        final VideoEvent videoEvent = videoEventBuilder.status(status.code()).errors(errorMessages).build();
         final AuctionContext auctionContext = videoEvent.getAuctionContext();
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
-        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);
+        respondWith(routingContext, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);
     }
 
-    private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, VideoEvent event, TcfContext tcfContext) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
-        } else {
-            context.response()
-                    .exceptionHandler(this::handleResponseException)
-                    .setStatusCode(status)
-                    .end(body);
+    private void respondWith(RoutingContext routingContext,
+                             HttpResponseStatus status,
+                             String body,
+                             long startTime,
+                             MetricName metricRequestStatus,
+                             VideoEvent event,
+                             TcfContext tcfContext) {
 
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_video,
+                response -> response
+                        .exceptionHandler(this::handleResponseException)
+                        .setStatusCode(status.code())
+                        .end(body));
+
+        if (responseSent) {
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
+        } else {
+            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
         }
     }
 

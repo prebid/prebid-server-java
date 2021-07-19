@@ -25,9 +25,7 @@
                 "hb_bidder_bidmyadz": "bidmyadz"
               }
             },
-            "bidder": {
-              "mediaType": "banner"
-            },
+            "mediaType": "banner",
             "origbidcpm": 3.33
           }
         }

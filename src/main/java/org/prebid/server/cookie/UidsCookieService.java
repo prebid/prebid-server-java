@@ -82,8 +82,8 @@ public class UidsCookieService {
      * <p>
      * Note: UIDs will be excluded from resulting {@link UidsCookie} if their value are 'null'.
      */
-    public UidsCookie parseFromRequest(RoutingContext context) {
-        return parseFromCookies(HttpUtil.cookiesAsMap(context));
+    public UidsCookie parseFromRequest(RoutingContext routingContext) {
+        return parseFromCookies(HttpUtil.cookiesAsMap(routingContext));
     }
 
     public UidsCookie parseFromRequest(HttpRequestContext httpRequest) {

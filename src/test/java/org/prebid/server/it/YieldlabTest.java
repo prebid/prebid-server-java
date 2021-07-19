@@ -5,7 +5,6 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -52,10 +51,7 @@ public class YieldlabTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/yieldlab/test-auction-yieldlab-response.json",
+        assertJsonEquals("openrtb2/yieldlab/test-auction-yieldlab-response.json",
                 response, singletonList("yieldlab"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 }
