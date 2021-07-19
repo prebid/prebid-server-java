@@ -44,7 +44,7 @@
         <module name="NoLineWrap"/>
         <module name="NeedBraces"/>
         <module name="ConstantName">
-            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|logger|conditionalLogger)$" />
+            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|(.*?)[l,L]ogger)$" />
         </module>
         <module name="LocalFinalVariableName"/>
         <module name="LocalVariableName"/>

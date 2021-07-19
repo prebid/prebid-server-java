@@ -57,10 +57,10 @@ public class EvolutionBidderTest extends VertxTest {
                         Imp.builder().id("456").video(Video.builder().build()).build()))
                 .build();
 
-        //when
+        // when
         final Result<List<HttpRequest<BidRequest>>> requests = evolutionBidder.makeHttpRequests(bidRequest);
 
-        //then
+        // then
         assertThat(requests.getErrors()).isEmpty();
         assertThat(requests.getValue()).hasSize(1);
     }
