@@ -21,7 +21,8 @@ public class AdgenerationTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdgeneration() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/adgeneration-exchange"))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
+                .willReturn(aResponse()
+                        .withBody(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/adgeneration/test-auction-adgeneration-request.json",
