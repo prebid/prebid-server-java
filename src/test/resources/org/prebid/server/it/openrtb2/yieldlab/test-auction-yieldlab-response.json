@@ -7,11 +7,18 @@
           "id": "12345",
           "impid": "imp_id",
           "price": 2.29,
-          "adm": "",
-          "crid": "12345123435",
+          "crid": "12345123430",
           "dealid": "1234",
           "w": 400,
-          "h": 300
+          "h": 300,
+          "adm": "${json-unit.ignore}",
+          "ext": {
+            "origbidcpm": 2.01,
+            "origbidcur": "EUR",
+            "prebid": {
+              "type": "banner"
+            }
+          }
         }
       ],
       "seat": "yieldlab",

@@ -6,7 +6,10 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.model.Endpoint;
+import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
+import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.skyscreamer.jsonassert.comparator.CustomComparator;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -29,7 +32,8 @@ public class YieldlabTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/yieldlab/test-auction-yieldlab-response.json", response,
-                singletonList("yieldlab"),
-                new Customization("seatbid[*].bid[*].adm", (o1, o2) -> true));
+                singletonList("yieldlab"), new Customization("seatbid[*].bid",
+                        new ArrayValueMatcher<>(new CustomComparator(JSONCompareMode.LENIENT,
+                                new Customization("**.adm", (o1, o2) -> true)))));
     }
 }
