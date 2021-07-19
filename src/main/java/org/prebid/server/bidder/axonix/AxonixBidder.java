@@ -35,6 +35,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAxonix>> AXONIX_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAxonix>>() {
             };
+    public static final String URL_SUPPLY_ID_MACRO = "{{SupplyId}}";
 
     private final JacksonMapper mapper;
     private final String endpointUrl;
@@ -46,20 +47,32 @@ public class AxonixBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final ExtImpAxonix extImpAxonix;
         try {
-            final ExtImpAxonix extImpAxonix = mapper.mapper().convertValue(request.getImp().get(0).getExt(),
-                    AXONIX_EXT_TYPE_REFERENCE).getBidder();
-
-            return Result.withValue(HttpRequest.<BidRequest>builder()
-                    .method(HttpMethod.POST)
-                    .uri(HttpUtil.encodeUrl(endpointUrl.replace("{{SupplyId}}", extImpAxonix.getSupplyId())))
-                    .headers(HttpUtil.headers())
-                    .payload(request)
-                    .body(mapper.encode(request))
-                    .build());
-        } catch (IllegalArgumentException | PreBidException e) {
+            extImpAxonix = parseImpExt(request.getImp().get(0));
+        } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
+
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(resolveEndpoint(extImpAxonix.getSupplyId()))
+                .headers(HttpUtil.headers())
+                .payload(request)
+                .body(mapper.encode(request))
+                .build());
+    }
+
+    private ExtImpAxonix parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), AXONIX_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Imp.ext could not be parsed");
+        }
+    }
+
+    private String resolveEndpoint(String supplyId) {
+        return endpointUrl.replace(URL_SUPPLY_ID_MACRO, HttpUtil.encodeUrl(supplyId));
     }
 
     @Override
@@ -72,7 +85,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -83,12 +96,11 @@ public class AxonixBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidMediaType(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getMediaType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getBidMediaType(String impId, List<Imp> imps) {
+    private static BidType getMediaType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 if (imp.getXNative() != null) {

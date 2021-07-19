@@ -1,7 +1,7 @@
 adapters:
   axonix:
     enabled: false
-    endpoint: https://
+    endpoint: https://openrtb-us-east-1.axonix.com/supply/prebid-server/{{SupplyId}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
