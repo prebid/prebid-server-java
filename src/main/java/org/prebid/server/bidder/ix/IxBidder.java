@@ -226,42 +226,48 @@ public class IxBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-
+        final Bid updatedBid;
         if (bidType == BidType.video || bidType == BidType.xNative) {
-            final Bid.BidBuilder bidBuilder = bid.toBuilder();
-
-            if (bidType == BidType.video) {
-                updateWithVideoAttributes(bidBuilder, bid.getExt(), bid.getCat());
-            } else {
-                updateWithNativeAttributes(bidBuilder, bid.getAdm());
-            }
-
-            bid = bidBuilder.build();
+            updatedBid = bidType == BidType.video
+                    ? updateBidWithVideoAttributes(bid)
+                    : bid.toBuilder().adm(updateBidAdmWithNativeAttributes(bid.getAdm())).build();
+        } else {
+            updatedBid = bid;
         }
 
-        return BidderBid.of(bid, bidType, bidResponse.getCur());
+        return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
     }
 
-    private void updateWithVideoAttributes(Bid.BidBuilder bidBuilder, ObjectNode bidExt, List<String> cat) {
+    private Bid updateBidWithVideoAttributes(Bid bid) {
+        final ObjectNode bidExt = bid.getExt();
         final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : null;
         final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
+        final Bid updatedBid;
         if (extVideo != null) {
+            final Bid.BidBuilder bidBuilder = bid.toBuilder();
             bidBuilder.ext(resolveBidExt(extVideo.getDuration()));
-            if (CollectionUtils.isEmpty(cat)) {
+            if (CollectionUtils.isEmpty(bid.getCat())) {
                 bidBuilder.cat(Collections.singletonList(extVideo.getPrimaryCategory())).build();
             }
+            updatedBid = bidBuilder.build();
+        } else {
+            updatedBid = bid;
         }
+        return updatedBid;
     }
 
-    private void updateWithNativeAttributes(Bid.BidBuilder bidBuilder, String adm) {
+    private String updateBidAdmWithNativeAttributes(String adm) {
         final NativeV11Wrapper nativeV11 = parseBidAdm(adm, NativeV11Wrapper.class);
-        final Response v11Response = getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
-        final boolean isV11 = v11Response != null;
-        final Response response = isV11 ? v11Response : parseBidAdm(adm, Response.class);
-        final String updatedAdm = updateAdm(response, isV11);
-        if (updatedAdm != null) {
-            bidBuilder.adm(updatedAdm);
-        }
+        final Response responseV11 = getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
+        final boolean isV11 = responseV11 != null;
+        final Response response = isV11 ? responseV11 : parseBidAdm(adm, Response.class);
+        final List<EventTracker> trackers = getIfNotNull(response, Response::getEventtrackers);
+        final String updatedAdm = CollectionUtils.isNotEmpty(trackers) ? mapper.encode(isV11
+                ? NativeV11Wrapper.of(mergeNativeImpTrackers(response, trackers))
+                : mergeNativeImpTrackers(response, trackers))
+                : null;
+
+        return updatedAdm != null ? updatedAdm : adm;
     }
 
     private <T> T parseBidAdm(String adm, Class<T> clazz) {
@@ -274,17 +280,6 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
         return target != null ? getter.apply(target) : null;
-    }
-
-    private String updateAdm(Response response, boolean isV11) {
-        final List<EventTracker> trackers = getIfNotNull(response, Response::getEventtrackers);
-        if (CollectionUtils.isNotEmpty(trackers)) {
-            return mapper.encode(isV11
-                    ? NativeV11Wrapper.of(mergeNativeImpTrackers(response, trackers))
-                    : mergeNativeImpTrackers(response, trackers));
-        }
-
-        return null;
     }
 
     private static Response mergeNativeImpTrackers(Response response, List<EventTracker> eventTrackers) {
