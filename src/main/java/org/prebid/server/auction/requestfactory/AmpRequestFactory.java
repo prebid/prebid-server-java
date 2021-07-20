@@ -78,12 +78,12 @@ public class AmpRequestFactory {
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
     private static final String CONSENT_PARAM = "consent_string";
-
-    private static final int NO_LIMIT_SPLIT_MODE = -1;
-    private static final String AMP_CHANNEL = "amp";
     private static final String GDPR_APPLIES_PARAM = "gdpr_applies";
     private static final String CONSENT_TYPE_PARAM = "consent_type";
     private static final String ATTL_CONSENT_PARAM = "attl_consent";
+
+    private static final int NO_LIMIT_SPLIT_MODE = -1;
+    private static final String AMP_CHANNEL = "amp";
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
