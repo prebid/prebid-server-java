@@ -40,6 +40,13 @@
     "ua": "userAgent",
     "ip": "193.168.244.1"
   },
+  "user": {
+    "ext": {
+      "ConsentedProvidersSettings": {
+        "consented_providers": "someConsent"
+      }
+    }
+  },
   "at": 1,
   "tmax": 5000,
   "cur": [
@@ -94,7 +101,10 @@
       "amp": {
         "data": {
           "curl": "https%3A%2F%2Fgoogle.com",
+          "consent_type": "3",
           "consent_string": "1YNN",
+          "gdpr_applies": "false",
+          "attl_consent": "someConsent",
           "ow": "980",
           "oh": "120",
           "tag_id": "test-amp-stored-request",

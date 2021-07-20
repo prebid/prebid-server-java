@@ -41,6 +41,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
+import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -1142,7 +1143,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentQueryParamIsValid() {
+    public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsNotPresent() {
         // given
         routingContext.queryParams().add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY");
 
@@ -1156,6 +1157,120 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .isEqualTo(User.builder()
                         .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
                         .build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsTCFV2() {
+        // given
+        routingContext.queryParams()
+                .add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY")
+                .add("consent_type", "2");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser())
+                .isEqualTo(User.builder()
+                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
+                        .build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsTCFV1() {
+        // given
+        routingContext.queryParams()
+                .add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY")
+                .add("consent_type", "1");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsUsPrivacy() {
+        // given
+        routingContext.queryParams()
+                .add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY")
+                .add("consent_type", "3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsUnknown() {
+        // given
+        routingContext.queryParams()
+                .add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY")
+                .add("consent_type", "23");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithProvidersSettingsContainsAttlConsentIfParamIsPresent() {
+        // given
+        routingContext.queryParams()
+                .add("attl_consent", "someConsent");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser())
+                .isEqualTo(User.builder()
+                        .ext(ExtUser.builder()
+                                .consentedProvidersSettings(ConsentedProvidersSettings.of("someConsent"))
+                                .build())
+                        .build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutProvidersSettingsIfAttlConsentIsMissed() {
+        // given
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutProvidersSettingsIfAttlConsentIsBlank() {
+        // given
+        routingContext.queryParams()
+                .add("attl_consent", "  ");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
     }
 
     @Test
@@ -1266,6 +1381,48 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithRegsContainsGdprEqualOneIfGdprAppliesIsTrue() {
+        // given
+        routingContext.queryParams().add("gdpr_applies", "true");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.of(null, ExtRegs.of(1, null)));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsContainsGdprEqualZeroIfGdprAppliesIsFalse() {
+        // given
+        routingContext.queryParams().add("gdpr_applies", "false");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.of(null, ExtRegs.of(0, null)));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutRegsIfGdprAppliesIsNotPresent() {
+        // given
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
+    }
+
+    @Test
     public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenGdprConsentQueryParamIsValidUsPrivacyString() {
         // given
         routingContext.queryParams().add("gdpr_consent", "1N--");
@@ -1281,7 +1438,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenConsentStringQueryParamIsValid() {
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsNotPresent() {
         // given
         routingContext.queryParams().add("consent_string", "1Y-N");
 
@@ -1293,6 +1450,71 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getRegs())
                 .isEqualTo(Regs.of(null, ExtRegs.of(null, "1Y-N")));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsUsPrivacy() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "1Y-N")
+                .add("consent_type", "3");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1Y-N")));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsTcfV1() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "1Y-N")
+                .add("consent_type", "1");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsTcfV2() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "1Y-N")
+                .add("consent_type", "2");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsUnknown() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "1Y-N")
+                .add("consent_type", "23");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
     }
 
     @SuppressWarnings("unchecked")
