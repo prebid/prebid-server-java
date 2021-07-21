@@ -371,7 +371,7 @@ public class CriteoBidderTest extends VertxTest {
                         .id("response-id")
                         .slots(singletonList(
                                 CriteoResponseSlot.builder()
-                                        .id("slot_id")
+                                        .arbitrageId("slot_id")
                                         .impId("imp_id")
                                         .width(300)
                                         .height(300)
@@ -379,7 +379,7 @@ public class CriteoBidderTest extends VertxTest {
                                         .zoneId(1)
                                         .cpm(BigDecimal.valueOf(0.05))
                                         .creative("creative")
-                                        .creativeId("creative-id")
+                                        .creativeCode("creative-id")
                                         .currency("USD")
                                         .build()));
 
