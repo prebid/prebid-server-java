@@ -1,38 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid02",
-          "impid": "impId022",
-          "price": 2.25,
-          "adm": "adm022",
-          "adid": "2002",
-          "adomain": [
-            "video-example.com"
-          ],
-          "cid": "1001",
-          "crid": "crid022",
-          "cat": [
-            "IAB2"
-          ],
-          "ext": {
-            "prebid": {
-              "type": "video",
-              "targeting": {
-                "hb_pb": "2.20",
-                "hb_bidder_adkernelAdn": "adkernelAdn",
-                "hb_bidder": "adkernelAdn",
-                "hb_pb_adkernelAdn": "2.20"
-              }
-            },
-            "origbidcpm": 2.25
-          }
-        },
-        {
-          "id": "wehM-93KGr0_0_0",
-          "impid": "impId021",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "adm021",
           "adid": "19005",
@@ -48,15 +21,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_size": "300x250",
-                "hb_size_adkernelAdn": "300x250",
-                "hb_bidder_adkernelAdn": "adkernelAdn",
-                "hb_bidder": "adkernelAdn",
-                "hb_pb_adkernelAdn": "0.50"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }
@@ -72,7 +37,7 @@
       "adkernelAdn": "{{ adkernelAdn.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

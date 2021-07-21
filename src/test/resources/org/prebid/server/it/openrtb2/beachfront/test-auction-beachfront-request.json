@@ -1,38 +1,8 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId01",
-      "video": {
-        "mimes": [
-          "mimes"
-        ]
-      },
-      "ext": {
-        "beachfront": {
-          "appId": "beachfrontAppId1",
-          "bidfloor": 1,
-          "videoResponseType": "nurl"
-        }
-      }
-    },
-    {
-      "id": "impId02",
-      "video": {
-        "mimes": [
-          "mimes"
-        ]
-      },
-      "ext": {
-        "beachfront": {
-          "appId": "beachfrontAppId",
-          "bidfloor": 2,
-          "videoResponseType": "adm"
-        }
-      }
-    },
-    {
-      "id": "impId03",
+      "id": "imp_id",
       "banner": {
         "format": [
           {
@@ -49,60 +19,7 @@
       }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid",
-    "ext": {
-      "schain": {
-        "ver": "1.0",
-        "complete": 1,
-        "nodes": [
-          {
-            "asi": "superads.com",
-            "sid": "123",
-            "hp": 1
-          }
-        ]
-      }
-    }
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

@@ -32,7 +32,7 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=21521324&a=5001&aid=tid&ts=1000&bidder=rubicon&f=i&int="
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -68,7 +68,7 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=7706636740145184841&a=5001&aid=tid&ts=1000&bidder=appnexus&f=i&int="
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -102,7 +102,7 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=880290288&a=5001&aid=tid&ts=1000&bidder=rubicon&f=i&int="
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -141,31 +141,31 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=222214214214&a=5001&aid=tid&ts=1000&bidder=appnexus&f=i&int="
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "xml",
       "value": "some-test-ad1",
       "expiry": 120,
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "xml",
       "value": "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&aid=tid&ts=1000&bidder=rubicon&f=b&int=]]></Impression></InLine>",
       "expiry": 120,
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "xml",
       "value": "some-test-ad2",
       "expiry": 120,
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "xml",
       "value": "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=21521324&a=5001&aid=tid&ts=1000&bidder=rubicon&f=b&int=]]></Impression></InLine>",
       "expiry": 120,
-      "aid":"tid"
+      "aid": "tid"
     }
   ]
 }

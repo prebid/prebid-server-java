@@ -84,7 +84,7 @@
           "prebid": {
             "debug": 1,
             "trace": "verbose",
-            "auctiontimestamp": 1000,
+            "auctiontimestamp": 0,
             "channel": {
               "name": "web"
             }
@@ -101,7 +101,7 @@
     },
     "tmaxrequest": 5000,
     "prebid": {
-      "auctiontimestamp": 1000,
+      "auctiontimestamp": 0,
       "modules": {
         "trace": {
           "stages": [

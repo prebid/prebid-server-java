@@ -1,15 +1,9 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 320,
-            "h": 50
-          }
-        ],
         "w": 320,
         "h": 50
       },
@@ -18,72 +12,13 @@
           "placementId": "pub1_place1"
         }
       }
-    },
-    {
-      "id": "impId002",
-      "video": {
-        "w": 300,
-        "h": 250,
-        "pos": 1,
-        "mimes": [
-          "video/mp4"
-        ]
-      },
-      "ext": {
-        "audienceNetwork": {
-          "placementId": "placement2",
-          "publisherId": "pub2"
-        }
-      }
-    },
-    {
-      "id": "impId003",
-      "native": {
-        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}},{\"required\":1,\"img\":{\"type\":3,\"wmin\":1,\"hmin\":1}}]}",
-        "ver": "1.1"
-      },
-      "ext": {
-        "audienceNetwork": {
-          "placementId": "placement3",
-          "publisherId": "pub3"
-        }
-      }
     }
   ],
   "app": {
   },
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
   "user": {
+    "buyeruid": "buyer_id",
     "ext": {
       "consent": "consentValue"
     }

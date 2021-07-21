@@ -4,16 +4,15 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.model.Endpoint;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
@@ -23,32 +22,17 @@ public class ZeroclickfraudTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromZeroclickfraud() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/zeroclickfraud-exchange"))
-                .withQueryParam("sid", equalTo("1"))
                 .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-request-1.json")))
+                        equalToJson(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-request.json")))
                 .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-response-1.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/zeroclickfraud-exchange"))
-                .withQueryParam("sid", equalTo("2"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-request-2.json")))
-                .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-response-2.json"))));
+                        .withBody(jsonFrom("openrtb2/zeroclickfraud/test-zeroclickfraud-bid-response.json"))));
 
         // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"zeroclickfraud":"ZF-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7Inplcm9jbGlja2ZyYXVkIjoiWkYtVUlEIn19")
-                .body(jsonFrom("openrtb2/zeroclickfraud/test-auction-zeroclickfraud-request.json"))
-                .post("/openrtb2/auction");
+        final Response response = responseFor("openrtb2/zeroclickfraud/test-auction-zeroclickfraud-request.json",
+                Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/zeroclickfraud/test-auction-zeroclickfraud-response.json",
-                response, singletonList("zeroclickfraud"));
+        assertJsonEquals("openrtb2/zeroclickfraud/test-auction-zeroclickfraud-response.json", response,
+                singletonList("zeroclickfraud"));
     }
 }

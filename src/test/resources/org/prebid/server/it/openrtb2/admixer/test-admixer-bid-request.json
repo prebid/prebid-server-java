@@ -1,38 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
-      },
-      "tagid": "2eb6bd58-865c-47ce-af7f-a918108c3fd2",
-      "bidfloor": 0.1,
-      "ext": {
-        "customParams": {
-          "foo": "bar"
-        }
-      }
-    },
-    {
-      "id": "impId002",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "protocols": [
-          2,
-          5
-        ],
-        "w": 1024,
-        "h": 576,
-        "skipmin": 0,
-        "skipafter": 0
+        "w": 300,
+        "h": 250
       },
       "tagid": "2eb6bd58-865c-47ce-af7f-a918108c3fd2",
       "bidfloor": 0.1,
@@ -44,10 +17,9 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -56,61 +28,16 @@
   },
   "device": {
     "ua": "userAgent",
-    "dnt": 2,
-    "ip": "193.168.244.1",
-    "pxratio": 4.2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "user": {
-    "buyeruid": "AD-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 3000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.811
-          }
-        }
-      },
-      "targeting": {
-        "includebidderkeys": true,
-        "includewinners": true,
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000,
-      "channel": {
-        "name": "web"
-      }
     }
   }
 }

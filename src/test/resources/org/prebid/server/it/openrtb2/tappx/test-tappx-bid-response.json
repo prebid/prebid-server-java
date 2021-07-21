@@ -1,16 +1,16 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "seat": "rtbhouse",
       "bid": [
         {
-          "id": "wehM-93KGr0_0_0",
-          "impid": "impId12",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
-          "cid": "3706",
-          "crid": "19005",
-          "adid": "19005",
+          "cid": "cid",
+          "crid": "crid",
+          "adid": "adid",
           "adm": "<!-- admarkup -->",
           "cat": [
             "IAB2"
@@ -24,5 +24,5 @@
       ]
     }
   ],
-  "bidid": "bid01"
+  "bidid": "bid_id"
 }

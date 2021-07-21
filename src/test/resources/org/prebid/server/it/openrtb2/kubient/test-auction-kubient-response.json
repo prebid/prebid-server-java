@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "7706636740145184841",
-          "impid": "test-imp-banner-id",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "some-test-ad",
           "adid": "29681110",
@@ -18,15 +18,7 @@
           "h": 576,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_bidder_kubient": "kubient",
-                "hb_bidder": "kubient",
-                "hb_pb_kubient": "0.50",
-                "hb_size": "1024x576",
-                "hb_size_kubient": "1024x576"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }
@@ -42,7 +34,7 @@
       "kubient": "{{ kubient.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

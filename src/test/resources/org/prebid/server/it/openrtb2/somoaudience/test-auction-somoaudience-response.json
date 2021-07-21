@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bidId01",
-          "impid": "impId16",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 8.43,
           "adm": "adm16",
           "crid": "crid16",
@@ -13,91 +13,9 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_size_somoaudience": "300x250",
-                "hb_pb_somoaudience": "8.40",
-                "hb_pb": "8.40",
-                "hb_bidder_somoaudience": "somoaudience",
-                "hb_size": "300x250",
-                "hb_bidder": "somoaudience"
-              }
+              "type": "banner"
             },
             "origbidcpm": 8.43
-          }
-        },
-        {
-          "id": "bidId02",
-          "impid": "impId17",
-          "price": 7.99,
-          "adm": "adm17",
-          "crid": "crid17",
-          "w": 360,
-          "h": 240,
-          "ext": {
-            "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_size_somoaudience": "360x240",
-                "hb_pb_somoaudience": "7.90",
-                "hb_pb": "7.90",
-                "hb_bidder_somoaudience": "somoaudience",
-                "hb_size": "360x240",
-                "hb_bidder": "somoaudience"
-              }
-            },
-            "origbidcpm": 7.99
-          }
-        },
-        {
-          "id": "bidId03",
-          "impid": "impId18",
-          "price": 9.99,
-          "adm": "adm18",
-          "crid": "crid18",
-          "w": 1024,
-          "h": 576,
-          "ext": {
-            "prebid": {
-              "type": "video",
-              "targeting": {
-                "hb_size_somoaudience": "1024x576",
-                "hb_pb_somoaudience": "9.90",
-                "hb_pb": "9.90",
-                "hb_bidder_somoaudience": "somoaudience",
-                "hb_size": "1024x576",
-                "hb_bidder": "somoaudience"
-              }
-            },
-            "origbidcpm": 9.99
-          }
-        },
-        {
-          "id": "bidId04",
-          "impid": "impId19",
-          "price": 10.0,
-          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}],\"jstracker\":\"<script src=\\\"http://www.dummyurl.js\\\"></script>\"}",
-          "adid": "adid19",
-          "adomain": [
-            "appnexus.com"
-          ],
-          "iurl": "http://nym1-ib.adnxs.com/cr?id=69595837",
-          "cid": "cid19",
-          "crid": "crid19",
-          "cat": [
-            "IAB3-1"
-          ],
-          "ext": {
-            "prebid": {
-              "type": "native",
-              "targeting": {
-                "hb_pb_somoaudience": "10.00",
-                "hb_pb": "10.00",
-                "hb_bidder_somoaudience": "somoaudience",
-                "hb_bidder": "somoaudience"
-              }
-            },
-            "origbidcpm": 10.0
           }
         }
       ],
@@ -111,7 +29,7 @@
       "somoaudience": "{{ somoaudience.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

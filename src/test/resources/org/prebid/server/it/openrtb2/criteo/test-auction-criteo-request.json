@@ -1,17 +1,11 @@
 {
-  "id": "pbj-test-request-id",
+  "id": "request_id",
   "imp": [
     {
-      "id": "test-imp-id",
+      "id": "imp_id",
       "banner": {
         "w": 250,
-        "h": 250,
-        "format": [
-          {
-            "w": 250,
-            "h": 250
-          }
-        ]
+        "h": 250
       },
       "ext": {
         "criteo": {
@@ -21,56 +15,10 @@
       }
     }
   ],
-  "site": {
-    "id": "site-id",
-    "page": "criteo.com"
-  },
-  "device": {
-    "ifa": "ifa",
-    "os": "android",
-    "ip": "91.199.242.236",
-    "ua": "userAgent"
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue",
-      "eids": [{
-        "source": "criteo.com",
-        "uids": [{
-          "id": "criteo-eid"
-        }]
-      }]
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
   "regs": {
     "ext": {
-      "gdpr": 0,
-      "us_privacy": "1YNN"
+      "gdpr": 0
     }
   }
 }

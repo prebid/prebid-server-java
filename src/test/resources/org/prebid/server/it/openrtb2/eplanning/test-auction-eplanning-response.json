@@ -1,30 +1,22 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "123456789abcdef",
-          "impid": "impId15",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "<div>test</div>",
-          "adid": "adid12345",
-          "crid": "abcdef123456789",
+          "adid": "imp_id",
+          "crid": "crid",
           "w": 600,
           "h": 300,
           "ext": {
+            "origbidcpm": 0.5,
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_pb_eplanning": "0.50",
-                "hb_size": "600x300",
-                "hb_bidder_eplanning": "eplanning",
-                "hb_bidder": "eplanning",
-                "hb_size_eplanning": "600x300"
-              }
-            },
-            "origbidcpm": 0.5
+              "type": "banner"
+            }
           }
         }
       ],
@@ -37,9 +29,10 @@
     "responsetimemillis": {
       "eplanning": "{{ eplanning.response_time_ms }}"
     },
+    "tmaxrequest": 5000,
     "prebid": {
-      "auctiontimestamp": 1000
-    },
-    "tmaxrequest": 5000
+      "auctiontimestamp": 0
+    }
   }
 }
+
