@@ -1,8 +1,8 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "video": {
         "mimes": [
           "mimes"
@@ -87,7 +87,6 @@
     }
   },
   "user": {
-    "buyeruid": "RUB-UID",
     "data": [
       {
         "segment": [
@@ -111,7 +110,7 @@
     }
   },
   "at": 1,
-  "tmax": 2000,
+  "tmax": 5000,
   "regs": {
     "ext": {
       "gdpr": 0

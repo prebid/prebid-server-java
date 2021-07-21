@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bidId01",
-          "impid": "impId8",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 4.75,
           "adm": "adm8",
           "crid": "crid8",
@@ -13,40 +13,9 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "4.70",
-                "hb_pb_pulsepoint": "4.70",
-                "hb_size_pulsepoint": "300x250",
-                "hb_size": "300x250",
-                "hb_bidder_pulsepoint": "pulsepoint",
-                "hb_bidder": "pulsepoint"
-              }
+              "type": "banner"
             },
             "origbidcpm": 4.75
-          }
-        },
-        {
-          "id": "bidId02",
-          "impid": "impId81",
-          "price": 3.75,
-          "adm": "adm81",
-          "crid": "crid81",
-          "w": 120,
-          "h": 180,
-          "ext": {
-            "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "3.70",
-                "hb_pb_pulsepoint": "3.70",
-                "hb_size_pulsepoint": "120x180",
-                "hb_size": "120x180",
-                "hb_bidder_pulsepoint": "pulsepoint",
-                "hb_bidder": "pulsepoint"
-              }
-            },
-            "origbidcpm": 3.75
           }
         }
       ],
@@ -60,7 +29,7 @@
       "pulsepoint": "{{ pulsepoint.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

@@ -1,11 +1,11 @@
 {
-  "id": "req1-unit1",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid001",
-          "impid": "imp1",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 3.33,
           "adm": "adm001",
           "adid": "adid001",
@@ -17,13 +17,7 @@
           ],
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "3.30",
-                "hb_bidder_adoppler": "adoppler",
-                "hb_bidder": "adoppler",
-                "hb_pb_adoppler": "3.30"
-              }
+              "type": "banner"
             },
             "origbidcpm": 3.33,
             "ads": {
@@ -44,8 +38,8 @@
       "adoppler": "{{ adoppler.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
-    "tmaxrequest": 3000
+    "tmaxrequest": 5000
   }
 }

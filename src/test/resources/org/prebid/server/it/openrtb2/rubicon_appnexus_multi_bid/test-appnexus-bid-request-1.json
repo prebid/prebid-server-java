@@ -59,7 +59,7 @@
     }
   },
   "user": {
-    "buyeruid" : "12345",
+    "buyeruid": "12345",
     "ext": {
       "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
     }

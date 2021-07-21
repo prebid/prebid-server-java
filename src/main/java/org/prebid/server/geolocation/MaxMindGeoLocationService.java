@@ -77,7 +77,7 @@ public class MaxMindGeoLocationService implements GeoLocationService, RemoteFile
                     .continent(resolveContinent(cityResponse))
                     .country(resolveCountry(cityResponse))
                     .region(resolveRegion(cityResponse))
-                    //metro code is skipped as Max Mind uses Google's version (Nielsen DMAs required)
+                    // metro code is skipped as Max Mind uses Google's version (Nielsen DMAs required)
                     .city(resolveCity(cityResponse))
                     .lat(resolveLatitude(location))
                     .lon(resolveLongitude(location))

@@ -22,7 +22,7 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=466223845&a=5001&aid=tid&ts=1000&bidder=rubicon&f=i&int=dmbjs"
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -62,7 +62,7 @@
           "origbidcur": "USD"
         }
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -100,7 +100,7 @@
           "origbidcur": "USD"
         }
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -134,7 +134,7 @@
           "origbidcpm": 8.43
         }
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -173,7 +173,7 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=928185755156387460&a=5001&aid=tid&ts=1000&bidder=appnexus&f=i&int=dmbjs"
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -195,7 +195,7 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&aid=tid&ts=1000&bidder=appnexus&f=i&int=dmbjs"
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "json",
@@ -217,13 +217,13 @@
         },
         "wurl": "http://localhost:8080/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&aid=tid&ts=1000&bidder=rubicon&f=i&int=dmbjs"
       },
-      "aid":"tid"
+      "aid": "tid"
     },
     {
       "type": "xml",
       "value": "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&aid=tid&ts=1000&bidder=rubicon&f=b&int=dmbjs]]></Impression></InLine>",
       "expiry": 120,
-      "aid":"tid"
+      "aid": "tid"
     }
   ]
 }

@@ -1,40 +1,24 @@
 {
-  "id": "pbj-test-request-id",
+  "id": "request_id",
   "publisher": {
-    "siteid": "site-id",
-    "url": "criteo.com",
+    "url": "http://www.example.com",
     "networkid": 78910
   },
   "user": {
-    "deviceid": "ifa",
-    "deviceos": "android",
-    "deviceidtype": "gaid",
-    "cookieuid": "CR-UID",
-    "ip": "91.199.242.236",
-    "ua": "userAgent",
-    "uspIab": "1YNN"
+    "deviceidtype": "unknown",
+    "ip": "193.168.244.1",
+    "ua": "userAgent"
   },
   "gdprconsent": {
-    "gdprapplies": false,
-    "consentdata": "consentValue"
+    "gdprapplies": false
   },
   "slots": [
     {
-      "impid": "test-imp-id",
+      "impid": "imp_id",
       "zoneid": 123456,
       "networkid": 78910,
       "sizes": [
         "250x250"
-      ]
-    }
-  ],
-  "eids": [
-    {
-      "source": "criteo.com",
-      "uids": [
-        {
-          "id": "criteo-eid"
-        }
       ]
     }
   ]

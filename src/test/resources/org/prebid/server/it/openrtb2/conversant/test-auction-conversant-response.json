@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "789353336",
-          "impid": "impId4",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 6.0,
           "adm": "adm4",
           "crid": "crid4",
@@ -13,40 +13,9 @@
           "h": 600,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_size_conversant": "300x600",
-                "hb_pb": "6.00",
-                "hb_size": "300x600",
-                "hb_pb_conversant": "6.00",
-                "hb_bidder_conversant": "conversant",
-                "hb_bidder": "conversant"
-              }
+              "type": "banner"
             },
             "origbidcpm": 6.0
-          }
-        },
-        {
-          "id": "981876692",
-          "impid": "impId41",
-          "price": 5.0,
-          "adm": "adm41",
-          "crid": "crid41",
-          "w": 300,
-          "h": 600,
-          "ext": {
-            "prebid": {
-              "type": "video",
-              "targeting": {
-                "hb_size_conversant": "300x600",
-                "hb_pb": "5.00",
-                "hb_size": "300x600",
-                "hb_pb_conversant": "5.00",
-                "hb_bidder_conversant": "conversant",
-                "hb_bidder": "conversant"
-              }
-            },
-            "origbidcpm": 5.0
           }
         }
       ],
@@ -60,7 +29,7 @@
       "conversant": "{{ conversant.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

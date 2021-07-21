@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id-adunit",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid001",
-          "impid": "imp1",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 3.33,
           "adid": "adid001",
           "crid": "crid001",

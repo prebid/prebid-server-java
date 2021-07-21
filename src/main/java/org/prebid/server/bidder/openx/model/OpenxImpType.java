@@ -4,6 +4,6 @@ public enum OpenxImpType {
 
     // supported
     banner, video,
-    //not supported
+    // not supported
     other
 }

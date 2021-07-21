@@ -1,15 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "uuid",
+      "id": "bid_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "prebid": {
@@ -22,53 +18,7 @@
       }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId",
-    "ua": "Android Chrome/60",
-    "ip": "127.0.0.1"
-  },
-  "site": {
-    "page": "http://www.example.com",
-    "publisher": {
-      "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

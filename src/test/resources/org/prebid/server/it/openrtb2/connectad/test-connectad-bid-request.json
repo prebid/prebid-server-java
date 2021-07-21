@@ -1,17 +1,16 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "banner": {
-        "format": [],
         "w": 300,
         "h": 250
       },
       "tagid": "15",
       "bidfloor": 14.7,
       "bidfloorcur": "USD",
-      "secure": 1,
+      "secure": 0,
       "ext": {
         "bidder": {
           "networkId": 12,
@@ -22,10 +21,9 @@
     }
   ],
   "site": {
-    "domain": "example.com",
-    "page": "https://www.example.com",
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -34,48 +32,16 @@
   },
   "device": {
     "ua": "userAgent",
-    "dnt": 2,
-    "ip": "193.168.244.1",
-    "pxratio": 4.2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "user": {
-    "buyeruid": "CA-UID"
+    "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 3000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "auctiontimestamp": 1000,
-      "channel": {
-        "name": "web"
-      }
     }
   }
 }

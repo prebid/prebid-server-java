@@ -1,35 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid3",
-          "impid": "impId003",
-          "price": 10.0,
-          "adm": "{\"bid_id\":\"10\"}",
-          "adid": "10",
-          "crid": "10",
-          "w": 0,
-          "h": 0,
-          "ext": {
-            "prebid": {
-              "type": "native",
-              "targeting": {
-                "hb_pb": "10.00",
-                "hb_bidder_audienceNetwork": "audienceNetwork",
-                "hb_env": "mobile-app",
-                "hb_env_audienceNetwork": "mobile-app",
-                "hb_bidder": "audienceNetwork",
-                "hb_pb_audienceNetwork": "10.00"
-              }
-            },
-            "origbidcpm": 10.0
-          }
-        },
-        {
-          "id": "bid1",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 9.0,
           "adm": "{\"bid_id\":\"10\"}",
           "adid": "10",
@@ -38,41 +14,9 @@
           "h": 50,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "9.00",
-                "hb_bidder_audienceNetwork": "audienceNetwork",
-                "hb_env": "mobile-app",
-                "hb_env_audienceNetwork": "mobile-app",
-                "hb_bidder": "audienceNetwork",
-                "hb_pb_audienceNetwork": "9.00"
-              }
+              "type": "banner"
             },
             "origbidcpm": 9.0
-          }
-        },
-        {
-          "id": "bid2",
-          "impid": "impId002",
-          "price": 15.0,
-          "adm": "{\"bid_id\":\"10\"}",
-          "adid": "10",
-          "crid": "10",
-          "w": 0,
-          "h": 0,
-          "ext": {
-            "prebid": {
-              "type": "video",
-              "targeting": {
-                "hb_pb": "15.00",
-                "hb_bidder_audienceNetwork": "audienceNetwork",
-                "hb_env": "mobile-app",
-                "hb_env_audienceNetwork": "mobile-app",
-                "hb_bidder": "audienceNetwork",
-                "hb_pb_audienceNetwork": "15.00"
-              }
-            },
-            "origbidcpm": 15.0
           }
         }
       ],
@@ -86,7 +30,7 @@
       "audienceNetwork": "{{ audienceNetwork.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

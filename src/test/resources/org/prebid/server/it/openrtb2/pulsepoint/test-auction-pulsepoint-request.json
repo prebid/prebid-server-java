@@ -1,15 +1,9 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId8",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 600
-          }
-        ],
         "w": 300,
         "h": 600
       },
@@ -19,68 +13,9 @@
           "ct": 456
         }
       }
-    },
-    {
-      "id": "impId81",
-      "banner": {
-        "format": [
-          {
-            "w": 400,
-            "h": 200
-          }
-        ],
-        "w": 400,
-        "h": 200
-      },
-      "ext": {
-        "pulsepoint": {
-          "cp": 321,
-          "ct": 654
-        }
-      }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0
