@@ -75,6 +75,7 @@ public class TargetingKeywordsCreator {
      * Stores bid's format. For example "video" or "banner".
      */
     private static final String HB_FORMAT_KEY = "hb_format";
+
     private static final String DEFAULT_CPM = "0.0";
 
     private final PriceGranularity priceGranularity;
