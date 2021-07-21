@@ -181,9 +181,7 @@ public class TargetingKeywordsCreator {
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
                 Collections.emptySet());
 
-        final String roundedCpm = isPriceGranularityValid()
-                ? CpmRange.fromCpm(price, priceGranularity)
-                : TargetingKeywordsCreator.DEFAULT_CPM;
+        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : DEFAULT_CPM;
         keywordMap.put(HB_PB_KEY, roundedCpm);
 
         keywordMap.put(HB_BIDDER_KEY, bidder);
