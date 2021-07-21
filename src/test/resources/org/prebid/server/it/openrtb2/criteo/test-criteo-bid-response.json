@@ -2,7 +2,7 @@
   "id": "request_id",
   "slots": [
     {
-      "arbitrageid": "e77e016a-091d-4cdb-a759-29d57a1ffa48",
+      "arbitrageid": "bid_id",
       "impid": "imp_id",
       "zoneid": 123456,
       "networkid": 78910,
