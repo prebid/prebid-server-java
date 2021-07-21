@@ -75,6 +75,7 @@ public class TargetingKeywordsCreator {
      * Stores bid's format. For example "video" or "banner".
      */
     private static final String HB_FORMAT_KEY = "hb_format";
+    private static final String DEFAULT_CPM = "0.0";
 
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
@@ -146,7 +147,6 @@ public class TargetingKeywordsCreator {
                 bidder,
                 winningBid,
                 bid.getPrice(),
-                "0.0",
                 bid.getW(),
                 bid.getH(),
                 cacheId,
@@ -170,7 +170,6 @@ public class TargetingKeywordsCreator {
     private Map<String, String> makeFor(String bidder,
                                         boolean winningBid,
                                         BigDecimal price,
-                                        String defaultCpm,
                                         Integer width,
                                         Integer height,
                                         String cacheId,
@@ -181,7 +180,8 @@ public class TargetingKeywordsCreator {
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
                 Collections.emptySet());
 
-        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
+        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price,
+                priceGranularity) : TargetingKeywordsCreator.DEFAULT_CPM;
         keywordMap.put(HB_PB_KEY, roundedCpm);
 
         keywordMap.put(HB_BIDDER_KEY, bidder);
