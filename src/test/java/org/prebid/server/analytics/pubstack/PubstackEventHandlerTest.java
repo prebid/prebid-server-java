@@ -11,8 +11,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -22,10 +26,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -143,6 +149,21 @@ public class PubstackEventHandlerTest extends VertxTest {
 
         // then
         verify(httpClient).request(any(), anyString(), any(), (byte[]) any(), anyLong());
+    }
+
+    @Test
+    public void handleShouldBeAbleToEncodeAuctionEvent() {
+        // given
+        final AuctionEvent event = AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .uidsCookie(mock(UidsCookie.class))
+                        .timeout(mock(Timeout.class))
+                        .build())
+                .build();
+
+        // when and then
+        assertThatCode(() -> pubstackEventHandler.handle(event))
+                .doesNotThrowAnyException();
     }
 
     @Test
