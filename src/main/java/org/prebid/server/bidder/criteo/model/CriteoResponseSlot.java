@@ -10,7 +10,8 @@ import java.math.BigDecimal;
 @Value
 public class CriteoResponseSlot {
 
-    String id;
+    @JsonProperty("arbitrageid")
+    String arbitrageId;
 
     @JsonProperty("impid")
     String impId;
@@ -31,6 +32,6 @@ public class CriteoResponseSlot {
 
     String creative;
 
-    @JsonProperty("creativeid")
-    String creativeId;
+    @JsonProperty("creativecode")
+    String creativeCode;
 }

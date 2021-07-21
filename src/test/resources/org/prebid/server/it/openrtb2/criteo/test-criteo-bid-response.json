@@ -2,7 +2,7 @@
   "id": "request_id",
   "slots": [
     {
-      "id": "bid_id",
+      "arbitrageid": "bid_id",
       "impid": "imp_id",
       "zoneid": 123456,
       "networkid": 78910,
@@ -10,7 +10,7 @@
       "height": 250,
       "cpm": 0.5,
       "creative": "<iframe id='789abc' name='789abc' src='http://creative-url.criteo.com'></iframe>",
-      "creativeid": "creative-123"
+      "creativecode": "creative-123"
     }
   ]
 }
