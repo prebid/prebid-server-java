@@ -420,7 +420,7 @@ public class CacheService {
                 .aid(requestId)
                 .type("xml")
                 .value(vastXml != null ? new TextNode(vastXml) : null)
-                .expiry(cacheBid.getTtl())
+                .ttlseconds(cacheBid.getTtl())
                 .build();
 
         return CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue()));
