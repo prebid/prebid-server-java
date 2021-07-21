@@ -1,8 +1,8 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "banner": {
         "w": 300,
         "h": 250
@@ -17,41 +17,7 @@
       }
     }
   ],
-  "device": {
-    "ua" : "userAgent",
-    "ifa": "ifaId",
-    "ip": "193.168.244.1"
-  },
-  "site": {
-    "page": "awesomePage",
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "source": {
-    "tid": "tidValue"
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

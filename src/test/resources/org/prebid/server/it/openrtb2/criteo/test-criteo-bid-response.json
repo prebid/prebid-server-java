@@ -1,9 +1,9 @@
 {
-  "id": "test-response-id",
+  "id": "request_id",
   "slots": [
     {
-      "id": "e77e016a-091d-4cdb-a759-29d57a1ffa48",
-      "impid": "test-imp-id",
+      "id": "bid_id",
+      "impid": "imp_id",
       "zoneid": 123456,
       "networkid": 78910,
       "width": 250,

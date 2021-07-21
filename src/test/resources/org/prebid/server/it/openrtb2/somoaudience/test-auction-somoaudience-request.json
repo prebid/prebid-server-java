@@ -1,15 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId16",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "somoaudience": {
@@ -17,102 +13,9 @@
           "bid_floor": 1.5
         }
       }
-    },
-    {
-      "id": "impId17",
-      "banner": {
-        "format": [
-          {
-            "w": 360,
-            "h": 240
-          }
-        ]
-      },
-      "ext": {
-        "somoaudience": {
-          "placement_hash": "placementId02",
-          "bid_floor": 1.33
-        }
-      }
-    },
-    {
-      "id": "impId18",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "protocols": [
-          2,
-          5
-        ],
-        "w": 1024,
-        "h": 576
-      },
-      "ext": {
-        "somoaudience": {
-          "placement_hash": "placementId03",
-          "bid_floor": 2.1
-        }
-      }
-    },
-    {
-      "id": "impId19",
-      "native": {
-        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}}]}",
-        "ver": "1.1"
-      },
-      "ext": {
-        "somoaudience": {
-          "placement_hash": "placementId04",
-          "bid_floor": 1.9
-        }
-      }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

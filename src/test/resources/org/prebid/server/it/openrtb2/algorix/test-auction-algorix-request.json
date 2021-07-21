@@ -1,15 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "algorix": {
@@ -19,13 +15,6 @@
       }
     }
   ],
-  "ext": {
-    "prebid": {
-      "targeting": {
-      },
-      "auctiontimestamp": 1000
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "600527793",
-          "impid": "impId011",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 5.78,
           "adm": "adm00",
           "crid": "crid00",
@@ -13,87 +13,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_bidder_openx": "openx",
-                "hb_size_openx": "300x250",
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
-                "hb_pb_openx": "5.70",
-                "hb_bidder": "openx"
-              }
-            },
-            "origbidcpm": 5.78,
-            "origbidcur": "USD"
-          }
-        },
-        {
-          "id": "600527794",
-          "impid": "impId02",
-          "price": 5.78,
-          "adm": "adm001",
-          "crid": "crid00",
-          "w": 300,
-          "h": 250,
-          "ext": {
-            "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_bidder_openx": "openx",
-                "hb_size_openx": "300x250",
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
-                "hb_pb_openx": "5.70",
-                "hb_bidder": "openx"
-              }
-            },
-            "origbidcpm": 5.78,
-            "origbidcur": "USD"
-          }
-        },
-        {
-          "id": "600527795",
-          "impid": "impId03",
-          "price": 5.78,
-          "adm": "adm002",
-          "crid": "crid00",
-          "w": 300,
-          "h": 250,
-          "ext": {
-            "prebid": {
-              "type": "video",
-              "targeting": {
-                "hb_bidder_openx": "openx",
-                "hb_size_openx": "300x250",
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
-                "hb_pb_openx": "5.70",
-                "hb_bidder": "openx"
-              }
-            },
-            "origbidcpm": 5.78,
-            "origbidcur": "USD"
-          }
-        },
-        {
-          "id": "600527796",
-          "impid": "impId04",
-          "price": 5.78,
-          "adm": "adm003",
-          "crid": "crid00",
-          "w": 300,
-          "h": 250,
-          "ext": {
-            "prebid": {
-              "type": "video",
-              "targeting": {
-                "hb_bidder_openx": "openx",
-                "hb_size_openx": "300x250",
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
-                "hb_pb_openx": "5.70",
-                "hb_bidder": "openx"
-              }
+              "type": "banner"
             },
             "origbidcpm": 5.78,
             "origbidcur": "USD"
@@ -110,7 +30,7 @@
       "openx": "{{ openx.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

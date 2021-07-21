@@ -1,15 +1,9 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId9",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 600
-          }
-        ],
         "w": 300,
         "h": 600
       },
@@ -46,83 +40,9 @@
           "pbadslot": "firstPbAdSlot"
         }
       }
-    },
-    {
-      "id": "impId91",
-      "video": {
-        "mimes": [
-          "mimes"
-        ],
-        "w": 300,
-        "h": 600
-      },
-      "ext": {
-        "pubmatic": {
-          "adSlot": "slot9@300x250:zzz",
-          "publisherId": "publisherId",
-          "pmzoneid": "drama,sport",
-          "dctr": "abBucket=4|adType=page|entity=|paidByCategory=|sku=|userLevel=free|platform=android|majorVersion=3.54|version=3.54.0|mobileApplication=true|showId=20166|show=Kisah Untuk Geri|genre=Drama|contentUrl=https://www.iflix.com/title/show/20166|rating=TV-MA|contentLanguage=id",
-          "keywords": [
-            {
-              "key": "pmZoneId",
-              "value": [
-                "Zone1",
-                "Zone2"
-              ]
-            }
-          ],
-          "wrapper": {
-            "version": 1,
-            "profile": 5123
-          }
-        },
-        "data": {
-          "pbadslot": "SecondPbAdSlot"
-        }
-      }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

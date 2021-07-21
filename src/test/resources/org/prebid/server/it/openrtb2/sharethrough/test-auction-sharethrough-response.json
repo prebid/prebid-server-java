@@ -1,13 +1,13 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid",
-          "impid": "bid",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 10,
-          "adm": "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\" />\n\t\t<div data-str-native-key=\"abc123\" data-stx-response-name=\"str_response_bid\"></div>\n\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSJ9LCJ2ZXJzaW9uIjowfV19\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n",
+          "adm": "",
           "adid": "arid",
           "cid": "cmpKey",
           "crid": "creaKey",
@@ -34,6 +34,6 @@
     "prebid": {
       "auctiontimestamp": 0
     },
-    "tmaxrequest": 3000
+    "tmaxrequest": 5000
   }
 }

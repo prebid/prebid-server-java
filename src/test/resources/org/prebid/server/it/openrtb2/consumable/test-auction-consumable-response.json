@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "tid",
-          "impid": "impId001",
+          "id": "request_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "<blink>Remember this: https://www.google.com/search?q=blink+tag ?</blink>",
           "crid": "1234567890",
@@ -13,15 +13,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_size_consumable": "300x250",
-                "hb_size": "300x250",
-                "hb_bidder_consumable": "consumable",
-                "hb_bidder": "consumable",
-                "hb_pb_consumable": "0.50"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }
@@ -37,7 +29,7 @@
       "consumable": "{{ consumable.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

@@ -1,11 +1,11 @@
 {
-  "id": "test-request-id",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "test-bid-id",
-          "impid": "test-imp-id",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 3.5,
           "nurl": "nurl",
           "adm": "some-test-ad",
@@ -14,15 +14,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "3.50",
-                "hb_size": "300x250",
-                "hb_pb_mgid": "3.50",
-                "hb_bidder": "mgid",
-                "hb_bidder_mgid": "mgid",
-                "hb_size_mgid": "300x250"
-              }
+              "type": "banner"
             },
             "origbidcpm": 3.5,
             "crtype": "banner"
@@ -39,7 +31,7 @@
       "mgid": "{{ mgid.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }
