@@ -93,10 +93,12 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyRequest(BidRequest bidRequest, Imp imp) {
+        final BigDecimal resolvedBidFloor = resolveBidFloor(bidRequest, imp);
+        final String resolvedBidFloorCur = resolvedBidFloor != null ? CUR_USD : null;
         final Imp outgoingImp = imp.toBuilder()
                 .banner(resolveBanner(imp.getBanner()))
-                .bidfloor(resolveBidFloor(bidRequest, imp))
-                .bidfloorcur(CUR_USD)
+                .bidfloor(resolvedBidFloor)
+                .bidfloorcur(resolvedBidFloorCur)
                 .build();
 
         return bidRequest.toBuilder()
@@ -122,7 +124,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                         .build();
             }
         }
-        return null;
+        return banner;
     }
 
     private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {
