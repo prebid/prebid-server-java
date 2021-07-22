@@ -27,8 +27,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class MedianetBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.media.net?src={{PREBID_SERVER_ENDPOINT}}";
-    private static final String EXTERNAL_URL = "https://external.prebidserver.com";
+    private static final String ENDPOINT_URL = "https://test.media.net?src=external.prebidserver.com";
     private static final BidRequest DUMMY_REQUEST = BidRequest.builder()
             .id("request_id")
             .imp(singletonList(Imp.builder()
@@ -41,29 +40,13 @@ public class MedianetBidderTest extends VertxTest {
 
     @Before
     public void setup() {
-        medianetBidder = new MedianetBidder(ENDPOINT_URL, jacksonMapper, EXTERNAL_URL);
+        medianetBidder = new MedianetBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new MedianetBidder("invalid_url", jacksonMapper, EXTERNAL_URL));
-    }
-
-    @Test
-    public void httpRequestShouldContainCorrectUrl() {
-        // given
-        final BidRequest bidRequest = DUMMY_REQUEST;
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result;
-        result = medianetBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-            .extracting(HttpRequest::getUri)
-            .containsExactly("https://test.media.net?src=https%3A%2F%2Fexternal.prebidserver.com");
+                .isThrownBy(() -> new MedianetBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -79,7 +62,7 @@ public class MedianetBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
             .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-            .containsOnly(bidRequest);
+            .containsExactly(bidRequest);
     }
 
     @Test
@@ -91,10 +74,9 @@ public class MedianetBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                    && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
     }
 
     @Test
@@ -138,7 +120,7 @@ public class MedianetBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     private static BidResponse sampleBidResponse(Function<Bid.BidBuilder,

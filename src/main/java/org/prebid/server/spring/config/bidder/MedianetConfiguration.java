@@ -7,6 +7,7 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.prebid.server.util.HttpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,7 @@ import javax.validation.constraints.NotBlank;
 public class MedianetConfiguration {
 
     private static final String BIDDER_NAME = "medianet";
+    private static final String EXTERNAL_URL_MACRO = "{{PREBID_SERVER_ENDPOINT}}";
 
     @Value("${external-url}")
     @NotBlank
@@ -45,9 +47,14 @@ public class MedianetConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(
-                    config -> new MedianetBidder(config.getEndpoint(), mapper, externalUrl)
-                )
+                .bidderCreator(this::getMedianetBidder)
                 .assemble();
+    }
+
+    private MedianetBidder getMedianetBidder(BidderConfigurationProperties config) {
+        String configEndpoint = config.getEndpoint();
+        String encodedExternalUrl = HttpUtil.encodeUrl(externalUrl);
+        String bidderEndpoint = configEndpoint.replace(EXTERNAL_URL_MACRO, encodedExternalUrl);
+        return new MedianetBidder(bidderEndpoint, mapper);
     }
 }
