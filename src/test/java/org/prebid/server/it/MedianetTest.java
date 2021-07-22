@@ -26,11 +26,11 @@ public class MedianetTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/medianet/test-medianet-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/rtbhouse/test-auction-medianet-request.json",
+        final Response response = responseFor("openrtb2/medianet/test-auction-medianet-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/rtbhouse/test-auction-medianet-response.json", response,
+        assertJsonEquals("openrtb2/medianet/test-auction-medianet-response.json", response,
                 singletonList("medianet"));
     }
 }
