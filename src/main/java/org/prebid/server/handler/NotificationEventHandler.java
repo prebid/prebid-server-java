@@ -14,13 +14,13 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
@@ -132,7 +132,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         .bidder(eventRequest.getBidder())
                         .timestamp(eventRequest.getTimestamp())
                         .integration(eventRequest.getIntegration())
-                        .httpContext(HttpContext.from(routingContext))
+                        .httpContext(HttpRequestContext.from(routingContext))
                         .build();
                 analyticsDelegator.processEvent(notificationEvent);
 
