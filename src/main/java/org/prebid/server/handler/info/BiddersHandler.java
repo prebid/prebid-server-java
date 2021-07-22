@@ -5,6 +5,7 @@ import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
@@ -28,9 +29,10 @@ public class BiddersHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        context.response()
-                .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                .end(body);
+    public void handle(RoutingContext routingContext) {
+        HttpUtil.executeSafely(routingContext, Endpoint.info_bidders,
+                response -> response
+                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                        .end(body));
     }
 }

@@ -211,7 +211,7 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldStoreWinUrl() {
-        //given
+        // given
         final EventsContext eventsContext = EventsContext.builder()
                 .auctionId("auctionId")
                 .enabledForAccount(true)
@@ -469,7 +469,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getExpiry)
+                .extracting(PutObject::getTtlseconds)
                 .containsOnly(10);
 
         final CacheServiceResult result = future.result();
@@ -498,7 +498,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getExpiry)
+                .extracting(PutObject::getTtlseconds)
                 .containsOnly(10);
 
         final CacheServiceResult result = future.result();
@@ -522,7 +522,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getExpiry)
+                .extracting(PutObject::getTtlseconds)
                 .containsOnly(10);
 
         final CacheServiceResult result = future.result();
@@ -558,7 +558,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getExpiry)
+                .extracting(PutObject::getTtlseconds)
                 .containsOnly(10);
 
         final CacheServiceResult result = future.result();
@@ -593,7 +593,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getExpiry)
+                .extracting(PutObject::getTtlseconds)
                 .containsOnly(10);
 
         final CacheServiceResult result = future.result();
@@ -628,7 +628,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getExpiry)
+                .extracting(PutObject::getTtlseconds)
                 .containsOnly(10);
 
         final CacheServiceResult result = future.result();

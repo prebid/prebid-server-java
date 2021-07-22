@@ -1,0 +1,55 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "protocols": [
+          2,
+          5
+        ],
+        "w": 1024,
+        "h": 576,
+        "skipmin": 0,
+        "skipafter": 0
+      },
+      "tagid": "my-adcode",
+      "ext": {
+        "originalTagid": "tag_id"
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "my-seatcode",
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "extra": {
+      "custom": "1234"
+    }
+  }
+}

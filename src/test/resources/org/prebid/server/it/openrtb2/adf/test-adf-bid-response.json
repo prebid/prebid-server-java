@@ -1,11 +1,11 @@
 {
-  "id": "test-request-id",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "test-bid-id-1",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 10,
           "adomain": [],
           "crid": "test-creative-id-1"

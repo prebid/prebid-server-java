@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid001",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 3.33,
           "adm": "<iframe id=\"adm-banner-16\" width=\"300\" height=\"250\" frameborder=\"0\" marginheight=\"0\" marginwidth=\"0\" style=\"{overflow:hidden}\" src=\"https://bes.mobfox.com/?c=o&m=adm&k=882b2510ed6d6c94fa69c99aa522a708\"></iframe>",
           "cid": "test_cid",
@@ -15,17 +15,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "3.30",
-                "hb_size_mobfoxpb": "300x250",
-                "hb_bidder_mobfoxpb": "mobfoxpb",
-                "hb_size": "300x250",
-                "hb_deal_mobfoxpb": "test_dealid",
-                "hb_deal": "test_dealid",
-                "hb_bidder": "mobfoxpb",
-                "hb_pb_mobfoxpb": "3.30"
-              }
+              "type": "banner"
             },
             "origbidcpm": 3.33
           }
@@ -41,7 +31,7 @@
       "mobfoxpb": "{{ mobfoxpb.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

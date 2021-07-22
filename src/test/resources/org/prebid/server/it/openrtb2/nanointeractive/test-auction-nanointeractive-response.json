@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "600527793",
-          "impid": "impId13",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 5.78,
           "adm": "adm+13",
           "crid": "crid13",
@@ -13,15 +13,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
-                "hb_bidder_nanointeractive": "nanointeractive",
-                "hb_pb_nanointeractive": "5.70",
-                "hb_bidder": "nanointeractive",
-                "hb_size_nanointeractive": "300x250"
-              }
+              "type": "banner"
             },
             "origbidcpm": 5.78
           }
@@ -37,7 +29,7 @@
       "nanointeractive": "{{ nanointeractive.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

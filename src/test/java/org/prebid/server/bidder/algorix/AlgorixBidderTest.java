@@ -188,7 +188,7 @@ public class AlgorixBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
-        //given
+        // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
@@ -196,10 +196,10 @@ public class AlgorixBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
-        //when
+        // when
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
 
-        //then
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));

@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid001",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 7.35,
           "adm": "adm001",
           "adid": "adid001",
@@ -15,15 +15,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb_marsmedia": "7.30",
-                "hb_pb": "7.30",
-                "hb_size": "300x250",
-                "hb_size_marsmedia": "300x250",
-                "hb_bidder": "marsmedia",
-                "hb_bidder_marsmedia": "marsmedia"
-              }
+              "type": "banner"
             },
             "origbidcpm": 7.35
           }
@@ -39,7 +31,7 @@
       "marsmedia": "{{ marsmedia.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

@@ -39,6 +39,7 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -259,7 +260,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
-        final int status;
+        final HttpResponseStatus status;
         final String body;
 
         final String origin = originFrom(routingContext);
@@ -274,7 +275,7 @@ public class AmpHandler implements Handler<RoutingContext> {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
-            status = HttpResponseStatus.OK.code();
+            status = HttpResponseStatus.OK;
             routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
             body = mapper.encode(responseResult.result().getRight());
         } else {
@@ -291,7 +292,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 conditionalLogger.info(String.format("%s, Referer: %s", message,
                         routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
 
-                status = HttpResponseStatus.BAD_REQUEST.code();
+                status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
@@ -300,7 +301,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 errorMessages = Collections.singletonList(message);
 
-                status = HttpResponseStatus.UNAUTHORIZED.code();
+                status = HttpResponseStatus.UNAUTHORIZED;
                 body = message;
                 String accountId = ((UnauthorizedAccountException) exception).getAccountId();
                 metrics.updateAccountRequestRejectedMetrics(accountId);
@@ -312,7 +313,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
-                status = HttpResponseStatus.FORBIDDEN.code();
+                status = HttpResponseStatus.FORBIDDEN;
                 body = message;
             } else {
                 final String message = exception.getMessage();
@@ -321,48 +322,49 @@ public class AmpHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
                 logger.error("Critical error while running the auction", exception);
 
-                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
 
-        final AmpEvent ampEvent = ampEventBuilder.status(status).errors(errorMessages).build();
+        final int statusCode = status.code();
+        final AmpEvent ampEvent = ampEventBuilder.status(statusCode).errors(errorMessages).build();
 
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
         respondWith(routingContext, status, body, startTime, metricRequestStatus, ampEvent, tcfContext);
 
-        httpInteractionLogger.maybeLogOpenrtb2Amp(auctionContext, routingContext, status, body);
+        httpInteractionLogger.maybeLogOpenrtb2Amp(auctionContext, routingContext, statusCode, body);
     }
 
-    private static String originFrom(RoutingContext context) {
+    private static String originFrom(RoutingContext routingContext) {
         String origin = null;
-        final List<String> ampSourceOrigin = context.queryParam("__amp_source_origin");
+        final List<String> ampSourceOrigin = routingContext.queryParam("__amp_source_origin");
         if (CollectionUtils.isNotEmpty(ampSourceOrigin)) {
             origin = ampSourceOrigin.get(0);
         }
         if (origin == null) {
             // Just to be safe
-            origin = ObjectUtils.defaultIfNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
+            origin = ObjectUtils.defaultIfNull(routingContext.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
     }
 
-    private void respondWith(RoutingContext context, int status, String body, long startTime,
+    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
                              MetricName metricRequestStatus, AmpEvent event, TcfContext tcfContext) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
-        } else {
-            context.response()
-                    .exceptionHandler(this::handleResponseException)
-                    .setStatusCode(status)
-                    .end(body);
 
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_amp,
+                response -> response
+                        .exceptionHandler(this::handleResponseException)
+                        .setStatusCode(status.code())
+                        .end(body));
+
+        if (responseSent) {
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
+        } else {
+            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
         }
     }
 

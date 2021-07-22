@@ -1,8 +1,8 @@
 {
-  "id": "some-request-id",
+  "id": "request_id",
   "imp": [
     {
-      "id": "testimpid",
+      "id": "imp_id",
       "video": {
         "mimes": [
           "video/mp4"
@@ -10,11 +10,11 @@
         "w": 640,
         "h": 480
       },
-      "tagid": "testAdUnitId",
+      "tagid": "adUnitId",
       "ext": {
         "bidder": {
-          "tagId": "testTagId",
-          "adUnitId": "testAdUnitId"
+          "tagId": "tag_id",
+          "adUnitId": "adUnitId"
         }
       }
     }
@@ -23,7 +23,7 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "testTagId",
+      "id": "tag_id",
       "domain": "example.com"
     },
     "ext": {
@@ -31,47 +31,17 @@
     }
   },
   "device": {
-    "ua": "test-user-agent",
-    "ip": "123.123.123.123",
-    "language": "en",
-    "dnt": 0
-  },
-  "user": {
-    "buyeruid": "AMX-UID"
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 1000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "auctiontimestamp": 1000,
-      "channel": {
-        "name": "web"
-      }
     }
   }
 }

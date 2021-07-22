@@ -1,33 +1,25 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "7706636740145184841",
-          "impid": "test-imp-id",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
-          "adid": "29681110",
+          "adid": "adid",
           "adomain": [
             "triplelift.com"
           ],
           "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
-          "cid": "958",
-          "crid": "29681110",
+          "cid": "cid",
+          "crid": "crid",
           "h": 250,
           "w": 300,
           "ext": {
             "prebid": {
-              "type": "native",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_size_triplelift_native": "300x250",
-                "hb_bidder_triplelift_native": "triplelift_native",
-                "hb_size": "300x250",
-                "hb_bidder": "triplelift_native",
-                "hb_pb_triplelift_native": "0.50"
-              }
+              "type": "native"
             },
             "origbidcpm": 0.5,
             "origbidcur": "USD"
@@ -44,7 +36,7 @@
       "triplelift_native": "{{ triplelift_native.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }
