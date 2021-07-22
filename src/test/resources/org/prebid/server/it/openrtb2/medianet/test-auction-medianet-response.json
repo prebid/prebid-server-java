@@ -16,14 +16,6 @@
           "ext": {
             "prebid": {
               "type": "banner",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_size": "300x250",
-                "hb_bidder": "medianet",
-                "hb_pb_medianet": "0.50",
-                "hb_bidder_medianet": "medianet",
-                "hb_size_medianet": "300x250"
-              }
             },
             "origbidcpm": 0.5
           }
@@ -39,7 +31,7 @@
       "medianet": "{{ medianet.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }
