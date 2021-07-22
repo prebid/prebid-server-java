@@ -174,7 +174,6 @@ public class PubnativeBidderTest extends VertxTest {
                         singletonList(givenImp(impBuilder ->
                                 impBuilder
                                         .id("imp1")
-                                        .ext(null)
                                         .bidfloorcur("EUR")
                                         .ext(mapper.valueToTree(extImpPrebid))
                                         .bidfloor(BigDecimal.ONE)))));
@@ -190,6 +189,7 @@ public class PubnativeBidderTest extends VertxTest {
                 .containsExactly(
                         Imp.builder()
                                 .id("imp1")
+                                .banner(Banner.builder().w(1).h(1).build())
                                 .bidfloorcur("USD")
                                 .bidfloor(BigDecimal.TEN)
                                 .ext(mapper.valueToTree(extImpPrebid))
