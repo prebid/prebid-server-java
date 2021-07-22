@@ -52,9 +52,14 @@ public class MedianetBidderTest extends VertxTest {
 
     @Test
     public void httpRequestShouldContainCorrectUrl() {
-        final Result<List<HttpRequest<BidRequest>>> result;
-        result = medianetBidder.makeHttpRequests(DUMMY_REQUEST);
+        // given
+        final BidRequest bidRequest = DUMMY_REQUEST;
 
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result;
+        result = medianetBidder.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
             .extracting(HttpRequest::getUri)
@@ -63,19 +68,29 @@ public class MedianetBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
-        final Result<List<HttpRequest<BidRequest>>> result;
-        result = medianetBidder.makeHttpRequests(DUMMY_REQUEST);
+        // given
+        final BidRequest bidRequest = DUMMY_REQUEST;
 
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result;
+        result = medianetBidder.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
             .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-            .containsOnly(DUMMY_REQUEST);
+            .containsOnly(bidRequest);
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
         final HttpCall<BidRequest> httpCall = sampleHttpCall(DUMMY_REQUEST, "invalid response");
+
+        // when
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
+
+        // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
@@ -84,28 +99,43 @@ public class MedianetBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
         final HttpCall<BidRequest> httpCall;
         httpCall = sampleHttpCall(DUMMY_REQUEST, mapper.writeValueAsString(null));
+
+        // when
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
         final HttpCall<BidRequest> httpCall;
         httpCall = sampleHttpCall(null, mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+        // given
         final HttpCall<BidRequest> httpCall = sampleHttpCall(
                 DUMMY_REQUEST,
                 mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
