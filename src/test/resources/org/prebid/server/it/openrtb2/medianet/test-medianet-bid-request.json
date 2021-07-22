@@ -9,8 +9,8 @@
       },
       "ext": {
         "bidder": {
-          "refresh_count": 1,
-          "random_field": "random_value"
+          "cid": "8CUTSTCID",
+          "crid": "999999999"
         }
       }
     }
