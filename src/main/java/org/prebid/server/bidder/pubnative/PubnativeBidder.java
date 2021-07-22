@@ -19,6 +19,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -27,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.pubnative.ExtImpPubnative;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,13 +41,18 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpPubnative>> PUBNATIVE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubnative>>() {
             };
+    private static final String CUR_USD = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+    private final CurrencyConversionService currencyConversionService;
 
-    public PubnativeBidder(String endpointUrl, JacksonMapper mapper) {
+    public PubnativeBidder(String endpointUrl,
+                           JacksonMapper mapper,
+                           CurrencyConversionService currencyConversionService) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
     }
 
     @Override
@@ -85,9 +92,20 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidRequest modifyRequest(BidRequest bidRequest, Imp imp) {
-        Imp outgoingImp = imp;
-        final Banner banner = imp.getBanner();
+    private BidRequest modifyRequest(BidRequest bidRequest, Imp imp) {
+        final Imp outgoingImp = imp.toBuilder()
+                .banner(resolveBanner(imp.getBanner()))
+                .bidfloor(resolveBidFloor(bidRequest, imp))
+                .bidfloorcur(CUR_USD)
+                .build();
+
+        return bidRequest.toBuilder()
+                .cur(Collections.singletonList(CUR_USD))
+                .imp(Collections.singletonList(outgoingImp))
+                .build();
+    }
+
+    private static Banner resolveBanner(Banner banner) {
         if (banner != null) {
             final Integer bannerHeight = banner.getH();
             final Integer bannerWidth = banner.getW();
@@ -98,17 +116,22 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 }
 
                 final Format firstFormat = bannerFormats.get(0);
-                final Banner modifiedBanner = banner.toBuilder()
+                return banner.toBuilder()
                         .h(firstFormat.getH())
                         .w(firstFormat.getW())
                         .build();
-                outgoingImp = imp.toBuilder().banner(modifiedBanner).build();
             }
         }
+        return null;
+    }
 
-        return bidRequest.toBuilder()
-                .imp(Collections.singletonList(outgoingImp))
-                .build();
+    private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {
+        final String bidFloorCur = imp.getBidfloorcur();
+        final BigDecimal bidFloor = imp.getBidfloor();
+        if (bidFloor == null || bidFloor.compareTo(BigDecimal.ZERO) <= 0 || StringUtils.isEmpty(bidFloorCur)) {
+            return null;
+        }
+        return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCur, CUR_USD);
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, ExtImpPubnative impExt) {
@@ -137,22 +160,22 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
+                : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp());
     }
 
-    private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
+    private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps) {
         return seatbid.stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> createBidderBid(imps, currency, bid))
+                .map(bid -> createBidderBid(imps, bid))
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid createBidderBid(List<Imp> imps, String currency, Bid bid) {
+    private static BidderBid createBidderBid(List<Imp> imps, Bid bid) {
         final Imp imp = findImpById(bid.getImpid(), imps);
-        return BidderBid.of(updateBidWithSize(bid, imp), resolveBidType(imp), currency);
+        return BidderBid.of(updateBidWithSize(bid, imp), resolveBidType(imp), CUR_USD);
     }
 
     private static Bid updateBidWithSize(Bid bid, Imp imp) {
