@@ -18,8 +18,6 @@ import org.springframework.context.annotation.PropertySource;
 
 import javax.validation.constraints.NotBlank;
 
-
-
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/adxcg.yaml", factory = YamlPropertySourceFactory.class)
 public class AdxcgConfiguration {
