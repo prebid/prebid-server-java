@@ -1,15 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "pubnative": {
@@ -17,79 +13,12 @@
           "app_auth_token": "4fd53a12b78af4b39835de9e449c3082"
         }
       }
-    },
-    {
-      "id": "impId002",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 640,
-        "h": 480
-      },
-      "ext": {
-        "pubnative": {
-          "zone_id": 2,
-          "app_auth_token": "4fd53a12b78af4b39835de9e449c"
-        }
-      }
-    },
-    {
-      "id": "impId003",
-      "native": {
-        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}}]}",
-        "ver": "1.1"
-      },
-      "ext": {
-        "pubnative": {
-          "zone_id": 3,
-          "app_auth_token": "4fd53a12b78af4b39835de9e"
-        }
-      }
     }
   ],
   "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId",
-    "os": "os"
+    "os": "someos"
   },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

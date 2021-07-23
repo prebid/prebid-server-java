@@ -5,8 +5,8 @@
     {
       "bid": [
         {
-          "id": "bid001",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "ext": {
             "improvedigital": {
               "buying_type": "rtb",
@@ -22,8 +22,8 @@
           "cid": "25076"
         },
         {
-          "id": "bid002",
-          "impid": "impId002",
+          "id": "bid_id2",
+          "impid": "imp_id2",
           "crid": "2345",
           "price": 2.34,
           "adm": "<VAST>",

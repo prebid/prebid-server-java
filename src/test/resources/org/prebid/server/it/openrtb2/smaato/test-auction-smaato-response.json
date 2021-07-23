@@ -1,27 +1,21 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
           "adm": "<div style=\"cursor:pointer\" onclick=\"fetch(decodeURIComponent('%2F%2Fprebid-test.smaatolabs.net%2Ftrack%2Fclick%2F1'.replace(/\\+/g, ' ')), {cache: 'no-cache'});fetch(decodeURIComponent('%2F%2Fprebid-test.smaatolabs.net%2Ftrack%2Fclick%2F2'.replace(/\\+/g, ' ')), {cache: 'no-cache'});;window.open(decodeURIComponent('%2F%2Fprebid-test.smaatolabs.net%2Ftrack%2Fctaurl%2F1'.replace(/\\+/g, ' ')));\"><img src=\"//prebid-test.smaatolabs.net/img/320x50.jpg\" width=\"350\" height=\"50\"/><img src=\"//prebid-test.smaatolabs.net/track/imp/1\" alt=\"\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/track/imp/2\" alt=\"\" width=\"0\" height=\"0\"/></div>",
-          "cid": "test_cid",
-          "crid": "test_banner_crid",
+          "cid": "cid",
+          "crid": "crid",
           "ext": {
             "format": "BANNER",
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_bidder": "smaato",
-                "hb_bidder_smaato": "smaato",
-                "hb_pb": "0.00",
-                "hb_pb_smaato": "0.00"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.01
           },
-          "id": "1",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.01
         }
       ],
@@ -35,8 +29,8 @@
       "smaato": "{{ smaato.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
-    "tmaxrequest": 3000
+    "tmaxrequest": 5000
   }
 }

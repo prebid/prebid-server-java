@@ -15,6 +15,7 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.util.HttpUtil;
 
 import java.time.ZonedDateTime;
 import java.util.Collections;
@@ -48,6 +49,9 @@ public class GetuidsHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.response()).willReturn(httpServerResponse);
 
+        given(httpServerResponse.putHeader(any(CharSequence.class), any(CharSequence.class)))
+                .willReturn(httpServerResponse);
+
         getuidsHandler = new GetuidsHandler(uidsCookieService, jacksonMapper);
     }
 
@@ -73,6 +77,8 @@ public class GetuidsHandlerTest extends VertxTest {
         getuidsHandler.handle(routingContext);
 
         // then
+        verify(httpServerResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+
         final String responseBody = getResponseBody();
 
         assertThat(responseBody).isNotBlank()
@@ -90,6 +96,8 @@ public class GetuidsHandlerTest extends VertxTest {
         getuidsHandler.handle(routingContext);
 
         // then
+        verify(httpServerResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+
         final String responseBody = getResponseBody();
 
         assertThat(responseBody).isNotBlank().isEqualTo("{}");

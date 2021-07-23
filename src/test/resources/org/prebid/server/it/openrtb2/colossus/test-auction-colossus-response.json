@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid001",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 1.25,
           "adm": "adm001",
           "crid": "crid001",
@@ -13,48 +13,9 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "1.20",
-                "hb_pb_colossus": "1.20",
-                "hb_size": "300x250",
-                "hb_bidder_colossus": "colossus",
-                "hb_size_colossus": "300x250",
-                "hb_bidder": "colossus"
-              }
+              "type": "banner"
             },
             "origbidcpm": 1.25
-          }
-        },
-        {
-          "id": "bid01",
-          "impid": "impId002",
-          "price": 2.25,
-          "adm": "adm002",
-          "adid": "29681110",
-          "adomain": [
-            "video-example.com"
-          ],
-          "cid": "1001",
-          "crid": "crid002",
-          "cat": [
-            "IAB2"
-          ],
-          "w": 640,
-          "h": 480,
-          "ext": {
-            "prebid": {
-              "type": "video",
-              "targeting": {
-                "hb_size_colossus": "640x480",
-                "hb_pb": "2.20",
-                "hb_pb_colossus": "2.20",
-                "hb_size": "640x480",
-                "hb_bidder_colossus": "colossus",
-                "hb_bidder": "colossus"
-              }
-            },
-            "origbidcpm": 2.25
           }
         }
       ],
@@ -68,7 +29,7 @@
       "colossus": "{{ colossus.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

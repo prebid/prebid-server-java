@@ -264,13 +264,13 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
     private static Bid slotToBid(CriteoResponseSlot slot) {
 
         return Bid.builder()
-                .id(slot.getId())
+                .id(slot.getArbitrageId())
                 .impid(slot.getImpId())
                 .price(slot.getCpm())
                 .adm(slot.getCreative())
                 .w(slot.getWidth())
                 .h(slot.getHeight())
-                .crid(slot.getCreativeId())
+                .crid(slot.getCreativeCode())
                 .build();
     }
 }

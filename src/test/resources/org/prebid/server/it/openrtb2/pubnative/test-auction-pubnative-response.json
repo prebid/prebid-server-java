@@ -1,36 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid002",
-          "impid": "impId002",
-          "price": 6.66,
-          "adm": "adm002",
-          "adid": "adid002",
-          "cid": "cid002",
-          "crid": "crid002",
-          "w": 640,
-          "h": 480,
-          "ext": {
-            "prebid": {
-              "type": "video",
-              "targeting": {
-                "hb_bidder_pubnative": "pubnative",
-                "hb_pb_pubnative": "6.60",
-                "hb_pb": "6.60",
-                "hb_size_pubnative": "640x480",
-                "hb_size": "640x480",
-                "hb_bidder": "pubnative"
-              }
-            },
-            "origbidcpm": 6.66
-          }
-        },
-        {
-          "id": "bid001",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 3.33,
           "adm": "adm001",
           "adid": "adid001",
@@ -40,38 +15,9 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "3.30",
-                "hb_bidder_pubnative": "pubnative",
-                "hb_pb_pubnative": "3.30",
-                "hb_size_pubnative": "300x250",
-                "hb_size": "300x250",
-                "hb_bidder": "pubnative"
-              }
+              "type": "banner"
             },
             "origbidcpm": 3.33
-          }
-        },
-        {
-          "id": "bid003",
-          "impid": "impId003",
-          "price": 9.99,
-          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
-          "adid": "adid003",
-          "cid": "cid003",
-          "crid": "crid003",
-          "ext": {
-            "prebid": {
-              "type": "native",
-              "targeting": {
-                "hb_pb": "9.90",
-                "hb_bidder_pubnative": "pubnative",
-                "hb_pb_pubnative": "9.90",
-                "hb_bidder": "pubnative"
-              }
-            },
-            "origbidcpm": 9.99
           }
         }
       ],
@@ -85,7 +31,7 @@
       "pubnative": "{{ pubnative.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

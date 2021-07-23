@@ -3,17 +3,17 @@
     {
       "type": "xml",
       "value": "some-test-ad-3",
-      "aid":"bid_id"
+      "aid": "bid_id"
     },
     {
       "type": "xml",
       "value": "some-test-ad",
-      "aid":"bid_id"
+      "aid": "bid_id"
     },
     {
       "type": "xml",
       "value": "some-test-ad-2",
-      "aid":"bid_id"
+      "aid": "bid_id"
     }
   ]
 }

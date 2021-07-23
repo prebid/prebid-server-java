@@ -1,15 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId12",
+      "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "prebid": {
@@ -24,65 +20,7 @@
       }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId",
-    "ua": "userAgent",
-    "ip": "193.168.244.1",
-    "os": "devos",
-    "osv": "devosv",
-    "model": "devmodel",
-    "make": "devmake"
-  },
-  "app": {
-    "name": "appname",
-    "bundle": "appbundle",
-    "domain": "appdomain"
-  },
-  "at": 1,
   "tmax": 5000,
-  "cur": [
-    "EUR"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "test": 1,
-  "ext": {
-    "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "buyeruid": "AO-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

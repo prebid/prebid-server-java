@@ -2,7 +2,7 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId001",
+      "id": "imp_id",
       "native": {
         "request": "{\"context\":1,\"plcmttype\":1,\"assets\":[{\"id\":1,\"required\":1,\"title\":{\"len\":80}},{\"id\":2,\"required\":1,\"data\":{\"type\":2}},{\"id\":3,\"data\":{\"type\":12}},{\"id\":4,\"img\":{\"type\":3,\"wmin\":300,\"hmin\":225,\"ext\":{\"aspectratios\":[\"4:3\"]}}},{\"id\":5,\"img\":{\"type\":1,\"w\":128,\"h\":128}},{\"id\":6,\"data\":{\"type\":3}},{\"id\":7,\"data\":{\"type\":6}}]}",
         "ver": "1.1"
@@ -14,7 +14,7 @@
       }
     },
     {
-      "id": "impId002",
+      "id": "imp_id2",
       "video": {
         "mimes": [
           "video/mp4"
@@ -42,51 +42,16 @@
   },
   "device": {
     "ua": "userAgent",
-    "dnt": 2,
-    "ip": "193.168.244.1",
-    "pxratio": 4.2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "user": {
-    "buyeruid": "ID-UID",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "ip": "193.168.244.1"
   },
   "at": 1,
   "tmax": 5000,
   "cur": [
     "EUR"
   ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "auctiontimestamp": 1000,
-      "channel" : {
-        "name" : "web"
-      }
     }
   }
 }

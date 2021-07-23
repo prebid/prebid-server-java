@@ -4,8 +4,7 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.prebid.server.model.Endpoint;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -14,7 +13,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
@@ -31,22 +29,12 @@ public class ImprovedigitalTest extends IntegrationTest {
                         jsonFrom("openrtb2/improvedigital/test-improvedigital-bid-response-1.json"))));
 
         // when
-        final Response response = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"improvedigital":"ID-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7ImltcHJvdmVkaWdpdGFsIjoiSUQtVUlEIn19")
-                .body(jsonFrom("openrtb2/improvedigital/test-auction-improvedigital-request-1.json"))
-                .post("/openrtb2/auction");
+        final Response response1 = responseFor("openrtb2/improvedigital/test-auction-improvedigital-request-1.json",
+                Endpoint.openrtb2_auction);
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/improvedigital/test-auction-improvedigital-response-1.json",
-                response, singletonList("improvedigital"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("openrtb2/improvedigital/test-auction-improvedigital-response-1.json", response1,
+                singletonList("improvedigital"));
 
         // #2
         // given
@@ -57,21 +45,11 @@ public class ImprovedigitalTest extends IntegrationTest {
                         jsonFrom("openrtb2/improvedigital/test-improvedigital-bid-response-2.json"))));
 
         // when
-        final Response response2 = given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"improvedigital":"ID-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7ImltcHJvdmVkaWdpdGFsIjoiSUQtVUlEIn19")
-                .body(jsonFrom("openrtb2/improvedigital/test-auction-improvedigital-request-2.json"))
-                .post("/openrtb2/auction");
+        final Response response2 = responseFor("openrtb2/improvedigital/test-auction-improvedigital-request-2.json",
+                Endpoint.openrtb2_auction);
 
         // then
-        final String expectedAuctionResponse2 = openrtbAuctionResponseFrom(
-                "openrtb2/improvedigital/test-auction-improvedigital-response-2.json",
-                response2, singletonList("improvedigital"));
-
-        JSONAssert.assertEquals(expectedAuctionResponse2, response2.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("openrtb2/improvedigital/test-auction-improvedigital-response-2.json", response2,
+                singletonList("improvedigital"));
     }
 }

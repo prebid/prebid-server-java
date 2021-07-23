@@ -1,11 +1,11 @@
 {
-  "id": "test-request-id",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "randomid",
-          "impid": "test-imp-id",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "some-test-ad",
           "adid": "12345678",
@@ -15,15 +15,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_size": "300x250",
-                "hb_bidder": "rtbhouse",
-                "hb_pb_rtbhouse": "0.50",
-                "hb_bidder_rtbhouse": "rtbhouse",
-                "hb_size_rtbhouse": "300x250"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }
@@ -39,7 +31,7 @@
       "rtbhouse": "{{ rtbhouse.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

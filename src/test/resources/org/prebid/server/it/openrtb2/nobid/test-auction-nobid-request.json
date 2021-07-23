@@ -1,8 +1,8 @@
 {
-  "id": "some-request-id",
+  "id": "request_id",
   "imp": [
     {
-      "id": "testimpid",
+      "id": "imp_id",
       "banner": {
         "w": 320,
         "h": 250
@@ -13,45 +13,10 @@
           "placementId": 25
         }
       },
-      "tagid": "impId021"
+      "tagid": "tag_id"
     }
   ],
-  "device": {
-    "ua": "test-user-agent",
-    "ip": "123.123.123.123",
-    "language": "en",
-    "dnt": 0
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
-  "tmax": 1000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
+  "tmax": 5000,
   "regs": {
     "ext": {
       "gdpr": 0

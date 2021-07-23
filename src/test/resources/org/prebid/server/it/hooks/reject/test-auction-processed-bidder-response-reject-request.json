@@ -54,7 +54,7 @@
   },
   "ext": {
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     }
   }
 }

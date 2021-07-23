@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
           "id": "1",
-          "impid": "impId001",
+          "impid": "imp_id",
           "price": 1.00,
           "dealid": "888",
           "adm": "<div style='background-color:red; height:250px; width:300px'></div><img src='https://hosts-demo.adhese.com/rtb_gateway/handlers/client/track/?id=a2f39296-6dd0-4b3c-be85-7baa22e7ff4a' style='height:1px; width:1px; margin: -1px -1px; display:none;'/>",
@@ -15,17 +15,7 @@
           "ext": {
             "adType": "leaderboard",
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "1.00",
-                "hb_size_adhese": "728x90",
-                "hb_size": "728x90",
-                "hb_pb_adhese": "1.00",
-                "hb_bidder_adhese": "adhese",
-                "hb_bidder": "adhese",
-                "hb_deal": "888",
-                "hb_deal_adhese": "888"
-              }
+              "type": "banner"
             },
             "origbidcpm": 1.00,
             "origbidcur": "USD"
@@ -42,7 +32,7 @@
       "adhese": "{{ adhese.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }
