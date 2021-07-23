@@ -15,8 +15,7 @@ public class BidderInfoCreator {
         return create(configurationProperties, null);
     }
 
-    public static BidderInfo create(BidderConfigurationProperties configurationProperties,
-                                    String aliasOf) {
+    public static BidderInfo create(BidderConfigurationProperties configurationProperties, String aliasOf) {
         final MetaInfo metaInfo = configurationProperties.getMetaInfo();
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
@@ -30,5 +29,4 @@ public class BidderInfoCreator {
                 configurationProperties.getPbsEnforcesCcpa(),
                 configurationProperties.getModifyingVastXmlAllowed());
     }
-
 }
