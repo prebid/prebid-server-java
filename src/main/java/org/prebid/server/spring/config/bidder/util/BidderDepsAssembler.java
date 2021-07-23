@@ -84,6 +84,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private List<BidderInstanceDeps> coreAndAliasesDeps() {
+        configProperties = addDefaultProperties(configProperties);
         final List<BidderInstanceDeps> deps = new ArrayList<>();
 
         deps.add(coreDeps());
@@ -93,16 +94,11 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private BidderInstanceDeps coreDeps() {
-        final CFG enrichedConfig = addDefaultProperties(configProperties);
-        return deps(bidderName, BidderInfoCreator.create(enrichedConfig), enrichedConfig);
+        return deps(bidderName, BidderInfoCreator.create(configProperties), configProperties);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private CFG addDefaultProperties(CFG configProperties) {
-        if (defaultConfigProperties == null) {
-            return configProperties;
-        }
-
         try {
             final JsonNode mergedNode = JsonMergePatch
                     .fromJson(MAPPER.valueToTree(configProperties))
@@ -122,12 +118,11 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private BidderInstanceDeps aliasDeps(Map.Entry<String, Object> entry) {
         final String alias = entry.getKey();
-        final CFG enrichedConfig = addDefaultProperties(configProperties);
-        final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), enrichedConfig);
+        final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), configProperties);
 
-        validateCapabilities(alias, aliasConfigProperties, bidderName, enrichedConfig);
+        validateCapabilities(alias, aliasConfigProperties, bidderName, configProperties);
 
-        final BidderInfo bidderInfo = BidderInfoCreator.create(addDefaultProperties(configProperties), bidderName);
+        final BidderInfo bidderInfo = BidderInfoCreator.create(configProperties, bidderName);
         return deps(alias, bidderInfo, aliasConfigProperties);
     }
 
