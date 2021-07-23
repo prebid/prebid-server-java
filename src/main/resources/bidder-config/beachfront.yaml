@@ -1,13 +1,7 @@
 adapters:
   beachfront:
-    enabled: false
     endpoint: https://display.bfmio.com/prebid_display
     video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@beachfront.com
       app-media-types:

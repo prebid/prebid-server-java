@@ -4,6 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.mobfoxpb.MobfoxpbBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -31,6 +32,9 @@ public class MobfoxpbConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
+    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+
+    @Autowired
     @Qualifier("mobfoxpbConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -44,6 +48,7 @@ public class MobfoxpbConfiguration {
     BidderDeps mobfoxpbBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
+                .withDefaultConfig(defaultBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new MobfoxpbBidder(config.getEndpoint(), mapper))
                 .assemble();

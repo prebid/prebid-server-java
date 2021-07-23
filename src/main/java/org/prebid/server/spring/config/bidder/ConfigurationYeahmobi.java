@@ -4,6 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.yeahmobi.YeahmobiBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -31,6 +32,9 @@ public class ConfigurationYeahmobi {
     private JacksonMapper mapper;
 
     @Autowired
+    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+
+    @Autowired
     @Qualifier("yeahmobiConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -43,7 +47,9 @@ public class ConfigurationYeahmobi {
     @Bean
     BidderDeps yeahmobiBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties).usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .withConfig(configProperties)
+                .withDefaultConfig(defaultBidderConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new YeahmobiBidder(config.getEndpoint(), mapper))
                 .assemble();
     }

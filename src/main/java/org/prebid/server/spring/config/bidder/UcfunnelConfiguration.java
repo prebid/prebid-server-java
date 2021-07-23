@@ -4,6 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.ucfunnel.UcfunnelBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -31,6 +32,9 @@ public class UcfunnelConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
+    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+
+    @Autowired
     @Qualifier("ucfunnelConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -44,6 +48,7 @@ public class UcfunnelConfiguration {
     BidderDeps ucfunnelBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
+                .withDefaultConfig(defaultBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new UcfunnelBidder(config.getEndpoint(), mapper))
                 .assemble();

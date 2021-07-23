@@ -4,6 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.invibes.InvibesBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -31,6 +32,9 @@ public class InvibesConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
+    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+
+    @Autowired
     @Qualifier("invibesConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -44,6 +48,7 @@ public class InvibesConfiguration {
     BidderDeps invibesBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
+                .withDefaultConfig(defaultBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new InvibesBidder(config.getEndpoint(), mapper))
                 .assemble();

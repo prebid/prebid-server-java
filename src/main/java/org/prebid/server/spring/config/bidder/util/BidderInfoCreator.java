@@ -2,7 +2,6 @@ package org.prebid.server.spring.config.bidder.util;
 
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 
 public class BidderInfoCreator {

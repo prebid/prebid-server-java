@@ -7,6 +7,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -30,6 +31,9 @@ public class FacebookConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
+    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+
+    @Autowired
     @Qualifier("facebookConfigurationProperties")
     private FacebookConfigurationProperties configProperties;
 
@@ -43,6 +47,7 @@ public class FacebookConfiguration {
     BidderDeps facebookBidderDeps() {
         return BidderDepsAssembler.<FacebookConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
+                .withDefaultConfig(defaultBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(null))
                 .bidderCreator(configProperties.getEnabled()
                         ? config -> new FacebookBidder(

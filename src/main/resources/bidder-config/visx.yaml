@@ -1,12 +1,6 @@
 adapters:
   visx:
-    enabled: false
     endpoint: https://t.visx.net/s2s_bid?wrapperType=s2s_prebid_java
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: supply.partners@yoc.com
       app-media-types:

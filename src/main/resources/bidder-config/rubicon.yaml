@@ -1,12 +1,6 @@
 adapters:
   rubicon:
-    enabled: false
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    deprecated-names:
-    aliases: {}
-    modifying-vast-xml-allowed: true
     generate-bid-id: false
     XAPI:
       Username:

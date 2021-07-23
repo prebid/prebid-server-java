@@ -1,12 +1,6 @@
 adapters:
   gumgum:
-    enabled: false
     endpoint: https://g2.gumgum.com/providers/prbds2s/bid
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@gumgum.com
       app-media-types:

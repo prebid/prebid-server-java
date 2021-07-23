@@ -4,6 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.adxcg.AdxcgBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -16,6 +17,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 import javax.validation.constraints.NotBlank;
+
+
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/adxcg.yaml", factory = YamlPropertySourceFactory.class)
@@ -31,6 +34,9 @@ public class AdxcgConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
+    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+
+    @Autowired
     @Qualifier("adxcgConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -44,6 +50,7 @@ public class AdxcgConfiguration {
     BidderDeps adxcgBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
+                .withDefaultConfig(defaultBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdxcgBidder(config.getEndpoint(), mapper))
                 .assemble();
