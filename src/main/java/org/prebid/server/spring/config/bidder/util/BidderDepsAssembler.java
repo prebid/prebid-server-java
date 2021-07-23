@@ -93,7 +93,25 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private BidderInstanceDeps coreDeps() {
-        return deps(bidderName, BidderInfoCreator.create(configProperties, defaultConfigProperties), configProperties);
+        final CFG enrichedConfig = addDefaultProperties(configProperties);
+        return deps(bidderName, BidderInfoCreator.create(enrichedConfig), enrichedConfig);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private CFG addDefaultProperties(CFG configProperties) {
+        if (defaultConfigProperties == null) {
+            return configProperties;
+        }
+
+        try {
+            final JsonNode mergedNode = JsonMergePatch
+                    .fromJson(MAPPER.valueToTree(configProperties))
+                    .apply(MAPPER.valueToTree(defaultConfigProperties));
+
+            return (CFG) MAPPER.treeToValue(mergedNode, (Class) configProperties.getSelfClass());
+        } catch (JsonPatchException | JsonProcessingException e) {
+            throw new IllegalArgumentException("Exception occurred while merging alias configuration", e);
+        }
     }
 
     private List<BidderInstanceDeps> aliasesDeps() {
@@ -104,12 +122,12 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private BidderInstanceDeps aliasDeps(Map.Entry<String, Object> entry) {
         final String alias = entry.getKey();
-        final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), configProperties);
+        final CFG enrichedConfig = addDefaultProperties(configProperties);
+        final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), enrichedConfig);
 
-        validateCapabilities(alias, aliasConfigProperties, bidderName, configProperties);
+        validateCapabilities(alias, aliasConfigProperties, bidderName, enrichedConfig);
 
-        final BidderInfo bidderInfo = BidderInfoCreator.create(aliasConfigProperties,
-                defaultConfigProperties, bidderName);
+        final BidderInfo bidderInfo = BidderInfoCreator.create(addDefaultProperties(configProperties), bidderName);
         return deps(alias, bidderInfo, aliasConfigProperties);
     }
 
