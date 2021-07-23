@@ -121,9 +121,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), configProperties);
 
         validateCapabilities(alias, aliasConfigProperties, bidderName, configProperties);
-
-        final BidderInfo bidderInfo = BidderInfoCreator.create(configProperties, bidderName);
-        return deps(alias, bidderInfo, aliasConfigProperties);
+        return deps(alias, BidderInfoCreator.create(aliasConfigProperties, bidderName), aliasConfigProperties);
     }
 
     private BidderInstanceDeps deps(String bidderName, BidderInfo bidderInfo, CFG configProperties) {
