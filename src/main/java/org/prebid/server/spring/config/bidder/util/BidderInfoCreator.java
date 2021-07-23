@@ -11,24 +11,24 @@ public class BidderInfoCreator {
 
     }
 
-    public static BidderInfo create(BidderConfigurationProperties bidderConfigurationProperties) {
-        return create(bidderConfigurationProperties, null);
+    public static BidderInfo create(BidderConfigurationProperties configurationProperties) {
+        return create(configurationProperties, null);
     }
 
-    public static BidderInfo create(BidderConfigurationProperties bidderConfigurationProperties,
+    public static BidderInfo create(BidderConfigurationProperties configurationProperties,
                                     String aliasOf) {
-        final MetaInfo metaInfo = bidderConfigurationProperties.getMetaInfo();
+        final MetaInfo metaInfo = configurationProperties.getMetaInfo();
         return BidderInfo.create(
-                bidderConfigurationProperties.getEnabled(),
+                configurationProperties.getEnabled(),
                 aliasOf,
                 metaInfo.getMaintainerEmail(),
                 metaInfo.getAppMediaTypes(),
                 metaInfo.getSiteMediaTypes(),
                 metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(),
-                bidderConfigurationProperties.getPbsEnforcesGdpr(),
-                bidderConfigurationProperties.getPbsEnforcesCcpa(),
-                bidderConfigurationProperties.getModifyingVastXmlAllowed());
+                configurationProperties.getPbsEnforcesGdpr(),
+                configurationProperties.getPbsEnforcesCcpa(),
+                configurationProperties.getModifyingVastXmlAllowed());
     }
 
 }
