@@ -22,6 +22,7 @@ public class ImprovedigitalTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromImproveDigital() throws IOException, JSONException {
+        // #1
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/improvedigital-exchange"))
                 .withRequestBody(equalToJson(
@@ -37,14 +38,40 @@ public class ImprovedigitalTest extends IntegrationTest {
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"improvedigital":"ID-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImltcHJvdmVkaWdpdGFsIjoiSUQtVUlEIn19")
-                .body(jsonFrom("openrtb2/improvedigital/test-auction-improvedigital-request.json"))
+                .body(jsonFrom("openrtb2/improvedigital/test-auction-improvedigital-request-1.json"))
                 .post("/openrtb2/auction");
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/improvedigital/test-auction-improvedigital-response.json",
+                "openrtb2/improvedigital/test-auction-improvedigital-response-1.json",
                 response, singletonList("improvedigital"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+
+        // #2
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/improvedigital-exchange"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/improvedigital/test-improvedigital-bid-request-2.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/improvedigital/test-improvedigital-bid-response-2.json"))));
+
+        // when
+        final Response response2 = given(SPEC)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "193.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"improvedigital":"ID-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImltcHJvdmVkaWdpdGFsIjoiSUQtVUlEIn19")
+                .body(jsonFrom("openrtb2/improvedigital/test-auction-improvedigital-request-2.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse2 = openrtbAuctionResponseFrom(
+                "openrtb2/improvedigital/test-auction-improvedigital-response-2.json",
+                response2, singletonList("improvedigital"));
+
+        JSONAssert.assertEquals(expectedAuctionResponse2, response2.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
