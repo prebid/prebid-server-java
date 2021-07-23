@@ -12,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
+import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExtImprovedigital;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -54,29 +55,39 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         for (Imp imp : request.getImp()) {
             try {
-                parseImpExt(imp);
+                parseAndValidateImpExt(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
-                return Result.withErrors(errors);
             }
         }
 
-        return Result.withValues(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
+        if (!errors.isEmpty()) {
+            return Result.withErrors(errors);
+        }
+
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
                         .payload(request)
                         .body(mapper.encode(request))
-                        .build()));
+                        .build());
     }
 
-    private ExtImpImprovedigital parseImpExt(Imp imp) {
+    private ExtImpImprovedigital parseAndValidateImpExt(Imp imp) {
+        ExtImpImprovedigital ext;
         try {
-            return mapper.mapper().convertValue(imp.getExt(), IMPROVEDIGITAL_EXT_TYPE_REFERENCE).getBidder();
+            ext = mapper.mapper().convertValue(imp.getExt(), IMPROVEDIGITAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+
+        final Integer placementId = ext.getPlacementId();
+        if (placementId == null) {
+            throw new PreBidException("No placementId provided");
+        }
+
+        return ext;
     }
 
     @Override
@@ -106,13 +117,13 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> makeBidderBid(bidRequest, bidResponse, bid))
+                .map(bid -> BidderBid.of(bidWithDealId(bid), getBidType(bid.getImpid(), bidRequest.getImp()),
+                        bidResponse.getCur()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private BidderBid makeBidderBid(BidRequest bidRequest, BidResponse bidResponse, Bid bid) {
-        Bid modifiedBid = bid;
+    private Bid bidWithDealId(Bid bid) {
         if (bid.getExt() != null) {
             final ImprovedigitalBidExt improvedigitalBidExt;
             try {
@@ -120,15 +131,21 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             } catch (JsonProcessingException e) {
                 throw new PreBidException(e.getMessage(), e);
             }
+            final ImprovedigitalBidExtImprovedigital improve = improvedigitalBidExt.getImprovedigital();
+            if (improve == null) {
+                return bid;
+            }
             // Populate dealId
-            String buyingType = improvedigitalBidExt.getImprovedigital().getBuyingType();
-            Integer lineItemId = improvedigitalBidExt.getImprovedigital().getLineItemId();
-            if (!StringUtils.isBlank(buyingType) && buyingType.matches("(classic|deal)")
-                    && lineItemId != null && lineItemId > 0) {
-                modifiedBid = bid.toBuilder().dealid(lineItemId.toString()).build();
+            String buyingType = improve.getBuyingType();
+            Integer lineItemId = improve.getLineItemId();
+            if (!StringUtils.isBlank(buyingType)
+                    && buyingType.matches("(classic|deal)")
+                    && lineItemId != null
+                    && lineItemId > 0) {
+                return bid.toBuilder().dealid(lineItemId.toString()).build();
             }
         }
-        return BidderBid.of(modifiedBid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur());
+        return bid;
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
