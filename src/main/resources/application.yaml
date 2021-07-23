@@ -232,3 +232,10 @@ analytics:
       size-bytes: 2097152
       count: 100
       report-ttl-ms: 900000
+adapter-defaults:
+  enabled: false
+  pbs-enforces-gdpr: true
+  pbs-enforces-ccpa: true
+  deprecated-names:
+  aliases: {}
+  modifying-vast-xml-allowed: true

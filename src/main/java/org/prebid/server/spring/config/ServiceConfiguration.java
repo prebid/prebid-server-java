@@ -54,6 +54,7 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.BidValidationEnforcement;
+import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -455,6 +456,12 @@ public class ServiceConfiguration {
     @Bean
     EventsService eventsService(@Value("${external-url}") String externalUrl) {
         return new EventsService(externalUrl);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "adapter-defaults")
+    DefaultBidderConfigurationProperties defaultBidderConfigurationProperties() {
+        return new DefaultBidderConfigurationProperties();
     }
 
     @Bean

@@ -15,6 +15,7 @@ import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -43,6 +44,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private String bidderName;
     private CFG configProperties;
+    private DefaultBidderConfigurationProperties defaultConfigProperties;
     private Function<UsersyncConfigurationProperties, Usersyncer> usersyncerCreator;
     private Function<CFG, Bidder<?>> bidderCreator;
 
@@ -67,6 +69,11 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         return this;
     }
 
+    public BidderDepsAssembler<CFG> withDefaultConfig(DefaultBidderConfigurationProperties defaultConfigProperties) {
+        this.defaultConfigProperties = defaultConfigProperties;
+        return this;
+    }
+
     public BidderDepsAssembler<CFG> withConfig(CFG configProperties) {
         this.configProperties = configProperties;
         return this;
@@ -86,7 +93,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private BidderInstanceDeps coreDeps() {
-        return deps(bidderName, BidderInfoCreator.create(configProperties), configProperties);
+        return deps(bidderName, BidderInfoCreator.create(configProperties, defaultConfigProperties), configProperties);
     }
 
     private List<BidderInstanceDeps> aliasesDeps() {
@@ -101,7 +108,9 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
         validateCapabilities(alias, aliasConfigProperties, bidderName, configProperties);
 
-        return deps(alias, BidderInfoCreator.create(aliasConfigProperties, bidderName), aliasConfigProperties);
+        final BidderInfo bidderInfo = BidderInfoCreator.create(aliasConfigProperties,
+                defaultConfigProperties, bidderName);
+        return deps(alias, bidderInfo, aliasConfigProperties);
     }
 
     private BidderInstanceDeps deps(String bidderName, BidderInfo bidderInfo, CFG configProperties) {

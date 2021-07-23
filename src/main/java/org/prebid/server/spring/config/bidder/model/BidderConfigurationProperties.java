@@ -13,25 +13,19 @@ import java.util.Map;
 @Data
 public class BidderConfigurationProperties {
 
-    @NotNull
     private Boolean enabled;
 
     @NotBlank
     private String endpoint;
 
-    @NotNull
     private Boolean pbsEnforcesGdpr;
 
-    @NotNull
     private Boolean pbsEnforcesCcpa;
 
-    @NotNull
     private Boolean modifyingVastXmlAllowed;
 
-    @NotNull
     private List<String> deprecatedNames;
 
-    @NotNull
     private Map<String, Object> aliases = Collections.emptyMap();
 
     @NotNull
