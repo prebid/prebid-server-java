@@ -94,21 +94,16 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyRequest(BidRequest bidRequest, Imp imp) {
-        final List<String> resolvedCurrencies = resolveBidRequestCurrencies(bidRequest);
-        final Imp resolvedImp = resolveImp(bidRequest, imp);
-
-        return resolvedImp == null && resolvedCurrencies == null
-                ? bidRequest
-                : bidRequest.toBuilder()
-                .cur(ObjectUtils.defaultIfNull(resolvedCurrencies, bidRequest.getCur()))
-                .imp(Collections.singletonList(ObjectUtils.defaultIfNull(resolvedImp, imp)))
+        return bidRequest.toBuilder()
+                .cur(resolveBidRequestCurrencies(bidRequest))
+                .imp(Collections.singletonList(resolveImp(bidRequest, imp)))
                 .build();
     }
 
     private List<String> resolveBidRequestCurrencies(BidRequest bidRequest) {
         final List<String> currencies = bidRequest.getCur();
         final String firstCurrency = CollectionUtils.isNotEmpty(currencies) ? currencies.get(0) : null;
-        return StringUtils.equals(firstCurrency, CURRENCY_USD) ? Collections.singletonList(CURRENCY_USD) : null;
+        return StringUtils.equals(firstCurrency, CURRENCY_USD) ? Collections.singletonList(CURRENCY_USD) : currencies;
     }
 
     private Imp resolveImp(BidRequest bidRequest, Imp imp) {
@@ -116,7 +111,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         final BigDecimal resolvedBidFloor = resolveBidFloor(bidRequest, imp);
         final boolean isResolvedBidFloorNull = resolvedBidFloor == null;
         return resolvedBanner == null && isResolvedBidFloorNull
-                ? null
+                ? imp
                 : imp.toBuilder()
                 .banner(ObjectUtils.defaultIfNull(resolvedBanner, imp.getBanner()))
                 .bidfloor(ObjectUtils.defaultIfNull(resolvedBidFloor, imp.getBidfloor()))
