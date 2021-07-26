@@ -459,12 +459,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @ConfigurationProperties(prefix = "adapter-defaults")
-    CommonBidderConfigurationProperties commonBidderConfigurationProperties() {
-        return new CommonBidderConfigurationProperties();
-    }
-
-    @Bean
     BidderCatalog bidderCatalog(List<BidderDeps> bidderDeps) {
         return new BidderCatalog(bidderDeps);
     }

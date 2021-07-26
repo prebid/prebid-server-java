@@ -37,10 +37,6 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
             + "Prebid Server deploy. If you believe this should work, contact the company hosting the service "
             + "and tell them to check their configuration.";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
     private String bidderName;
     private CFG configProperties;
     private Function<UsersyncConfigurationProperties, Usersyncer> usersyncerCreator;
@@ -124,7 +120,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private CFG mergeAliasConfiguration(Object aliasConfiguration, CFG coreConfiguration) {
-        return mergeConfigurations(
+        return BidderConfigurationMerger.mergeConfigurations(
                 configurationAsPropertiesObject(aliasConfiguration, coreConfiguration.getSelfClass()),
                 coreConfiguration);
     }
@@ -161,18 +157,5 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         final Binder configurationBinder = new Binder(new MapConfigurationPropertySource(configAsProperties));
 
         return (CFG) configurationBinder.bind(StringUtils.EMPTY, (Class) targetClass).get();
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private CFG mergeConfigurations(CFG aliasConfiguration, CFG coreConfiguration) {
-        try {
-            final JsonNode mergedNode = JsonMergePatch
-                    .fromJson(MAPPER.valueToTree(aliasConfiguration))
-                    .apply(MAPPER.valueToTree(coreConfiguration));
-
-            return (CFG) MAPPER.treeToValue(mergedNode, (Class) coreConfiguration.getSelfClass());
-        } catch (JsonPatchException | JsonProcessingException e) {
-            throw new IllegalArgumentException("Exception occurred while merging alias configuration", e);
-        }
     }
 }
