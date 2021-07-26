@@ -9,7 +9,7 @@ import org.prebid.server.bidder.brightroll.BrightrollBidder;
 import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.CommonBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -43,7 +43,7 @@ public class BrightrollConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
-    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+    private CommonBidderConfigurationProperties commonBidderConfigurationProperties;
 
     @Autowired
     @Qualifier("brightrollConfigurationProperties")
@@ -63,7 +63,7 @@ public class BrightrollConfiguration {
                 .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(defaultBidderConfigurationProperties)
+                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new BrightrollBidder(
                         config.getEndpoint(),

@@ -15,7 +15,7 @@ import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.CommonBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -44,7 +44,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private String bidderName;
     private CFG configProperties;
-    private DefaultBidderConfigurationProperties defaultConfigProperties;
+    private CommonBidderConfigurationProperties defaultConfigProperties;
     private Function<UsersyncConfigurationProperties, Usersyncer> usersyncerCreator;
     private Function<CFG, Bidder<?>> bidderCreator;
 
@@ -69,7 +69,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         return this;
     }
 
-    public BidderDepsAssembler<CFG> withDefaultConfig(DefaultBidderConfigurationProperties defaultConfigProperties) {
+    public BidderDepsAssembler<CFG> withDefaultConfig(CommonBidderConfigurationProperties defaultConfigProperties) {
         this.defaultConfigProperties = defaultConfigProperties;
         return this;
     }

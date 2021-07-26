@@ -4,7 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.datablocks.DatablocksBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.CommonBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -32,7 +32,7 @@ public class DatablocksConfiguration {
     private String externalUrl;
 
     @Autowired
-    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+    private CommonBidderConfigurationProperties commonBidderConfigurationProperties;
 
     @Autowired
     @Qualifier("datablocksConfigurationProperties")
@@ -48,7 +48,7 @@ public class DatablocksConfiguration {
     BidderDeps datablocksBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(defaultBidderConfigurationProperties)
+                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new DatablocksBidder(config.getEndpoint(), mapper))
                 .assemble();

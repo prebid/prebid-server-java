@@ -10,23 +10,17 @@ import java.util.Map;
 
 @Validated
 @Data
-public class DefaultBidderConfigurationProperties {
+public class CommonBidderConfigurationProperties {
 
-    @NotNull
     private Boolean enabled;
 
-    @NotNull
     private Boolean pbsEnforcesGdpr;
 
-    @NotNull
     private Boolean pbsEnforcesCcpa;
 
-    @NotNull
     private Boolean modifyingVastXmlAllowed;
 
-    @NotNull
     private List<String> deprecatedNames;
 
-    @NotNull
     private Map<String, Object> aliases = Collections.emptyMap();
 }

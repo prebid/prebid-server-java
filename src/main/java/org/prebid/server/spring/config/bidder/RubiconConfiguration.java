@@ -8,7 +8,7 @@ import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.CommonBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -36,7 +36,7 @@ public class RubiconConfiguration {
     private CurrencyConversionService currencyConversionService;
 
     @Autowired
-    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+    private CommonBidderConfigurationProperties commonBidderConfigurationProperties;
 
     @Autowired
     @Qualifier("rubiconConfigurationProperties")
@@ -52,7 +52,7 @@ public class RubiconConfiguration {
     BidderDeps rubiconBidderDeps() {
         return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(defaultBidderConfigurationProperties)
+                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(null))
                 .bidderCreator(config -> new RubiconBidder(
                         config.getEndpoint(),

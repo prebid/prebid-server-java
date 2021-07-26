@@ -1,7 +1,6 @@
 adapters:
   improvedigital:
     endpoint: http://ad.360yield.com/pbs
-    aliases: {}
     meta-info:
       maintainer-email: hb@azerion.com
       app-media-types:

@@ -1,8 +1,6 @@
 adapters:
   adgeneration:
     endpoint: https://d.socdm.com/adsv/v1
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: ssp-ope@supership.jp
       app-media-types:

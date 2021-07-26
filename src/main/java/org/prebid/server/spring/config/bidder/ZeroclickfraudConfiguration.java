@@ -4,7 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.zeroclickfraud.ZeroclickfraudBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.DefaultBidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.CommonBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -32,7 +32,7 @@ public class ZeroclickfraudConfiguration {
     private String externalUrl;
 
     @Autowired
-    private DefaultBidderConfigurationProperties defaultBidderConfigurationProperties;
+    private CommonBidderConfigurationProperties commonBidderConfigurationProperties;
 
     @Autowired
     @Qualifier("zeroclickfraudConfigurationProperties")
@@ -48,7 +48,7 @@ public class ZeroclickfraudConfiguration {
     BidderDeps zeroclickfraudBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(defaultBidderConfigurationProperties)
+                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ZeroclickfraudBidder(config.getEndpoint(), mapper))
                 .assemble();
