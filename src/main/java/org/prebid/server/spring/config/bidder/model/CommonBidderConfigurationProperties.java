@@ -3,7 +3,6 @@ package org.prebid.server.spring.config.bidder.model;
 import lombok.Data;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

@@ -7,7 +7,6 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.beachfront.BeachfrontBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.CommonBidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
@@ -34,9 +33,6 @@ public class BeachfrontConfiguration {
 
     @Autowired
     private JacksonMapper mapper;
-
-    @Autowired
-    private CommonBidderConfigurationProperties commonBidderConfigurationProperties;
 
     @Autowired
     @Qualifier("beachfrontConfigurationProperties")
