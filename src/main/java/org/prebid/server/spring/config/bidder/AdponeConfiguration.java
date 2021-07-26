@@ -48,7 +48,6 @@ public class AdponeConfiguration {
     BidderDeps adponeBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdponeBidder(config.getEndpoint(), mapper))
                 .assemble();

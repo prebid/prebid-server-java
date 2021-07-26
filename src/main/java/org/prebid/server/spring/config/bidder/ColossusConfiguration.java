@@ -48,7 +48,6 @@ public class ColossusConfiguration {
     BidderDeps colossusBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ColossusBidder(config.getEndpoint(), mapper))
                 .assemble();

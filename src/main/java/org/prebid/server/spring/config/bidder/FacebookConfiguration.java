@@ -47,7 +47,6 @@ public class FacebookConfiguration {
     BidderDeps facebookBidderDeps() {
         return BidderDepsAssembler.<FacebookConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(null))
                 .bidderCreator(configProperties.getEnabled()
                         ? config -> new FacebookBidder(

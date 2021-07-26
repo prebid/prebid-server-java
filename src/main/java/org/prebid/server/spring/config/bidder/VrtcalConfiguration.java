@@ -48,7 +48,6 @@ public class VrtcalConfiguration {
     BidderDeps vrtcalBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new VrtcalBidder(config.getEndpoint(), mapper))
                 .assemble();

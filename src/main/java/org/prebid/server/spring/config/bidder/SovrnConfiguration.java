@@ -48,7 +48,6 @@ public class SovrnConfiguration {
     BidderDeps sovrnBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new SovrnBidder(config.getEndpoint(), mapper))
                 .assemble();

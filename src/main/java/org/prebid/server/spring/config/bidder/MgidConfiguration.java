@@ -48,7 +48,6 @@ public class MgidConfiguration {
     BidderDeps mgidBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new MgidBidder(config.getEndpoint(), mapper))
                 .assemble();

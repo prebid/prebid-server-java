@@ -48,7 +48,6 @@ public class EngagebdrConfiguration {
     BidderDeps engagebdrBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new EngagebdrBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class ZeroclickfraudConfiguration {
     BidderDeps zeroclickfraudBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ZeroclickfraudBidder(config.getEndpoint(), mapper))
                 .assemble();

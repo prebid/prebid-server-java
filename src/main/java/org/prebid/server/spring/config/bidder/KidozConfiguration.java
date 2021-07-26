@@ -48,7 +48,6 @@ public class KidozConfiguration {
     BidderDeps kidozBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new KidozBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class AdkernelAdnConfiguration {
     BidderDeps adkernelAdnBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdkernelAdnBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -53,7 +53,6 @@ public class ConversantConfiguration {
     BidderDeps conversantBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ConversantBidder(config.getEndpoint(), configProperties.getGenerateBidId(),
                         mapper))

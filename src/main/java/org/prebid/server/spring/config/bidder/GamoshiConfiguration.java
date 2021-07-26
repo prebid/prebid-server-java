@@ -48,7 +48,6 @@ public class GamoshiConfiguration {
     BidderDeps gamoshiBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new GamoshiBidder(config.getEndpoint(), mapper))
                 .assemble();

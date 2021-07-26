@@ -48,7 +48,6 @@ public class AdformConfiguration {
     BidderDeps adformBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdformBidder(config.getEndpoint(), mapper))
                 .assemble();

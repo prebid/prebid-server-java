@@ -48,7 +48,6 @@ public class EplanningConfiguration {
     BidderDeps eplanningBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new EplanningBidder(config.getEndpoint(), mapper))
                 .assemble();

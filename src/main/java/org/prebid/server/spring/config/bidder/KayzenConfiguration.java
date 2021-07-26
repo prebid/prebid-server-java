@@ -48,7 +48,6 @@ public class KayzenConfiguration {
     BidderDeps kayzenBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new KayzenBidder(config.getEndpoint(), mapper))
                 .assemble();

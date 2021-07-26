@@ -48,7 +48,6 @@ public class AdyoulikeConfiguration {
     BidderDeps adyoulileBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdyoulikeBidder(config.getEndpoint(), mapper))
                 .assemble();

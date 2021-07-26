@@ -48,7 +48,6 @@ public class ConsumableConfiguration {
     BidderDeps consumableBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ConsumableBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class OrbidderConfiguration {
     BidderDeps orbidderBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new OrbidderBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class MobilefuseConfiguration {
     BidderDeps mobilefuseBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new MobilefuseBidder(config.getEndpoint(), mapper))
                 .assemble();

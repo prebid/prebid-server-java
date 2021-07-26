@@ -48,7 +48,6 @@ public class MobfoxpbConfiguration {
     BidderDeps mobfoxpbBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new MobfoxpbBidder(config.getEndpoint(), mapper))
                 .assemble();

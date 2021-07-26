@@ -48,7 +48,6 @@ public class SimpleWantedConfiguration {
     BidderDeps smilewantedBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new SmileWantedBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class AdprimeConfiguration {
     BidderDeps adprimeBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdprimeBidder(config.getEndpoint(), mapper))
                 .assemble();

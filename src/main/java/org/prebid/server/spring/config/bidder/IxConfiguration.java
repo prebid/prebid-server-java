@@ -48,7 +48,6 @@ public class IxConfiguration {
     BidderDeps ixBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new IxBidder(config.getEndpoint(), mapper))
                 .assemble();

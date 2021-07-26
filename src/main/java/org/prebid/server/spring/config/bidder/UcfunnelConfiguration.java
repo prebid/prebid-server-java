@@ -48,7 +48,6 @@ public class UcfunnelConfiguration {
     BidderDeps ucfunnelBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new UcfunnelBidder(config.getEndpoint(), mapper))
                 .assemble();

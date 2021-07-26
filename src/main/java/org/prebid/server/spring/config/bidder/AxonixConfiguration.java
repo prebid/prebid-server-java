@@ -48,7 +48,6 @@ public class AxonixConfiguration {
     BidderDeps axonixBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AxonixBidder(config.getEndpoint(), mapper))
                 .assemble();

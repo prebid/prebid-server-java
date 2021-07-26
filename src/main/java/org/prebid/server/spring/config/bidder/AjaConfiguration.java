@@ -48,7 +48,6 @@ public class AjaConfiguration {
     BidderDeps ajaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AjaBidder(config.getEndpoint(), mapper))
                 .assemble();

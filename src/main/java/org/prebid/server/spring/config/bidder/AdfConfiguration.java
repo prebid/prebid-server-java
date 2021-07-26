@@ -32,9 +32,6 @@ public class AdfConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
-    private CommonBidderConfigurationProperties commonBidderConfigurationProperties;
-
-    @Autowired
     @Qualifier("adfConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -49,7 +46,6 @@ public class AdfConfiguration {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdfBidder(config.getEndpoint(), mapper))
                 .assemble();

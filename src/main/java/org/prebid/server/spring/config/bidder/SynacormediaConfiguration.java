@@ -48,7 +48,6 @@ public class SynacormediaConfiguration {
     BidderDeps synacormediaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new SynacormediaBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class LunamediaConfiguration {
     BidderDeps lunamediaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new LunamediaBidder(config.getEndpoint(), mapper))
                 .assemble();

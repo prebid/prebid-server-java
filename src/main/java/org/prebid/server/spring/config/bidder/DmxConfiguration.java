@@ -48,7 +48,6 @@ public class DmxConfiguration {
     BidderDeps dmxBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new DmxBidder(config.getEndpoint(), mapper))
                 .assemble();

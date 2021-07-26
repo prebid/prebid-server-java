@@ -48,7 +48,6 @@ public class CpmStarConfiguration {
     BidderDeps cpmstarBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new CpmStarBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class PulsepointConfiguration {
     BidderDeps pulsepointBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new PulsepointBidder(config.getEndpoint(), mapper))
                 .assemble();

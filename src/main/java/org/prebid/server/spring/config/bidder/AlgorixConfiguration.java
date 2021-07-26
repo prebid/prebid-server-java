@@ -49,7 +49,6 @@ public class AlgorixConfiguration {
     BidderDeps algorixBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AlgorixBidder(config.getEndpoint(), mapper))
                 .assemble();

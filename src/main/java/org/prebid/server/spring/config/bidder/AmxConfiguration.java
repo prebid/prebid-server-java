@@ -49,7 +49,6 @@ public class AmxConfiguration {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AmxBidder(config.getEndpoint(), mapper))
                 .assemble();

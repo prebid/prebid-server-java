@@ -48,7 +48,6 @@ public class EpomConfiguration {
     BidderDeps epomBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new EpomBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -49,7 +49,6 @@ public class AdmanConfiguration {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdmanBidder(config.getEndpoint(), mapper))
                 .assemble();

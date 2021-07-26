@@ -48,7 +48,6 @@ public class LockerdomeConfiguration {
     BidderDeps lockerdomeBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new LockerdomeBidder(config.getEndpoint(), mapper))
                 .assemble();

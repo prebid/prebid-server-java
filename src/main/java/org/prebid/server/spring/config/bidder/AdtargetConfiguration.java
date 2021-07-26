@@ -48,7 +48,6 @@ public class AdtargetConfiguration {
     BidderDeps adtargetBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdtargetBidder(config.getEndpoint(), mapper))
                 .assemble();

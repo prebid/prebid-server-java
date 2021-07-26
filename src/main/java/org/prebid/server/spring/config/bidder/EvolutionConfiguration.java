@@ -48,7 +48,6 @@ public class EvolutionConfiguration {
     BidderDeps evolutionBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new EvolutionBidder(config.getEndpoint(), mapper))
                 .assemble();

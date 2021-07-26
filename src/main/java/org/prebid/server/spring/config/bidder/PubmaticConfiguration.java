@@ -48,7 +48,6 @@ public class PubmaticConfiguration {
     BidderDeps pubmaticBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new PubmaticBidder(config.getEndpoint(), mapper))
                 .assemble();

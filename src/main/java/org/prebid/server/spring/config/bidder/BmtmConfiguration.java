@@ -48,7 +48,6 @@ public class BmtmConfiguration {
     BidderDeps bmtmBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new BmtmBidder(config.getEndpoint(), mapper))
                 .assemble();

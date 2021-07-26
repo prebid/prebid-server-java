@@ -48,7 +48,6 @@ public class TelariaConfiguration {
     BidderDeps telariaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new TelariaBidder(config.getEndpoint(), mapper))
                 .assemble();

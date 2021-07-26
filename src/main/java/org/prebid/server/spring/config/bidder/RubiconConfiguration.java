@@ -52,7 +52,6 @@ public class RubiconConfiguration {
     BidderDeps rubiconBidderDeps() {
         return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(null))
                 .bidderCreator(config -> new RubiconBidder(
                         config.getEndpoint(),

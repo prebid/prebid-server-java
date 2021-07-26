@@ -48,7 +48,6 @@ public class KrushmediaConfiguration {
     BidderDeps krushmediaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new KrushmediaBidder(config.getEndpoint(), mapper))
                 .assemble();

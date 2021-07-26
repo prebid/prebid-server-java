@@ -48,7 +48,6 @@ public class AppnexusConfiguration {
     BidderDeps appnexusBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AppnexusBidder(config.getEndpoint(), mapper))
                 .assemble();

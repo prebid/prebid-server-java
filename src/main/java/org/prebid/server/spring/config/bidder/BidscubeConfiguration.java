@@ -48,7 +48,6 @@ public class BidscubeConfiguration {
     BidderDeps bidscubeBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new BidscubeBidder(mapper, config.getEndpoint()))
                 .assemble();

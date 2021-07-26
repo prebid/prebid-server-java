@@ -48,7 +48,6 @@ public class InmobiConfiguration {
     BidderDeps inmobiBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new InmobiBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class UnicornConfiguration {
     BidderDeps unicornBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new UnicornBidder(config.getEndpoint(), mapper))
                 .assemble();

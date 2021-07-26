@@ -63,7 +63,6 @@ public class BrightrollConfiguration {
                 .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new BrightrollBidder(
                         config.getEndpoint(),

@@ -48,7 +48,6 @@ public class GridConfiguration {
     BidderDeps gridBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new GridBidder(config.getEndpoint(), mapper))
                 .assemble();

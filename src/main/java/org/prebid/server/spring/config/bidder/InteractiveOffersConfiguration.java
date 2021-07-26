@@ -48,7 +48,6 @@ public class InteractiveOffersConfiguration {
     BidderDeps interactiveoffersBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new InteractiveOffersBidder(config.getEndpoint(), mapper))
                 .assemble();

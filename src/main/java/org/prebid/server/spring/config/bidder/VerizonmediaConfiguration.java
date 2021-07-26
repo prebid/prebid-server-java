@@ -48,7 +48,6 @@ public class VerizonmediaConfiguration {
     BidderDeps verizonmediaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new VerizonmediaBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -32,9 +32,6 @@ public class AcuityadsConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
-    private CommonBidderConfigurationProperties commonBidderConfigurationProperties;
-
-    @Autowired
     @Qualifier("acuityadsConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -48,7 +45,6 @@ public class AcuityadsConfiguration {
     BidderDeps acuityadsBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AcuityadsBidder(config.getEndpoint(), mapper))
                 .assemble();

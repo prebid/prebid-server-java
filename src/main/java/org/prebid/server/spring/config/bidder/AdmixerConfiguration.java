@@ -48,7 +48,6 @@ public class AdmixerConfiguration {
     BidderDeps admixerBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdmixerBidder(config.getEndpoint(), mapper))
                 .assemble();

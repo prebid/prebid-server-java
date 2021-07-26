@@ -53,7 +53,6 @@ public class CriteoConfiguration {
     BidderDeps criteoBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config ->
                         new CriteoBidder(config.getEndpoint(), mapper, configProperties.getGenerateSlotId()))

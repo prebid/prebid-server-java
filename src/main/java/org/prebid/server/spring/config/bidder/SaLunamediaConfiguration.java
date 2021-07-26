@@ -48,7 +48,6 @@ public class SaLunamediaConfiguration {
     BidderDeps saLunamediaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new SaLunamediaBidder(config.getEndpoint(), mapper))
                 .assemble();

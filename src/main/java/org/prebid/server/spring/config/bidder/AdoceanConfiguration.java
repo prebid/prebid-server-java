@@ -48,7 +48,6 @@ public class AdoceanConfiguration {
     BidderDeps adoceanBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdoceanBidder(config.getEndpoint(), mapper))
                 .assemble();

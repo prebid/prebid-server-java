@@ -48,7 +48,6 @@ public class YieldoneConfiguration {
     BidderDeps yieldoneBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new YieldoneBidder(config.getEndpoint(), mapper))
                 .assemble();

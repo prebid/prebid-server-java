@@ -48,7 +48,6 @@ public class AdotConfiguration {
     BidderDeps adotBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AdotBidder(config.getEndpoint(), mapper))
                 .assemble();

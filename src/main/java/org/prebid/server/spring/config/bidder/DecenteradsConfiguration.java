@@ -48,7 +48,6 @@ public class DecenteradsConfiguration {
     BidderDeps decenteradsBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new DecenteradsBidder(config.getEndpoint(), mapper))
                 .assemble();

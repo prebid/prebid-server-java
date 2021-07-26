@@ -48,7 +48,6 @@ public class LoopmeConfiguration {
     BidderDeps loopmeBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new LoopmeBidder(configProperties.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class GammaConfiguration {
     BidderDeps gammaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new GammaBidder(config.getEndpoint(), mapper))
                 .assemble();

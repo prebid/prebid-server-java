@@ -52,7 +52,6 @@ public class BeachfrontConfiguration {
     BidderDeps beachfrontBidderDeps() {
         return BidderDepsAssembler.<BeachfrontConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new BeachfrontBidder(
                         config.getEndpoint(),

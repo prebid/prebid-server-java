@@ -48,7 +48,6 @@ public class ValueImpressionConfiguration {
     BidderDeps valueimpressionBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ValueImpressionBidder(config.getEndpoint(), mapper))
                 .assemble();

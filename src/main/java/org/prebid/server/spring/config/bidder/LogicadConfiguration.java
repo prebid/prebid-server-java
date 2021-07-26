@@ -48,7 +48,6 @@ public class LogicadConfiguration {
     BidderDeps logicadBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new LogicadBidder(config.getEndpoint(), mapper))
                 .assemble();

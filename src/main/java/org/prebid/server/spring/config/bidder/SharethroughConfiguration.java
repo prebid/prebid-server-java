@@ -48,7 +48,6 @@ public class SharethroughConfiguration {
     BidderDeps sharethroughBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new SharethroughBidder(config.getEndpoint(), mapper))
                 .assemble();

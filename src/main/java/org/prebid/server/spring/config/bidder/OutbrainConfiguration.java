@@ -48,7 +48,6 @@ public class OutbrainConfiguration {
     BidderDeps outbrainBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new OutbrainBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class BeintooConfiguration {
     BidderDeps beintooBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new BeintooBidder(config.getEndpoint(), mapper))
                 .assemble();

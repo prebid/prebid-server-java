@@ -48,7 +48,6 @@ public class MadvertiseConfiguration {
     BidderDeps madvertiseBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new MadvertiseBidder(config.getEndpoint(), mapper))
                 .assemble();

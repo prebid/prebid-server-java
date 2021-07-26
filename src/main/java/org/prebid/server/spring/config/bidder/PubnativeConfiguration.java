@@ -48,7 +48,6 @@ public class PubnativeConfiguration {
     BidderDeps pubnativeBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new PubnativeBidder(config.getEndpoint(), mapper))
                 .assemble();

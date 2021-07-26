@@ -48,7 +48,6 @@ public class SomoaudienceConfiguration {
     BidderDeps somoaudienceBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new SomoaudienceBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -48,7 +48,6 @@ public class MarsmediaConfiguration {
     BidderDeps marsmediaBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new MarsmediaBidder(config.getEndpoint(), mapper))
                 .assemble();

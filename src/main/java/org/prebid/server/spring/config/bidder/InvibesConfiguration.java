@@ -48,7 +48,6 @@ public class InvibesConfiguration {
     BidderDeps invibesBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new InvibesBidder(config.getEndpoint(), mapper))
                 .assemble();

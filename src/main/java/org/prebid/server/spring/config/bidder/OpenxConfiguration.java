@@ -48,7 +48,6 @@ public class OpenxConfiguration {
     BidderDeps openxBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new OpenxBidder(config.getEndpoint(), mapper))
                 .assemble();

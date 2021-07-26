@@ -48,7 +48,6 @@ public class ImprovedigitalConfiguration {
     BidderDeps improvedigitalBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ImprovedigitalBidder(config.getEndpoint(), mapper))
                 .assemble();

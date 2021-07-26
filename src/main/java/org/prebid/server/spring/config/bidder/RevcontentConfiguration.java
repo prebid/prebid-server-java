@@ -48,7 +48,6 @@ public class RevcontentConfiguration {
     BidderDeps revcontentBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new RevcontentBidder(config.getEndpoint(), mapper))
                 .assemble();

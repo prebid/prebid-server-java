@@ -48,7 +48,6 @@ public class YieldmoConfiguration {
     BidderDeps yieldmoBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new YieldmoBidder(config.getEndpoint(), mapper))
                 .assemble();

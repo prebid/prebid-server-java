@@ -48,7 +48,6 @@ public class ConnectAdConfiguration {
     BidderDeps connectadBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ConnectadBidder(config.getEndpoint(), mapper))
                 .assemble();

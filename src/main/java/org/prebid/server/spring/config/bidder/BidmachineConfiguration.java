@@ -48,7 +48,6 @@ public class BidmachineConfiguration {
     BidderDeps bidmachineBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new BidmachineBidder(config.getEndpoint(), mapper))
                 .assemble();

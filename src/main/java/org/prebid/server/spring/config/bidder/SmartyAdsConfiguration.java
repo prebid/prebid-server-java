@@ -48,7 +48,6 @@ public class SmartyAdsConfiguration {
     BidderDeps smartyadsBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .withDefaultConfig(commonBidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new SmartyAdsBidder(config.getEndpoint(), mapper))
                 .assemble();
