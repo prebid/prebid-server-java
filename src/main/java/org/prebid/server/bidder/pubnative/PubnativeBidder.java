@@ -12,6 +12,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -41,7 +42,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpPubnative>> PUBNATIVE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubnative>>() {
             };
-    private static final String CUR_USD = "USD";
+    private static final String CURRENCY_USD = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -93,47 +94,64 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyRequest(BidRequest bidRequest, Imp imp) {
-        final BigDecimal resolvedBidFloor = resolveBidFloor(bidRequest, imp);
-        final String resolvedBidFloorCur = resolvedBidFloor != null ? CUR_USD : null;
-        final Imp outgoingImp = imp.toBuilder()
-                .banner(resolveBanner(imp.getBanner()))
-                .bidfloor(resolvedBidFloor)
-                .bidfloorcur(resolvedBidFloorCur)
-                .build();
+        final List<String> resolvedCurrencies = resolveBidRequestCurrencies(bidRequest);
+        final Imp resolvedImp = resolveImp(bidRequest, imp);
 
-        return bidRequest.toBuilder()
-                .cur(Collections.singletonList(CUR_USD))
-                .imp(Collections.singletonList(outgoingImp))
+        return resolvedImp == null && resolvedCurrencies == null
+                ? bidRequest
+                : bidRequest.toBuilder()
+                .cur(ObjectUtils.defaultIfNull(resolvedCurrencies, bidRequest.getCur()))
+                .imp(Collections.singletonList(ObjectUtils.defaultIfNull(resolvedImp, imp)))
+                .build();
+    }
+
+    private List<String> resolveBidRequestCurrencies(BidRequest bidRequest) {
+        final List<String> currencies = bidRequest.getCur();
+        final String firstCurrency = CollectionUtils.isNotEmpty(currencies) ? currencies.get(0) : null;
+        return StringUtils.equals(firstCurrency, CURRENCY_USD) ? Collections.singletonList(CURRENCY_USD) : null;
+    }
+
+    private Imp resolveImp(BidRequest bidRequest, Imp imp) {
+        final Banner resolvedBanner = resolveBanner(imp.getBanner());
+        final BigDecimal resolvedBidFloor = resolveBidFloor(bidRequest, imp);
+        final boolean isResolvedBidFloorNull = resolvedBidFloor == null;
+        return resolvedBanner == null && isResolvedBidFloorNull
+                ? null
+                : imp.toBuilder()
+                .banner(ObjectUtils.defaultIfNull(resolvedBanner, imp.getBanner()))
+                .bidfloor(ObjectUtils.defaultIfNull(resolvedBidFloor, imp.getBidfloor()))
+                .bidfloorcur(isResolvedBidFloorNull ? imp.getBidfloorcur() : CURRENCY_USD)
                 .build();
     }
 
     private static Banner resolveBanner(Banner banner) {
         if (banner != null) {
-            final Integer bannerHeight = banner.getH();
-            final Integer bannerWidth = banner.getW();
-            if (bannerWidth == null || bannerWidth == 0 || bannerHeight == null || bannerHeight == 0) {
-                final List<Format> bannerFormats = banner.getFormat();
-                if (CollectionUtils.isEmpty(bannerFormats)) {
+            final Integer width = banner.getW();
+            final Integer height = banner.getH();
+            if (width == null || width == 0 || height == null || height == 0) {
+                final List<Format> formats = banner.getFormat();
+                if (CollectionUtils.isEmpty(formats)) {
                     throw new PreBidException("Size information missing for banner");
                 }
 
-                final Format firstFormat = bannerFormats.get(0);
+                final Format firstFormat = formats.get(0);
                 return banner.toBuilder()
-                        .h(firstFormat.getH())
                         .w(firstFormat.getW())
+                        .h(firstFormat.getH())
                         .build();
             }
         }
-        return banner;
+        return null;
     }
 
     private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {
         final String bidFloorCur = imp.getBidfloorcur();
         final BigDecimal bidFloor = imp.getBidfloor();
-        if (bidFloor == null || bidFloor.compareTo(BigDecimal.ZERO) <= 0 || StringUtils.isEmpty(bidFloorCur)) {
+        if (bidFloor == null || bidFloor.compareTo(BigDecimal.ZERO) <= 0
+                || StringUtils.equals(bidFloorCur, CURRENCY_USD)) {
             return null;
         }
-        return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCur, CUR_USD);
+        return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCur, CURRENCY_USD);
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, ExtImpPubnative impExt) {
@@ -162,22 +180,22 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp());
+                : bidsFromResponse(bidResponse.getSeatbid(), bidRequest.getImp(), bidResponse.getCur());
     }
 
-    private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps) {
+    private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
         return seatbid.stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> createBidderBid(imps, bid))
+                .map(bid -> createBidderBid(imps, currency, bid))
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid createBidderBid(List<Imp> imps, Bid bid) {
+    private static BidderBid createBidderBid(List<Imp> imps, String currency, Bid bid) {
         final Imp imp = findImpById(bid.getImpid(), imps);
-        return BidderBid.of(updateBidWithSize(bid, imp), resolveBidType(imp), CUR_USD);
+        return BidderBid.of(updateBidWithSize(bid, imp), resolveBidType(imp), currency);
     }
 
     private static Bid updateBidWithSize(Bid bid, Imp imp) {

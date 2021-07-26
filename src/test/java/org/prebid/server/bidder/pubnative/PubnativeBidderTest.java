@@ -59,8 +59,6 @@ public class PubnativeBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
-                .willReturn(BigDecimal.TEN);
         pubnativeBidder = new PubnativeBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
     }
 
@@ -168,32 +166,28 @@ public class PubnativeBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldChangeCurrencyToUsdIfPresent() {
         // given
-        final ExtPrebid extImpPrebid = ExtPrebid.of(null, ExtImpPubnative.of(1, "auth"));
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.imp(
                         singletonList(givenImp(impBuilder ->
                                 impBuilder
                                         .id("imp1")
                                         .bidfloorcur("EUR")
-                                        .ext(mapper.valueToTree(extImpPrebid))
                                         .bidfloor(BigDecimal.ONE)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(
-                        Imp.builder()
-                                .id("imp1")
-                                .banner(Banner.builder().w(1).h(1).build())
-                                .bidfloorcur("USD")
-                                .bidfloor(BigDecimal.TEN)
-                                .ext(mapper.valueToTree(extImpPrebid))
-                                .build());
+                .allSatisfy(imp -> {
+                    assertThat(imp.getBidfloorcur()).isEqualTo("USD");
+                    assertThat(imp.getBidfloor()).isEqualTo(BigDecimal.TEN);
+                });
     }
 
     @Test
