@@ -41,6 +41,8 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -164,7 +166,7 @@ public class PubnativeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldChangeCurrencyToUsdIfPresent() {
+    public void makeHttpRequestsShouldChangeImpCurrencyToUsdIfPresent() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
                 .willReturn(BigDecimal.TEN);
@@ -184,10 +186,48 @@ public class PubnativeBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .allSatisfy(imp -> {
-                    assertThat(imp.getBidfloorcur()).isEqualTo("USD");
-                    assertThat(imp.getBidfloor()).isEqualTo(BigDecimal.TEN);
-                });
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsExactly(tuple(BigDecimal.TEN, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldChangeBidRequestCurrencyToUsd() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.imp(singletonList(givenImp(identity()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getCur)
+                .containsExactly("USD");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldGetCurrencyFromBidRequestIfImpBidfloorCurIsAbsent() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+        final BidRequest bidRequest = givenBidRequest(identity(), requestBuilder ->
+                requestBuilder
+                        .imp(singletonList(givenImp(impBuilder -> impBuilder.id("imp1").bidfloor(BigDecimal.ONE))))
+                        .cur(singletonList("EUR")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        verify(currencyConversionService).convertCurrency(eq(BigDecimal.ONE), any(), eq("EUR"), eq("USD"));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsExactly(tuple(BigDecimal.TEN, "USD"));
     }
 
     @Test
