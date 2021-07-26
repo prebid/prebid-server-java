@@ -42,7 +42,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpPubnative>> PUBNATIVE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubnative>>() {
             };
-    private static final String CURRENCY_USD = "USD";
+    private static final String PUBNATIVE_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -95,7 +95,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
 
     private BidRequest createRequest(BidRequest bidRequest, Imp imp) {
         return bidRequest.toBuilder()
-                .cur(Collections.singletonList(CURRENCY_USD))
+                .cur(Collections.singletonList(PUBNATIVE_CURRENCY))
                 .imp(Collections.singletonList(resolveImp(bidRequest, imp)))
                 .build();
     }
@@ -108,7 +108,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 : imp.toBuilder()
                 .banner(ObjectUtils.defaultIfNull(resolvedBanner, imp.getBanner()))
                 .bidfloor(ObjectUtils.defaultIfNull(resolvedBidFloor, imp.getBidfloor()))
-                .bidfloorcur(resolvedBidFloor == null ? imp.getBidfloorcur() : CURRENCY_USD)
+                .bidfloorcur(resolvedBidFloor == null ? imp.getBidfloorcur() : PUBNATIVE_CURRENCY)
                 .build();
     }
 
@@ -136,12 +136,12 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         final BigDecimal bidFloor = imp.getBidfloor();
         final String bidFloorCur = resolveBidFloorCurrency(bidRequest, imp.getBidfloorcur());
         if (bidFloor == null || bidFloor.compareTo(BigDecimal.ZERO) <= 0
-                || StringUtils.equals(bidFloorCur, CURRENCY_USD)
+                || StringUtils.equals(bidFloorCur, PUBNATIVE_CURRENCY)
                 || StringUtils.isEmpty(bidFloorCur)) {
             return null;
         }
 
-        return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCur, CURRENCY_USD);
+        return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCur, PUBNATIVE_CURRENCY);
     }
 
     private static String resolveBidFloorCurrency(BidRequest bidRequest, String bidFloorCurrency) {
@@ -149,7 +149,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
             return bidFloorCurrency;
         }
         final List<String> bidRequestCurrencies = bidRequest.getCur();
-        return bidRequestCurrencies != null ? bidRequestCurrencies.get(0) : null;
+        return CollectionUtils.isNotEmpty(bidRequestCurrencies) ? bidRequestCurrencies.get(0) : null;
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, ExtImpPubnative impExt) {
