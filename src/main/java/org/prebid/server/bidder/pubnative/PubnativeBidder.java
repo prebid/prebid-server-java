@@ -69,7 +69,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
             try {
                 validateImp(imp);
                 final ExtImpPubnative extImpPubnative = parseImpExt(imp.getExt());
-                final BidRequest outgoingRequest = modifyRequest(bidRequest, imp);
+                final BidRequest outgoingRequest = createRequest(bidRequest, imp);
                 httpRequests.add(createHttpRequest(outgoingRequest, extImpPubnative));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -93,29 +93,22 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidRequest modifyRequest(BidRequest bidRequest, Imp imp) {
+    private BidRequest createRequest(BidRequest bidRequest, Imp imp) {
         return bidRequest.toBuilder()
-                .cur(resolveBidRequestCurrencies(bidRequest))
+                .cur(Collections.singletonList(CURRENCY_USD))
                 .imp(Collections.singletonList(resolveImp(bidRequest, imp)))
                 .build();
-    }
-
-    private List<String> resolveBidRequestCurrencies(BidRequest bidRequest) {
-        final List<String> currencies = bidRequest.getCur();
-        final String firstCurrency = CollectionUtils.isNotEmpty(currencies) ? currencies.get(0) : null;
-        return StringUtils.equals(firstCurrency, CURRENCY_USD) ? Collections.singletonList(CURRENCY_USD) : currencies;
     }
 
     private Imp resolveImp(BidRequest bidRequest, Imp imp) {
         final Banner resolvedBanner = resolveBanner(imp.getBanner());
         final BigDecimal resolvedBidFloor = resolveBidFloor(bidRequest, imp);
-        final boolean isResolvedBidFloorNull = resolvedBidFloor == null;
-        return resolvedBanner == null && isResolvedBidFloorNull
+        return resolvedBanner == null && resolvedBidFloor == null
                 ? imp
                 : imp.toBuilder()
                 .banner(ObjectUtils.defaultIfNull(resolvedBanner, imp.getBanner()))
                 .bidfloor(ObjectUtils.defaultIfNull(resolvedBidFloor, imp.getBidfloor()))
-                .bidfloorcur(isResolvedBidFloorNull ? imp.getBidfloorcur() : CURRENCY_USD)
+                .bidfloorcur(resolvedBidFloor == null ? imp.getBidfloorcur() : CURRENCY_USD)
                 .build();
     }
 
@@ -140,13 +133,23 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {
-        final String bidFloorCur = imp.getBidfloorcur();
         final BigDecimal bidFloor = imp.getBidfloor();
+        final String bidFloorCur = resolveBidFloorCurrency(bidRequest, imp.getBidfloorcur());
         if (bidFloor == null || bidFloor.compareTo(BigDecimal.ZERO) <= 0
-                || StringUtils.equals(bidFloorCur, CURRENCY_USD)) {
+                || StringUtils.equals(bidFloorCur, CURRENCY_USD)
+                || StringUtils.isEmpty(bidFloorCur)) {
             return null;
         }
+
         return currencyConversionService.convertCurrency(bidFloor, bidRequest, bidFloorCur, CURRENCY_USD);
+    }
+
+    private static String resolveBidFloorCurrency(BidRequest bidRequest, String bidFloorCurrency) {
+        if (StringUtils.isNotEmpty(bidFloorCurrency)) {
+            return bidFloorCurrency;
+        }
+        final List<String> bidRequestCurrencies = bidRequest.getCur();
+        return bidRequestCurrencies != null ? bidRequestCurrencies.get(0) : null;
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, ExtImpPubnative impExt) {
