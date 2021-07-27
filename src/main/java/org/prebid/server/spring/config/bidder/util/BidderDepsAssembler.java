@@ -1,5 +1,12 @@
 package org.prebid.server.spring.config.bidder.util;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.JsonPatchException;
+import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -29,6 +36,10 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = "%s is not configured properly on this "
             + "Prebid Server deploy. If you believe this should work, contact the company hosting the service "
             + "and tell them to check their configuration.";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     private String bidderName;
     private CFG configProperties;
@@ -89,6 +100,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         final CFG aliasConfigProperties = mergeAliasConfiguration(entry.getValue(), configProperties);
 
         validateCapabilities(alias, aliasConfigProperties, bidderName, configProperties);
+
         return deps(alias, BidderInfoCreator.create(aliasConfigProperties, bidderName), aliasConfigProperties);
     }
 
@@ -113,7 +125,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private CFG mergeAliasConfiguration(Object aliasConfiguration, CFG coreConfiguration) {
-        return BidderConfigurationMerger.mergeConfigurations(
+        return mergeConfigurations(
                 configurationAsPropertiesObject(aliasConfiguration, coreConfiguration.getSelfClass()),
                 coreConfiguration);
     }
@@ -150,5 +162,18 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         final Binder configurationBinder = new Binder(new MapConfigurationPropertySource(configAsProperties));
 
         return (CFG) configurationBinder.bind(StringUtils.EMPTY, (Class) targetClass).get();
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private CFG mergeConfigurations(CFG aliasConfiguration, CFG coreConfiguration) {
+        try {
+            final JsonNode mergedNode = JsonMergePatch
+                    .fromJson(MAPPER.valueToTree(aliasConfiguration))
+                    .apply(MAPPER.valueToTree(coreConfiguration));
+
+            return (CFG) MAPPER.treeToValue(mergedNode, (Class) coreConfiguration.getSelfClass());
+        } catch (JsonPatchException | JsonProcessingException e) {
+            throw new IllegalArgumentException("Exception occurred while merging alias configuration", e);
+        }
     }
 }
