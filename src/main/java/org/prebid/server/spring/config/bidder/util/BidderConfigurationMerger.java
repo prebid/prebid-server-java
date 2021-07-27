@@ -15,6 +15,9 @@ public class BidderConfigurationMerger {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
+    private BidderConfigurationMerger() {
+
+    }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <CFG extends BidderConfigurationProperties> CFG mergeConfigurations(CFG mergeTo, CFG toMerge) {
