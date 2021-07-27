@@ -1,7 +1,5 @@
 package org.prebid.server.spring.config.bidder.postprocessor;
 
-import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.CommonBidderConfigurationProperties;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
