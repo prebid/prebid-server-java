@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.CommonBidderConfigurationProperties;
 
 public class BidderConfigurationMerger {
 
@@ -27,20 +26,6 @@ public class BidderConfigurationMerger {
             return (CFG) MAPPER.treeToValue(mergedNode, (Class) toMerge.getSelfClass());
         } catch (JsonPatchException | JsonProcessingException e) {
             throw new IllegalArgumentException("Exception occurred while merging configurations", e);
-        }
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <CFG extends BidderConfigurationProperties> CFG mergeConfigurationWithCommon(
-            CFG mergeTo, CommonBidderConfigurationProperties toMerge) {
-        try {
-            final JsonNode mergedNode = JsonMergePatch
-                    .fromJson(MAPPER.valueToTree(mergeTo))
-                    .apply(MAPPER.valueToTree(toMerge));
-
-            return (CFG) MAPPER.treeToValue(mergedNode, (Class) mergeTo.getSelfClass());
-        } catch (JsonPatchException | JsonProcessingException e) {
-            throw new IllegalArgumentException("Exception occurred while merging common configuration", e);
         }
     }
 }
