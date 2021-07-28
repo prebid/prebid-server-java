@@ -22,10 +22,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kayzen.ExtImpKayzen;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -54,8 +52,7 @@ public class GenericBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest((Function<Imp.ImpBuilder, Imp.ImpBuilder>) impBuilder ->
-                impBuilder.ext(mapper.valueToTree(givenPrebidKayzenExt("someZoneId", "someExchange"))));
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = genericBidder.makeHttpRequests(bidRequest);
@@ -126,7 +123,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
     }
 
     @Test
@@ -143,7 +140,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
     }
 
     @Test
@@ -180,31 +177,18 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
     }
 
-    private static ExtPrebid<?, ExtImpKayzen> givenPrebidKayzenExt(String zoneId, String exchange) {
-        return ExtPrebid.of(null, ExtImpKayzen.of(zoneId, exchange));
-    }
-
-    @SafeVarargs
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
-        return givenBidRequest(identity(), impCustomizers);
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
     }
 
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(Arrays.stream(impCustomizers).map(GenericBidderTest::givenImp).collect(Collectors.toList())))
-                .build();
-    }
-
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, null))))
+                .imp(singletonList(impCustomizer.apply(Imp.builder()).build())))
                 .build();
     }
 

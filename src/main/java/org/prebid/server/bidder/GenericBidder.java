@@ -54,12 +54,12 @@ public class GenericBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
