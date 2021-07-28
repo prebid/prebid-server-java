@@ -13,7 +13,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.GenericBidder;
-import org.prebid.server.bidder.kayzen.KayzenBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;

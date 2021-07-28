@@ -80,12 +80,12 @@ public class KayzenBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
 
         return HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(url)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
-                        .build();
+                .method(HttpMethod.POST)
+                .uri(url)
+                .headers(HttpUtil.headers())
+                .payload(outgoingRequest)
+                .body(mapper.encode(outgoingRequest))
+                .build();
     }
 
     @Override
