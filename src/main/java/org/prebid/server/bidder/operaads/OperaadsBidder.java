@@ -92,7 +92,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), OPERAADS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
         }
     }
 
