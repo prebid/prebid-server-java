@@ -17,7 +17,6 @@ import org.springframework.context.annotation.PropertySource;
 
 import javax.validation.constraints.NotBlank;
 
-
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/generic_adapter.yaml", factory = YamlPropertySourceFactory.class)
 public class GenericBidderConfiguration {

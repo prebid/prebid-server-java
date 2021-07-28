@@ -49,7 +49,7 @@ public class GenericBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new KayzenBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new GenericBidder("invalid_url", jacksonMapper));
     }
 
     @Test

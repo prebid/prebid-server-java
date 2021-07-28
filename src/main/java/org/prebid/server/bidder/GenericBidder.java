@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
  * Generic {@link Bidder} implementation.
  */
 public class GenericBidder implements Bidder<BidRequest> {
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
