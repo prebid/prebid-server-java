@@ -20,33 +20,36 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
 
     private final CacheNotificationListener cacheNotificationListener;
     private final JacksonMapper mapper;
+    private final String endpoint;
 
-    public SettingsCacheNotificationHandler(CacheNotificationListener cacheNotificationListener, JacksonMapper mapper) {
+    public SettingsCacheNotificationHandler(CacheNotificationListener cacheNotificationListener, JacksonMapper mapper,
+                                            String endpoint) {
         this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
         this.mapper = Objects.requireNonNull(mapper);
+        this.endpoint = Objects.requireNonNull(endpoint);
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        switch (context.request().method()) {
+    public void handle(RoutingContext routingContext) {
+        switch (routingContext.request().method()) {
             case POST:
-                doSave(context);
+                doSave(routingContext);
                 break;
             case DELETE:
-                doInvalidate(context);
+                doInvalidate(routingContext);
                 break;
             default:
-                doFail(context);
+                doFail(routingContext);
         }
     }
 
     /**
-     * Propagates updating settings cache
+     * Propagates updating settings cache.
      */
-    private void doSave(RoutingContext context) {
-        final Buffer body = context.getBody();
+    private void doSave(RoutingContext routingContext) {
+        final Buffer body = routingContext.getBody();
         if (body == null) {
-            HttpUtil.respondWith(context, HttpResponseStatus.BAD_REQUEST, "Missing update data.");
+            respondWithBadRequest(routingContext, "Missing update data.");
             return;
         }
 
@@ -54,21 +57,21 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
         try {
             request = mapper.decodeValue(body, UpdateSettingsCacheRequest.class);
         } catch (DecodeException e) {
-            HttpUtil.respondWith(context, HttpResponseStatus.BAD_REQUEST, "Invalid update.");
+            respondWithBadRequest(routingContext, "Invalid update.");
             return;
         }
 
         cacheNotificationListener.save(request.getRequests(), request.getImps());
-        HttpUtil.respondWith(context, HttpResponseStatus.OK, null);
+        respondWith(routingContext, HttpResponseStatus.OK);
     }
 
     /**
-     * Propagates invalidating settings cache
+     * Propagates invalidating settings cache.
      */
-    private void doInvalidate(RoutingContext context) {
-        final Buffer body = context.getBody();
+    private void doInvalidate(RoutingContext routingContext) {
+        final Buffer body = routingContext.getBody();
         if (body == null) {
-            HttpUtil.respondWith(context, HttpResponseStatus.BAD_REQUEST, "Missing invalidation data.");
+            respondWithBadRequest(routingContext, "Missing invalidation data.");
             return;
         }
 
@@ -76,18 +79,32 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
         try {
             request = mapper.decodeValue(body, InvalidateSettingsCacheRequest.class);
         } catch (DecodeException e) {
-            HttpUtil.respondWith(context, HttpResponseStatus.BAD_REQUEST, "Invalid invalidation.");
+            respondWithBadRequest(routingContext, "Invalid invalidation.");
             return;
         }
 
         cacheNotificationListener.invalidate(request.getRequests(), request.getImps());
-        HttpUtil.respondWith(context, HttpResponseStatus.OK, null);
+        respondWith(routingContext, HttpResponseStatus.OK);
     }
 
     /**
-     * Makes failure response in case of unexpected request
+     * Makes failure response in case of unexpected request.
      */
-    private void doFail(RoutingContext context) {
-        HttpUtil.respondWith(context, HttpResponseStatus.METHOD_NOT_ALLOWED, null);
+    private void doFail(RoutingContext routingContext) {
+        respondWith(routingContext, HttpResponseStatus.METHOD_NOT_ALLOWED);
+    }
+
+    private void respondWithBadRequest(RoutingContext routingContext, String body) {
+        HttpUtil.executeSafely(routingContext, endpoint,
+                response -> response
+                        .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                        .end(body));
+    }
+
+    private void respondWith(RoutingContext routingContext, HttpResponseStatus status) {
+        HttpUtil.executeSafely(routingContext, endpoint,
+                response -> response
+                        .setStatusCode(status.code())
+                        .end());
     }
 }

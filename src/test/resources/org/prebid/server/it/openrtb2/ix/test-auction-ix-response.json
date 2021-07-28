@@ -1,27 +1,17 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "975135373",
-          "impid": "impId6",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 4.7,
           "adm": "adm6",
           "crid": "crid6",
-          "w": 300,
-          "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb_ix": "4.70",
-                "hb_bidder_ix": "ix",
-                "hb_pb": "4.70",
-                "hb_size_ix": "300x250",
-                "hb_size": "300x250",
-                "hb_bidder": "ix"
-              }
+              "type": "banner"
             },
             "origbidcpm": 4.7
           }
@@ -37,7 +27,7 @@
       "ix": "{{ ix.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

@@ -1,71 +1,21 @@
 {
-  "id": "req1-unit1",
+  "id": "request_id",
   "imp": [
     {
-      "id": "imp1",
+      "id": "imp_id",
       "banner": {
         "w": 100,
         "h": 200
       },
       "ext": {
         "adoppler": {
-          "adunit": "unit1",
+          "adunit": "adunit",
           "client": "testClient"
         }
       }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
-  "tmax": 3000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
-          }
-        }
-      },
-      "auctiontimestamp": 1000
-    }
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
+  "tmax": 5000,
   "regs": {
     "ext": {
       "gdpr": 0

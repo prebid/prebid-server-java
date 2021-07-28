@@ -98,9 +98,9 @@ public class OutbrainBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, String tagId) {
-        return imp.toBuilder()
-                .tagid(tagId)
-                .build();
+        return StringUtils.isNotEmpty(tagId)
+                ? imp.toBuilder().tagid(tagId).build()
+                : imp;
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, List<Imp> imps, ExtImpOutbrain extImpOutbrain) {

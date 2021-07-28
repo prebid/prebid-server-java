@@ -1,16 +1,12 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "imp": [
     {
-      "id": "impId001",
-      "tagid": "2eb6bd58-865c-47ce-af7f-a918108c3fd2",
+      "id": "imp_id",
+      "tagid": "tag_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
         "orbidder": {
@@ -21,59 +17,10 @@
       }
     }
   ],
-  "device": {
-    "pxratio": 4.2,
-    "dnt": 2,
-    "ip": "193.168.244.1",
-    "language": "en",
-    "ifa": "ifaId",
-    "ua": "userAgent"
-  },
-  "site": {
-    "domain": "example.com",
-    "ext": {
-      "amp": 0
-    },
-    "page": "http://www.example.com",
-    "publisher": {
-      "id": "publisherId"
-    }
-  },
-  "at": 1,
-  "tmax": 3000,
-  "cur": [
-    "USD"
-  ],
-  "source": {
-    "fd": 1,
-    "tid": "tid"
-  },
-  "user": {
-    "ext": {
-      "consent": "consentValue"
-    }
-  },
+  "tmax": 5000,
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "includebidderkeys": true,
-        "includewinners": true,
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        }
-      },
-      "auctiontimestamp": 1000
     }
   }
 }

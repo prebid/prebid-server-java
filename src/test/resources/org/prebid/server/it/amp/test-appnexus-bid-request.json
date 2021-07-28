@@ -90,7 +90,7 @@
       "cache": {
         "bids": {}
       },
-      "auctiontimestamp": 1000,
+      "auctiontimestamp": 0,
       "amp": {
         "data": {
           "curl": "https%3A%2F%2Fgoogle.com",

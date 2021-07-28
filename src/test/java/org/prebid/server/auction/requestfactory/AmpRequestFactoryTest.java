@@ -74,7 +74,6 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -1435,7 +1434,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .httpRequest((HttpRequestContext) invocationOnMock.getArguments()[1])
                         .bidRequest((BidRequest) invocationOnMock.getArguments()[2])
                         .build());
-        given(ortb2RequestFactory.fetchAccount(any(), anyBoolean())).willReturn(Future.succeededFuture());
+        given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), any())).willAnswer(
                 answerWithFirstArgument());

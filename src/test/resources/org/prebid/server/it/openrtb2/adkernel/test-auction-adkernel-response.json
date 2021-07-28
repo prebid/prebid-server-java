@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid02",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 2.25,
           "adm": "<!-- admarkup -->",
           "adid": "2002",
@@ -16,13 +16,7 @@
           "crid": "2002",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "2.20",
-                "hb_bidder_adkernel": "adkernel",
-                "hb_pb_adkernel": "2.20",
-                "hb_bidder": "adkernel"
-              }
+              "type": "banner"
             },
             "origbidcpm": 2.25
           }
@@ -38,7 +32,7 @@
       "adkernel": "{{ adkernel.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

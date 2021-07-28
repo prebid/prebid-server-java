@@ -54,6 +54,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
@@ -129,11 +130,8 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
-                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
+        assertJsonEquals("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
+                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS), openrtbCacheDebugCustomization());
     }
 
     @Test
@@ -214,11 +212,8 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/rubicon_appnexus_multi_bid/test-auction-rubicon-appnexus-response.json",
+        assertJsonEquals("openrtb2/rubicon_appnexus_multi_bid/test-auction-rubicon-appnexus-response.json",
                 response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 
     @Test
@@ -240,11 +235,8 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/storedresponse/test-auction-response.json",
-                response, singletonList(RUBICON));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
+        assertJsonEquals("openrtb2/storedresponse/test-auction-response.json",
+                response, singletonList(RUBICON), openrtbCacheDebugCustomization());
     }
 
     @Test
@@ -289,11 +281,7 @@ public class ApplicationTest extends IntegrationTest {
                         + "&consent_string=1YNN");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "amp/test-amp-response.json",
-                response,
-                asList(RUBICON, APPNEXUS));
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("amp/test-amp-response.json", response, asList(RUBICON, APPNEXUS));
     }
 
     @Test
@@ -440,7 +428,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void getuidsShouldReturnJsonWithUids() throws JSONException {
+    public void getuidsShouldReturnJsonWithUids() throws JSONException, IOException {
         // given and when
         final Response response = given(SPEC)
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
@@ -451,8 +439,7 @@ public class ApplicationTest extends IntegrationTest {
                 .get("/getuids");
 
         // then
-        JSONAssert.assertEquals("{\"buyeruids\":{\"rubicon\":\"J5VLCWQP-26-CWFT\",\"adnxs\":\"12345\"}}",
-                response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("uid/test-uid-response.json", response, emptyList());
     }
 
     @Test
@@ -460,7 +447,7 @@ public class ApplicationTest extends IntegrationTest {
         // given and when
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToBidCacheRequest(jsonFrom("vtrack/test-cache-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("vtrack/test-vtrack-response.json"))));
+                .willReturn(aResponse().withBody(jsonFrom("vtrack/test-cache-response.json"))));
 
         final Response response = given(SPEC)
                 .when()
@@ -469,8 +456,7 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/vtrack");
 
         // then
-        JSONAssert.assertEquals("{\"responses\":[{\"uuid\":\"94531ab8-c662-4fc7-904e-6b5d3be43b1a\"}]}",
-                response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("vtrack/test-vtrack-response.json", response, emptyList());
     }
 
     @Test
@@ -596,10 +582,7 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "cache/update/test-auction-response.json", response, singletonList(RUBICON));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("cache/update/test-auction-response.json", response, singletonList(RUBICON));
     }
 
     @Test

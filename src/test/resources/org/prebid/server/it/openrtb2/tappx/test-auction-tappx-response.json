@@ -1,19 +1,19 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "wehM-93KGr0_0_0",
-          "impid": "impId12",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "<!-- admarkup -->",
-          "adid": "19005",
+          "adid": "adid",
           "adomain": [
             "test.com"
           ],
-          "cid": "3706",
-          "crid": "19005",
+          "cid": "cid",
+          "crid": "crid",
           "cat": [
             "IAB2"
           ],
@@ -21,15 +21,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_size": "300x250",
-                "hb_bidder_tappx": "tappx",
-                "hb_bidder": "tappx",
-                "hb_size_tappx": "300x250",
-                "hb_pb_tappx": "0.50"
-              }
+              "type": "banner"
             },
             "origbidcpm": 0.5
           }
@@ -45,7 +37,7 @@
       "tappx": "{{ tappx.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

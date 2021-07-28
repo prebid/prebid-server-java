@@ -84,7 +84,7 @@ public class AuctionRequestFactory {
                                 .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
                                 .with(requestTypeMetric(bidRequest))))
 
-                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext, true)
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
@@ -105,8 +105,8 @@ public class AuctionRequestFactory {
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
-    private String extractAndValidateBody(RoutingContext context) {
-        final String body = context.getBodyAsString();
+    private String extractAndValidateBody(RoutingContext routingContext) {
+        final String body = routingContext.getBodyAsString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
         }

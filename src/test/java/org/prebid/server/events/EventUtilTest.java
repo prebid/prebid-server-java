@@ -264,6 +264,7 @@ public class EventUtilTest {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
+                .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
@@ -278,7 +279,8 @@ public class EventUtilTest {
 
         // then
         assertThat(result).isEqualTo(
-                "http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&int=pbjs&x=1");
+                "http://external-url/event?t=win&b=bidId&a=accountId"
+                        + "&aid=auctionId&ts=1000&bidder=bidder&f=b&int=pbjs&x=1");
     }
 
     @Test
@@ -286,6 +288,7 @@ public class EventUtilTest {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
+                .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
@@ -296,7 +299,8 @@ public class EventUtilTest {
         final String result = EventUtil.toUrl("http://external-url", eventRequest);
 
         // then
-        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&int=");
+        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId"
+                + "&aid=auctionId&ts=1000&bidder=bidder&int=");
     }
 
     @Test
@@ -304,6 +308,7 @@ public class EventUtilTest {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
+                .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
@@ -314,6 +319,7 @@ public class EventUtilTest {
         final String result = EventUtil.toUrl("http://external-url", eventRequest);
 
         // then
-        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&bidder=bidder&int=");
+        assertThat(result).isEqualTo("http://external-url/event?t=win"
+                + "&b=bidId&a=accountId&aid=auctionId&bidder=bidder&int=");
     }
 }

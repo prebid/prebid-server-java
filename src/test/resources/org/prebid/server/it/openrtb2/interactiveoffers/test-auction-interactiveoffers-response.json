@@ -1,24 +1,18 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "test-bid-id-1",
-          "impid": "test-imp-id",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 10,
           "adomain": [
           ],
-          "crid": "test-creative-id-1",
+          "crid": "crid",
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "10.00",
-                "hb_bidder_interactiveoffers": "interactiveoffers",
-                "hb_bidder": "interactiveoffers",
-                "hb_pb_interactiveoffers": "10.00"
-              }
+              "type": "banner"
             },
             "origbidcpm": 10,
             "origbidcur": "USD"
@@ -34,9 +28,9 @@
     "responsetimemillis": {
       "interactiveoffers": "{{ interactiveoffers.response_time_ms }}"
     },
-    "tmaxrequest": 2000,
+    "tmaxrequest": 5000,
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     }
   }
 }

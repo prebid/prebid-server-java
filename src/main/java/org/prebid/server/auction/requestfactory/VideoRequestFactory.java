@@ -92,7 +92,7 @@ public class VideoRequestFactory {
                         .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
                                 initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
 
-                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext, false)
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
@@ -109,8 +109,8 @@ public class VideoRequestFactory {
                 .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
     }
 
-    private String extractAndValidateBody(RoutingContext context) {
-        final String body = context.getBodyAsString();
+    private String extractAndValidateBody(RoutingContext routingContext) {
+        final String body = routingContext.getBodyAsString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
         }

@@ -160,8 +160,8 @@ public class BeachfrontBidder implements Bidder<Void> {
                 final ExtImpBeachfront extImpBeachfront = parseImpExt(imp);
                 final String appId = getAppId(extImpBeachfront, true);
 
-                slots.add(BeachfrontSlot.of(imp.getId(), appId, checkBidFloor(extImpBeachfront.getBidfloor()),
-                        makeBeachfrontSizes(imp.getBanner())));
+                slots.add(BeachfrontSlot.of(imp.getId(), appId, getBidFloor(
+                        extImpBeachfront.getBidfloor(), imp.getBidfloor()), makeBeachfrontSizes(imp.getBanner())));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -244,8 +244,20 @@ public class BeachfrontBidder implements Bidder<Void> {
         throw new PreBidException("unable to determine the appId(s) from the supplied extension");
     }
 
-    private static BigDecimal checkBidFloor(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(MIN_BID_FLOOR) > 0 ? bidFloor : BigDecimal.ZERO;
+    private static BigDecimal getBidFloor(BigDecimal extImpBidfloor, BigDecimal impBidfloor) {
+        final BigDecimal impNonNullBidfloor = zeroIfNull(impBidfloor);
+        final BigDecimal extImpNonNullBidfloor = zeroIfNull(extImpBidfloor);
+        if (impNonNullBidfloor.compareTo(MIN_BID_FLOOR) > 0) {
+            return impNonNullBidfloor;
+        } else if (extImpNonNullBidfloor.compareTo(MIN_BID_FLOOR) > 0) {
+            return extImpNonNullBidfloor;
+        } else {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private static BigDecimal zeroIfNull(BigDecimal bigDecimal) {
+        return bigDecimal == null ? BigDecimal.ZERO : bigDecimal;
     }
 
     /**
@@ -370,7 +382,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                     .banner(null)
                     .ext(null)
                     .secure(secure)
-                    .bidfloor(checkBidFloor(extImpBeachfront.getBidfloor()));
+                    .bidfloor(getBidFloor(extImpBeachfront.getBidfloor(), imp.getBidfloor()));
 
             final Video video = imp.getVideo();
             final Integer videoHeight = video.getH();

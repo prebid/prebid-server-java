@@ -1301,6 +1301,24 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotUpdateExtTargetingIfImpressionsAreMissed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .containsNull();
+    }
+
+    @Test
     public void shouldReturnFailedFutureWithInvalidRequestExceptionWhenStringPriceGranularityInvalid() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
