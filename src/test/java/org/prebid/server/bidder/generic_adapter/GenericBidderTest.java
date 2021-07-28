@@ -19,8 +19,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.kayzen.ExtImpKayzen;
 
 import java.util.List;
 import java.util.function.Function;
@@ -188,7 +186,7 @@ public class GenericBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(impCustomizer.apply(Imp.builder()).build())))
+                        .imp(singletonList(impCustomizer.apply(Imp.builder()).build())))
                 .build();
     }
 
