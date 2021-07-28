@@ -2,6 +2,7 @@ package org.prebid.server.bidder.operaads;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -24,6 +25,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.operaads.ExtImpOperaads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -110,16 +112,12 @@ public class OperaadsBidder implements Bidder<BidRequest> {
     }
 
     private Native resolveNative(Native xNative) {
-        final TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
-        };
         try {
-            final Map<String, Object> map = mapper.mapper().readValue(xNative.getRequest(), typeRef);
-            final Object nativeObject = map.get("native");
-            if (nativeObject != null) {
-                final ObjectNode requestNode = mapper.mapper().createObjectNode()
-                        .put("native", String.valueOf(nativeObject));
+            final JsonNode nativeNode = mapper.mapper().readTree(xNative.getRequest()).get("native");
+            if (nativeNode != null && nativeNode.isObject()) {
+                final JsonNode requestNode = mapper.mapper().createObjectNode().set("native", nativeNode);
                 return xNative.toBuilder()
-                        .request(mapper.mapper().writeValueAsString(requestNode))
+                        .request(mapper.encode(requestNode))
                         .build();
             }
         } catch (JsonProcessingException e) {
