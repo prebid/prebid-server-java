@@ -15,6 +15,7 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.util.HttpUtil;
 
 import java.time.ZonedDateTime;
 import java.util.Collections;
@@ -48,6 +49,9 @@ public class GetuidsHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.response()).willReturn(httpServerResponse);
 
+        given(httpServerResponse.putHeader(any(CharSequence.class), any(CharSequence.class)))
+                .willReturn(httpServerResponse);
+
         getuidsHandler = new GetuidsHandler(uidsCookieService, jacksonMapper);
     }
 
@@ -65,7 +69,7 @@ public class GetuidsHandlerTest extends VertxTest {
         uids.put("adnxs", new UidWithExpiry("Appnexus-uid",
                 ZonedDateTime.parse("2019-04-01T12:30:40.123456789Z")));
 
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(uids).bday(ZonedDateTime.parse("2019-04-01T13:28:40.123456789Z")).build(),
                 jacksonMapper));
 
@@ -73,6 +77,8 @@ public class GetuidsHandlerTest extends VertxTest {
         getuidsHandler.handle(routingContext);
 
         // then
+        verify(httpServerResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+
         final String responseBody = getResponseBody();
 
         assertThat(responseBody).isNotBlank()
@@ -82,7 +88,7 @@ public class GetuidsHandlerTest extends VertxTest {
     @Test
     public void shouldReturnEmptyBuyerUids() {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
                 Uids.builder().uids(Collections.emptyMap()).build(),
                 jacksonMapper));
 
@@ -90,6 +96,8 @@ public class GetuidsHandlerTest extends VertxTest {
         getuidsHandler.handle(routingContext);
 
         // then
+        verify(httpServerResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+
         final String responseBody = getResponseBody();
 
         assertThat(responseBody).isNotBlank().isEqualTo("{}");

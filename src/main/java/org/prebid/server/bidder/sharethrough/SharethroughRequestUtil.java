@@ -25,7 +25,7 @@ class SharethroughRequestUtil {
     private static final int MIN_SAFARI_VERSION = 10;
 
     /**
-     * Retrieves size from imp.ext.sharethrough.iframeSize or from im.banner.format.
+     * Retrieves size from iframeSize or from imp.banner.format.
      */
     Size getSize(Imp imp, ExtImpSharethrough extImpSharethrough) {
         final List<Integer> iframeSize = extImpSharethrough.getIframeSize();

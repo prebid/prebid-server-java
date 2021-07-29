@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -31,14 +32,6 @@ public class ExtUser extends FlexibleExtension {
     String consent;
 
     /**
-     * DigiTrust breaks the typical Prebid Server convention of namespacing "global" options inside "ext.prebid.*"
-     * to match the recommendation from the broader digitrust community.
-     * <p>
-     * For more info, see: https://github.com/digi-trust/dt-cdn/wiki/OpenRTB-extension#openrtb-2x
-     */
-    ExtUserDigiTrust digitrust;
-
-    /**
      * Standardized User IDs.
      */
     List<ExtUserEid> eids;
@@ -47,6 +40,11 @@ public class ExtUser extends FlexibleExtension {
      * Defines the contract for bidrequest.user.ext.data.
      */
     ObjectNode data;
+
+    /**
+     * Defines the contract for bidrequest.user.ext.digitrust
+     */
+    JsonNode digitrust;
 
     @JsonIgnore
     public boolean isEmpty() {

@@ -16,6 +16,8 @@ public class PutObject {
 
     Integer ttlseconds;
 
+    String aid;
+
     String bidid; // this is "/vtrack" specific
 
     String bidder; // this is "/vtrack" specific

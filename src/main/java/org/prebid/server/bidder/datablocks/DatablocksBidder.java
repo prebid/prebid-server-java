@@ -54,7 +54,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 final ExtImpDatablocks extImpDatablocks = parseAndValidateImpExt(imp.getExt());
                 extToImps.computeIfAbsent(extImpDatablocks, ext -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
-                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -62,7 +62,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 .map(entry -> makeHttpRequest(entry, bidRequest))
                 .collect(Collectors.toList());
 
-        return Result.of(httpRequests, Collections.emptyList());
+        return Result.withValues(httpRequests);
     }
 
     private ExtImpDatablocks parseAndValidateImpExt(ObjectNode extNode) {
@@ -108,9 +108,9 @@ public class DatablocksBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -120,32 +120,26 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 : bidsFromResponse(bidResponse, bidRequest.getImp());
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> requestImps) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> imps) {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getMediaType(bid.getImpid(), requestImps), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getMediaType(String impId, List<Imp> requestImps) {
-        for (Imp imp : requestImps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getVideo() != null) {
                     return BidType.video;
-                }
-                if (imp.getXNative() != null) {
+                } else if (imp.getXNative() != null) {
                     return BidType.xNative;
                 }
                 return BidType.banner;
             }
         }
         return BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

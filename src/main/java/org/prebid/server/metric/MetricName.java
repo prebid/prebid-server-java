@@ -5,28 +5,25 @@ public enum MetricName {
     // connection
     connection_accept_errors,
 
-    // database
-    db_circuitbreaker_opened,
-    db_circuitbreaker_closed,
-    db_query_time,
+    // circuit breaker
+    db,
+    geo,
+    http,
+    opened,
+    existing,
 
-    // http client
-    httpclient_circuitbreaker_opened,
-    httpclient_circuitbreaker_closed,
+    // database
+    db_query_time,
 
     // geo location
     geolocation_requests,
     geolocation_successful,
     geolocation_fail,
-    geolocation_circuitbreaker_opened,
-    geolocation_circuitbreaker_closed,
 
     // auction
     requests,
     app_requests,
     no_cookie_requests,
-    safari_requests,
-    safari_no_cookie_requests,
     request_time,
     prices,
     imps_requested,
@@ -43,10 +40,21 @@ public enum MetricName {
     openrtb2app("openrtb2-app"),
     amp,
     video,
-    legacy,
+    cookiesync,
+    setuid,
+
+    // event types
+    event_auction("auction"),
+    event_amp("amp"),
+    event_video("video"),
+    event_notification("event"),
+    event_cookie_sync("cookie_sync"),
+    event_setuid("setuid"),
+    event_unknown("unknown"),
 
     // request and adapter statuses
     ok,
+    failed,
     nobid,
     gotbids,
     badinput,
@@ -58,6 +66,9 @@ public enum MetricName {
     unknown_error,
     err,
     networkerr,
+
+    // bids validation
+    warn,
 
     // cookie sync
     cookie_sync_requests,
@@ -97,8 +108,30 @@ public enum MetricName {
     // cache
     creative_size,
 
-    //account.*.requests.
-    rejected;
+    // account.*.requests.
+    rejected,
+
+    // currency rates
+    stale,
+
+    // settings cache
+    stored_request("stored-request"),
+    amp_stored_request("amp-stored-request"),
+    account,
+    initialize,
+    update,
+    hit,
+    miss,
+
+    // hooks
+    call,
+    success,
+    noop,
+    reject,
+    unknown,
+    failure,
+    execution_error("execution-error"),
+    duration;
 
     private final String name;
 

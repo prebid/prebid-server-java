@@ -1,28 +1,19 @@
 {
-  "id": "bidResponseId4",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "789353336",
-          "impid": "impId4",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 6.00,
           "adm": "adm4",
           "crid": "crid4",
           "w": 300,
           "h": 600
-        },
-        {
-          "id": "981876692",
-          "impid": "impId41",
-          "price": 5.00,
-          "adm": "adm41",
-          "crid": "crid41",
-          "w": 300,
-          "h": 600
         }
       ],
-      "seat": "seatId4",
+      "seat": "seat_id",
       "group": 0
     }
   ]

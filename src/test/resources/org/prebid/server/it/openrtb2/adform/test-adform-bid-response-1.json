@@ -1,8 +1,8 @@
 {
   "response": "banner",
   "banner": "banner",
-  "win_bid": "10.5",
-  "currency": "currency",
+  "win_bid": "0.5",
+  "win_cur": "USD",
   "width": 400,
   "height": 300,
   "dealId": "dealId",

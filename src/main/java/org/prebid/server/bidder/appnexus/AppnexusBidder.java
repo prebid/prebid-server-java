@@ -256,7 +256,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final ExtIncludeBrandCategory includebrandcategory = targeting != null
                 ? targeting.getIncludebrandcategory()
                 : null;
-        return includebrandcategory != null && includebrandcategory.getPrimaryAdserver() != 0;
+        return includebrandcategory != null;
     }
 
     private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest outgoingRequest, List<Imp> processedImps,
@@ -312,7 +312,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final BigDecimal reserve = appnexusExt.getReserve();
-        if (reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0) {
+        if (!bidFloorIsValid(imp.getBidfloor()) && bidFloorIsValid(reserve)) {
             impBuilder.bidfloor(reserve); // This will be broken for non-USD currency.
         }
 
@@ -322,6 +322,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         return ImpWithMemberId.of(impBuilder.build(), appnexusExt.getMember());
+    }
+
+    private static boolean bidFloorIsValid(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private static AppnexusImpExt makeAppnexusImpExt(ExtImpAppnexus appnexusExt) {
@@ -415,19 +419,14 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
-    }
-
     private List<BidderBid> extractBids(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse);
     }
@@ -449,14 +448,17 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final String iabCategory = iabCategory(appnexus.getBrandCategoryId());
+
+        List<String> cat = bid.getCat();
         if (iabCategory != null) {
-            bid.setCat(Collections.singletonList(iabCategory));
+            cat = Collections.singletonList(iabCategory);
         } else if (CollectionUtils.isNotEmpty(bid.getCat())) {
-            //create empty categories array to force bid to be rejected
-            bid.setCat(Collections.emptyList());
+            // create empty categories array to force bid to be rejected
+            cat = Collections.emptyList();
         }
 
-        return BidderBid.of(bid, bidType(appnexus.getBidAdType()), currency);
+        final Bid modifiedBid = bid.toBuilder().cat(cat).build();
+        return BidderBid.of(modifiedBid, bidType(appnexus.getBidAdType()), currency);
     }
 
     private static String iabCategory(Integer brandId) {

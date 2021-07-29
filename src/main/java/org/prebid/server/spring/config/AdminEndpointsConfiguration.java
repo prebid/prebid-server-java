@@ -16,6 +16,7 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.util.VersionInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -33,6 +34,7 @@ public class AdminEndpointsConfiguration {
     @Bean
     @ConditionalOnExpression("${admin-endpoints.version.enabled} == true")
     CustomizedAdminEndpoint versionEndpoint(
+            VersionInfo versionInfo,
             JacksonMapper mapper,
             @Value("${admin-endpoints.version.path}") String path,
             @Value("${admin-endpoints.version.on-application-port}") boolean isOnApplicationPort,
@@ -41,7 +43,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                VersionHandler.create("git-revision.json", mapper),
+                new VersionHandler(versionInfo.getVersion(), versionInfo.getCommitHash(), mapper, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);
@@ -60,7 +62,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                new CurrencyRatesHandler(currencyConversionRates, mapper),
+                new CurrencyRatesHandler(currencyConversionRates, path, mapper),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);
@@ -79,7 +81,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                new SettingsCacheNotificationHandler(settingsCache, mapper),
+                new SettingsCacheNotificationHandler(settingsCache, mapper, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);
@@ -98,7 +100,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                new SettingsCacheNotificationHandler(ampSettingsCache, mapper),
+                new SettingsCacheNotificationHandler(ampSettingsCache, mapper, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);
@@ -116,7 +118,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                new AccountCacheInvalidationHandler(cachingApplicationSettings),
+                new AccountCacheInvalidationHandler(cachingApplicationSettings, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);
@@ -134,7 +136,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                new HttpInteractionLogHandler(maxLimit, httpInteractionLogger),
+                new HttpInteractionLogHandler(maxLimit, httpInteractionLogger, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);
@@ -152,7 +154,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                new LoggerControlKnobHandler(maxDuration, loggerControlKnob),
+                new LoggerControlKnobHandler(maxDuration, loggerControlKnob, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);

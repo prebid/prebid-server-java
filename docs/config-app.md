@@ -15,6 +15,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `vertx.http-server-instances` - how many http server instances should be created. 
 This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
+- `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
 
 ## HTTP
 - `http.port` - the port to listen on.
@@ -62,6 +63,9 @@ Removes and downloads file again if depending service cant process probably corr
 - `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
 - `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 
+## Default bid request
+- `default-request.file.path` - path to a JSON file containing the default request
+
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
@@ -74,13 +78,22 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
-- `auction.id-generator-type` - if generate-bid-id is on, then this defines how the ID should be generated. Currently onlye `uuid` is supported.
+- `auction.generate-source-tid` - whether to generate bidrequest.source.tid in the OpenRTB request.
+- `auction.validations.banner-creative-max-size` - enables creative max size validation for banners. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
+- `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
+- `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
 
 ## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
 - `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
+
+## Timeout notification
+- `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
+- `auction.timeout-notification.log-result` - causes bidder timeout notification result to be logged
+- `auction.timeout-notification.log-failure-only` - causes only bidder timeout notification failures to be logged
+- `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
 
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
@@ -105,16 +118,30 @@ Removes and downloads file again if depending service cant process probably corr
 There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
-- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if PBS server provides GDPR support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-ccpa` - indicates if PBS server provides CCPA support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.modifying-vast-xml-allowed` - indicates if PBS server is allowed to modify VAST creatives received from this bidder.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
-- `adapters.<BIDDER_NAME>.aliases` - comma separated aliases of bidder.
+- `adapters.<BIDDER_NAME>.meta-info.maintainer-email` - specifies maintainer e-mail address that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.app-media-types` - specifies media types supported for app requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.site-media-types` - specifies media types supported for site requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.supported-vendors` - specifies viewability vendors supported by the bidder.
+- `adapters.<BIDDER_NAME>.meta-info.vendor-id` - specifies TCF vendor ID.
 - `adapters.<BIDDER_NAME>.usersync.url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
-But feel free to add additional bidder's specific options.
+In addition, each bidder could have arbitrary aliases configured that will look and act very much the same as the bidder itself.
+Aliases are configured by adding child configuration object at `adapters.<BIDDER_NAME>.aliases.<BIDDER_ALIAS>.`, aliases 
+support the same configuration options that their bidder counterparts support except `aliases` (i.e. it's not possible 
+to declare alias of an alias). Another restriction of aliases configuration is that they cannot declare support for media types 
+not supported by their bidders (however aliases could narrow down media types they support). For example: if the bidder 
+is written to not support native site requests, then an alias cannot magically decide to change that; however, if a bidder 
+supports native site requests, and the alias does not want to for some reason, it has the ability to remove that support.
+
+Also, each bidder could have its own bidder-specific options.
 
 ## Logging
 - `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
@@ -127,6 +154,8 @@ But feel free to add additional bidder's specific options.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-converter.external-rates.stale-after-ms` - how old currency rates should be to become considered stale.
+- `currency-converter.external-rates.stale-period-ms` - stale period after which the latest external currency rates get discarded.
 
 ## Admin Endpoints
 - `admin-endpoints.version.enabled` - if equals to `true` the endpoint will be available.
@@ -191,6 +220,9 @@ For `console` backend type available next options:
 - `metrics.console.enabled` - if equals to `true` then `console` will be used to submit metrics.
 - `metrics.console.interval` - interval in seconds between successive sending metrics.
 
+For `prometheus` backend type available next options:
+- `metrics.prometheus.port` - if a port is specified a prometheus reporter will start on that port 
+
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
 - `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`. Default is `none`.
@@ -230,6 +262,7 @@ For database data source available next options:
 - `settings.database.user` - database user.
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
+- `settings.database.account-query` - the SQL query to fetch account.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.
@@ -245,6 +278,24 @@ For HTTP data source available next options:
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
+
+It is possible to specify default account configuration values that will be assumed if account config have them 
+unspecified or missing at all. Example:
+```yaml
+settings:  
+  default-account-config: >
+    {
+      "eventsEnabled": true,
+      "enforceCcpa": true,
+      "gdpr": {
+        "enabled": true
+      },
+      "analyticsSamplingFactor": 1,
+      "defaultIntegration": "pbjs"
+    }
+```
+See [application settings](application-settings.md) for full reference of available configuration parameters.
 
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
@@ -306,14 +357,17 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
 - `gdpr.vendorlist.default-timeout-ms` - default operation timeout for obtaining new vendor list.
-- `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
-- `gdpr.vendorlist.vN.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
-- `gdpr.vendorlist.vN.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
-- `gdpr.vendorlist.vN.deprecated` - Flag to show is this vendor list is deprecated or not.
-- `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
+- `gdpr.vendorlist.v2.http-endpoint-template` - template string for vendor list url version 2.
+- `gdpr.vendorlist.v2.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
+- `gdpr.vendorlist.v2.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
+- `gdpr.vendorlist.v2.deprecated` - Flag to show is this vendor list is deprecated or not.
+- `gdpr.vendorlist.v2.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 
 ## CCPA
 - `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
+
+## LMT
+- `lmt.enforce` - if equals to `true` enforces to check lmt policy, otherwise ignore lmt verification.
 
 ## Geo Location
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.
@@ -324,3 +378,13 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
+
+## Analytics
+- `analytics.pubstack.enabled` - if equals to `true` the Pubstack analytics module will be enabled. Default value is `false`. 
+- `analytics.pubstack.endpoint` - url for reporting events and fetching configuration. 
+- `analytics.pubstack.scopeid` - defined the scope provided by the Pubstack Support Team.
+- `analytics.pubstack.configuration-refresh-delay-ms` - delay in milliseconds between remote config updates.
+- `analytics.pubstack.timeout-ms` - timeout in milliseconds for report and fetch config requests.
+- `analytics.pubstack.buffers.size-bytes` - threshold in bytes for buffer to send events. 
+- `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
+- `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.

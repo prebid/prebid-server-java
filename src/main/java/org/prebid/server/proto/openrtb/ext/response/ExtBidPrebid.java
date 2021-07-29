@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.seatbid.bid[i].ext.prebid
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class ExtBidPrebid {
 
@@ -20,6 +20,9 @@ public class ExtBidPrebid {
 
     Map<String, String> targeting;
 
+    @JsonProperty("targetbiddercode")
+    String targetBidderCode;
+
     ExtResponseCache cache;
 
     @JsonProperty("storedrequestattributes")
@@ -28,4 +31,6 @@ public class ExtBidPrebid {
     Events events;
 
     ExtBidPrebidVideo video;
+
+    ExtBidPrebidMeta meta;
 }

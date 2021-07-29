@@ -299,11 +299,11 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdateRequestExtAppnexusTrueWhenPrimaryAdserverIsNotZero() {
+    public void makeHttpRequestsShouldUpdateRequestExtAppnexusTrueWhenPrimaryAdserverIsNotNull() {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(-120, null, null))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null))
                         .build())
                 .build();
 
@@ -327,11 +327,11 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotUpdateRequestExtAppnexusWhenPrimaryAdserverIsZero() {
+    public void makeHttpRequestsShouldNotUpdateRequestExtAppnexusWhenIncludeBrandCategoryIsNull() {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(0, null, null))
+                        .includebrandcategory(null)
                         .build())
                 .build();
 
@@ -480,6 +480,69 @@ public class AppnexusBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(
                                 AppnexusImpExt.of(AppnexusImpExtAppnexus.of(20, null, null, null, null))))
                         .build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsNotSet() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                identity(),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder
+                        .placementId(20)
+                        .reserve(BigDecimal.valueOf(123)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(123));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder
+                        .placementId(20)
+                        .reserve(BigDecimal.valueOf(123)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(123));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsNegative() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO.subtract(BigDecimal.ONE)),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder
+                        .placementId(20)
+                        .reserve(BigDecimal.valueOf(123)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(123));
     }
 
     @Test

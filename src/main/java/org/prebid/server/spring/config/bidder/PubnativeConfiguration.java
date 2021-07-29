@@ -2,10 +2,10 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.pubnative.PubnativeBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +27,9 @@ public class PubnativeConfiguration {
     @Autowired
     private JacksonMapper mapper;
 
+    @Autowired
+    private CurrencyConversionService currencyConversionService;
+
     @Value("${external-url}")
     @NotBlank
     private String externalUrl;
@@ -45,9 +48,8 @@ public class PubnativeConfiguration {
     BidderDeps pubnativeBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new PubnativeBidder(configProperties.getEndpoint(), mapper))
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new PubnativeBidder(config.getEndpoint(), mapper, currencyConversionService))
                 .assemble();
     }
 }

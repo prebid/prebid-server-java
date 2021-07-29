@@ -2,21 +2,33 @@ package org.prebid.server.util;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class HttpUtilTest {
 
@@ -25,15 +37,12 @@ public class HttpUtilTest {
 
     @Mock
     private RoutingContext routingContext;
+    @Mock
+    private HttpServerResponse httpResponse;
 
-    @Test
-    public void isSafariShouldReturnTrue() {
-        assertThat(HttpUtil.isSafari("Useragent with Safari browser and AppleWebKit built-in.")).isTrue();
-    }
-
-    @Test
-    public void isSafariShouldReturnFalse() {
-        assertThat(HttpUtil.isSafari("Useragent with Safari browser but Chromium forked by.")).isFalse();
+    @Before
+    public void setUp() {
+        given(routingContext.response()).willReturn(httpResponse);
     }
 
     @Test
@@ -104,21 +113,21 @@ public class HttpUtilTest {
     }
 
     @Test
-    public void getDomainFromUrlShouldReturnDomain() {
+    public void getHostFromUrlShouldReturnDomain() {
         // given and when
-        final String domain = HttpUtil.getDomainFromUrl("http://rubicon.com/ad");
+        final String host = HttpUtil.getHostFromUrl("http://www.domain.com/ad");
 
         // then
-        assertThat(domain).isEqualTo("rubicon.com");
+        assertThat(host).isEqualTo("www.domain.com");
     }
 
     @Test
-    public void getDomainFromUrlShouldReturnNullIfUrlIsMalformed() {
+    public void getHostFromUrlShouldReturnNullIfUrlIsMalformed() {
         // given and when
-        final String domain = HttpUtil.getDomainFromUrl("rubicon.com");
+        final String host = HttpUtil.getHostFromUrl("www.domain.com");
 
         // then
-        assertThat(domain).isNull();
+        assertThat(host).isNull();
     }
 
     @Test
@@ -135,16 +144,75 @@ public class HttpUtilTest {
     }
 
     @Test
+    public void cookiesAsMapFromRequestShouldReturnExpectedResult() {
+        // given
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpHeaders.COOKIE, Cookie.cookie("name", "value").encode())
+                        .build())
+                .build();
+
+        // when
+        final Map<String, String> cookies = HttpUtil.cookiesAsMap(httpRequest);
+
+        // then
+        assertThat(cookies).hasSize(1)
+                .containsOnly(entry("name", "value"));
+    }
+
+    @Test
     public void toSetCookieHeaderValueShouldReturnExpectedString() {
         // given
         final Cookie cookie = Cookie.cookie("cookie", "value")
                 .setPath("/")
-                .setDomain("rubicon.com");
+                .setDomain("domain.com");
 
         // when
         final String setCookieHeaderValue = HttpUtil.toSetCookieHeaderValue(cookie);
 
         // then
-        assertThat(setCookieHeaderValue).isEqualTo("cookie=value; Path=/; Domain=rubicon.com; SameSite=None; Secure");
+        assertThat(setCookieHeaderValue).isEqualTo("cookie=value; Path=/; Domain=domain.com; SameSite=None; Secure");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void executeSafelyShouldSkipResponseIfClientClosedConnection() {
+        // given
+        given(httpResponse.closed()).willReturn(true);
+        final Consumer responseConsumer = mock(Consumer.class);
+
+        // when
+        HttpUtil.executeSafely(routingContext, "endpoint", responseConsumer);
+
+        // then
+        verifyNoMoreInteractions(responseConsumer);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void executeSafelyShouldRespondToClient() {
+        // given
+        final Consumer responseConsumer = mock(Consumer.class);
+
+        // when
+        final boolean result = HttpUtil.executeSafely(routingContext, "endpoint", responseConsumer);
+
+        // then
+        verify(responseConsumer).accept(eq(httpResponse));
+        assertThat(result).isTrue();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void executeSafelyShouldReturnFalseIfResponseFailed() {
+        // given
+        final Consumer responseConsumer = mock(Consumer.class);
+        doThrow(new RuntimeException("error")).when(responseConsumer).accept(any());
+
+        // when
+        final boolean result = HttpUtil.executeSafely(routingContext, "endpoint", responseConsumer);
+
+        // then
+        assertThat(result).isFalse();
     }
 }

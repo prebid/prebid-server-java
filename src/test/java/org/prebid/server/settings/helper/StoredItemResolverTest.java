@@ -57,6 +57,19 @@ public class StoredItemResolverTest {
     }
 
     @Test
+    public void resolveShouldReturnResultWhenSingleStoredDataButNoAccountInRequest() {
+        // given
+        final Set<StoredItem> storedItems = new HashSet<>();
+        storedItems.add(StoredItem.of("1001", "data1"));
+
+        // when
+        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.imp, "1001", "", storedItems);
+
+        // then
+        assertThat(storedItem).isEqualTo(StoredItem.of("1001", "data1"));
+    }
+
+    @Test
     public void resolveShouldReturnResultWhenSingleStoredDataButNoAccountInStoredData() {
         // given
         final Set<StoredItem> storedItems = new HashSet<>();

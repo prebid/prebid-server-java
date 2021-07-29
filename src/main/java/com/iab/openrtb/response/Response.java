@@ -13,7 +13,7 @@ import java.util.List;
  * field “native” that would contain the object above as its value.
  * The Native Object specified above is now the root object.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Response {
 

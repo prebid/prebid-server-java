@@ -3,6 +3,7 @@ package org.prebid.server.bidder.inmobi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
@@ -21,6 +22,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.inmobi.ExtImpInmobi;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -34,6 +37,9 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 public class InmobiBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test";
+    private static final String IMP_ID = "123";
+    private static final int FORMAT_W = 35;
+    private static final int FORMAT_H = 37;
 
     private InmobiBidder inmobiBidder;
 
@@ -48,34 +54,104 @@ public class InmobiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed2() {
+    public void makeHttpRequestsShouldReturnErrorIfPlcAttributeIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("")))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("   ")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("'plc' is a required attribute for InMobi's bidder ext");
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfPlcAttributeIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of(null)))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("'plc' is a required attribute for InMobi's bidder ext"));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("bad InMobi bidder ext");
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("bad InMobi bidder ext"));
+    }
+
+    @Test
+    public void shouldSetBannerFormatWAndHValuesToBannerIfTheyAreNotPresentInBanner() {
+        // given
+        final Format bannerFormat = Format.builder().w(FORMAT_W).h(FORMAT_H).build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder()
+                        .format(Collections.singletonList(bannerFormat))
+                        .build()));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(Banner.builder()
+                        .w(FORMAT_W)
+                        .h(FORMAT_H)
+                        .format(Collections.singletonList(bannerFormat))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateOnlyFirstImpression() {
+        // given
+        final Format bannerFormat = Format.builder().w(FORMAT_W).h(FORMAT_H).build();
+        final Imp firstImp = Imp.builder()
+                .banner(Banner.builder().id("firstBanner").format(Collections.singletonList(bannerFormat)).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("plc"))))
+                .build();
+        final Imp secondImp = Imp.builder()
+                .banner(Banner.builder().id("secondBanner").format(Collections.singletonList(bannerFormat)).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("plc"))))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Arrays.asList(firstImp, secondImp))
+                .build();
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Banner firstExpectedBanner = Banner.builder()
+                .id("firstBanner")
+                .w(FORMAT_W)
+                .h(FORMAT_H)
+                .format(Collections.singletonList(bannerFormat))
+                .build();
+        final Banner secondExpectedBanner = Banner.builder()
+                .id("secondBanner")
+                .format(Collections.singletonList(bannerFormat))
+                .build();
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(firstExpectedBanner, secondExpectedBanner);
     }
 
     @Test
@@ -87,9 +163,9 @@ public class InmobiBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors())
+                .allMatch(error -> error.getMessage().startsWith("Failed to decode: Unrecognized token")
+                        && error.getType().equals(BidderError.Type.bad_server_response));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -126,10 +202,10 @@ public class InmobiBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id(IMP_ID).banner(Banner.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
         // when
         final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
@@ -137,17 +213,17 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), banner, null));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id(IMP_ID).video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
         // when
         final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
@@ -155,7 +231,7 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), video, null));
     }
 
     @Test
@@ -163,10 +239,10 @@ public class InmobiBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id(IMP_ID).xNative(Native.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
         // when
         final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
@@ -174,22 +250,7 @@ public class InmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
-
-        // given
-        final HttpCall<BidRequest> httpCall = HttpCall
-                .success(null, HttpResponse.of(204, null, null), null);
-
-        // when
-        final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
+                .containsExactly(BidderBid.of(Bid.builder().impid(IMP_ID).build(), banner, null));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
@@ -221,9 +282,9 @@ public class InmobiBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpInmobi.of("plc")))))
+                .id(IMP_ID)
+                .banner(Banner.builder().id("bannerId").build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("plc")))))
                 .build();
     }
 }

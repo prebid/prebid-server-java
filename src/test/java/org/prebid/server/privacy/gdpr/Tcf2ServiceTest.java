@@ -48,6 +48,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.FOUR;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.SEVEN;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
 public class Tcf2ServiceTest extends VertxTest {
 
@@ -80,6 +84,11 @@ public class Tcf2ServiceTest extends VertxTest {
     private Purpose purpose4;
     private Purpose purpose7;
 
+    private Purpose weakPurpose1;
+    private Purpose weakPurpose2;
+    private Purpose weakPurpose4;
+    private Purpose weakPurpose7;
+
     private SpecialFeature specialFeature1;
     private SpecialFeatures specialFeatures;
 
@@ -91,10 +100,10 @@ public class Tcf2ServiceTest extends VertxTest {
     @Before
     public void setUp() {
         given(tcString.getVendorListVersion()).willReturn(10);
-        given(purposeStrategyOne.getPurposeId()).willReturn(1);
-        given(purposeStrategyTwo.getPurposeId()).willReturn(2);
-        given(purposeStrategyFour.getPurposeId()).willReturn(4);
-        given(purposeStrategySeven.getPurposeId()).willReturn(7);
+        given(purposeStrategyOne.getPurpose()).willReturn(ONE);
+        given(purposeStrategyTwo.getPurpose()).willReturn(TWO);
+        given(purposeStrategyFour.getPurpose()).willReturn(FOUR);
+        given(purposeStrategySeven.getPurpose()).willReturn(SEVEN);
         purposeStrategies = asList(purposeStrategyOne, purposeStrategyTwo, purposeStrategyFour, purposeStrategySeven);
 
         given(specialFeaturesStrategyOne.getSpecialFeatureId()).willReturn(1);
@@ -120,6 +129,11 @@ public class Tcf2ServiceTest extends VertxTest {
                 .p4(purpose4)
                 .p7(purpose7)
                 .build();
+
+        weakPurpose1 = Purpose.of(EnforcePurpose.basic, false, emptyList());
+        weakPurpose2 = Purpose.of(EnforcePurpose.no, false, emptyList());
+        weakPurpose4 = Purpose.of(EnforcePurpose.no, false, emptyList());
+        weakPurpose7 = Purpose.of(EnforcePurpose.basic, false, emptyList());
     }
 
     private void initSpecialFeatures() {
@@ -257,6 +271,41 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     @Test
+    public void permissionsForShouldSplitIntoWeakPurposesWhenAccountHaveBasicEnforcementBidders() {
+        // given
+        final VendorIdResolver vendorIdResolver = mock(VendorIdResolver.class);
+        given(vendorIdResolver.resolve(eq("b1"))).willReturn(1);
+        given(vendorIdResolver.resolve(eq("b2"))).willReturn(2);
+
+        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
+                .basicEnforcementVendors(singletonList("b2"))
+                .build();
+
+        // when
+        final Future<Collection<VendorPermission>> result =
+                target.permissionsFor(new HashSet<>(asList("b1", "b2")), vendorIdResolver, tcString, accountGdprConfig);
+
+        // then
+        final VendorPermission expectedVendorPermission1 =
+                VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
+        final VendorPermission expectedVendorPermission2 =
+                VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 =
+                VendorPermissionWithGvl.of(expectedVendorPermission1, VendorV2.empty(1));
+        final VendorPermissionWithGvl expectedVendorPermissionWitGvl2 =
+                VendorPermissionWithGvl.of(expectedVendorPermission2, VendorV2.empty(2));
+
+        verifyEachPurposeStrategyReceive(singletonList(expectedVendorPermissionWitGvl1));
+        verifyEachPurposeStrategyReceiveWeak(singletonList(expectedVendorPermissionWitGvl2));
+        verifyEachSpecialFeatureStrategyReceive(asList(expectedVendorPermission2, expectedVendorPermission1));
+
+        verify(vendorIdResolver, times(2)).resolve(anyString());
+        verify(tcString).getVendorListVersion();
+
+        assertThat(result).succeededWith(asList(expectedVendorPermission2, expectedVendorPermission1));
+    }
+
+    @Test
     public void permissionsForShouldReturnBidderNamesResult() {
         // given
         final VendorIdResolver vendorIdResolver = mock(VendorIdResolver.class);
@@ -334,10 +383,20 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result).succeededWith(
                 singletonList(VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll())));
 
+        final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "rubicon",
+                PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 = VendorPermissionWithGvl.of(
+                expectedVendorPermission1, VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> standardPermissions = singletonList(expectedVendorPermissionWitGvl1);
+
         verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(standardPermissions), eq(false));
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(standardPermissions), eq(false));
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(standardPermissions), eq(false));
+
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
 
         verify(specialFeaturesStrategyOne).processSpecialFeaturesStrategy(any(), any(), anyCollection());
     }
@@ -360,11 +419,21 @@ public class Tcf2ServiceTest extends VertxTest {
         target.permissionsFor(singleton(1), tcString);
 
         // then
+        final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "rubicon",
+                PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 = VendorPermissionWithGvl.of(
+                expectedVendorPermission1, VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> standardPermissions = singletonList(expectedVendorPermissionWitGvl1);
+
         verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
         verify(purposeStrategyOne).allow(any());
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(standardPermissions), eq(false));
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(standardPermissions), eq(false));
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(standardPermissions), eq(false));
+
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
 
         verify(specialFeaturesStrategyOne).processSpecialFeaturesStrategy(any(), any(), anyCollection());
     }
@@ -387,11 +456,15 @@ public class Tcf2ServiceTest extends VertxTest {
         target.permissionsFor(singleton(1), tcString);
 
         // then
+        final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "rubicon",
+                PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 = VendorPermissionWithGvl.of(
+                expectedVendorPermission1, VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> standardPermissions = singletonList(expectedVendorPermissionWitGvl1);
+
         verify(purposeStrategyOne, never()).allow(any());
-        verify(purposeStrategyOne).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verifyEachPurposeStrategyReceive(standardPermissions);
+        verifyEachPurposeStrategyReceiveWeak(emptyList());
 
         verify(specialFeaturesStrategyOne).processSpecialFeaturesStrategy(any(), any(), anyCollection());
     }
@@ -401,6 +474,13 @@ public class Tcf2ServiceTest extends VertxTest {
         verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls, false);
         verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls, false);
         verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, vendorPermissionWithGvls, false);
+    }
+
+    public void verifyEachPurposeStrategyReceiveWeak(List<VendorPermissionWithGvl> vendorPermissionWithGvls) {
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, weakPurpose1, vendorPermissionWithGvls, true);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, weakPurpose2, vendorPermissionWithGvls, true);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, weakPurpose4, vendorPermissionWithGvls, true);
+        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, weakPurpose7, vendorPermissionWithGvls, true);
     }
 
     public void verifyEachSpecialFeatureStrategyReceive(List<VendorPermission> vendorPermission) {

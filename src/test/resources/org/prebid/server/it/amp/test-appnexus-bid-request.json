@@ -26,10 +26,11 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "google.com",
     "page": "https://google.com",
     "publisher": {
-      "id": "accountId"
+      "id": "accountId",
+      "domain": "google.com"
     },
     "ext": {
       "amp": 1
@@ -83,10 +84,13 @@
         "includewinners": true,
         "includebidderkeys": true
       },
+      "storedrequest": {
+        "id": "test-amp-stored-request"
+      },
       "cache": {
         "bids": {}
       },
-      "auctiontimestamp": 1000,
+      "auctiontimestamp": 0,
       "amp": {
         "data": {
           "curl": "https%3A%2F%2Fgoogle.com",
@@ -94,6 +98,7 @@
           "ow": "980",
           "oh": "120",
           "tag_id": "test-amp-stored-request",
+          "targeting": "%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D",
           "slot": "overwrite-tagId",
           "account": "accountId",
           "timeout": "10000000"

@@ -1,25 +1,25 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseVideoTargeting;
+import org.prebid.server.proto.response.ExtAmpVideoPrebid;
+import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.proto.response.VideoResponse;
 
 import java.util.ArrayList;
@@ -32,12 +32,7 @@ import java.util.stream.Collectors;
 
 public class VideoResponseFactory {
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
-            };
-    private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
-            new TypeReference<ExtBidResponse>() {
-            };
+    public static final String PREBID_EXT = "prebid";
 
     private final JacksonMapper mapper;
 
@@ -45,7 +40,11 @@ public class VideoResponseFactory {
         this.mapper = mapper;
     }
 
-    public VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse, List<PodError> podErrors) {
+    public VideoResponse toVideoResponse(
+            AuctionContext auctionContext,
+            BidResponse bidResponse,
+            List<PodError> podErrors) {
+
         final List<Bid> bids = bidsFrom(bidResponse);
         final boolean anyBidsReturned = CollectionUtils.isNotEmpty(bids);
         final List<ExtAdPod> adPods = adPodsWithTargetingFrom(bids);
@@ -59,16 +58,16 @@ public class VideoResponseFactory {
         final ExtResponseDebug extResponseDebug;
         final Map<String, List<ExtBidderError>> errors;
         // Fetch debug and errors information from response if requested
-        if (isDebugEnabled(bidRequest)) {
-            final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
+        if (auctionContext.getDebugContext().isDebugEnabled()) {
+            final ExtBidResponse extBidResponse = bidResponse.getExt();
 
-            extResponseDebug = extResponseDebugFrom(extBidResponse);
-            errors = errorsFrom(extBidResponse);
+            extResponseDebug = extBidResponse != null ? extBidResponse.getDebug() : null;
+            errors = extBidResponse != null ? extBidResponse.getErrors() : null;
         } else {
             extResponseDebug = null;
             errors = null;
         }
-        return VideoResponse.of(adPods, extResponseDebug, errors, null);
+        return VideoResponse.of(adPods, extResponseDebug, errors, extResponseFrom(bidResponse));
     }
 
     private static List<Bid> bidsFrom(BidResponse bidResponse) {
@@ -88,7 +87,7 @@ public class VideoResponseFactory {
         final List<ExtAdPod> adPods = new ArrayList<>();
         for (Bid bid : bids) {
             final Map<String, String> targeting = targeting(bid);
-            if (targeting.get("hb_uuid") == null) {
+            if (findByPrefix(targeting, "hb_uuid") == null) {
                 continue;
             }
             final String impId = bid.getImpid();
@@ -99,9 +98,9 @@ public class VideoResponseFactory {
             final Integer podId = Integer.parseInt(podIdString);
 
             final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
-                    targeting.get("hb_pb"),
-                    targeting.get("hb_pb_cat_dur"),
-                    targeting.get("hb_uuid"));
+                    findByPrefix(targeting, "hb_pb"),
+                    findByPrefix(targeting, "hb_pb_cat_dur"),
+                    findByPrefix(targeting, "hb_uuid"));
 
             ExtAdPod adPod = adPods.stream()
                     .filter(extAdPod -> extAdPod.getPodid().equals(podId))
@@ -118,16 +117,28 @@ public class VideoResponseFactory {
     }
 
     private Map<String, String> targeting(Bid bid) {
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
+        final ObjectNode bidExt = bid.getExt();
+        if (bidExt == null || !bidExt.hasNonNull(PREBID_EXT)) {
+            return Collections.emptyMap();
+        }
+
+        final ExtBidPrebid extBidPrebid;
         try {
-            extBid = mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
+            extBidPrebid = mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (IllegalArgumentException e) {
             return Collections.emptyMap();
         }
 
-        final ExtBidPrebid extBidPrebid = extBid != null ? extBid.getPrebid() : null;
         final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
         return targeting != null ? targeting : Collections.emptyMap();
+    }
+
+    private static String findByPrefix(Map<String, String> keyToValue, String prefix) {
+        return keyToValue.entrySet().stream()
+                .filter(keyAndValue -> keyAndValue.getKey().startsWith(prefix))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
     }
 
     private static List<ExtAdPod> adPodsWithErrors(List<PodError> podErrors) {
@@ -136,32 +147,11 @@ public class VideoResponseFactory {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Determines debug flag from {@link BidRequest}.
-     */
-    private boolean isDebugEnabled(BidRequest bidRequest) {
-        if (Objects.equals(bidRequest.getTest(), 1)) {
-            return true;
-        }
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
-    }
+    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
+        final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
 
-    private ExtBidResponse extResponseFrom(BidResponse bidResponse) {
-        try {
-            return mapper.mapper().convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Critical error while unpacking Video bid response: %s", e.getMessage()), e);
-        }
-    }
-
-    private static ExtResponseDebug extResponseDebugFrom(ExtBidResponse extBidResponse) {
-        return extBidResponse != null ? extBidResponse.getDebug() : null;
-    }
-
-    private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
-        return extBidResponse != null ? extBidResponse.getErrors() : null;
+        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
     }
 }

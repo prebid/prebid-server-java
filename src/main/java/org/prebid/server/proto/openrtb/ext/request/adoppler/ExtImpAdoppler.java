@@ -8,4 +8,5 @@ import lombok.Value;
 public class ExtImpAdoppler {
 
     String adunit;
+    String client;
 }
