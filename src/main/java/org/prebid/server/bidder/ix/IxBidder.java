@@ -289,6 +289,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
         final List<String> impTrackers = Stream.concat(
                 impressionAndImageTrackers.stream().map(EventTracker::getUrl), response.getImptrackers().stream())
+                .distinct()
                 .collect(Collectors.toList());
 
         return response.toBuilder()

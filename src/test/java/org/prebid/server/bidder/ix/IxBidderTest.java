@@ -528,6 +528,43 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnAdmContainingOnlyUniqueImpTrackersUrls() throws JsonProcessingException {
+        // given
+        final String adm = mapper.writeValueAsString(
+                Response.builder()
+                        .imptrackers(asList("impTracker", "someTracker"))
+                        .eventtrackers(asList(
+                                EventTracker.builder()
+                                        .event(EventType.IMPRESSION.getValue())
+                                        .url("eventUrl")
+                                        .build(),
+                                EventTracker.builder()
+                                        .event(EventTrackingMethod.IMAGE.getValue())
+                                        .url("someTracker")
+                                        .build()))
+                        .build());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .adm(adm))));
+
+        // when
+        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .extracting(bidAdm -> mapper.readValue(bidAdm, Response.class))
+                .flatExtracting(Response::getImptrackers)
+                .containsExactlyInAnyOrder("eventUrl", "someTracker", "impTracker");
+    }
+
+    @Test
     public void makeBidsShouldReturnValidAdmIfNativeIsPresentInImpAndAdm12() throws JsonProcessingException {
         // given
         final String adm = mapper.writeValueAsString(NativeV11Wrapper.of(
@@ -572,7 +609,7 @@ public class IxBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -582,9 +619,9 @@ public class IxBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(SITE_ID, null)))))
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(SITE_ID, null)))))
                 .build();
     }
 
