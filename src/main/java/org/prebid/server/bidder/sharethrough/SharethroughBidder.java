@@ -24,6 +24,7 @@ import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroug
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtData;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -130,9 +131,11 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                                                     boolean canBrowserAutoPlayVideo, String ttdUid, String buyeruid,
                                                     SharethroughRequestBody body) {
         final Size size = requestUtil.getSize(imp, extImpStr);
+        final ExtData extData = extImpStr.getData();
         return StrUriParameters.builder()
                 .pkey(extImpStr.getPkey())
                 .bidID(imp.getId())
+                .gpid(extData != null ? extData.getPbAdSlot() : null)
                 .consentRequired(isConsentRequired)
                 .consentString(consentString)
                 .usPrivacySignal(usPrivacy)
