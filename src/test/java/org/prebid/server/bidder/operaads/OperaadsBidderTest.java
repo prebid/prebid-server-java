@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.operaads;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -121,17 +121,44 @@ public class OperaadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCorrectlyResolveNative() throws JsonProcessingException {
         // given
-        final String nativeRequest = mapper.writeValueAsString(
-                mapper.createObjectNode().set("native", TextNode.valueOf("nativeContent")));
+        final ObjectNode nativeRequestNode = mapper.createObjectNode();
+        nativeRequestNode.set("native", mapper.createObjectNode().set("test", TextNode.valueOf("test")));
+        nativeRequestNode.set("junk", TextNode.valueOf("junk"));
+        final String nativeRequest = mapper.writeValueAsString(nativeRequestNode);
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .xNative(Native.builder().request(nativeRequest).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
-        System.out.println(result.toString());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getXNative)
+                .containsExactly(Native.builder()
+                        .request(mapper.writeValueAsString(mapper.createObjectNode().set("native",
+                                mapper.createObjectNode().set("test", TextNode.valueOf("test")))))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsReturnErrorIfNativeCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .xNative(Native.builder().request("invalid_native").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
+
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput("Size information missing for banner"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(bidderError -> {
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getMessage()).startsWith("Unrecognized token");
+                });
     }
 
     @Test
