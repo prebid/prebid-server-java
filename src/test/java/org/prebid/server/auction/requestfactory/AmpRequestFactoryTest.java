@@ -1327,7 +1327,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any()))
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), any()))
                 .willReturn(updatedBidRequest);
 
         // when
@@ -1436,7 +1436,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .build());
         given(ortb2RequestFactory.fetchAccount(any())).willReturn(Future.succeededFuture());
 
-        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any())).willAnswer(
+        given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), any())).willAnswer(
                 answerWithFirstArgument());
         given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
 

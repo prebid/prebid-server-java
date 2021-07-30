@@ -21,6 +21,7 @@ import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
@@ -41,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
@@ -51,8 +53,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -295,7 +299,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
                 .extracting(AppnexusReqExt::getAppnexus)
-                .containsOnly(AppnexusReqExtAppnexus.of(true, true));
+                .containsOnly(AppnexusReqExtAppnexus.of(true, true, null));
     }
 
     @Test
@@ -323,7 +327,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
                 .extracting(AppnexusReqExt::getAppnexus)
-                .containsOnly(AppnexusReqExtAppnexus.of(true, true));
+                .containsOnly(AppnexusReqExtAppnexus.of(true, true, null));
     }
 
     @Test
@@ -339,7 +343,7 @@ public class AppnexusBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder
                         .ext(jacksonMapper.fillExtension(
                                 ExtRequest.of(requestPrebid),
-                                AppnexusReqExt.of(AppnexusReqExtAppnexus.of(false, true)))),
+                                AppnexusReqExt.of(AppnexusReqExtAppnexus.of(false, true, null)))),
                 impBuilder -> impBuilder.banner(Banner.builder().build()),
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
@@ -353,7 +357,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
                 .extracting(AppnexusReqExt::getAppnexus)
-                .containsOnly(AppnexusReqExtAppnexus.of(false, true));
+                .containsOnly(AppnexusReqExtAppnexus.of(false, true, null));
     }
 
     @Test
@@ -367,7 +371,7 @@ public class AppnexusBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder
                         .ext(jacksonMapper.fillExtension(
                                 ExtRequest.of(requestPrebid),
-                                AppnexusReqExt.of(AppnexusReqExtAppnexus.of(false, true)))),
+                                AppnexusReqExt.of(AppnexusReqExtAppnexus.of(false, true, null)))),
                 impBuilder -> impBuilder.banner(Banner.builder().build()),
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
@@ -381,7 +385,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
                 .extracting(AppnexusReqExt::getAppnexus)
-                .containsOnly(AppnexusReqExtAppnexus.of(false, true));
+                .containsOnly(AppnexusReqExtAppnexus.of(false, true, null));
     }
 
     @Test
@@ -776,6 +780,130 @@ public class AppnexusBidderTest extends VertxTest {
                         "legacyInvCode1",
                         mapper.valueToTree(AppnexusImpExt.of(
                                 AppnexusImpExtAppnexus.of(101, null, "legacyTrafficSourceCode1", null, null)))));
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnSingleRequestWhenOnePod() {
+        // given
+        final List<Imp> imps = IntStream.rangeClosed(0, 2)
+                .mapToObj(impIdSuffix -> givenImp(
+                        imp -> imp
+                                .id(String.format("1_%d", impIdSuffix))
+                                .banner(Banner.builder().build()),
+                        ext -> ext.placementId(10)))
+                .collect(Collectors.toList());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(imps)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
+                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
+                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
+                .allMatch(adPodId -> Pattern.matches("\\d+", adPodId));
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnMultipleRequestsWhenOnePodAndManyImps() {
+        // given
+        final List<Imp> imps = IntStream.rangeClosed(0, 15)
+                .mapToObj(impIdSuffix -> givenImp(
+                        imp -> imp
+                                .id(String.format("1_%d", impIdSuffix))
+                                .banner(Banner.builder().build()),
+                        ext -> ext.placementId(10)))
+                .collect(Collectors.toList());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(imps)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
+                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
+                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
+                .matches(adPodIds -> new HashSet<>(adPodIds).size() == 1); // adPodIds should be the same
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnMultipleRequestsWhenTwoPods() {
+        // given
+        final List<Imp> imps = IntStream.rangeClosed(1, 2)
+                .boxed()
+                .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 2)
+                        .mapToObj(impIdSuffix -> givenImp(
+                                imp -> imp
+                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .banner(Banner.builder().build()),
+                                ext -> ext.placementId(10))))
+                .collect(Collectors.toList());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(imps)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
+                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
+                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
+                .matches(adPodIds -> new HashSet<>(adPodIds).size() == 2); // adPodIds should be different
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnMultipleRequestsWhenTwoPodsAndManyImps() {
+        // given
+        final List<Imp> imps = IntStream.rangeClosed(1, 2)
+                .boxed()
+                .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
+                        .mapToObj(impIdSuffix -> givenImp(
+                                imp -> imp
+                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .banner(Banner.builder().build()),
+                                ext -> ext.placementId(10))))
+                .collect(Collectors.toList());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(imps)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(4)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
+                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
+                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
+                .matches(adPodIds -> new HashSet<>(adPodIds).size() == 2); // adPodIds should be different
     }
 
     @Test

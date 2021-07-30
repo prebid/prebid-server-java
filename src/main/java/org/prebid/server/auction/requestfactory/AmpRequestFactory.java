@@ -79,6 +79,7 @@ public class AmpRequestFactory {
 
     private static final int NO_LIMIT_SPLIT_MODE = -1;
     private static final String AMP_CHANNEL = "amp";
+    private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -294,7 +295,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
-                .map(bidRequest -> paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver))
+                .map(bidRequest -> paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT))
                 .map(ortb2RequestFactory::validateRequest);
     }
 
