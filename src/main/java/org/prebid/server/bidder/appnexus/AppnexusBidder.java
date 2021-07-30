@@ -195,7 +195,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 final Boolean impGenerateAdPodId = impWithExtProperties.getGenerateAdPodId();
 
                 generateAdPodId = ObjectUtils.defaultIfNull(generateAdPodId, impGenerateAdPodId);
-                if (!generateAdPodIdIsValid(generateAdPodId, impGenerateAdPodId)) {
+                if (!Objects.equals(generateAdPodId, impGenerateAdPodId)) {
                     return Result.withError(BidderError.badInput(
                             "Generate ad pod option should be same for all pods in request"));
                 }
@@ -241,11 +241,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                     String.format("All request.imp[i].ext.appnexus.member params must match. Request contained: %s",
                             String.join(", ", uniqueIds)));
         }
-    }
-
-    private static boolean generateAdPodIdIsValid(Boolean requestGenerateAdPodId, Boolean impGenerateAdPodId) {
-        return (requestGenerateAdPodId == null && impGenerateAdPodId == null)
-                || requestGenerateAdPodId != null && requestGenerateAdPodId.equals(impGenerateAdPodId);
     }
 
     private static boolean isVideoRequest(BidRequest bidRequest) {
