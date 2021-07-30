@@ -11,6 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.Endpoint;
@@ -301,7 +302,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                                                             List<Imp> imps,
                                                             String url,
                                                             Boolean adPodId) {
-        if (isVideoRequest(bidRequest) && adPodId) {
+        if (isVideoRequest(bidRequest) && BooleanUtils.isTrue(adPodId)) {
             return groupImpsByPod(imps)
                     .values().stream()
                     .map(podImps -> splitHttpRequests(bidRequest, updateRequestExtForVideo(bidRequest), podImps, url))

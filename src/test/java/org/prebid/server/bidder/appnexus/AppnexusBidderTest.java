@@ -790,7 +790,7 @@ public class AppnexusBidderTest extends VertxTest {
                         imp -> imp
                                 .id(String.format("1_%d", impIdSuffix))
                                 .banner(Banner.builder().build()),
-                        ext -> ext.placementId(10)))
+                        ext -> ext.placementId(10).generateAdPodId(true)))
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
@@ -820,7 +820,7 @@ public class AppnexusBidderTest extends VertxTest {
                         imp -> imp
                                 .id(String.format("1_%d", impIdSuffix))
                                 .banner(Banner.builder().build()),
-                        ext -> ext.placementId(10)))
+                        ext -> ext.placementId(10).generateAdPodId(true)))
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
@@ -852,7 +852,7 @@ public class AppnexusBidderTest extends VertxTest {
                                 imp -> imp
                                         .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
-                                ext -> ext.placementId(10))))
+                                ext -> ext.placementId(10).generateAdPodId(true))))
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
@@ -884,7 +884,7 @@ public class AppnexusBidderTest extends VertxTest {
                                 imp -> imp
                                         .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
                                         .banner(Banner.builder().build()),
-                                ext -> ext.placementId(10))))
+                                ext -> ext.placementId(10).generateAdPodId(true))))
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
