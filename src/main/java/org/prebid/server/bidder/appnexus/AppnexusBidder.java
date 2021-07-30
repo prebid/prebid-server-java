@@ -185,7 +185,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final String defaultDisplayManagerVer = makeDefaultDisplayManagerVer(bidRequest);
         final List<Imp> processedImps = new ArrayList<>();
-        final Set<String> memberIds = new HashSet<>();
+        final Set<String> uniqueIds = new HashSet<>();
         Boolean generateAdPodId = null;
 
         for (final Imp imp : bidRequest.getImp()) {
@@ -200,15 +200,15 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 }
 
                 processedImps.add(impWithExtProperties.getImp());
-                memberIds.add(impWithExtProperties.getMemberId());
+                final String memberId = impWithExtProperties.getMemberId();
+                if (memberId != null) {
+                    uniqueIds.add(memberId);
+                }
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        final Set<String> uniqueIds = memberIds.stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
         final String url = constructUrl(uniqueIds, errors);
         return Result.of(constructRequests(bidRequest, processedImps, url, generateAdPodId), errors);
     }
