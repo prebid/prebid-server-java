@@ -12,6 +12,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
@@ -35,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -49,6 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,7 +63,9 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
     private static final int MAX_IMP_PER_REQUEST = 10;
+    private static final String POD_SEPARATOR = "_";
     private static final Map<Integer, String> IAB_CATEGORIES = new HashMap<>();
+
     private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAppnexus>>() {
             };
@@ -166,6 +171,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
+    private final Random rand = new Random();
+
     public AppnexusBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
@@ -204,12 +211,18 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             url = endpointUrl;
         }
 
-        final ExtRequest updatedRequestExt = updatedRequestExt(bidRequest);
-        final BidRequest outgoingRequest = updatedRequestExt != null
-                ? bidRequest.toBuilder().ext(updatedRequestExt).build()
-                : bidRequest;
+        final List<HttpRequest<BidRequest>> httpRequests;
+        if (isVideoRequest(bidRequest)) {
+            httpRequests = groupImpsByPod(processedImps)
+                    .values().stream()
+                    .map(podImps -> splitHttpRequests(bidRequest, updateRequestExtForVideo(bidRequest), podImps, url))
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+        } else {
+            httpRequests = splitHttpRequests(bidRequest, updateRequestExt(bidRequest), processedImps, url);
+        }
 
-        return Result.of(splitHttpRequests(outgoingRequest, processedImps, url, MAX_IMP_PER_REQUEST), errors);
+        return Result.of(httpRequests, errors);
     }
 
     private String makeDefaultDisplayManagerVer(BidRequest bidRequest) {
@@ -240,14 +253,32 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ExtRequest updatedRequestExt(BidRequest bidRequest) {
+    private static boolean isVideoRequest(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestPrebidPbs pbs = prebid != null ? prebid.getPbs() : null;
+        final String endpointName = pbs != null ? pbs.getEndpoint() : null;
+
+        return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
+    }
+
+    private ExtRequest updateRequestExt(BidRequest bidRequest) {
         final ExtRequest requestExt = bidRequest.getExt();
         if (isIncludeBrandCategory(requestExt)) {
-            return mapper.fillExtension(
-                    ExtRequest.of(requestExt.getPrebid()),
-                    AppnexusReqExt.of(AppnexusReqExtAppnexus.of(true, true)));
+            return updateRequestExt(requestExt, true, null);
         }
-        return null;
+        return requestExt;
+    }
+
+    private ExtRequest updateRequestExt(ExtRequest requestExt, boolean includeBrandCategory, String adpodId) {
+        return mapper.fillExtension(
+                ExtRequest.of(requestExt.getPrebid()),
+                AppnexusReqExt.of(AppnexusReqExtAppnexus.of(includeBrandCategory, includeBrandCategory, adpodId)));
+    }
+
+    private ExtRequest updateRequestExtForVideo(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        return updateRequestExt(requestExt, isIncludeBrandCategory(requestExt), Long.toUnsignedString(rand.nextLong()));
     }
 
     private static boolean isIncludeBrandCategory(ExtRequest extRequest) {
@@ -259,32 +290,49 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return includebrandcategory != null;
     }
 
-    private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest outgoingRequest, List<Imp> processedImps,
-                                                            String url, int maxImpPerRequest) {
+    private Map<String, List<Imp>> groupImpsByPod(List<Imp> processedImps) {
+        return processedImps.stream()
+                .collect(Collectors.groupingBy(imp -> StringUtils.substringBefore(imp.getId(), POD_SEPARATOR)));
+    }
+
+    private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest bidRequest,
+                                                            ExtRequest requestExt,
+                                                            List<Imp> processedImps,
+                                                            String url) {
+
         // Let's say there are 35 impressions and limit impressions per request equals to 10.
         // In this case we need to create 4 requests with 10, 10, 10 and 5 impressions.
         // With this formula initial capacity=(35+10-1)/10 = 4
         final int impSize = processedImps.size();
-        final int numberOfRequests = (impSize + maxImpPerRequest - 1) / maxImpPerRequest;
+        final int numberOfRequests = (impSize + MAX_IMP_PER_REQUEST - 1) / MAX_IMP_PER_REQUEST;
         final List<HttpRequest<BidRequest>> spitedRequests = new ArrayList<>(numberOfRequests);
 
         int startIndex = 0;
         boolean impsLeft = true;
         while (impsLeft) {
-            int endIndex = startIndex + maxImpPerRequest;
+            int endIndex = startIndex + MAX_IMP_PER_REQUEST;
             if (endIndex >= impSize) {
                 impsLeft = false;
                 endIndex = impSize;
             }
-            spitedRequests.add(createHttpRequest(outgoingRequest, processedImps.subList(startIndex, endIndex), url));
+            spitedRequests.add(
+                    createHttpRequest(bidRequest, requestExt, processedImps.subList(startIndex, endIndex), url));
             startIndex = endIndex;
         }
 
         return spitedRequests;
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest, List<Imp> imps, String url) {
-        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
+    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest,
+                                                      ExtRequest requestExt,
+                                                      List<Imp> imps,
+                                                      String url) {
+
+        final BidRequest outgoingRequest = bidRequest.toBuilder()
+                .imp(imps)
+                .ext(requestExt)
+                .build();
+
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
