@@ -184,11 +184,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
         final String defaultDisplayManagerVer = makeDefaultDisplayManagerVer(bidRequest);
-
         final List<Imp> processedImps = new ArrayList<>();
         final Set<String> memberIds = new HashSet<>();
-
         Boolean generateAdPodId = null;
+
         for (final Imp imp : bidRequest.getImp()) {
             try {
                 final ImpWithExtProperties impWithExtProperties = processImp(imp, defaultDisplayManagerVer);
@@ -210,7 +209,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final Set<String> uniqueIds = memberIds.stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-
         final String url = constructUrl(uniqueIds, errors);
         return Result.of(constructRequests(bidRequest, processedImps, url, generateAdPodId), errors);
     }
