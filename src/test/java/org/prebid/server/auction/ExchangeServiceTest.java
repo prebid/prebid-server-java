@@ -2021,31 +2021,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRejectRequestWhenAppAndSiteAppearsTogetherAfterFpdMerge() {
-        // given
-        final Bidder<?> bidder = mock(Bidder.class);
-        givenBidder("someBidder", bidder, givenEmptySeatBid());
-        final ObjectNode bidderConfigApp = mapper.valueToTree(App.builder().id("appFromConfig").build());
-        final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                null, ExtBidderConfigOrtb.of(null, bidderConfigApp, null));
-        final ExtRequestPrebidBidderConfig extRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
-                singletonList("someBidder"), extBidderConfig);
-        final Site requestSite = Site.builder().id("erased").domain("domain").build();
-        final ExtRequest extRequest = ExtRequest.of(
-                ExtRequestPrebid.builder()
-                        .bidderconfig(singletonList(extRequestPrebidBidderConfig))
-                        .build());
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.site(requestSite).ext(extRequest));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        verifyZeroInteractions(httpBidderRequester);
-    }
-
-    @Test
     public void shouldUseConcreteOverGeneralSiteWithExtPrebidBidderConfig() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);

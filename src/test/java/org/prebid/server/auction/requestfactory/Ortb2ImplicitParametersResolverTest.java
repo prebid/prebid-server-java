@@ -1772,6 +1772,27 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
+    public void shouldSetRequestPrebidChannelToAppWhenMissingInRequestAndBothAppAndSitePresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build();
+
+        // when
+        final BidRequest request = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("app"));
+    }
+
+    @Test
     public void shouldPassExtPrebidDebugFlagIfPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
