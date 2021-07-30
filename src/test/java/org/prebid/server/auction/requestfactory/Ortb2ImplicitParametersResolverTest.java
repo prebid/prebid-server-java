@@ -1782,7 +1782,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest request = target.resolve(bidRequest, httpRequest, timeoutResolver);
+        final BidRequest request = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
 
         // then
         assertThat(singletonList(request))
