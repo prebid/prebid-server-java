@@ -301,8 +301,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private List<HttpRequest<BidRequest>> constructRequests(BidRequest bidRequest,
                                                             List<Imp> imps,
                                                             String url,
-                                                            Boolean adPodId) {
-        if (isVideoRequest(bidRequest) && BooleanUtils.isTrue(adPodId)) {
+                                                            Boolean generateAdPodId) {
+        if (isVideoRequest(bidRequest) && BooleanUtils.isTrue(generateAdPodId)) {
             return groupImpsByPod(imps)
                     .values().stream()
                     .map(podImps -> splitHttpRequests(bidRequest, updateRequestExtForVideo(bidRequest), podImps, url))
@@ -328,7 +328,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         // With this formula initial capacity=(35+10-1)/10 = 4
         final int impSize = processedImps.size();
         final int numberOfRequests = (impSize + MAX_IMP_PER_REQUEST - 1) / MAX_IMP_PER_REQUEST;
-        final List<HttpRequest<BidRequest>> spitedRequests = new ArrayList<>(numberOfRequests);
+        final List<HttpRequest<BidRequest>> splitRequests = new ArrayList<>(numberOfRequests);
 
         int startIndex = 0;
         boolean impsLeft = true;
@@ -338,20 +338,18 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 impsLeft = false;
                 endIndex = impSize;
             }
-            spitedRequests.add(
+            splitRequests.add(
                     createHttpRequest(bidRequest, requestExt, processedImps.subList(startIndex, endIndex), url));
             startIndex = endIndex;
         }
 
-        return spitedRequests;
+        return splitRequests;
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest,
                                                       ExtRequest requestExt,
                                                       List<Imp> imps,
                                                       String url) {
-
-
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(imps)
                 .ext(requestExt)
@@ -366,8 +364,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ImpWithExtProperties processImp(Imp imp,
-                                            String defaultDisplayManagerVer) {
+    private ImpWithExtProperties processImp(Imp imp, String defaultDisplayManagerVer) {
         if (imp.getAudio() != null) {
             throw new PreBidException(
                     String.format("Appnexus doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
