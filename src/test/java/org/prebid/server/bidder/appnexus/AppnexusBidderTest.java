@@ -55,6 +55,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -907,6 +908,70 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestShouldReturnErrorIfRequestContainsMultipleGenerateAdPodIdsValues() {
+        // given
+        final List<Imp> imps = IntStream.rangeClosed(1, 2)
+                .boxed()
+                .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
+                        .mapToObj(impIdSuffix -> givenImp(
+                                imp -> imp
+                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .banner(Banner.builder().build()),
+                                ext -> ext.placementId(10).generateAdPodId(impIdSuffix % 2 == 0))))
+                .collect(Collectors.toList());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(imps)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Generate ad pod option should be same for all pods in request"));
+    }
+
+    @Test
+    public void makeHttpRequestShouldNotGenerateAdPodIdWhenFlagIsNotSetInRequestImpExt() {
+        // given
+        final List<Imp> imps = IntStream.rangeClosed(1, 2)
+                .boxed()
+                .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
+                        .mapToObj(impIdSuffix -> givenImp(
+                                imp -> imp
+                                        .id(String.format("%d_%d", impIdPrefix, impIdSuffix))
+                                        .banner(Banner.builder().build()),
+                                ext -> ext.placementId(10).generateAdPodId(false))))
+                .collect(Collectors.toList());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(imps)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder()
+                                .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null))
+                                .build())
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
+                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
+                .extracting(AppnexusReqExtAppnexus::getAdpodId)
+                .matches(adPodIds -> adPodIds.stream().allMatch(Objects::isNull));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -1139,7 +1204,7 @@ public class AppnexusBidderTest extends VertxTest {
                                               UnaryOperator<ImpBuilder> impCustomizer,
                                               UnaryOperator<ExtImpAppnexusBuilder> extCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -1150,7 +1215,7 @@ public class AppnexusBidderTest extends VertxTest {
     private static Imp givenImp(UnaryOperator<ImpBuilder> impCustomizer,
                                 UnaryOperator<ExtImpAppnexusBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(givenExt(extCustomizer)))
+                        .ext(givenExt(extCustomizer)))
                 .build();
     }
 
@@ -1185,14 +1250,14 @@ public class AppnexusBidderTest extends VertxTest {
             throws JsonProcessingException {
 
         return mapper.writeValueAsString(bidResponseCustomizer.apply(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()
-                                .impid("impId")
-                                .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                        bidExtCustomizer.apply(AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE))
-                                                .build()))))
-                                .build()))
-                        .build())))
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(bidCustomizer.apply(Bid.builder()
+                                                .impid("impId")
+                                                .ext(mapper.valueToTree(AppnexusBidExt.of(
+                                                        bidExtCustomizer.apply(AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE))
+                                                                .build()))))
+                                        .build()))
+                                .build())))
                 .build());
     }
 
