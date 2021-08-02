@@ -96,7 +96,6 @@ import java.util.function.Function;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
-import static java.math.BigDecimal.ZERO;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -3039,7 +3038,7 @@ public class RubiconBidderTest extends VertxTest {
                                               Function<ImpBuilder, ImpBuilder> impCustomizer,
                                               Function<ExtImpRubiconBuilder, ExtImpRubiconBuilder> extCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -3055,7 +3054,7 @@ public class RubiconBidderTest extends VertxTest {
     private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer,
                                 Function<ExtImpRubiconBuilder, ExtImpRubiconBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
                 .build();
     }
 
