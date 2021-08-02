@@ -276,9 +276,9 @@ public class AmpRequestFactory {
 
     private static Integer gdprFromQueryStringParams(HttpRequestContext httpRequest) {
         final String gdprAppliesParam = httpRequest.getQueryParams().get(GDPR_APPLIES_PARAM);
-        if ("true".equals(gdprAppliesParam)) {
+        if (StringUtils.equals(gdprAppliesParam, "true")) {
             return 1;
-        } else if ("false".equals(gdprAppliesParam)) {
+        } else if (StringUtils.equals(gdprAppliesParam, "false")) {
             return 0;
         }
 
