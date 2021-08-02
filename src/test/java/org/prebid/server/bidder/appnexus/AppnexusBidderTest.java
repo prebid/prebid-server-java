@@ -93,7 +93,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
-        System.out.println(result.getValue());
+
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
