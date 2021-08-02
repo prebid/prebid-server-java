@@ -1,12 +1,15 @@
 package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -18,7 +21,6 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.units.qual.A;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -49,13 +51,13 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Smaato {@link Bidder} implementation.
@@ -177,7 +179,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return validImps.stream()
                 .collect(Collectors.groupingBy(SmaatoBidder::extractPod, Collectors.toList()))
                 .values().stream()
-                .map(imps -> constructHttpRequest(bidRequest, imps))
+                .map(imps -> constructHttpRequest(preparePodRequest(bidRequest, imps)))
                 .collect(Collectors.toList());
     }
 
@@ -185,9 +187,15 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return imp.getId().split("_")[0];
     }
 
+    private BidRequest preparePodRequest(BidRequest bidRequest, List<Imp> imps) {
+        return enrichWithPublisherId(bidRequest.toBuilder(), bidRequest, imps.get(0))
+                .imp(modifyImpForAdBreak(imps))
+                .build();
+    }
+
     private List<HttpRequest<BidRequest>> constructIndividualRequests(BidRequest bidRequest, List<BidderError> errors) {
-        final BidRequest enrichedBidRequest = enrichIndividualRequest(bidRequest);
-        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
+        final List<Imp> videoImps = new ArrayList<>();
+        final List<Imp> bannerImps = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             final Banner banner = imp.getBanner();
@@ -198,30 +206,84 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             }
 
             if (video != null) {
-                final Imp videoImp = imp.toBuilder().video(null).build();
-                requests.add(constructHttpRequest(enrichedBidRequest, Collections.singletonList(videoImp)));
+                videoImps.add(imp.toBuilder().video(null).build());
             }
             if (banner != null) {
-                final Imp videoImp = imp.toBuilder().banner(null).build();
-                requests.add(constructHttpRequest(enrichedBidRequest, Collections.singletonList(videoImp)));
+                bannerImps.add(imp.toBuilder().banner(null).build());
             }
         }
 
-        return requests;
+        return Stream.of(videoImps, bannerImps)
+                .flatMap(List::stream)
+                .map(imp -> prepareIndividualRequest(bidRequest, imp))
+                .map(this::constructHttpRequest)
+                .collect(Collectors.toList());
     }
 
-    private BidRequest enrichIndividualRequest(BidRequest bidRequest) {
+    private BidRequest prepareIndividualRequest(BidRequest bidRequest, Imp imp) {
+        return enrichWithPublisherId(bidRequest.toBuilder(), bidRequest, imp)
+                .imp(Collections.singletonList(modifyImpForAdspace(imp)))
+                .build();
+    }
+
+    private BidRequest.BidRequestBuilder enrichWithPublisherId(BidRequest.BidRequestBuilder bidRequestBuilder,
+                                                               BidRequest bidRequest,
+                                                               Imp imp) {
+        final Publisher publisher = getPublisher(imp);
+        final Site site = bidRequest.getSite();
+        final App app = bidRequest.getApp();
+        if (site != null) {
+            bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
+        } else if (app != null) {
+            bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
+        } else {
+            throw new PreBidException("Missing Site/App.");
+        }
+
+        return bidRequestBuilder;
+    }
+
+    private Publisher getPublisher(Imp imp) {
+        final JsonNode publisherIdNode = imp.getExt().path("bidder").path("publisherId");
+        if (publisherIdNode == null || !publisherIdNode.isTextual()) {
+            throw new PreBidException("Missing publisherId parameter.");
+        }
+
+        return Publisher.builder().id(publisherIdNode.asText()).build();
+    }
+
+    private Imp modifyImpForAdspace(Imp imp) {
+        final JsonNode adSpaceIdNode = imp.getExt().path("bidder").path("adspaceId");
+        if (adSpaceIdNode == null || !adSpaceIdNode.isTextual()) {
+            throw new PreBidException("Missing publisherId parameter.");
+        }
+
+        final Imp.ImpBuilder impBuilder = imp.toBuilder()
+                .tagid(adSpaceIdNode.asText())
+                .ext(null);
+
+        final Banner banner = imp.getBanner();
+        if (banner != null) {
+            return impBuilder.banner(modifyBanner(banner)).build();
+        } else if (imp.getVideo() != null) {
+            return impBuilder.build();
+        }
+
+        return imp;
+    }
+
+    private List<Imp> modifyImpForAdBreak(List<Imp> imps) {
         return null;
     }
 
-    private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest, List<Imp> imps) {
-        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
+
+    private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {
         return HttpRequest.<BidRequest>builder()
                 .uri(endpointUrl)
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(outgoingRequest))
-                .payload(outgoingRequest)
+                .body(mapper.encode(bidRequest))
+                .payload(bidRequest)
                 .build();
     }
 
