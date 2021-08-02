@@ -126,21 +126,22 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     /**
      * Populate {@link StrUriParameters} with publisher request, imp, imp.ext values.
      */
-    private StrUriParameters createStrUriParameters(ExtImpSharethrough extImpStr, Imp imp, boolean isConsentRequired,
+    private StrUriParameters createStrUriParameters(ExtImpSharethrough extImpSharethrough, Imp imp,
+                                                    boolean isConsentRequired,
                                                     String consentString, String usPrivacy,
                                                     boolean canBrowserAutoPlayVideo, String ttdUid, String buyeruid,
                                                     SharethroughRequestBody body) {
-        final Size size = requestUtil.getSize(imp, extImpStr);
-        final ExtData extData = extImpStr.getData();
+        final Size size = requestUtil.getSize(imp, extImpSharethrough);
+        final ExtData extData = extImpSharethrough.getData();
         return StrUriParameters.builder()
-                .pkey(extImpStr.getPkey())
+                .pkey(extImpSharethrough.getPkey())
                 .bidID(imp.getId())
                 .gpid(extData != null ? extData.getPbAdSlot() : null)
                 .consentRequired(isConsentRequired)
                 .consentString(consentString)
                 .usPrivacySignal(usPrivacy)
                 .instantPlayCapable(canBrowserAutoPlayVideo)
-                .iframe(extImpStr.getIframe())
+                .iframe(extImpSharethrough.getIframe())
                 .height(size.getHeight())
                 .width(size.getWidth())
                 .theTradeDeskUserId(ttdUid)
