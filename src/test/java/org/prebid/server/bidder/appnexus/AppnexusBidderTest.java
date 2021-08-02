@@ -967,7 +967,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
                 .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
-                .extracting(AppnexusReqExtAppnexus::getAdpodId)
+                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
                 .matches(adPodIds -> adPodIds.stream().allMatch(Objects::isNull));
     }
 
@@ -1249,15 +1249,16 @@ public class AppnexusBidderTest extends VertxTest {
             UnaryOperator<AppnexusBidExtAppnexus.AppnexusBidExtAppnexusBuilder> bidExtCustomizer)
             throws JsonProcessingException {
 
-        return mapper.writeValueAsString(bidResponseCustomizer.apply(BidResponse.builder()
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(bidCustomizer.apply(Bid.builder()
+        return mapper.writeValueAsString(bidResponseCustomizer.apply(
+                        BidResponse.builder()
+                                .seatbid(singletonList(SeatBid.builder()
+                                        .bid(singletonList(bidCustomizer.apply(Bid.builder()
                                                 .impid("impId")
-                                                .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                        bidExtCustomizer.apply(AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE))
-                                                                .build()))))
-                                        .build()))
-                                .build())))
+                                                .ext(mapper.valueToTree(AppnexusBidExt.of(bidExtCustomizer.apply(
+                                                                AppnexusBidExtAppnexus.builder()
+                                                                        .bidAdType(BANNER_TYPE))
+                                                        .build())))).build()))
+                                        .build())))
                 .build());
     }
 
