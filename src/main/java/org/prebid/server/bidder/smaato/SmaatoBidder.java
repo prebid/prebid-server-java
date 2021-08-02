@@ -2,14 +2,14 @@ package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.App;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -18,6 +18,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.units.qual.A;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -38,6 +40,8 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
@@ -45,6 +49,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -61,7 +66,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpSmaato>>() {
             };
 
-    private static final String CLIENT_VERSION = "prebid_server_0.2";
+    private static final String CLIENT_VERSION = "prebid_server_0.4";
     private static final String SMT_ADTYPE_HEADER = "X-SMT-ADTYPE";
     private static final String SMT_AD_TYPE_IMG = "Img";
     private static final String SMT_ADTYPE_RICHMEDIA = "Richmedia";
@@ -77,44 +82,147 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
-        final List<Imp> imps = new ArrayList<>();
+        final BidRequest enrichedRequest;
+        try {
+            enrichedRequest = enrichRequestWithCommonProperties(request);
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
 
-        String firstPublisherId = null;
-        for (Imp imp : request.getImp()) {
-            try {
-                final ExtImpSmaato extImpSmaato = parseImpExt(imp);
-                firstPublisherId = firstPublisherId == null ? extImpSmaato.getPublisherId() : firstPublisherId;
-                final Imp modifiedImp = modifyImp(imp, extImpSmaato.getAdspaceId());
-                imps.add(modifiedImp);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+        final List<BidderError> errors = new ArrayList<>();
+        if (isVideoRequest(request)) {
+            return Result.of(constructPodRequests(enrichedRequest, errors), errors);
+        }
+        return Result.of(constructIndividualRequests(enrichedRequest, errors), errors);
+    }
+
+    private BidRequest enrichRequestWithCommonProperties(BidRequest bidRequest) {
+        final ExtRequest requestExt = ExtRequest.empty();
+        requestExt.addProperty("client", TextNode.valueOf(CLIENT_VERSION));
+
+        return bidRequest.toBuilder()
+                .user(modifyUser(bidRequest.getUser()))
+                .site(modifySite(bidRequest.getSite()))
+                .ext(requestExt)
+                .build();
+    }
+
+    private User modifyUser(User user) {
+        final ExtUser userExt = user != null ? user.getExt() : null;
+        if (userExt == null) {
+            return user;
+        }
+
+        final ObjectNode extDataNode = userExt.getData();
+        if (extDataNode == null || extDataNode.isEmpty()) {
+            return user;
+        }
+
+        final SmaatoUserExtData smaatoUserExtData = convertExt(extDataNode, SmaatoUserExtData.class);
+        final User.UserBuilder userBuilder = user.toBuilder();
+
+        final String gender = smaatoUserExtData.getGender();
+        if (StringUtils.isNotBlank(gender)) {
+            userBuilder.gender(gender);
+        }
+
+        final Integer yob = smaatoUserExtData.getYob();
+        if (yob != null && yob != 0) {
+            userBuilder.yob(yob);
+        }
+
+        final String keywords = smaatoUserExtData.getKeywords();
+        if (StringUtils.isNotBlank(keywords)) {
+            userBuilder.keywords(keywords);
+        }
+
+        return userBuilder
+                .ext(userExt.toBuilder().data(null).build())
+                .build();
+    }
+
+    private Site modifySite(Site site) {
+        if (site == null) {
+            return null;
+        }
+
+        final ExtSite siteExt = site.getExt();
+        if (siteExt != null) {
+            final SmaatoSiteExtData data = convertExt(siteExt.getData(), SmaatoSiteExtData.class);
+            final String keywords = data != null ? data.getKeywords() : null;
+            return Site.builder().keywords(keywords).ext(null).build();
+        }
+
+        return site;
+    }
+
+    private <T> T convertExt(ObjectNode ext, Class<T> className) {
+        try {
+            return mapper.mapper().convertValue(ext, className);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(String.format("Cannot decode extension: %s", e.getMessage()), e);
+        }
+    }
+
+    private List<HttpRequest<BidRequest>> constructPodRequests(BidRequest bidRequest, List<BidderError> errors) {
+        final List<Imp> validImps = new ArrayList<>();
+        for (Imp imp : bidRequest.getImp()) {
+            if (imp.getVideo() == null) {
+                errors.add(BidderError.badInput("Invalid MediaType. Smaato only supports Video for AdPod."));
+                continue;
+            }
+            validImps.add(imp);
+        }
+
+        return validImps.stream()
+                .collect(Collectors.groupingBy(SmaatoBidder::extractPod, Collectors.toList()))
+                .values().stream()
+                .map(imps -> constructHttpRequest(bidRequest, imps))
+                .collect(Collectors.toList());
+    }
+
+    private static String extractPod(Imp imp) {
+        return imp.getId().split("_")[0];
+    }
+
+    private List<HttpRequest<BidRequest>> constructIndividualRequests(BidRequest bidRequest, List<BidderError> errors) {
+        final BidRequest enrichedBidRequest = enrichIndividualRequest(bidRequest);
+        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
+
+        for (Imp imp : bidRequest.getImp()) {
+            final Banner banner = imp.getBanner();
+            final Video video = imp.getVideo();
+            if (video == null && banner == null) {
+                errors.add(BidderError.badInput("Invalid MediaType. Smaato only supports Banner and Video."));
+                continue;
+            }
+
+            if (video != null) {
+                final Imp videoImp = imp.toBuilder().video(null).build();
+                requests.add(constructHttpRequest(enrichedBidRequest, Collections.singletonList(videoImp)));
+            }
+            if (banner != null) {
+                final Imp videoImp = imp.toBuilder().banner(null).build();
+                requests.add(constructHttpRequest(enrichedBidRequest, Collections.singletonList(videoImp)));
             }
         }
 
-        final BidRequest outgoingRequest;
-        try {
-            outgoingRequest = request.toBuilder()
-                    .imp(imps)
-                    .site(modifySite(request.getSite(), firstPublisherId))
-                    .app(modifyApp(request.getApp(), firstPublisherId))
-                    .user(modifyUser(request.getUser()))
-                    .ext(mapper.fillExtension(ExtRequest.empty(), SmaatoBidRequestExt.of(CLIENT_VERSION)))
-                    .build();
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return Result.withErrors(errors);
-        }
+        return requests;
+    }
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
-                        .build()),
-                errors);
+    private BidRequest enrichIndividualRequest(BidRequest bidRequest) {
+        return null;
+    }
+
+    private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest, List<Imp> imps) {
+        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
+        return HttpRequest.<BidRequest>builder()
+                .uri(endpointUrl)
+                .method(HttpMethod.POST)
+                .headers(HttpUtil.headers())
+                .body(mapper.encode(outgoingRequest))
+                .payload(outgoingRequest)
+                .build();
     }
 
     private ExtImpSmaato parseImpExt(Imp imp) {
@@ -150,70 +258,47 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
     }
 
-    private Site modifySite(Site site, String firstPublisherId) {
-        if (site == null) {
-            return null;
-        }
+    private static boolean isVideoRequest(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestPrebidPbs pbs = prebid != null ? prebid.getPbs() : null;
+        final String endpointName = pbs != null ? pbs.getEndpoint() : null;
 
-        final Site.SiteBuilder siteBuilder = site.toBuilder()
-                .publisher(Publisher.builder().id(firstPublisherId).build());
-
-        final ExtSite siteExt = site.getExt();
-        if (siteExt != null) {
-            final SmaatoSiteExtData data = convertExt(siteExt.getData(), SmaatoSiteExtData.class);
-            final String keywords = data != null ? data.getKeywords() : null;
-            siteBuilder.keywords(keywords).ext(null);
-        }
-
-        return siteBuilder.build();
+        return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
     }
 
-    private App modifyApp(App app, String publishedId) {
-        return app != null
-                ? app.toBuilder().publisher(Publisher.builder().id(publishedId).build()).build()
-                : null;
-    }
-
-    private User modifyUser(User user) {
-        if (user == null) {
-            return null;
-        }
-
-        final ExtUser userExt = user.getExt();
-        final ObjectNode extDataNode = userExt != null ? userExt.getData() : null;
-        if (extDataNode == null || extDataNode.isEmpty()) {
-            return user;
-        }
-
-        final SmaatoUserExtData smaatoUserExtData = convertExt(extDataNode, SmaatoUserExtData.class);
-        final User.UserBuilder userBuilder = user.toBuilder();
-
-        final String gender = smaatoUserExtData.getGender();
-        if (StringUtils.isNotBlank(gender)) {
-            userBuilder.gender(gender);
-        }
-
-        final Integer yob = smaatoUserExtData.getYob();
-        if (yob != null && yob != 0) {
-            userBuilder.yob(yob);
-        }
-
-        final String keywords = smaatoUserExtData.getKeywords();
-        if (StringUtils.isNotBlank(keywords)) {
-            userBuilder.keywords(keywords);
-        }
-
-        return userBuilder
-                .ext(userExt.toBuilder().data(null).build())
-                .build();
-    }
-
-    private <T> T convertExt(ObjectNode ext, Class<T> className) {
+    private Result<List<HttpRequest<BidRequest>>> constructResult(BidRequest bidRequest,
+                                                                  List<Imp> imps,
+                                                                  String firstPublisherId,
+                                                                  List<BidderError> errors) {
+        final BidRequest outgoingRequest;
         try {
-            return mapper.mapper().convertValue(ext, className);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Cannot decode extension: %s", e.getMessage()), e);
+            outgoingRequest = modifyBidRequest(bidRequest, imps, firstPublisherId);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return Result.withErrors(errors);
         }
+
+        return Result.of(
+                Collections.singletonList(
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .body(mapper.encode(outgoingRequest))
+                                .build()),
+                errors);
+    }
+
+    private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps, String firstPublisherId) {
+        return bidRequest.toBuilder()
+                .imp(imps)
+                .site(modifySite(bidRequest.getSite(), firstPublisherId))
+                .app(modifyApp(bidRequest.getApp(), firstPublisherId))
+                .user(modifyUser(bidRequest.getUser()))
+                .ext(mapper.fillExtension(ExtRequest.empty(), SmaatoBidRequestExt.of(CLIENT_VERSION)))
+                .build();
     }
 
     @Override
