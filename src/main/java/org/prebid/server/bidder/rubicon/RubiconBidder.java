@@ -1328,7 +1328,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static boolean validatePrice(Bid bid) {
         final BigDecimal price = bid.getPrice();
-        return price != null && price.compareTo(BigDecimal.ZERO) > 0;
+        return price != null && price.compareTo(BigDecimal.ZERO) >= 0;
     }
 
     private Bid updateBid(Bid bid, Imp imp, Float cpmOverrideFromRequest, RubiconBidResponse bidResponse) {
