@@ -3054,7 +3054,8 @@ public class RubiconBidderTest extends VertxTest {
     private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer,
                                 Function<ExtImpRubiconBuilder, ExtImpRubiconBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
                 .build();
     }
 
