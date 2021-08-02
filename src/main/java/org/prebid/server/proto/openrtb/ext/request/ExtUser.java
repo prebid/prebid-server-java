@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
@@ -45,6 +46,12 @@ public class ExtUser extends FlexibleExtension {
      * Defines the contract for bidrequest.user.ext.digitrust
      */
     JsonNode digitrust;
+
+    /**
+     * Defines the contract for bidrequest.user.ext.ConsentedProvidersSettings
+     */
+    @JsonProperty("ConsentedProvidersSettings")
+    ConsentedProvidersSettings consentedProvidersSettings;
 
     @JsonIgnore
     public boolean isEmpty() {
