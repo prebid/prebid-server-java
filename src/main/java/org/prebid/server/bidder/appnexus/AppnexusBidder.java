@@ -316,10 +316,14 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                                                             ExtRequest requestExt,
                                                             List<Imp> imps,
                                                             String url) {
-        return Lists.partition(imps, MAX_IMP_PER_REQUEST)
+        final List<HttpRequest<BidRequest>> result = Lists.partition(imps, MAX_IMP_PER_REQUEST)
                 .stream()
                 .map(impsChunk -> createHttpRequest(bidRequest, requestExt, impsChunk, url))
                 .collect(Collectors.toList());
+
+        return result.isEmpty()
+                ? Collections.singletonList(createHttpRequest(bidRequest, requestExt, imps, url))
+                : result;
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest,
