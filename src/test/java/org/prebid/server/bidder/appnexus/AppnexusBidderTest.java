@@ -967,7 +967,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
                 .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
-                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
+                .extracting(AppnexusReqExtAppnexus::getAdpodId)
                 .matches(adPodIds -> adPodIds.stream().allMatch(Objects::isNull));
     }
 
