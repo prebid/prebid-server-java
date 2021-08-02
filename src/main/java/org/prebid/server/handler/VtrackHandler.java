@@ -86,7 +86,6 @@ public class VtrackHandler implements Handler<RoutingContext> {
                         timeout));
     }
 
-
     private static String accountId(RoutingContext routingContext) {
         final String accountId = routingContext.request().getParam(ACCOUNT_PARAMETER);
         if (StringUtils.isEmpty(accountId)) {
@@ -191,9 +190,9 @@ public class VtrackHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
+        routingContext.response().putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
         HttpUtil.executeSafely(routingContext, Endpoint.vtrack,
                 response -> response
-                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                         .setStatusCode(status.code())
                         .end(body));
     }
