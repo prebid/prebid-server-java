@@ -3,6 +3,7 @@ package org.prebid.server.bidder.appnexus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -313,30 +314,12 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
     private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest bidRequest,
                                                             ExtRequest requestExt,
-                                                            List<Imp> processedImps,
+                                                            List<Imp> imps,
                                                             String url) {
-
-        // Let's say there are 35 impressions and limit impressions per request equals to 10.
-        // In this case we need to create 4 requests with 10, 10, 10 and 5 impressions.
-        // With this formula initial capacity=(35+10-1)/10 = 4
-        final int impSize = processedImps.size();
-        final int numberOfRequests = (impSize + MAX_IMP_PER_REQUEST - 1) / MAX_IMP_PER_REQUEST;
-        final List<HttpRequest<BidRequest>> splitRequests = new ArrayList<>(numberOfRequests);
-
-        int startIndex = 0;
-        boolean impsLeft = true;
-        while (impsLeft) {
-            int endIndex = startIndex + MAX_IMP_PER_REQUEST;
-            if (endIndex >= impSize) {
-                impsLeft = false;
-                endIndex = impSize;
-            }
-            splitRequests.add(
-                    createHttpRequest(bidRequest, requestExt, processedImps.subList(startIndex, endIndex), url));
-            startIndex = endIndex;
-        }
-
-        return splitRequests;
+        return Lists.partition(imps, MAX_IMP_PER_REQUEST)
+                .stream()
+                .map(impsChunk -> createHttpRequest(bidRequest, requestExt, impsChunk, url))
+                .collect(Collectors.toList());
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest,
