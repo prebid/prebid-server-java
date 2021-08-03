@@ -42,4 +42,7 @@ public class ExtBidPrebidMeta {
 
     @JsonProperty("secondaryCatIds")
     List<String> secondaryCatIds;
+
+    @JsonProperty("dChain")
+    String dChain;
 }
