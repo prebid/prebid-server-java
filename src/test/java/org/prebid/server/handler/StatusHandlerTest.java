@@ -1,8 +1,10 @@
 package org.prebid.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -11,6 +13,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.model.StatusResponse;
+import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
@@ -56,13 +59,13 @@ public class StatusHandlerTest extends VertxTest {
 
         // when
         statusHandler.handle(routingContext);
-
         // then
+        httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString());
+        Assert.assertNull(httpResponse.headers());
         final Map<String, StatusResponse> expectedMap = new TreeMap<>();
         expectedMap.put("application", StatusResponse.of("ready", null));
         expectedMap.put("db", StatusResponse.of("UP", testTime));
         expectedMap.put("other", StatusResponse.of("DOWN", testTime));
-
         verify(httpResponse).end(eq(mapper.writeValueAsString(expectedMap)));
     }
 

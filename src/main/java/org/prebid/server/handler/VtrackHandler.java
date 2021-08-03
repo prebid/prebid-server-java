@@ -67,6 +67,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
+        routingContext.response().putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
         final String accountId;
         final List<PutObject> vtrackPuts;
         final String integration;
