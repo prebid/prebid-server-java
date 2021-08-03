@@ -57,7 +57,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 /**
  * Smaato {@link Bidder} implementation.
@@ -179,7 +179,8 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return validImps.stream()
                 .collect(Collectors.groupingBy(SmaatoBidder::extractPod, Collectors.toList()))
                 .values().stream()
-                .map(imps -> constructHttpRequest(preparePodRequest(bidRequest, imps)))
+                .map(imps -> constructHttpRequest(preparePodRequest(bidRequest, imps, errors)))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -187,15 +188,19 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return imp.getId().split("_")[0];
     }
 
-    private BidRequest preparePodRequest(BidRequest bidRequest, List<Imp> imps) {
-        return enrichWithPublisherId(bidRequest.toBuilder(), bidRequest, imps.get(0))
-                .imp(modifyImpForAdBreak(imps))
-                .build();
+    private BidRequest preparePodRequest(BidRequest bidRequest, List<Imp> imps, List<BidderError> errors) {
+        try {
+            return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, imps.get(0))
+                    .imp(imps.stream().map(imp -> modifyImpsForAdBreak(imp)).collect(Collectors.toList()))
+                    .build();
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return null;
+        }
     }
 
     private List<HttpRequest<BidRequest>> constructIndividualRequests(BidRequest bidRequest, List<BidderError> errors) {
-        final List<Imp> videoImps = new ArrayList<>();
-        final List<Imp> bannerImps = new ArrayList<>();
+        final List<Imp> splitImps = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             final Banner banner = imp.getBanner();
@@ -206,30 +211,40 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             }
 
             if (video != null) {
-                videoImps.add(imp.toBuilder().video(null).build());
+                splitImps.add(imp.toBuilder().video(null).build());
             }
             if (banner != null) {
-                bannerImps.add(imp.toBuilder().banner(null).build());
+                splitImps.add(imp.toBuilder().banner(null).build());
             }
         }
 
-        return Stream.of(videoImps, bannerImps)
-                .flatMap(List::stream)
-                .map(imp -> prepareIndividualRequest(bidRequest, imp))
+        return splitImps.stream()
+                .map(imp -> prepareIndividualRequest(bidRequest, imp, errors))
+                .filter(Objects::nonNull)
                 .map(this::constructHttpRequest)
                 .collect(Collectors.toList());
     }
 
-    private BidRequest prepareIndividualRequest(BidRequest bidRequest, Imp imp) {
-        return enrichWithPublisherId(bidRequest.toBuilder(), bidRequest, imp)
-                .imp(Collections.singletonList(modifyImpForAdspace(imp)))
-                .build();
+    private BidRequest prepareIndividualRequest(BidRequest bidRequest, Imp imp, List<BidderError> errors) {
+        try {
+            return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, imp)
+                    .imp(Collections.singletonList(modifyImpForAdspace(imp)))
+                    .build();
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return null;
+        }
     }
 
-    private BidRequest.BidRequestBuilder enrichWithPublisherId(BidRequest.BidRequestBuilder bidRequestBuilder,
-                                                               BidRequest bidRequest,
-                                                               Imp imp) {
-        final Publisher publisher = getPublisher(imp);
+    private BidRequest.BidRequestBuilder enrichRequestWithPublisherId(BidRequest.BidRequestBuilder bidRequestBuilder,
+                                                                      BidRequest bidRequest,
+                                                                      Imp imp) {
+        final JsonNode publisherIdNode = imp.getExt().path("bidder").path("publisherId");
+        if (publisherIdNode == null || !publisherIdNode.isTextual()) {
+            throw new PreBidException("Missing publisherId parameter.");
+        }
+        final Publisher publisher = Publisher.builder().id(publisherIdNode.asText()).build();
+
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
         if (site != null) {
@@ -241,15 +256,6 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         return bidRequestBuilder;
-    }
-
-    private Publisher getPublisher(Imp imp) {
-        final JsonNode publisherIdNode = imp.getExt().path("bidder").path("publisherId");
-        if (publisherIdNode == null || !publisherIdNode.isTextual()) {
-            throw new PreBidException("Missing publisherId parameter.");
-        }
-
-        return Publisher.builder().id(publisherIdNode.asText()).build();
     }
 
     private Imp modifyImpForAdspace(Imp imp) {
@@ -272,10 +278,30 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return imp;
     }
 
-    private List<Imp> modifyImpForAdBreak(List<Imp> imps) {
-        return null;
+    private List<Imp> modifyImpsForAdBreak(List<Imp> imps) {
+        final JsonNode adBreakIdNode = imps.get(0).getExt().path("bidder").path("adbreakId");
+        if (adBreakIdNode == null || !adBreakIdNode.isTextual()) {
+            throw new PreBidException("Missing adbreakId parameter.");
+        }
+        final String adBreakId = adBreakIdNode.asText();
+
+        return IntStream.range(0, imps.size())
+                .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx, adBreakId))
+                .collect(Collectors.toList());
     }
 
+    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String tagId) {
+        final Video modifiedVideo = imp.getVideo().toBuilder()
+                .sequence(sequence)
+                .ext(mapper.mapper().createObjectNode().put("context", "adpod"))
+                .build();
+
+        return imp.toBuilder()
+                .tagid(tagId)
+                .video(modifiedVideo)
+                .ext(null)
+                .build();
+    }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {
         return HttpRequest.<BidRequest>builder()
@@ -285,27 +311,6 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .body(mapper.encode(bidRequest))
                 .payload(bidRequest)
                 .build();
-    }
-
-    private ExtImpSmaato parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), SMAATO_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
-    private static Imp modifyImp(Imp imp, String adspaceId) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder();
-        if (imp.getBanner() != null) {
-            return impBuilder.banner(modifyBanner(imp.getBanner())).tagid(adspaceId).ext(null).build();
-        }
-
-        if (imp.getVideo() != null) {
-            return impBuilder.tagid(adspaceId).ext(null).build();
-        }
-        throw new PreBidException(String.format(
-                "invalid MediaType. SMAATO only supports Banner and Video. Ignoring ImpID=%s", imp.getId()));
     }
 
     private static Banner modifyBanner(Banner banner) {
