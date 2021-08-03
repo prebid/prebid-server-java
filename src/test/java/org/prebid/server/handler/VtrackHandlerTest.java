@@ -2,6 +2,7 @@ package org.prebid.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -23,6 +24,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -83,6 +85,8 @@ public class VtrackHandlerTest extends VertxTest {
     public void shouldRespondWithBadRequestWhenAccountParameterIsMissing() {
         // given
         given(httpRequest.getParam("a")).willReturn(null);
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
 
         // when
         handler.handle(routingContext);
@@ -95,9 +99,24 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
+    public void contentTypeHeaderAdded() {
+        // given
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+    }
+
+    @Test
     public void shouldRespondWithBadRequestWhenBodyIsEmpty() {
         // given
         given(routingContext.getBody()).willReturn(null);
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
 
         // when
         handler.handle(routingContext);
@@ -113,6 +132,8 @@ public class VtrackHandlerTest extends VertxTest {
     public void shouldRespondWithBadRequestWhenBodyCannotBeParsed() {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("invalid"));
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
 
         // when
         handler.handle(routingContext);
@@ -129,7 +150,10 @@ public class VtrackHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(identity()));
-
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
@@ -145,7 +169,8 @@ public class VtrackHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId")));
-
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
@@ -165,6 +190,11 @@ public class VtrackHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
+
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
@@ -186,6 +216,11 @@ public class VtrackHandlerTest extends VertxTest {
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
+
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
@@ -207,6 +242,8 @@ public class VtrackHandlerTest extends VertxTest {
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
@@ -228,7 +265,8 @@ public class VtrackHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(null).build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
-
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
@@ -261,6 +299,8 @@ public class VtrackHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         singletonList(CacheObject.of("uuid1")))));
 
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
@@ -292,6 +332,8 @@ public class VtrackHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
@@ -329,6 +371,8 @@ public class VtrackHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
         // when
         handler.handle(routingContext);
 
