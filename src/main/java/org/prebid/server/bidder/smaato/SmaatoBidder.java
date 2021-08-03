@@ -162,10 +162,9 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isVideoRequest(BidRequest bidRequest) {
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidPbs pbs = prebid != null ? prebid.getPbs() : null;
-        final String endpointName = pbs != null ? pbs.getEndpoint() : null;
+        final ExtRequestPrebid prebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        final ExtRequestPrebidPbs pbs = getIfNotNull(prebid, ExtRequestPrebid::getPbs);
+        final String endpointName = getIfNotNull(pbs, ExtRequestPrebidPbs::getEndpoint);
 
         return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
     }
