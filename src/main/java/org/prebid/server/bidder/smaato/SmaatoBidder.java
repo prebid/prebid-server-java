@@ -280,7 +280,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private List<Imp> modifyImpsForAdBreak(List<Imp> imps) {
-        final String adBreakId = getTextualPropertyFromImpExtBidder(imps.get(0).getExt(), "adreakId");
+        final String adBreakId = getTextualPropertyFromImpExtBidder(imps.get(0).getExt(), "adbreakId");
         return IntStream.range(0, imps.size())
                 .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId))
                 .collect(Collectors.toList());
