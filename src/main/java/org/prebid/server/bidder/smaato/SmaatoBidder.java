@@ -245,14 +245,12 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
         if (site != null) {
-            bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
+            return bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
         } else if (app != null) {
-            bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
+            return bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
         } else {
             throw new PreBidException("Missing Site/App.");
         }
-
-        return bidRequestBuilder;
     }
 
     private Imp modifyImpForAdSpace(Imp imp) {
