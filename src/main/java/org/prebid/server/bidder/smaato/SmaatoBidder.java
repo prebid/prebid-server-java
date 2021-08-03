@@ -3,7 +3,6 @@ package org.prebid.server.bidder.smaato;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -226,7 +225,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private BidRequest prepareIndividualRequest(BidRequest bidRequest, Imp imp, List<BidderError> errors) {
         try {
             return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, imp)
-                    .imp(Collections.singletonList(modifyImpForAdspace(imp)))
+                    .imp(Collections.singletonList(modifyImpForAdSpace(imp)))
                     .build();
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -237,11 +236,9 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private BidRequest.BidRequestBuilder enrichRequestWithPublisherId(BidRequest.BidRequestBuilder bidRequestBuilder,
                                                                       BidRequest bidRequest,
                                                                       Imp imp) {
-        final JsonNode publisherIdNode = imp.getExt().path("bidder").path("publisherId");
-        if (publisherIdNode == null || !publisherIdNode.isTextual()) {
-            throw new PreBidException("Missing publisherId parameter.");
-        }
-        final Publisher publisher = Publisher.builder().id(publisherIdNode.asText()).build();
+        final Publisher publisher = Publisher.builder()
+                .id(getTextualPropertyFromImpExtBidder(imp.getExt(), "publisherId"))
+                .build();
 
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
@@ -256,13 +253,9 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return bidRequestBuilder;
     }
 
-    private Imp modifyImpForAdspace(Imp imp) {
-        final JsonNode adSpaceIdNode = imp.getExt().path("bidder").path("adspaceId");
-        if (adSpaceIdNode == null || !adSpaceIdNode.isTextual()) {
-            throw new PreBidException("Missing publisherId parameter.");
-        }
+    private Imp modifyImpForAdSpace(Imp imp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .tagid(adSpaceIdNode.asText())
+                .tagid(getTextualPropertyFromImpExtBidder(imp.getExt(), "adSpaceId"))
                 .ext(null);
 
         final Banner banner = imp.getBanner();
@@ -275,13 +268,9 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private List<Imp> modifyImpsForAdBreak(List<Imp> imps) {
-        final JsonNode adBreakIdNode = imps.get(0).getExt().path("bidder").path("adbreakId");
-        if (adBreakIdNode == null || !adBreakIdNode.isTextual()) {
-            throw new PreBidException("Missing adbreakId parameter.");
-        }
-
+        final String adBreakId = getTextualPropertyFromImpExtBidder(imps.get(0).getExt(), "adBreakId");
         return IntStream.range(0, imps.size())
-                .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx, adBreakIdNode.asText()))
+                .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId))
                 .collect(Collectors.toList());
     }
 
@@ -295,6 +284,18 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .video(modifiedVideo)
                 .ext(null)
                 .build();
+    }
+
+    private static String getTextualPropertyFromImpExtBidder(JsonNode extNode, String propertyName) {
+        final JsonNode bidderNode = extNode.path("bidder");
+        final JsonNode propertyNode = bidderNode != null && bidderNode.isObject()
+                ? extNode.path("bidder").path("String")
+                : null;
+        if (propertyNode == null || !propertyNode.isTextual()) {
+            throw new PreBidException(String.format("Missing %s parameter.", propertyName));
+        }
+
+        return propertyNode.asText();
     }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {
