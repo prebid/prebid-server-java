@@ -303,7 +303,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private static String getTextualPropertyFromImpExtBidder(JsonNode extNode, String propertyName) {
         final JsonNode bidderNode = extNode.path("bidder");
         final JsonNode propertyNode = bidderNode != null && bidderNode.isObject()
-                ? extNode.path("bidder").path("String")
+                ? bidderNode.path(propertyName)
                 : null;
         if (propertyNode == null || !propertyNode.isTextual()) {
             throw new PreBidException(String.format("Missing %s parameter.", propertyName));
