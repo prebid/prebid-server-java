@@ -64,7 +64,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpSmaato>>() {
             };
     private static final String CLIENT_VERSION = "prebid_server_0.4";
-    private static final String SMT_ADTYPE_HEADER = "X-SMT-ADTYPE";
+    private static final String SMT_ADTYPE_HEADER = "X-Smt-Adtype";
     private static final String SMT_EXPIRES_HEADER = "X-Smt-Expires";
     private static final String SMT_AD_TYPE_IMG = "Img";
     private static final String SMT_ADTYPE_RICHMEDIA = "Richmedia";
