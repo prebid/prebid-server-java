@@ -724,12 +724,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 mergeIntoArray(targetNode, currentFieldName, currentField.textValue());
             } else if (currentField.isIntegralNumber()) {
                 mergeIntoArray(targetNode, currentFieldName, Long.toString(currentField.longValue()));
+            } else if (currentField.isBoolean()) {
+                mergeIntoArray(targetNode, currentFieldName, Boolean.toString(currentField.booleanValue()));
+            } else if (isBooleanArray(currentField)) {
+                mergeIntoArray(targetNode, currentFieldName, booleanArrayToStringList(currentField));
             }
         }
     }
 
     private static boolean isTextualArray(JsonNode node) {
         return node.isArray() && StreamSupport.stream(node.spliterator(), false).allMatch(JsonNode::isTextual);
+    }
+
+    private static boolean isBooleanArray(JsonNode node) {
+        return node.isArray() && StreamSupport.stream(node.spliterator(), false).allMatch(JsonNode::isBoolean);
     }
 
     private ArrayNode stringsToStringArray(String... values) {
@@ -746,6 +754,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return StreamSupport.stream(stringArray.spliterator(), false)
                 .map(JsonNode::asText)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private static List<String> booleanArrayToStringList(JsonNode booleanArray) {
+        return StreamSupport.stream(booleanArray.spliterator(), false)
+                .map(JsonNode::booleanValue)
+                .map(value -> Boolean.toString(value))
+                .collect(Collectors.toList());
     }
 
     private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
