@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -89,22 +90,6 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfBannerSizeIsEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.id("impid").banner(Banner.builder().build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError
-                        .badInput("No sizes provided for Banner null"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldNotChangeBannerWidthAndHeightIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -161,7 +146,8 @@ public class SmaatoBidderTest extends VertxTest {
                                 .id("banner_id").format(asList(Format.builder().w(300).h(500).build(),
                                         Format.builder().w(450).h(150).build())).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSmaato.of("publisherId", "adspaceId")))).build()))
+                                ExtImpSmaato.of("publisherId", "adspaceId", "adbreakId"))))
+                        .build()))
                 .site(Site.builder()
                         .ext(ExtSite.of(null, mapper.valueToTree(SmaatoSiteExtData.of("keywords"))))
                         .build())
@@ -188,8 +174,11 @@ public class SmaatoBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyRequestAppPublisherId() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.app(App.builder().build()), identity());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()).site(null),
+                impBuilder -> impBuilder.ext(
+                        mapper.createObjectNode().set("bidder", mapper.createObjectNode().set(
+                                "publisherId", TextNode.valueOf("publisherId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
@@ -215,7 +204,8 @@ public class SmaatoBidderTest extends VertxTest {
                                                 .build(),
                                         Format.builder().w(450).h(150).build())).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSmaato.of("publisherId", "adspaceId")))).build()))
+                                ExtImpSmaato.of("publisherId", "adspaceId", "adbreakId"))))
+                        .build()))
                 .user(User.builder()
                         .ext(ExtUser.builder()
                                 .data(mapper.valueToTree(SmaatoUserExtData.of("keywords", "gender", 1)))
@@ -485,7 +475,9 @@ public class SmaatoBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .site(Site.builder().build())
+                        .app(App.builder().build())
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -495,13 +487,14 @@ public class SmaatoBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder()
-                        .id("banner_id")
-                        .w(300)
-                        .h(500)
-                        .build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of("publisherId", "adspaceId")))))
+                        .id("123")
+                        .banner(Banner.builder()
+                                .id("banner_id")
+                                .w(300)
+                                .h(500)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpSmaato.of("publisherId", "adspaceId", "adbreakId")))))
                 .build();
     }
 

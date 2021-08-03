@@ -1,7 +1,8 @@
 package org.prebid.server.bidder.smaato;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -38,11 +39,13 @@ import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -57,6 +60,9 @@ import java.util.stream.IntStream;
 
 public class SmaatoBidder implements Bidder<BidRequest> {
 
+    private static final TypeReference<ExtPrebid<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpSmaato>>() {
+            };
     private static final String CLIENT_VERSION = "prebid_server_0.4";
     private static final String SMT_ADTYPE_HEADER = "X-SMT-ADTYPE";
     private static final String SMT_EXPIRES_HEADER = "X-Smt-Expires";
@@ -189,10 +195,16 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private BidRequest preparePodRequest(BidRequest bidRequest, List<Imp> imps, List<BidderError> errors) {
         try {
-            return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, imps.get(0))
-                    .imp(modifyImpsForAdBreak(imps))
+            final ExtImpSmaato extImpSmaato = mapper.mapper().convertValue(imps.get(0).getExt(),
+                    SMAATO_EXT_TYPE_REFERENCE).getBidder();
+
+            final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
+            final String adBreakId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdbreakId, "adbreakId");
+
+            return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, publisherId)
+                    .imp(modifyImpsForAdBreak(imps, adBreakId))
                     .build();
-        } catch (PreBidException e) {
+        } catch (PreBidException | IllegalArgumentException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
@@ -210,10 +222,10 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             }
 
             if (video != null) {
-                splitImps.add(imp.toBuilder().video(null).build());
+                splitImps.add(imp.toBuilder().banner(null).build());
             }
             if (banner != null) {
-                splitImps.add(imp.toBuilder().banner(null).build());
+                splitImps.add(imp.toBuilder().video(null).build());
             }
         }
 
@@ -226,10 +238,16 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private BidRequest prepareIndividualRequest(BidRequest bidRequest, Imp imp, List<BidderError> errors) {
         try {
-            return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, imp)
-                    .imp(Collections.singletonList(modifyImpForAdSpace(imp)))
+            final ExtImpSmaato extImpSmaato = mapper.mapper().convertValue(imp.getExt(),
+                    SMAATO_EXT_TYPE_REFERENCE).getBidder();
+
+            final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
+            final String adSpaceId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdspaceId, "adspaceId");
+
+            return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, publisherId)
+                    .imp(Collections.singletonList(modifyImpForAdSpace(imp, adSpaceId)))
                     .build();
-        } catch (PreBidException e) {
+        } catch (PreBidException | IllegalArgumentException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
@@ -237,9 +255,9 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private BidRequest.BidRequestBuilder enrichRequestWithPublisherId(BidRequest.BidRequestBuilder bidRequestBuilder,
                                                                       BidRequest bidRequest,
-                                                                      Imp imp) {
+                                                                      String publisherId) {
         final Publisher publisher = Publisher.builder()
-                .id(getTextualPropertyFromImpExtBidder(imp.getExt(), "publisherId"))
+                .id(publisherId)
                 .build();
 
         final Site site = bidRequest.getSite();
@@ -248,14 +266,13 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             return bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
         } else if (app != null) {
             return bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
-        } else {
-            throw new PreBidException("Missing Site/App.");
         }
+        throw new PreBidException("Missing Site/App.");
     }
 
-    private Imp modifyImpForAdSpace(Imp imp) {
+    private Imp modifyImpForAdSpace(Imp imp, String adSpaceId) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .tagid(getTextualPropertyFromImpExtBidder(imp.getExt(), "adspaceId"))
+                .tagid(adSpaceId)
                 .ext(null);
 
         final Banner banner = imp.getBanner();
@@ -279,8 +296,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
     }
 
-    private List<Imp> modifyImpsForAdBreak(List<Imp> imps) {
-        final String adBreakId = getTextualPropertyFromImpExtBidder(imps.get(0).getExt(), "adbreakId");
+    private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId) {
         return IntStream.range(0, imps.size())
                 .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId))
                 .collect(Collectors.toList());
@@ -289,22 +305,13 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String tagId) {
         final Video modifiedVideo = imp.getVideo().toBuilder()
                 .sequence(sequence)
-                .ext(mapper.mapper().createObjectNode().put("context", "adpod"))
+                .ext(mapper.mapper().createObjectNode().set("context", TextNode.valueOf("adpod")))
                 .build();
         return imp.toBuilder()
                 .tagid(tagId)
                 .video(modifiedVideo)
                 .ext(null)
                 .build();
-    }
-
-    private static String getTextualPropertyFromImpExtBidder(JsonNode extNode, String propertyName) {
-        final JsonNode propertyNode = extNode.path("bidder").path(propertyName);
-        if (!propertyNode.isTextual()) {
-            throw new PreBidException(String.format("Missing %s parameter.", propertyName));
-        }
-
-        return propertyNode.asText();
     }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {
@@ -469,6 +476,14 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             default:
                 throw new PreBidException(String.format("Invalid markupType %s", markupType));
         }
+    }
+
+    private static <T, R> R getIfNotNullOrThrow(T target, Function<T, R> getter, String propertyName) {
+        final R result = getIfNotNull(target, getter);
+        if (result == null) {
+            throw new PreBidException(String.format("Missing %s property.", propertyName));
+        }
+        return result;
     }
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {

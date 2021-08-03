@@ -16,4 +16,7 @@ public class ExtImpSmaato {
 
     @JsonProperty("adspaceId")
     String adspaceId;
+
+    @JsonProperty("adbreakId")
+    String adbreakId;
 }
