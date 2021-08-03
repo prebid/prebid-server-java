@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.smaato;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -39,13 +38,11 @@ import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -58,20 +55,16 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-/**
- * Smaato {@link Bidder} implementation.
- */
 public class SmaatoBidder implements Bidder<BidRequest> {
-
-    private static final TypeReference<ExtPrebid<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmaato>>() {
-            };
 
     private static final String CLIENT_VERSION = "prebid_server_0.4";
     private static final String SMT_ADTYPE_HEADER = "X-SMT-ADTYPE";
+    private static final String SMT_EXPIRES_HEADER = "X-Smt-Expires";
     private static final String SMT_AD_TYPE_IMG = "Img";
     private static final String SMT_ADTYPE_RICHMEDIA = "Richmedia";
     private static final String SMT_ADTYPE_VIDEO = "Video";
+
+    private static final int DEFAULT_TTL = 300;
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -160,6 +153,15 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Cannot decode extension: %s", e.getMessage()), e);
         }
+    }
+
+    private static boolean isVideoRequest(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestPrebidPbs pbs = prebid != null ? prebid.getPbs() : null;
+        final String endpointName = pbs != null ? pbs.getEndpoint() : null;
+
+        return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
     }
 
     private List<HttpRequest<BidRequest>> constructPodRequests(BidRequest bidRequest, List<BidderError> errors) {
@@ -267,6 +269,18 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return imp;
     }
 
+    private static Banner modifyBanner(Banner banner) {
+        if (banner.getW() != null && banner.getH() != null) {
+            return banner;
+        }
+        final List<Format> format = banner.getFormat();
+        if (CollectionUtils.isEmpty(format)) {
+            throw new PreBidException(String.format("No sizes provided for Banner %s", format));
+        }
+        final Format firstFormat = format.get(0);
+        return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
+    }
+
     private List<Imp> modifyImpsForAdBreak(List<Imp> imps) {
         final String adBreakId = getTextualPropertyFromImpExtBidder(imps.get(0).getExt(), "adBreakId");
         return IntStream.range(0, imps.size())
@@ -308,27 +322,6 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Banner modifyBanner(Banner banner) {
-        if (banner.getW() != null && banner.getH() != null) {
-            return banner;
-        }
-        final List<Format> format = banner.getFormat();
-        if (CollectionUtils.isEmpty(format)) {
-            throw new PreBidException(String.format("No sizes provided for Banner %s", format));
-        }
-        final Format firstFormat = format.get(0);
-        return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
-    }
-
-    private static boolean isVideoRequest(BidRequest bidRequest) {
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidPbs pbs = prebid != null ? prebid.getPbs() : null;
-        final String endpointName = pbs != null ? pbs.getEndpoint() : null;
-
-        return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
@@ -363,8 +356,21 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         final String markupType = getAdMarkupType(headers, bidAdm);
-        final Bid updateBid = bid.toBuilder().adm(renderAdMarkup(markupType, bidAdm)).build();
+        final Bid updateBid = bid.toBuilder()
+                .adm(renderAdMarkup(markupType, bidAdm))
+                .exp(getTtl(headers))
+                .build();
         return BidderBid.of(updateBid, getBidType(markupType), currency);
+    }
+
+    private static int getTtl(MultiMap headers) {
+        try {
+            final long expiresAtMillis = Long.parseLong(headers.get(SMT_EXPIRES_HEADER));
+            final long currentTimeMillis = System.currentTimeMillis();
+            return (int) Math.max((expiresAtMillis - currentTimeMillis) / 1000, 0);
+        } catch (NumberFormatException e) {
+            return DEFAULT_TTL;
+        }
     }
 
     private static String getAdMarkupType(MultiMap headers, String adm) {
