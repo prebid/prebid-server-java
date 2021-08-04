@@ -2993,6 +2993,31 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBidWithDchainFromRequest() throws JsonProcessingException {
+        // given
+        final ObjectNode requestNode = mapper.valueToTree(ExtBidPrebid.builder()
+                .meta(ExtBidPrebidMeta.builder().dChain("dChain").build())
+                .build());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenBid(bid -> bid.ext(requestNode).price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(requestNode);
+    }
+
+    @Test
     public void extractTargetingShouldReturnEmptyMapForEmptyExtension() {
         // when and then
         assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
