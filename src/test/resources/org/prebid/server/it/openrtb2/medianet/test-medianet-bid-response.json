@@ -1,0 +1,22 @@
+  {
+  "id": "tid",
+  "seatbid": [
+    {
+      "seat": "medianet",
+      "bid": [
+        {
+          "id": "randomid",
+          "impid": "test-imp-id",
+          "price": 0.500000,
+          "adid": "12345678",
+          "adm": "some-test-ad",
+          "cid": "987",
+          "crid": "12345678",
+          "h": 250,
+          "w": 300
+        }
+      ]
+    }
+  ],
+  "bidid": "bid01"
+}
