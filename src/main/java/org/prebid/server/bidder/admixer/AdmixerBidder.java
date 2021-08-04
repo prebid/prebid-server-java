@@ -85,7 +85,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Wrong Admixer bidder ext in imp with id : %s", imp.getId()));
         }
-        if (StringUtils.length(extImpAdmixer.getZone()) != 36) {
+        if (StringUtils.length(extImpAdmixer.getZone()) < 32 || StringUtils.length(extImpAdmixer.getZone()) > 36) {
             throw new PreBidException("ZoneId must be UUID/GUID");
         }
 
@@ -93,13 +93,31 @@ public class AdmixerBidder implements Bidder<BidRequest> {
     }
 
     private Imp processImp(Imp imp, ExtImpAdmixer extImpAdmixer) {
-        final Double extImpFloor = extImpAdmixer.getCustomFloor();
-        final BigDecimal customFloor = extImpFloor != null ? BigDecimal.valueOf(extImpFloor) : BigDecimal.ZERO;
+        final BigDecimal customFloor = extImpAdmixer.getCustomFloor() != null
+                ? BigDecimal.valueOf(extImpAdmixer.getCustomFloor())
+                : BigDecimal.ZERO;
+        final BigDecimal impFloor = imp.getBidfloor();
+        BigDecimal bidfloor = BigDecimal.ZERO;
+
+        if (isValidBidFloor(customFloor) && !isValidBidFloor(impFloor)) {
+            bidfloor = customFloor;
+
+        } else if (!isValidBidFloor(customFloor) && isValidBidFloor(impFloor)) {
+            bidfloor = impFloor;
+
+        } else if (isValidBidFloor(customFloor) && isValidBidFloor(impFloor)) {
+            bidfloor = customFloor; // !!!!!!
+        }
+
         return imp.toBuilder()
                 .tagid(extImpAdmixer.getZone())
-                .bidfloor(customFloor)
+                .bidfloor(bidfloor)
                 .ext(makeImpExt(extImpAdmixer.getCustomParams()))
                 .build();
+    }
+
+    private static boolean isValidBidFloor(BigDecimal impFloor) {
+        return impFloor != null && impFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private ObjectNode makeImpExt(Map<String, JsonNode> customParams) {
