@@ -610,36 +610,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String getAdSlot(Imp imp, ExtImpContext context) {
-        final ObjectNode contextDataNode = context != null ? context.getData() : null;
-        final JsonNode dataNode = imp.getExt().get(FPD_DATA_FIELD);
-
-        return ObjectUtils.firstNonNull(
-                // or imp[].ext.context.data.adserver.adslot
-                getAdSlotFromAdServer(contextDataNode),
-                // or imp[].ext.data.adserver.adslot
-                getAdSlotFromAdServer(dataNode));
-    }
-
-    private String getAdSlotFromAdServer(JsonNode dataNode) {
-        final ExtImpContextDataAdserver adServer = extImpContextDataAdserver(dataNode);
-        return adServer != null && Objects.equals(adServer.getName(), FPD_ADSERVER_NAME_GAM)
-                ? adServer.getAdslot()
-                : null;
-    }
-
-    private ExtImpContextDataAdserver extImpContextDataAdserver(JsonNode contextData) {
-        final JsonNode adServerNode = contextData != null ? contextData.get(FPD_ADSERVER_FIELD) : null;
-        if (adServerNode == null || adServerNode.isNull()) {
-            return null;
-        }
-        try {
-            return mapper.mapper().convertValue(adServerNode, ExtImpContextDataAdserver.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
     private void mergeFirstPartyDataKeywords(Imp imp, ExtImpContext context, ObjectNode result) {
         // merge OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
         final JsonNode keywordsNode = context != null ? context.getProperty("keywords") : null;
@@ -772,6 +742,36 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer multibidMaxBids = extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
 
         return multibidMaxBids != null ? multibidMaxBids : 1;
+    }
+
+    private String getAdSlot(Imp imp, ExtImpContext context) {
+        final ObjectNode contextDataNode = context != null ? context.getData() : null;
+        final JsonNode dataNode = imp.getExt().get(FPD_DATA_FIELD);
+
+        return ObjectUtils.firstNonNull(
+                // or imp[].ext.context.data.adserver.adslot
+                getAdSlotFromAdServer(contextDataNode),
+                // or imp[].ext.data.adserver.adslot
+                getAdSlotFromAdServer(dataNode));
+    }
+
+    private String getAdSlotFromAdServer(JsonNode dataNode) {
+        final ExtImpContextDataAdserver adServer = extImpContextDataAdserver(dataNode);
+        return adServer != null && Objects.equals(adServer.getName(), FPD_ADSERVER_NAME_GAM)
+                ? adServer.getAdslot()
+                : null;
+    }
+
+    private ExtImpContextDataAdserver extImpContextDataAdserver(JsonNode contextData) {
+        final JsonNode adServerNode = contextData != null ? contextData.get(FPD_ADSERVER_FIELD) : null;
+        if (adServerNode == null || adServerNode.isNull()) {
+            return null;
+        }
+        try {
+            return mapper.mapper().convertValue(adServerNode, ExtImpContextDataAdserver.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     private static boolean isVideo(Imp imp) {
