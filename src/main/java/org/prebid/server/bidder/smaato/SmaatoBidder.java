@@ -207,6 +207,39 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
     }
 
+    private BidRequest.BidRequestBuilder enrichRequestWithPublisherId(BidRequest.BidRequestBuilder bidRequestBuilder,
+                                                                      BidRequest bidRequest,
+                                                                      String publisherId) {
+        final Publisher publisher = Publisher.builder().id(publisherId).build();
+        final Site site = bidRequest.getSite();
+        final App app = bidRequest.getApp();
+
+        if (site != null) {
+            return bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
+        } else if (app != null) {
+            return bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
+        }
+        throw new PreBidException("Missing Site/App.");
+    }
+
+    private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId) {
+        return IntStream.range(0, imps.size())
+                .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId))
+                .collect(Collectors.toList());
+    }
+
+    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String tagId) {
+        final Video modifiedVideo = imp.getVideo().toBuilder()
+                .sequence(sequence)
+                .ext(mapper.mapper().createObjectNode().set("context", TextNode.valueOf("adpod")))
+                .build();
+        return imp.toBuilder()
+                .tagid(tagId)
+                .video(modifiedVideo)
+                .ext(null)
+                .build();
+    }
+
     private List<HttpRequest<BidRequest>> constructIndividualRequests(BidRequest bidRequest, List<BidderError> errors) {
         return splitImps(bidRequest.getImp(), errors).stream()
                 .map(imp -> prepareIndividualRequest(bidRequest, imp, errors))
@@ -253,21 +286,6 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidRequest.BidRequestBuilder enrichRequestWithPublisherId(BidRequest.BidRequestBuilder bidRequestBuilder,
-                                                                      BidRequest bidRequest,
-                                                                      String publisherId) {
-        final Publisher publisher = Publisher.builder().id(publisherId).build();
-        final Site site = bidRequest.getSite();
-        final App app = bidRequest.getApp();
-
-        if (site != null) {
-            return bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
-        } else if (app != null) {
-            return bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
-        }
-        throw new PreBidException("Missing Site/App.");
-    }
-
     private Imp modifyImpForAdSpace(Imp imp, String adSpaceId) {
         final Banner banner = imp.getBanner();
         return banner == null && imp.getVideo() == null
@@ -289,24 +307,6 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
         final Format firstFormat = format.get(0);
         return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
-    }
-
-    private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId) {
-        return IntStream.range(0, imps.size())
-                .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId))
-                .collect(Collectors.toList());
-    }
-
-    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String tagId) {
-        final Video modifiedVideo = imp.getVideo().toBuilder()
-                .sequence(sequence)
-                .ext(mapper.mapper().createObjectNode().set("context", TextNode.valueOf("adpod")))
-                .build();
-        return imp.toBuilder()
-                .tagid(tagId)
-                .video(modifiedVideo)
-                .ext(null)
-                .build();
     }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {

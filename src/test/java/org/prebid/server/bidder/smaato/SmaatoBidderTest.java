@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -17,6 +18,7 @@ import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -28,12 +30,17 @@ import org.prebid.server.bidder.smaato.proto.SmaatoSiteExtData;
 import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -69,6 +76,7 @@ public class SmaatoBidderTest extends VertxTest {
                                 .data(mapper.valueToTree(SmaatoUserExtData.of("keywords", "gender", 1)))
                                 .build())
                         .build()), identity());
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
 
@@ -117,6 +125,190 @@ public class SmaatoBidderTest extends VertxTest {
                         SmaatoBidRequestExt.of("prebid_server_0.4")));
     }
 
+    // Pod requests tests
+    @Test
+    public void makePodHttpRequestsShouldReturnErrorsForImpsOfInvalidMediaType() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(identity(), impBuilder -> impBuilder.video(null));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Invalid MediaType. Smaato only supports Video for AdPod."));
+    }
+
+    @Test
+    public void makePodHttpRequestsShouldCorrectlyConstructImpPodsAndRequests() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(identity(),
+                impBuilder -> impBuilder.id("1_0"),
+                impBuilder -> impBuilder.id("1_1"),
+                impBuilder -> impBuilder.id("2_0"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final List<HttpRequest<BidRequest>> requests = result.getValue();
+        assertThat(requests).hasSize(2);
+        assertThat(requests.get(0).getPayload().getImp())
+                .extracting(Imp::getId)
+                .containsExactlyInAnyOrder("1_0", "1_1");
+        assertThat(requests.get(1).getPayload().getImp())
+                .extracting(Imp::getId)
+                .containsExactly("2_0");
+    }
+
+    @Test
+    public void makePodHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(bidderError -> {
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize instance");
+                });
+    }
+
+    @Test
+    public void makePodHttpRequestsShouldReturnErrorIfImpExtPublisherIdIsAbsent() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                                null, null, "adbreakId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing publisherId property."));
+    }
+
+    @Test
+    public void makePodHttpRequestsShouldReturnErrorIfImpExtAdBreakIdIsAbsent() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                                "publisherId", null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing adbreakId property."));
+    }
+
+    @Test
+    public void makePodHttpRequestsShouldEnrichSiteWithPublisherIdIfSiteIsPresentInRequest() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.site(Site.builder().build()).app(null),
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                                "publisherId", null, "adBreakId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher)
+                .extracting(Publisher::getId)
+                .containsExactly("publisherId");
+    }
+
+    @Test
+    public void makePodHttpRequestsShouldEnrichAppWithPublisherIdIfSiteIsAbsentAndAppIsPresentInRequest() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.site(null).app(App.builder().build()),
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                                "publisherId", null, "adBreakId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getPublisher)
+                .extracting(Publisher::getId)
+                .containsExactly("publisherId");
+    }
+
+    @Test
+    public void makePodHttpRequestsShouldReturnErrorIfSiteAndAppAreAbsentInRequest() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.site(null).app(null), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Missing Site/App."));
+    }
+
+    @Test
+    public void makePodHttpRequestsShouldCorrectlyModifyImps() {
+        // given
+        final BidRequest bidRequest = givenVideoBidRequest(identity(),
+                impBuilder -> impBuilder.id("1_0"),
+                impBuilder -> impBuilder.id("1_1"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        BiFunction<Imp.ImpBuilder, Integer, Imp.ImpBuilder> resultCustomizer =
+                (builder, idx) -> builder
+                        .id(String.format("1_%d", idx))
+                        .tagid("adbreakId")
+                        .ext(null)
+                        .video(Video.builder()
+                                .ext(mapper.createObjectNode().set("context", TextNode.valueOf("adpod")))
+                                .sequence(idx + 1)
+                                .build());
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .containsExactlyInAnyOrder(
+                        givenVideoImp(impBuilder -> resultCustomizer.apply(impBuilder, 0)),
+                        givenVideoImp(impBuilder -> resultCustomizer.apply(impBuilder, 1)));
+    }
+
+    // Individual requests tests
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
@@ -529,10 +721,28 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
+    private static BidRequest givenVideoBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenVideoBidRequest(identity(), impCustomizer);
+    }
+
+    private static BidRequest givenVideoBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .site(Site.builder().build())
+                        .app(App.builder().build())
+                        .imp(Arrays.stream(impCustomizers)
+                                .map(SmaatoBidderTest::givenVideoImp)
+                                .collect(Collectors.toList())))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .build()))
+                .build();
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .site(Site.builder().build())
                         .app(App.builder().build())
@@ -542,6 +752,12 @@ public class SmaatoBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Imp givenVideoImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(givenImp(identity()).toBuilder()
+                        .video(Video.builder().build()))
+                .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
