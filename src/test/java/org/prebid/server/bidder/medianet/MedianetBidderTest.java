@@ -28,13 +28,6 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 public class MedianetBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.media.net?src=external.prebidserver.com";
-    private static final BidRequest DUMMY_REQUEST = BidRequest.builder()
-            .id("request_id")
-            .imp(singletonList(Imp.builder()
-                .id("imp_id")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
-                .build()))
-            .build();
 
     private MedianetBidder medianetBidder;
 
@@ -52,7 +45,7 @@ public class MedianetBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
-        final BidRequest bidRequest = DUMMY_REQUEST;
+        final BidRequest bidRequest = givenBidRequest();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result;
@@ -68,7 +61,7 @@ public class MedianetBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = sampleHttpCall(DUMMY_REQUEST, "invalid response");
+        final HttpCall<BidRequest> httpCall = sampleHttpCall(givenBidRequest(), "invalid response");
 
         // when
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
@@ -83,7 +76,7 @@ public class MedianetBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall;
-        httpCall = sampleHttpCall(DUMMY_REQUEST, mapper.writeValueAsString(null));
+        httpCall = sampleHttpCall(givenBidRequest(), mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
@@ -111,7 +104,7 @@ public class MedianetBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = sampleHttpCall(
-                DUMMY_REQUEST,
+                givenBidRequest(),
                 mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -138,5 +131,15 @@ public class MedianetBidderTest extends VertxTest {
             HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
             HttpResponse.of(200, null, body),
             null);
+    }
+
+    private static BidRequest givenBidRequest() {
+        return BidRequest.builder()
+                .id("request_id")
+                .imp(singletonList(Imp.builder()
+                    .id("imp_id")
+                    .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                    .build()))
+                .build();
     }
 }

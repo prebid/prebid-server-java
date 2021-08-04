@@ -47,14 +47,11 @@ public class MedianetConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(this::getMedianetBidder)
+                .bidderCreator(config -> new MedianetBidder(resolveEndpoint(config.getEndpoint()), mapper))
                 .assemble();
     }
 
-    private MedianetBidder getMedianetBidder(BidderConfigurationProperties config) {
-        String configEndpoint = config.getEndpoint();
-        String encodedExternalUrl = HttpUtil.encodeUrl(externalUrl);
-        String bidderEndpoint = configEndpoint.replace(EXTERNAL_URL_MACRO, encodedExternalUrl);
-        return new MedianetBidder(bidderEndpoint, mapper);
+    private String resolveEndpoint(String configEndpoint) {
+        return configEndpoint.replace(EXTERNAL_URL_MACRO, HttpUtil.encodeUrl(externalUrl));
     }
 }
