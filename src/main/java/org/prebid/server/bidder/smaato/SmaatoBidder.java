@@ -108,7 +108,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private User modifyUser(User user) {
-        final ExtUser userExt = user != null ? user.getExt() : null;
+        final ExtUser userExt = getIfNotNull(user, User::getExt);
         if (userExt == null) {
             return user;
         }
@@ -142,17 +142,12 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private Site modifySite(Site site) {
-        if (site == null) {
-            return null;
-        }
-
-        final ExtSite siteExt = site.getExt();
+        final ExtSite siteExt = getIfNotNull(site, Site::getExt);
         if (siteExt != null) {
             final SmaatoSiteExtData data = convertExt(siteExt.getData(), SmaatoSiteExtData.class);
-            final String keywords = data != null ? data.getKeywords() : null;
+            final String keywords = getIfNotNull(data, SmaatoSiteExtData::getKeywords);
             return Site.builder().keywords(keywords).ext(null).build();
         }
-
         return site;
     }
 
@@ -185,7 +180,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return validImps.stream()
                 .collect(Collectors.groupingBy(SmaatoBidder::extractPod, Collectors.toList()))
                 .values().stream()
-                .map(imps -> preparePodRequest(bidRequest, imps, errors))
+                .map(impsPod -> preparePodRequest(bidRequest, impsPod, errors))
                 .filter(Objects::nonNull)
                 .map(this::constructHttpRequest)
                 .collect(Collectors.toList());
@@ -213,9 +208,17 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private List<HttpRequest<BidRequest>> constructIndividualRequests(BidRequest bidRequest, List<BidderError> errors) {
+        return splitImps(bidRequest.getImp(), errors).stream()
+                .map(imp -> prepareIndividualRequest(bidRequest, imp, errors))
+                .filter(Objects::nonNull)
+                .map(this::constructHttpRequest)
+                .collect(Collectors.toList());
+    }
+
+    private List<Imp> splitImps(List<Imp> imps, List<BidderError> errors) {
         final List<Imp> splitImps = new ArrayList<>();
 
-        for (Imp imp : bidRequest.getImp()) {
+        for (Imp imp : imps) {
             final Banner banner = imp.getBanner();
             final Video video = imp.getVideo();
             if (video == null && banner == null) {
@@ -231,11 +234,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             }
         }
 
-        return splitImps.stream()
-                .map(imp -> prepareIndividualRequest(bidRequest, imp, errors))
-                .filter(Objects::nonNull)
-                .map(this::constructHttpRequest)
-                .collect(Collectors.toList());
+        return splitImps;
     }
 
     private BidRequest prepareIndividualRequest(BidRequest bidRequest, Imp imp, List<BidderError> errors) {
@@ -270,17 +269,14 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImpForAdSpace(Imp imp, String adSpaceId) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .tagid(adSpaceId)
-                .ext(null);
-
         final Banner banner = imp.getBanner();
-        if (banner != null) {
-            return impBuilder.banner(modifyBanner(banner)).build();
-        } else if (imp.getVideo() != null) {
-            return impBuilder.build();
-        }
-        return imp;
+        return banner == null && imp.getVideo() == null
+                ? imp
+                : imp.toBuilder()
+                .tagid(adSpaceId)
+                .banner(banner != null ? modifyBanner(banner) : null)
+                .ext(null)
+                .build();
     }
 
     private static Banner modifyBanner(Banner banner) {
@@ -409,14 +405,14 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         final String adMarkupType = headers.get(SMT_ADTYPE_HEADER);
         if (StringUtils.isNotBlank(adMarkupType)) {
             return adMarkupType;
-        } else if (adm.startsWith("image")) {
+        } else if (adm.startsWith("{\"image\":")) {
             return SMT_AD_TYPE_IMG;
-        } else if (adm.startsWith("richmedia")) {
+        } else if (adm.startsWith("{\"richmedia\":")) {
             return SMT_ADTYPE_RICHMEDIA;
         } else if (adm.startsWith("<?xml")) {
             return SMT_ADTYPE_VIDEO;
         }
-        throw new PreBidException(String.format("Invalid ad markup %s", adm));
+        throw new PreBidException(String.format("Invalid ad markup %s.", adm));
     }
 
     private String renderAdMarkup(String markupType, String adm) {
