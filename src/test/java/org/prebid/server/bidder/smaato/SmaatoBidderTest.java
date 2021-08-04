@@ -23,9 +23,11 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.smaato.proto.SmaatoBidRequestExt;
 import org.prebid.server.bidder.smaato.proto.SmaatoSiteExtData;
 import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
@@ -56,6 +58,63 @@ public class SmaatoBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new SmaatoBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyUserIfUserExtDataIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.user(User.builder()
+                        .ext(ExtUser.builder()
+                                .data(mapper.valueToTree(SmaatoUserExtData.of("keywords", "gender", 1)))
+                                .build())
+                        .build()), identity());
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getKeywords, User::getGender, User::getYob)
+                .containsExactly(tuple("keywords", "gender", 1));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifySiteIfSiteExtDataIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.site(Site.builder()
+                        .ext(ExtSite.of(1, mapper.valueToTree(SmaatoSiteExtData.of("keywords"))))
+                        .build()), identity());
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getKeywords, Site::getExt)
+                .containsExactly(tuple("keywords", null));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .containsExactly(jacksonMapper.fillExtension(ExtRequest.empty(),
+                        SmaatoBidRequestExt.of("prebid_server_0.4")));
     }
 
     @Test
