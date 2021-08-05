@@ -28,9 +28,11 @@ import org.prebid.server.proto.openrtb.ext.request.operaads.ExtImpOperaads;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -63,7 +65,7 @@ public class OperaadsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.device(null), identity());
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -78,7 +80,7 @@ public class OperaadsBidderTest extends VertxTest {
                 bidRequestBuilder.device(Device.builder().build()), identity());
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -115,7 +117,27 @@ public class OperaadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput("Size information missing for banner"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Size information missing for banner"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotModifyNativeIfNativeIsAbsentInNativeRequest() throws JsonProcessingException {
+        // given
+        final ObjectNode nativeRequestNode = mapper.createObjectNode().set("native", TextNode.valueOf("test"));
+        final String nativeRequest = mapper.writeValueAsString(nativeRequestNode);
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .xNative(Native.builder().request(nativeRequest).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getXNative)
+                .containsExactly(Native.builder().request(nativeRequest).build());
     }
 
     @Test
@@ -264,7 +286,7 @@ public class OperaadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(
+        assertThat(result.getValue()).containsExactly(
                 BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("123").build(), video, null));
     }
 
@@ -280,7 +302,7 @@ public class OperaadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(
+        assertThat(result.getValue()).containsExactly(
                 BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("123").build(), xNative, null));
     }
 
@@ -296,8 +318,39 @@ public class OperaadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(
+        assertThat(result.getValue()).containsExactly(
                 BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("123").build(), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldOmitBidsWithNullPrice() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").price(null))));
+
+        // when
+        final Result<List<BidderBid>> result = operaadsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldOmitBidsWithPriceLessOrEqualToZero() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").price(BigDecimal.valueOf(-1)),
+                        bidBuilder -> bidBuilder.impid("123").price(BigDecimal.ZERO))));
+
+        // when
+        final Result<List<BidderBid>> result = operaadsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(
@@ -321,9 +374,12 @@ public class OperaadsBidderTest extends VertxTest {
                         "endpointId", "publisherId"))))).build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder>... bidCustomizers) {
         return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(Arrays.stream(bidCustomizers)
+                                .map(customizer -> customizer.apply(Bid.builder()).build())
+                                .collect(Collectors.toList()))
                         .build()))
                 .build();
     }
