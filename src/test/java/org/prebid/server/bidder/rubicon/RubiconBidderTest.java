@@ -96,7 +96,6 @@ import java.util.function.Function;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
-import static java.math.BigDecimal.ZERO;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -2804,48 +2803,6 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldNotReturnImpIfNonDealBidPriceLessThanZero() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                givenBidResponse(BigDecimal.valueOf(-1)));
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldNotReturnImpIfNonDealBidPriceEqualToZero() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                givenBidResponse(ZERO));
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldNotReturnImpIfDealBidPriceLessThanZero() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                givenBidResponse(BigDecimal.valueOf(-1)));
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnBidWithOverriddenCpmFromRequest() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
@@ -3069,7 +3026,7 @@ public class RubiconBidderTest extends VertxTest {
                                               Function<ImpBuilder, ImpBuilder> impCustomizer,
                                               Function<ExtImpRubiconBuilder, ExtImpRubiconBuilder> extCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -3085,7 +3042,8 @@ public class RubiconBidderTest extends VertxTest {
     private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer,
                                 Function<ExtImpRubiconBuilder, ExtImpRubiconBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
                 .build();
     }
 
