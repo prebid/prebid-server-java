@@ -340,7 +340,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(3)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .allMatch(imp -> BooleanUtils.xor(new Boolean[]{imp.getVideo() != null, imp.getBanner() != null}));
+                .allMatch(imp -> Boolean.logicalXor(imp.getVideo() != null, imp.getBanner() != null));
 
     }
 
