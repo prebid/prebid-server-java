@@ -2,23 +2,18 @@ package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
-import io.vertx.core.http.CaseInsensitiveHeaders;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.net.impl.SocketAddressImpl;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.util.HttpUtil;
-
-import java.net.MalformedURLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.BDDMockito.given;
 
 public class ImplicitParametersExtractorTest {
 
@@ -28,21 +23,21 @@ public class ImplicitParametersExtractorTest {
     private final PublicSuffixList psl = new PublicSuffixListFactory().build();
 
     private ImplicitParametersExtractor extractor;
-    @Mock
-    private HttpServerRequest httpRequest;
 
     @Before
     public void setUp() {
-        // minimal request
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-
         extractor = new ImplicitParametersExtractor(psl);
     }
 
     @Test
     public void refererFromShouldReturnRefererFromRefererHeader() {
         // given
-        httpRequest.headers().set(HttpUtil.REFERER_HEADER, "http://example.com");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.REFERER_HEADER, "http://example.com")
+                        .build())
+                .queryParams(CaseInsensitiveMultiMap.empty())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://example.com");
@@ -51,8 +46,14 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void refererFromShouldReturnRefererFromRefererHeaderIfUrlOverrideParamBlank() {
         // given
-        httpRequest.headers().set(HttpUtil.REFERER_HEADER, "http://example.com");
-        given(httpRequest.getParam("url_override")).willReturn("");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.REFERER_HEADER, "http://example.com")
+                        .build())
+                .queryParams(CaseInsensitiveMultiMap.builder()
+                        .add("url_override", "")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://example.com");
@@ -61,7 +62,11 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void refererFromShouldReturnRefererFromRequestParamIfUrlOverrideParamExists() {
         // given
-        given(httpRequest.getParam("url_override")).willReturn("http://exampleoverrride.com");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .queryParams(CaseInsensitiveMultiMap.builder()
+                        .add("url_override", "http://exampleoverrride.com")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://exampleoverrride.com");
@@ -70,7 +75,11 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void refererFromShouldReturnRefererWithHttpSchemeIfUrlOverrideParamDoesNotContainScheme() {
         // given
-        given(httpRequest.getParam("url_override")).willReturn("example.com");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .queryParams(CaseInsensitiveMultiMap.builder()
+                        .add("url_override", "example.com")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://example.com");
@@ -79,74 +88,76 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void refererFromShouldReturnRefererWithHttpSchemeIfRefererHeaderDoesNotContainScheme() {
         // given
-        httpRequest.headers().set(HttpUtil.REFERER_HEADER, "example.com");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.REFERER_HEADER, "example.com")
+                        .build())
+                .queryParams(CaseInsensitiveMultiMap.empty())
+                .build();
 
         // when and then
         assertThat(extractor.refererFrom(httpRequest)).isEqualTo("http://example.com");
     }
 
     @Test
-    public void domainFromShouldFailIfUrlIsMissing() {
+    public void domainFromShouldFailIfHostIsNull() {
         assertThatCode(() -> extractor.domainFrom(null))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'null': null")
-                .hasCauseInstanceOf(MalformedURLException.class);
+                .hasMessage("Host is not defined or can not be derived from request");
     }
 
     @Test
-    public void domainFromShouldFailIfUrlCouldNotBeParsed() {
-        assertThatCode(() -> extractor.domainFrom("httpP://non_an_url"))
+    public void domainFromShouldFailIfDomainCouldNotBeDerivedFromHost() {
+        assertThatCode(() -> extractor.domainFrom("domain"))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'httpP://non_an_url': unknown protocol: httpp")
-                .hasCauseInstanceOf(MalformedURLException.class);
+                .hasMessage("Cannot derive eTLD+1 for host domain");
     }
 
     @Test
-    public void domainFromShouldFailIfUrlDoesNotContainHost() {
-        assertThatCode(() -> extractor.domainFrom("http:/path"))
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Host not found from URL 'http:/path'");
+    public void domainFromShouldDeriveDomainFromHost() {
+        assertThat(extractor.domainFrom("example.com")).isEqualTo("example.com");
     }
 
     @Test
-    public void domainFromShouldFailIfDomainCouldNotBeDerivedFromUrl() {
-        assertThatCode(() -> extractor.domainFrom("http://domain"))
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'domain': cannot derive eTLD+1 for domain domain");
-    }
-
-    @Test
-    public void domainFromShouldDeriveDomainFromUrl() {
-        assertThat(extractor.domainFrom("http://example.com")).isEqualTo("example.com");
+    public void domainFromShouldDeriveDomainFromHostWithSubdomain() {
+        assertThat(extractor.domainFrom("subdomain.example.com")).isEqualTo("example.com");
     }
 
     @Test
     public void ipFromShouldReturnIpFromHeadersAndRemoteAddress() {
         // given
-        httpRequest.headers().set("True-Client-IP", "192.168.144.1 ");
-        httpRequest.headers().set("X-Forwarded-For", "192.168.144.2 , 192.168.144.3 ");
-        httpRequest.headers().set("X-Real-IP", "192.168.144.4 ");
-        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.144.5"));
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
+                .add("True-Client-IP", "192.168.144.1 ")
+                .add("X-Forwarded-For", "192.168.144.2 , 192.168.144.3 ")
+                .add("X-Real-IP", "192.168.144.4 ")
+                .build();
+        final String remoteHost = "192.168.144.5";
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).containsExactly(
-                "192.168.144.1", "192.168.144.2", "192.168.144.3", "192.168.144.4", "192.168.144.5");
+        assertThat(extractor.ipFrom(headers, remoteHost)).containsExactly(
+                "192.168.144.1", "192.168.144.2", "192.168.144.3", "192.168.144.4", remoteHost);
     }
 
     @Test
     public void ipFromShouldNotReturnNullsAndEmptyValues() {
         // given
-        httpRequest.headers().set("X-Real-IP", " ");
-        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.144.5"));
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
+                .add("X-Real-IP", " ")
+                .build();
+        final String remoteHost = "192.168.144.5";
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).containsExactly("192.168.144.5");
+        assertThat(extractor.ipFrom(headers, remoteHost)).containsExactly("192.168.144.5");
     }
 
     @Test
     public void uaFromShouldReturnUaFromUserAgentHeader() {
         // given
-        httpRequest.headers().set(HttpUtil.USER_AGENT_HEADER, " user agent ");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.USER_AGENT_HEADER, " user agent ")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.uaFrom(httpRequest)).isEqualTo("user agent");
@@ -155,7 +166,11 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void secureFromShouldReturnOneIfXForwardedProtoIsHttps() {
         // given
-        httpRequest.headers().set("X-Forwarded-Proto", "https");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add("X-Forwarded-Proto", "https")
+                        .build())
+                .build();
 
         // when and then
         assertThat(extractor.secureFrom(httpRequest)).isEqualTo(1);
@@ -164,7 +179,10 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void secureFromShouldReturnOneIfConnectedViaSSL() {
         // given
-        given(httpRequest.scheme()).willReturn("https");
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.empty())
+                .scheme("https")
+                .build();
 
         // when and then
         assertThat(extractor.secureFrom(httpRequest)).isEqualTo(1);
@@ -172,6 +190,9 @@ public class ImplicitParametersExtractorTest {
 
     @Test
     public void secureFromShouldReturnNull() {
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.empty())
+                .build();
         assertThat(extractor.secureFrom(httpRequest)).isNull();
     }
 }

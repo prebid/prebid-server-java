@@ -178,8 +178,10 @@ public class CacheService {
                         .bidid(null)
                         .bidder(null)
                         .timestamp(null)
-
-                        .value(vastModifier.modifyVastXml(isEventsEnabled, allowedBidders, putObject, accountId,
+                        .value(vastModifier.modifyVastXml(isEventsEnabled,
+                                allowedBidders,
+                                putObject,
+                                accountId,
                                 integration))
                         .build())
                 .map(payload -> CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue())))
@@ -252,7 +254,7 @@ public class CacheService {
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final Integer bidTtl = bid.getExp();
         final Imp correspondingImp = bidInfo.getCorrespondingImp();
-        final Integer impTtl = correspondingImp.getExp();
+        final Integer impTtl = correspondingImp != null ? correspondingImp.getExp() : null;
         final Integer accountMediaTypeTtl = isVideoBid
                 ? accountCacheTtl.getVideoCacheTtl()
                 : accountCacheTtl.getBannerCacheTtl();
@@ -278,11 +280,12 @@ public class CacheService {
                                                       EventsContext eventsContext) {
 
         final Account account = auctionContext.getAccount();
-
         final String accountId = account.getId();
+        final String requestId = auctionContext.getBidRequest().getId();
         final List<CachedCreative> cachedCreatives = Stream.concat(
-                bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
-                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, accountId, eventsContext)))
+                bids.stream().map(cacheBid ->
+                        createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
+                videoBids.stream().map(videoBid -> createXmlPutObjectOpenrtb(videoBid, requestId)))
                 .collect(Collectors.toList());
 
         if (cachedCreatives.isEmpty()) {
@@ -386,15 +389,20 @@ public class CacheService {
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
 
-        final String eventUrl = generateWinUrl(bidInfo.getBidId(), bidInfo.getBidder(), accountId, eventsContext);
+        final String eventUrl =
+                generateWinUrl(bidInfo.getBidId(),
+                        bidInfo.getBidder(),
+                        accountId,
+                        eventsContext);
         if (eventUrl != null) {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }
 
         final PutObject payload = PutObject.builder()
+                .aid(eventsContext.getAuctionId())
                 .type("json")
                 .value(bidObjectNode)
-                .expiry(cacheBid.getTtl())
+                .ttlseconds(cacheBid.getTtl())
                 .build();
 
         return CachedCreative.of(payload, creativeSizeFromAdm(bid.getAdm()));
@@ -403,23 +411,16 @@ public class CacheService {
     /**
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid,
-                                                     String accountId,
-                                                     EventsContext eventsContext) {
+    private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid, String requestId) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
-        final String vastXml = vastModifier.createBidVastXml(
-                bidInfo.getBidder(),
-                bid.getAdm(),
-                bid.getNurl(),
-                bidInfo.getBidId(),
-                accountId,
-                eventsContext);
+        final String vastXml = bid.getAdm();
 
         final PutObject payload = PutObject.builder()
+                .aid(requestId)
                 .type("xml")
                 .value(vastXml != null ? new TextNode(vastXml) : null)
-                .expiry(cacheBid.getTtl())
+                .ttlseconds(cacheBid.getTtl())
                 .build();
 
         return CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue()));
@@ -431,12 +432,7 @@ public class CacheService {
                                   EventsContext eventsContext) {
 
         if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
-            return eventsService.winUrl(
-                    bidId,
-                    bidder,
-                    accountId,
-                    eventsContext.getAuctionTimestamp(),
-                    eventsContext.getIntegration());
+            return eventsService.winUrl(bidId, bidder, accountId, eventsContext);
         }
 
         return null;

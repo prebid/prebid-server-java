@@ -5,10 +5,12 @@ import lombok.Value;
 
 import java.util.List;
 
-@Value
+@Value(staticConstructor = "of")
 public class BidderInfo {
 
     boolean enabled;
+
+    String aliasOf;
 
     MaintainerInfo maintainer;
 
@@ -24,17 +26,27 @@ public class BidderInfo {
 
     boolean debugAllowed;
 
-    public static BidderInfo create(boolean enabled, String maintainerEmail, List<String> appMediaTypes,
-                                    List<String> siteMediaTypes, List<String> supportedVendors, int vendorId,
-                                    boolean enforceGdpr, boolean ccpaEnforced, boolean modifyingVastXmlAllowed,
+    public static BidderInfo create(boolean enabled,
+                                    String aliasOf,
+                                    String maintainerEmail,
+                                    List<String> appMediaTypes,
+                                    List<String> siteMediaTypes,
+                                    List<String> supportedVendors,
+                                    int vendorId,
+                                    boolean enforceGdpr,
+                                    boolean ccpaEnforced,
+                                    boolean modifyingVastXmlAllowed,
                                     boolean debugAllowed) {
-        final MaintainerInfo maintainer = new MaintainerInfo(maintainerEmail);
-        final CapabilitiesInfo capabilities = new CapabilitiesInfo(platformInfo(appMediaTypes),
-                platformInfo(siteMediaTypes));
-        final GdprInfo gdpr = new GdprInfo(vendorId, enforceGdpr);
 
-        return new BidderInfo(
-                enabled, maintainer, capabilities, supportedVendors, gdpr, ccpaEnforced, modifyingVastXmlAllowed,
+        return of(
+                enabled,
+                aliasOf,
+                new MaintainerInfo(maintainerEmail),
+                new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),
+                supportedVendors,
+                new GdprInfo(vendorId, enforceGdpr),
+                ccpaEnforced,
+                modifyingVastXmlAllowed,
                 debugAllowed);
     }
 

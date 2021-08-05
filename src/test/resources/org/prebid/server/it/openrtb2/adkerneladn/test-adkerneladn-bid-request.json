@@ -1,0 +1,33 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      }
+    }
+  ],
+  "site": {
+    "domain": "",
+    "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

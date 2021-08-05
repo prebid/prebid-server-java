@@ -11,9 +11,14 @@ public class BidderInfoCreator {
     }
 
     public static BidderInfo create(BidderConfigurationProperties configurationProperties) {
+        return create(configurationProperties, null);
+    }
+
+    public static BidderInfo create(BidderConfigurationProperties configurationProperties, String aliasOf) {
         final MetaInfo metaInfo = configurationProperties.getMetaInfo();
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
+                aliasOf,
                 metaInfo.getMaintainerEmail(),
                 metaInfo.getAppMediaTypes(),
                 metaInfo.getSiteMediaTypes(),

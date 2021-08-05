@@ -6,7 +6,7 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: junping.zhao@yeahmobi.com
       app-media-types:

@@ -16,8 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Util class to help {@link org.prebid.server.bidder.adform.AdformBidder} and
- * {@link org.prebid.server.bidder.adform.AdformAdapter} to retrieve data from request.
+ * Util class to help {@link org.prebid.server.bidder.adform.AdformBidder} to retrieve data from request.
  */
 class AdformRequestUtil {
 

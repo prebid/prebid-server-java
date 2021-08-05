@@ -14,7 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 
-@SuppressWarnings("serial")
 class ZonedDateTimeModule extends SimpleModule {
 
     // see https://stackoverflow.com/q/30090710

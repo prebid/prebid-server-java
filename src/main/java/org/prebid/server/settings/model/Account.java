@@ -40,6 +40,8 @@ public class Account {
     @JsonProperty("cookie-sync")
     AccountCookieSyncConfig cookieSync;
 
+    AccountHooksConfiguration hooks;
+
     public Account merge(Account another) {
         return Account.builder()
                 .id(ObjectUtils.defaultIfNull(id, another.id))

@@ -14,6 +14,8 @@ public class EventRequest {
 
     String bidId;
 
+    String auctionId;
+
     String accountId;
 
     String bidder;

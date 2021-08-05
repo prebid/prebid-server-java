@@ -6,15 +6,14 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: realtime-siggi@otto.de
       app-media-types:
         - banner
       site-media-types:
-        - banner
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 559
     usersync:
       url:
       redirect-url:
