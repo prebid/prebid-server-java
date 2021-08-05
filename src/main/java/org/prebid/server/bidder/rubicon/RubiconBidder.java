@@ -1274,7 +1274,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cpmOverrideFromRequest, bidResponse))
-                .filter(RubiconBidder::validatePrice)
                 .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
@@ -1324,11 +1323,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Invalid ext passed in bid with id: %s", bidId));
         }
-    }
-
-    private static boolean validatePrice(Bid bid) {
-        final BigDecimal price = bid.getPrice();
-        return price != null && price.compareTo(BigDecimal.ZERO) >= 0;
     }
 
     private Bid updateBid(Bid bid, Imp imp, Float cpmOverrideFromRequest, RubiconBidResponse bidResponse) {
