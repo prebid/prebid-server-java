@@ -1,13 +1,11 @@
 {
-  "id": "some_test_auction",
+  "id": "request_id",
   "seatbid": [
     {
-      "seat": "12356",
       "bid": [
         {
-          "id": "uuid",
-          "adm": "<div id=\"123456789_ad\"><script>!function(){console.log\"Hello, world.\";}();<\/script><\/div>",
-          "impid": "uuid",
+          "id": "bid_id",
+          "impid": "imp_id",
           "ttl": 300,
           "crid": "94395500",
           "w": 300,

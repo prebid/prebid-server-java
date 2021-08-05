@@ -1,14 +1,14 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
           "adm": "{\"image\":{\"img\":{\"url\":\"//prebid-test.smaatolabs.net/img/320x50.jpg\",\"w\":350,\"h\":50,\"ctaurl\":\"//prebid-test.smaatolabs.net/track/ctaurl/1\"},\"impressiontrackers\":[\"//prebid-test.smaatolabs.net/track/imp/1\",\"//prebid-test.smaatolabs.net/track/imp/2\"],\"clicktrackers\":[\"//prebid-test.smaatolabs.net/track/click/1\",\"//prebid-test.smaatolabs.net/track/click/2\"]}}",
-          "crid": "test_banner_crid",
-          "cid": "test_cid",
-          "impid": "impId001",
-          "id": "1",
+          "crid": "crid",
+          "cid": "cid",
+          "impid": "imp_id",
+          "id": "bid_id",
           "price": 0.01,
           "ext": {
             "format": "BANNER"

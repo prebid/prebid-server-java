@@ -23,8 +23,8 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.json.JsonMerger;
 import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -303,7 +303,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 BidRequest.builder().id("test-request-id").build())), emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123",
+                BidRequest.builder().build());
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -337,7 +338,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 BidRequest.builder().id("test-request-id").build())), emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123",
+                BidRequest.builder().build());
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -368,7 +370,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 BidRequest.builder().id("origin-stored-id").build())), emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123",
+                BidRequest.builder().build());
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -386,7 +389,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 BidRequest.builder().id("{{UUID}}").build())), emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123",
+                BidRequest.builder().build());
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -743,7 +747,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture("failed"));
 
         // when
-        storedRequestProcessor.processAmpRequest(null, "123");
+        storedRequestProcessor.processAmpRequest(null, "123", BidRequest.builder().build());
 
         // then
         verifyZeroInteractions(metrics);
@@ -802,7 +806,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(singletonMap("123", "amp"), emptyMap(), emptyList())));
 
         // when
-        storedRequestProcessor.processAmpRequest(null, "123");
+        storedRequestProcessor.processAmpRequest(null, "123", BidRequest.builder().build());
 
         // then
         verify(metrics).updateStoredRequestMetric(true);
@@ -816,7 +820,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), emptyList())));
 
         // when
-        storedRequestProcessor.processAmpRequest(null, "123");
+        storedRequestProcessor.processAmpRequest(null, "123", BidRequest.builder().build());
 
         // then
         verify(metrics).updateStoredRequestMetric(false);

@@ -32,10 +32,11 @@
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "5001"
+      "id": "5001",
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
@@ -47,6 +48,7 @@
     "ip": "80.215.195.0",
     "pxratio": 4.2,
     "language": "en",
+    "ifa": "ifaId",
     "ext": {
       "prebid": {
         "interstitial": {
@@ -57,8 +59,9 @@
     }
   },
   "user": {
+    "buyeruid": "12345",
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
     }
   },
   "at": 1,
@@ -84,7 +87,7 @@
             "USD": 1.2406
           },
           "USD": {
-            "EUR": 0.8110
+            "EUR": 0.811
           }
         },
         "usepbsrates": false
@@ -103,10 +106,19 @@
         "includebidderkeys": true
       },
       "cache": {
-        "bids": {},
+        "bids": {
+        },
         "vastxml": {
           "ttlseconds": 120
         }
+      },
+      "events": {},
+      "auctiontimestamp": 1000,
+      "channel": {
+        "name": "web"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
       },
       "multibid": [
         {
@@ -115,9 +127,12 @@
         }
       ],
       "auctiontimestamp": 1000,
-      "events" : { },
+      "events": {},
       "channel": {
         "name": "web"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
       }
     }
   }

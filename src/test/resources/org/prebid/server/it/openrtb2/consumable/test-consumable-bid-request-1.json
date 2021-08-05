@@ -1,14 +1,12 @@
 {
   "placements": [
     {
-      "divName": "impId001",
+      "divName": "imp_id",
       "networkId": 123,
       "siteId": 345,
       "unitId": 4123,
       "unitName": "unit_name",
-      "adTypes": [
-        5
-      ]
+      "adTypes": []
     }
   ],
   "networkId": 123,
@@ -20,8 +18,6 @@
   "enableBotFiltering": true,
   "parallel": true,
   "gdpr": {
-    "applies": false,
-    "consent": "consentValue"
-  },
-  "us_privacy": "1YNN"
+    "applies": false
+  }
 }

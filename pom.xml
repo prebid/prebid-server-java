@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.61.0-SNAPSHOT</version>
+    <version>1.70.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -28,13 +28,13 @@
         <spring.boot.version>2.1.1.RELEASE</spring.boot.version>
         <javax.annotation-api.version>1.3.1</javax.annotation-api.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
-        <hibernate-validator.version>6.1.0.Final</hibernate-validator.version>
+        <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
         <vertx.version>3.8.3</vertx.version>
         <lombok.version>1.18.4</lombok.version>
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
-        <commons.compress.version>1.19</commons.compress.version>
-        <httpclient.version>4.5.5</httpclient.version>
+        <commons.compress.version>1.21</commons.compress.version>
+        <httpclient.version>4.5.13</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
         <jackson.version>2.10.0</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
@@ -55,7 +55,7 @@
         <mockito.version>2.23.4</mockito.version>
         <assertj.version>3.8.0</assertj.version>
         <wiremock.version>2.26.3</wiremock.version>
-        <jetty.version>9.4.35.v20201120</jetty.version>
+        <jetty.version>9.4.43.v20210629</jetty.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
 
@@ -317,8 +317,14 @@
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock</artifactId>
+            <artifactId>wiremock-jre8</artifactId>
             <version>${wiremock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.iabtcf</groupId>
+            <artifactId>iabtcf-encoder</artifactId>
+            <version>${iabtcf.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -552,6 +558,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring.boot.version}</version>
                 <configuration>
+                    <attach>false</attach>
                     <executable>true</executable>
                 </configuration>
                 <executions>

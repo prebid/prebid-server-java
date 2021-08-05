@@ -14,8 +14,7 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
- * Util class to help {@link org.prebid.server.bidder.adform.AdformBidder} and
- * {@link org.prebid.server.bidder.adform.AdformAdapter} to create adform url and headers
+ * Util class to help {@link org.prebid.server.bidder.adform.AdformBidder} to create adform url and headers
  */
 class AdformHttpUtil {
 

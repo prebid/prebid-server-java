@@ -1,11 +1,11 @@
 package org.prebid.server.it;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.iab.gdpr.consent.VendorConsentEncoder;
-import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
-import com.iab.gdpr.consent.range.StartEndRangeEntry;
+import com.iabtcf.encoder.TCStringEncoder;
+import com.iabtcf.utils.BitSetIntIterable;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
@@ -35,11 +35,12 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -53,6 +54,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
@@ -77,31 +79,31 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
         // given
-        // rubicon bid response for imp 1
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withQueryParam("tk_xint", equalTo("dmbjs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("prebid-server/1.0"))
+                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
 
-        // rubicon bid response for imp 2
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
-        // appnexus bid response for imp 3
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
-        // appnexus bid response for imp 3 with alias parameters
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-2.json"))));
@@ -121,23 +123,58 @@ public class ApplicationTest extends IntegrationTest {
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
+                .header("Sec-GPC", 1)
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
                 .body(jsonFrom("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-request.json"))
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
-                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
+        assertJsonEquals("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
+                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS), openrtbCacheDebugCustomization());
+    }
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
+    @Test
+    public void testOpenrtb2AuctionCoreFunctionality() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withQueryParam("tk_xint", equalTo("rp-pbs"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/rubicon_core_functionality/test-rubicon-bid-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/rubicon_core_functionality/test-rubicon-bid-response.json"))));
+
+        // pre-bid cache
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/rubicon_core_functionality/test-cache-rubicon-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/rubicon_core_functionality/test-cache-rubicon-response.json"))));
+
+        // when
+        final Response response = given(SPEC)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "193.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"rubicon":"RUB-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJSVUItVUlEIn19")
+                .body(jsonFrom("openrtb2/rubicon_core_functionality/test-auction-rubicon-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/rubicon_core_functionality/test-auction-rubicon-response.json",
+                response, singletonList("rubicon"));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
     public void openrtb2MultiBidAuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
         // given
-        // rubicon bid response for imp 1
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
@@ -149,7 +186,6 @@ public class ApplicationTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus_multi_bid/test-rubicon-bid-response-1.json"))));
 
-        // appnexus bid response for imp 1
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/rubicon_appnexus_multi_bid/test-appnexus-bid-request-1.json")))
@@ -163,8 +199,7 @@ public class ApplicationTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
-                                "openrtb2/rubicon_appnexus_multi_bid/test-cache-matcher-rubicon-appnexus.json")
-                ));
+                                "openrtb2/rubicon_appnexus_multi_bid/test-cache-matcher-rubicon-appnexus.json")));
 
         // when
         final Response response = given(SPEC)
@@ -177,11 +212,8 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/rubicon_appnexus_multi_bid/test-auction-rubicon-appnexus-response.json",
+        assertJsonEquals("openrtb2/rubicon_appnexus_multi_bid/test-auction-rubicon-appnexus-response.json",
                 response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 
     @Test
@@ -203,11 +235,8 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/storedresponse/test-auction-response.json",
-                response, singletonList(RUBICON));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
+        assertJsonEquals("openrtb2/storedresponse/test-auction-response.json",
+                response, singletonList(RUBICON), openrtbCacheDebugCustomization());
     }
 
     @Test
@@ -225,8 +254,7 @@ public class ApplicationTest extends IntegrationTest {
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom("amp/test-cache-request.json")))
+                .withRequestBody(equalToBidCacheRequest(jsonFrom("amp/test-cache-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName", "amp/test-cache-matcher-amp.json")
@@ -250,14 +278,13 @@ public class ApplicationTest extends IntegrationTest {
                         + "&targeting=%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D"
                         + "&curl=https%3A%2F%2Fgoogle.com"
                         + "&account=accountId"
+                        + "&attl_consent=someConsent"
+                        + "&gdpr_applies=false"
+                        + "&consent_type=3"
                         + "&consent_string=1YNN");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "amp/test-amp-response.json",
-                response,
-                asList(RUBICON, APPNEXUS));
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("amp/test-amp-response.json", response, asList(RUBICON, APPNEXUS));
     }
 
     @Test
@@ -309,16 +336,14 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void cookieSyncShouldReturnBidderStatusWithExpectedUsersyncInfo() {
         // given
-        final String gdprConsent = VendorConsentEncoder.toBase64String(new VendorConsentBuilder()
-                .withConsentRecordCreatedOn(Instant.now())
-                .withConsentRecordLastUpdatedOn(Instant.now())
-                .withConsentLanguage("en")
-                .withVendorListVersion(79)
-                .withRangeEntries(singletonList(new StartEndRangeEntry(1, 100)))
-                .withMaxVendorId(100)
-                .withBitField(new HashSet<>(asList(1, 32, 52)))
-                .withAllowedPurposeIds(new HashSet<>(asList(1, 3)))
-                .build());
+        final String gdprConsent = TCStringEncoder.newBuilder()
+                .version(2)
+                .consentLanguage("EN")
+                .vendorListVersion(52)
+                .tcfPolicyVersion(2)
+                .addPurposesConsent(BitSetIntIterable.from(1))
+                .addVendorConsent(BitSetIntIterable.from(1, 32, 52))
+                .encode();
 
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
@@ -348,6 +373,7 @@ public class ApplicationTest extends IntegrationTest {
                                         "http://localhost:8080/setuid?bidder=rubicon"
                                                 + "&gdpr=1&gdpr_consent=" + gdprConsent
                                                 + "&us_privacy=1YNN"
+                                                + "&f=i"
                                                 + "&uid=host-cookie-uid",
                                         "redirect", false))
                                 .build(),
@@ -358,6 +384,7 @@ public class ApplicationTest extends IntegrationTest {
                                         "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                                 + "%26us_privacy%3D1YNN"
+                                                + "%26f%3Di"
                                                 + "%26uid%3D%24UID",
                                         "redirect", false))
                                 .build(),
@@ -379,7 +406,7 @@ public class ApplicationTest extends IntegrationTest {
                 .queryParam("bidder", RUBICON)
                 .queryParam("uid", "updatedUid")
                 .queryParam("gdpr", "1")
-                .queryParam("gdpr_consent", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA")
+                .queryParam("gdpr_consent", "CPBCKiyPBCKiyAAAAAENA0CAAIAAAAAAACiQAaQAwAAgAgABoAAAAAA")
                 .when()
                 .get("/setuid")
                 .then()
@@ -404,7 +431,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void getuidsShouldReturnJsonWithUids() throws JSONException {
+    public void getuidsShouldReturnJsonWithUids() throws JSONException, IOException {
         // given and when
         final Response response = given(SPEC)
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
@@ -415,8 +442,7 @@ public class ApplicationTest extends IntegrationTest {
                 .get("/getuids");
 
         // then
-        JSONAssert.assertEquals("{\"buyeruids\":{\"rubicon\":\"J5VLCWQP-26-CWFT\",\"adnxs\":\"12345\"}}",
-                response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("uid/test-uid-response.json", response, emptyList());
     }
 
     @Test
@@ -424,7 +450,7 @@ public class ApplicationTest extends IntegrationTest {
         // given and when
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToBidCacheRequest(jsonFrom("vtrack/test-cache-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("vtrack/test-vtrack-response.json"))));
+                .willReturn(aResponse().withBody(jsonFrom("vtrack/test-cache-response.json"))));
 
         final Response response = given(SPEC)
                 .when()
@@ -433,8 +459,7 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/vtrack");
 
         // then
-        JSONAssert.assertEquals("{\"responses\":[{\"uuid\":\"94531ab8-c662-4fc7-904e-6b5d3be43b1a\"}]}",
-                response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("vtrack/test-vtrack-response.json", response, emptyList());
     }
 
     @Test
@@ -455,34 +480,47 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void biddersParamsShouldReturnBidderSchemas() throws JSONException {
-        // given
-        final Map<String, JsonNode> bidderNameToSchema = getBidderNamesFromParamFiles().stream()
-                .collect(Collectors.toMap(Function.identity(), ApplicationTest::jsonSchemaToJsonNode));
-
+    public void biddersParamsShouldReturnBidderSchemas() throws JSONException, IOException {
         // when
         final Response response = given(SPEC)
                 .when()
                 .get("/bidders/params");
 
         // then
-        JSONAssert.assertEquals(bidderNameToSchema.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        final Map<String, JsonNode> responseAsMap = jacksonMapper.decodeValue(response.asString(),
+                new TypeReference<Map<String, JsonNode>>() {
+                });
+
+        final List<String> bidders = getBidderNamesFromParamFiles();
+        final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        bidderName -> jsonSchemaToJsonNode(aliases.getOrDefault(bidderName, bidderName))));
+
+        assertThat(responseAsMap.keySet()).containsOnlyElementsOf(expectedMap.keySet());
+        assertThat(responseAsMap).containsAllEntriesOf(expectedMap);
+
+        JSONAssert.assertEquals(expectedMap.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
-    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws JSONException, IOException {
-        // given
-        final List<String> bidderNames = getBidderNamesFromParamFiles();
-        final List<String> bidderAliases = getBidderAliasesFromConfigFiles();
-
+    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws IOException {
         // when
         final Response response = given(SPEC)
                 .when()
                 .get("/info/bidders");
 
         // then
-        final String expectedResponse = CollectionUtils.union(bidderNames, bidderAliases).toString();
-        JSONAssert.assertEquals(expectedResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        final List<String> responseAsList = jacksonMapper.decodeValue(response.asString(),
+                new TypeReference<List<String>>() {
+                });
+
+        final List<String> bidders = getBidderNamesFromParamFiles();
+        final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        final Collection<String> expectedBidders = CollectionUtils.union(bidders, aliases.keySet());
+
+        assertThat(responseAsList).containsOnlyElementsOf(expectedBidders);
     }
 
     @Test
@@ -547,10 +585,7 @@ public class ApplicationTest extends IntegrationTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "cache/update/test-auction-response.json", response, singletonList(RUBICON));
-
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        assertJsonEquals("cache/update/test-auction-response.json", response, singletonList(RUBICON));
     }
 
     @Test
@@ -642,27 +677,30 @@ public class ApplicationTest extends IntegrationTest {
         return Collections.emptyList();
     }
 
-    private static List<String> getBidderAliasesFromConfigFiles() throws IOException {
+    private static Map<String, String> getBidderAliasesFromConfigFiles() throws IOException {
         final String folderPath = "src/main/resources/bidder-config";
         final File folder = new File(folderPath);
         final String[] files = folder.list();
         if (files != null) {
             final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
-            final List<String> aliases = new ArrayList<>();
+            final Map<String, String> aliases = new HashMap<>();
             for (String fileName : files) {
                 final JsonNode configNode = mapper.readValue(new File(folderPath, fileName), JsonNode.class);
-                final JsonNode aliasesNode = configNode.get("adapters").fields().next().getValue().get("aliases");
+                final Map.Entry<String, JsonNode> bidderEntry = configNode.get("adapters").fields().next();
+                final String bidderName = bidderEntry.getKey();
+                final JsonNode aliasesNode = bidderEntry.getValue().get("aliases");
 
-                if (!aliasesNode.isNull()) {
-                    for (String alias : aliasesNode.textValue().split(",")) {
-                        aliases.add(alias.trim());
+                if (aliasesNode.isObject()) {
+                    Iterator<String> iterator = aliasesNode.fieldNames();
+                    while (iterator.hasNext()) {
+                        aliases.put(iterator.next().trim(), bidderName);
                     }
                 }
             }
             return aliases;
         }
-        return Collections.emptyList();
+        return Collections.emptyMap();
     }
 
     private static JsonNode jsonSchemaToJsonNode(String bidderName) {

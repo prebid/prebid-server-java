@@ -22,8 +22,10 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -63,27 +65,28 @@ public class VtrackHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
+    public void handle(RoutingContext routingContext) {
         final String accountId;
         final List<PutObject> vtrackPuts;
         final String integration;
         try {
-            accountId = accountId(context);
-            vtrackPuts = vtrackPuts(context);
-            integration = integration(context);
+            accountId = accountId(routingContext);
+            vtrackPuts = vtrackPuts(routingContext);
+            integration = integration(routingContext);
         } catch (IllegalArgumentException e) {
-            respondWithBadRequest(context, e.getMessage());
+            respondWith(routingContext, HttpResponseStatus.BAD_REQUEST, e.getMessage());
             return;
         }
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId))
-                .setHandler(async -> handleAccountResult(async, context, vtrackPuts, accountId, integration, timeout));
+                .setHandler(async -> handleAccountResult(async, routingContext, vtrackPuts, accountId, integration,
+                        timeout));
     }
 
-    private static String accountId(RoutingContext context) {
-        final String accountId = context.request().getParam(ACCOUNT_PARAMETER);
+    private static String accountId(RoutingContext routingContext) {
+        final String accountId = routingContext.request().getParam(ACCOUNT_PARAMETER);
         if (StringUtils.isEmpty(accountId)) {
             throw new IllegalArgumentException(
                     String.format("Account '%s' is required query parameter and can't be empty", ACCOUNT_PARAMETER));
@@ -91,8 +94,8 @@ public class VtrackHandler implements Handler<RoutingContext> {
         return accountId;
     }
 
-    private List<PutObject> vtrackPuts(RoutingContext context) {
-        final Buffer body = context.getBody();
+    private List<PutObject> vtrackPuts(RoutingContext routingContext) {
+        final Buffer body = routingContext.getBody();
         if (body == null || body.length() == 0) {
             throw new IllegalArgumentException("Incoming request has no body");
         }
@@ -116,37 +119,36 @@ public class VtrackHandler implements Handler<RoutingContext> {
         return putObjects;
     }
 
-    public static String integration(RoutingContext context) {
-        EventUtil.validateIntegration(context);
-        return context.request().getParam(INTEGRATION_PARAMETER);
+    public static String integration(RoutingContext routingContext) {
+        EventUtil.validateIntegration(routingContext);
+        return routingContext.request().getParam(INTEGRATION_PARAMETER);
     }
 
     /**
      * Returns fallback {@link Account} if account not found or propagate error if fetching failed.
      */
     private static Future<Account> handleAccountExceptionOrFallback(Throwable exception, String accountId) {
-        if (exception instanceof PreBidException) {
-            return Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build());
-        }
-        return Future.failedFuture(exception);
+        return exception instanceof PreBidException
+                ? Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build())
+                : Future.failedFuture(exception);
     }
 
     private void handleAccountResult(AsyncResult<Account> asyncAccount,
-                                     RoutingContext context,
+                                     RoutingContext routingContext,
                                      List<PutObject> vtrackPuts,
                                      String accountId,
                                      String integration,
                                      Timeout timeout) {
 
         if (asyncAccount.failed()) {
-            respondWithServerError(context, "Error occurred while fetching account", asyncAccount.cause());
+            respondWithServerError(routingContext, "Error occurred while fetching account", asyncAccount.cause());
         } else {
             // insert impression tracking if account allows events and bidder allows VAST modification
             final Account account = asyncAccount.result();
             final Boolean isEventEnabled = account.getEventsEnabled();
             final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
             cacheService.cachePutObjects(vtrackPuts, isEventEnabled, allowedBidders, accountId, integration, timeout)
-                    .setHandler(asyncCache -> handleCacheResult(asyncCache, context));
+                    .setHandler(asyncCache -> handleCacheResult(asyncCache, routingContext));
         }
     }
 
@@ -168,34 +170,28 @@ public class VtrackHandler implements Handler<RoutingContext> {
         }
     }
 
-    private void handleCacheResult(AsyncResult<BidCacheResponse> async, RoutingContext context) {
+    private void handleCacheResult(AsyncResult<BidCacheResponse> async, RoutingContext routingContext) {
         if (async.failed()) {
-            respondWithServerError(context, "Error occurred while sending request to cache", async.cause());
+            respondWithServerError(routingContext, "Error occurred while sending request to cache", async.cause());
         } else {
             try {
-                respondWith(context, HttpResponseStatus.OK, mapper.encode(async.result()));
+                respondWith(routingContext, HttpResponseStatus.OK, mapper.encode(async.result()));
             } catch (EncodeException e) {
-                respondWithServerError(context, "Error occurred while encoding response", e);
+                respondWithServerError(routingContext, "Error occurred while encoding response", e);
             }
         }
     }
 
-    private static void respondWithBadRequest(RoutingContext context, String message) {
-        respondWith(context, HttpResponseStatus.BAD_REQUEST, message);
-    }
-
-    private static void respondWithServerError(RoutingContext context, String message, Throwable exception) {
-        logger.warn(message, exception);
-        respondWith(context, HttpResponseStatus.INTERNAL_SERVER_ERROR,
+    private static void respondWithServerError(RoutingContext routingContext, String message, Throwable exception) {
+        logger.error(message, exception);
+        respondWith(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR,
                 String.format("%s: %s", message, exception.getMessage()));
     }
 
-    private static void respondWith(RoutingContext context, HttpResponseStatus status, String body) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            return;
-        }
-        context.response().setStatusCode(status.code()).end(body);
+    private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
+        HttpUtil.executeSafely(routingContext, Endpoint.vtrack,
+                response -> response
+                        .setStatusCode(status.code())
+                        .end(body));
     }
 }

@@ -1,9 +1,8 @@
 package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
+import lombok.Builder;
+import lombok.Value;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,22 +12,19 @@ import java.util.List;
  * relates to a specific impression in the bid request via the {@code impid}
  * attribute and constitutes an offer to buy that impression for a given
  * {@code price}.
- * <p>
- * IMPORTANT: unlike other data classes this one is mutable (annotated with {@link Data} instead of
- * {@link lombok.Value}). Motivation: during the course of processing bids could be altered several times (price
- * adjustment, post-processing). Creating new instance of the bid in each of these cases seems to cause unnecessary
- * memory pressure. In order to avoid unnecessary allocations this class is made mutable (as an exception) i.e. this
- * decision could be seen as a performance optimisation.
  */
-@SuperBuilder(toBuilder = true)
-@NoArgsConstructor
-@Data
+@Builder(toBuilder = true)
+@Value
 public class Bid {
 
-    /** Bidder generated bid ID to assist with logging/tracking. (required) */
+    /**
+     * Bidder generated bid ID to assist with logging/tracking. (required)
+     */
     String id;
 
-    /** ID of the Imp object in the related bid request. (required) */
+    /**
+     * ID of the Imp object in the related bid request. (required)
+     */
     String impid;
 
     /**
@@ -72,7 +68,9 @@ public class Bid {
      */
     String adm;
 
-    /** ID of a preloaded ad to be served if the bid wins. */
+    /**
+     * ID of a preloaded ad to be served if the bid wins.
+     */
     String adid;
 
     /**
@@ -110,19 +108,29 @@ public class Bid {
      */
     String crid;
 
-    /** IAB content categories of the creative. Refer to List 5.1. */
+    /**
+     * IAB content categories of the creative. Refer to List 5.1.
+     */
     List<String> cat;
 
-    /** Set of attributes describing the creative. Refer to List 5.3. */
+    /**
+     * Set of attributes describing the creative. Refer to List 5.3.
+     */
     List<Integer> attr;
 
-    /** API required by the markup if applicable. Refer to List 5.6. */
+    /**
+     * API required by the markup if applicable. Refer to List 5.6.
+     */
     Integer api;
 
-    /** Video response protocol of the markup if applicable. Refer to List 5.8. */
+    /**
+     * Video response protocol of the markup if applicable. Refer to List 5.8.
+     */
     Integer protocol;
 
-    /** Creative media rating per IQG guidelines. Refer to List 5.19. */
+    /**
+     * Creative media rating per IQG guidelines. Refer to List 5.19.
+     */
     Integer qagmediarating;
 
     /**
@@ -138,10 +146,14 @@ public class Bid {
      */
     String dealid;
 
-    /** Width of the creative in device independent pixels (DIPS). */
+    /**
+     * Width of the creative in device independent pixels (DIPS).
+     */
     Integer w;
 
-    /** Height of the creative in device independent pixels (DIPS). */
+    /**
+     * Height of the creative in device independent pixels (DIPS).
+     */
     Integer h;
 
     /**
@@ -162,6 +174,8 @@ public class Bid {
      */
     Integer exp;
 
-    /** Placeholder for bidder-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for bidder-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }
