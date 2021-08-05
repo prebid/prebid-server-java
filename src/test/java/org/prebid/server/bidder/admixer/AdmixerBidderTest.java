@@ -73,7 +73,6 @@ public class AdmixerBidderTest extends VertxTest {
         final Imp expectedImp = Imp.builder()
                 .id("123")
                 .tagid("tentententtentententtentententetetet")
-                .bidfloor(BigDecimal.ZERO)
                 .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
                                 givenCustomParams("foo1", singletonList("bar1")))))
                 .build();
@@ -102,7 +101,6 @@ public class AdmixerBidderTest extends VertxTest {
         final Imp expectedImp = Imp.builder()
                 .id("123")
                 .tagid("tentententtentententtentententetetet")
-                .bidfloor(BigDecimal.ZERO)
                 .ext(null)
                 .build();
         assertThat(result.getErrors()).hasSize(0);
@@ -136,7 +134,7 @@ public class AdmixerBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdmixer.of("zoneId", 36D,
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdmixer.of("zoneId",  BigDecimal.ONE,
                                 givenCustomParams("foo1", singletonList("bar1")))))).build()))
                 .build();
 

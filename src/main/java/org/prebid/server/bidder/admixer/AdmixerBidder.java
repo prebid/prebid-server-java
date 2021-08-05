@@ -93,21 +93,9 @@ public class AdmixerBidder implements Bidder<BidRequest> {
     }
 
     private Imp processImp(Imp imp, ExtImpAdmixer extImpAdmixer) {
-        final BigDecimal customFloor = extImpAdmixer.getCustomFloor() != null
-                ? BigDecimal.valueOf(extImpAdmixer.getCustomFloor())
-                : BigDecimal.ZERO;
+        final BigDecimal customFloor = extImpAdmixer.getCustomFloor();
         final BigDecimal impFloor = imp.getBidfloor();
-        BigDecimal bidfloor = BigDecimal.ZERO;
-
-        if (isValidBidFloor(customFloor) && !isValidBidFloor(impFloor)) {
-            bidfloor = customFloor;
-
-        } else if (!isValidBidFloor(customFloor) && isValidBidFloor(impFloor)) {
-            bidfloor = impFloor;
-
-        } else if (isValidBidFloor(customFloor) && isValidBidFloor(impFloor)) {
-            bidfloor = customFloor; // !!!!!!
-        }
+        final BigDecimal bidfloor =  isValidBidFloor(customFloor) && !isValidBidFloor(impFloor) ? customFloor : impFloor;
 
         return imp.toBuilder()
                 .tagid(extImpAdmixer.getZone())
