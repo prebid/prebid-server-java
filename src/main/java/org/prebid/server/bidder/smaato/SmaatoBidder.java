@@ -287,12 +287,9 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImpForAdSpace(Imp imp, String adSpaceId) {
-        final Banner banner = imp.getBanner();
-        return banner == null && imp.getVideo() == null
-                ? imp
-                : imp.toBuilder()
+        return imp.toBuilder()
                 .tagid(adSpaceId)
-                .banner(banner != null ? modifyBanner(banner) : null)
+                .banner(getIfNotNull(imp.getBanner(), SmaatoBidder::modifyBanner))
                 .ext(null)
                 .build();
     }
@@ -303,7 +300,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
         final List<Format> format = banner.getFormat();
         if (CollectionUtils.isEmpty(format)) {
-            throw new PreBidException(String.format("No sizes provided for Banner %s", format));
+            throw new PreBidException("No sizes provided for Banner.");
         }
         final Format firstFormat = format.get(0);
         return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();

@@ -15,6 +15,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
+import org.apache.commons.lang3.BooleanUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -125,7 +126,6 @@ public class SmaatoBidderTest extends VertxTest {
                         SmaatoBidRequestExt.of("prebid_server_0.4")));
     }
 
-    // Pod requests tests
     @Test
     public void makePodHttpRequestsShouldReturnErrorsForImpsOfInvalidMediaType() {
         // given
@@ -245,10 +245,8 @@ public class SmaatoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenVideoBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.site(null).app(App.builder().build()),
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
-                                "publisherId", null, "adBreakId")))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                        "publisherId", null, "adBreakId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
@@ -308,177 +306,213 @@ public class SmaatoBidderTest extends VertxTest {
                         givenVideoImp(impBuilder -> resultCustomizer.apply(impBuilder, 1)));
     }
 
-    // Individual requests tests
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+    public void makeIndividualHttpRequestsShouldReturnErrorsOfImpsWithInvalidMediaTypes() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(null).banner(null));
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Invalid MediaType. Smaato only supports Banner and Video."));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfBannerOrVideoImpIsEmpty() {
+    public void makeIndividualHttpRequestsShouldCorrectlySplitImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.id("impid").banner(null).video(null));
+                identity(),
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .video(Video.builder().w(1).h(1).build()),
+                impBuilder -> impBuilder.banner(Banner.builder().w(1).h(1).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(3)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .allMatch(imp -> BooleanUtils.xor(new Boolean[]{imp.getVideo() != null, imp.getBanner() != null}));
+
+    }
+
+    @Test
+    public void makeIndividualHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError
-                        .badInput("invalid MediaType. SMAATO only supports Banner and Video. Ignoring ImpID=impid"));
+                .allSatisfy(bidderError -> {
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize instance");
+                });
     }
 
     @Test
-    public void makeHttpRequestsShouldNotChangeBannerWidthAndHeightIfPresent() {
+    public void makeIndividualHttpRequestsShouldReturnErrorIfImpExtPublisherIdIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .w(200)
-                                .h(150)
-                                .build()));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                                null, "adspaceId", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(200, 150));
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing publisherId property."));
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBannerWidthAndHeightFromFirstFormatIfEmpty() {
+    public void makeIndividualHttpRequestsShouldReturnErrorIfImpExtAdSpaceIdIsAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                        "publisherId", null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing adspaceId property."));
+    }
+
+    @Test
+    public void makeIndividualHttpRequestsShouldEnrichSiteWithPublisherIdIfSiteIsPresentInRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.site(Site.builder().build()).app(null),
                 impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(asList(Format.builder().w(300).h(500).build(),
-                                        Format.builder().w(450).h(150).build()))
-                                .build()));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                                "publisherId", "adspaceId", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(300, 500));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldModifyRequestSite() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder()
-                                .id("banner_id").format(asList(Format.builder().w(300).h(500).build(),
-                                        Format.builder().w(450).h(150).build())).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSmaato.of("publisherId", "adspaceId", "adbreakId"))))
-                        .build()))
-                .site(Site.builder()
-                        .ext(ExtSite.of(null, mapper.valueToTree(SmaatoSiteExtData.of("keywords"))))
-                        .build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPublisher)
                 .extracting(Publisher::getId)
-                .containsOnly("publisherId");
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getKeywords)
-                .containsOnly("keywords");
+                .containsExactly("publisherId");
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyRequestAppPublisherId() {
+    public void makeIndividualHttpRequestsShouldEnrichAppWithPublisherIdIfSiteIsAbsentAndAppIsPresentInRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()).site(null),
-                impBuilder -> impBuilder.ext(
-                        mapper.createObjectNode().set("bidder", mapper.createObjectNode().set(
-                                "publisherId", TextNode.valueOf("publisherId")))));
+                bidRequestBuilder -> bidRequestBuilder.site(null).app(App.builder().build()),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmaato.of(
+                        "publisherId", "adspaceId", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getApp)
                 .extracting(App::getPublisher)
                 .extracting(Publisher::getId)
-                .containsOnly("publisherId");
+                .containsExactly("publisherId");
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyRequestUser() {
+    public void makeIndividualHttpRequestsShouldReturnErrorIfSiteAndAppAreAbsentInRequest() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder()
-                                .id("banner_id").format(asList(Format.builder().w(300).h(500)
-                                                .build(),
-                                        Format.builder().w(450).h(150).build())).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSmaato.of("publisherId", "adspaceId", "adbreakId"))))
-                        .build()))
-                .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .data(mapper.valueToTree(SmaatoUserExtData.of("keywords", "gender", 1)))
-                                .build())
-                        .build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.site(null).app(null), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Missing Site/App."));
+    }
+
+    @Test
+    public void makeIndividualHttpRequestsShouldReturnErrorIfBannerSizesAndFormatsAreAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No sizes provided for Banner."));
+    }
+
+    @Test
+    public void makeIndividualHttpRequestsShouldNotModifyBannerIfBannerSizesArePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.banner(Banner.builder().w(1).h(1).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .containsOnly(ExtUser.builder().build());
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getUser)
-                .extracting(User::getGender)
-                .containsOnly("gender");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(Banner.builder().w(1).h(1).build());
+    }
+
+    @Test
+    public void makeIndividualHttpRequestsShouldReplaceBannerSizesWithFirstFormatIfFormatsArePresent() {
+        // given
+        final Banner banner = Banner.builder().format(singletonList(Format.builder().w(2).h(2).build())).build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(banner));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(banner.toBuilder().w(2).h(2).build());
+    }
+
+    @Test
+    public void makeIndividualHttpRequestsShouldSetImpTagIdAndRemoveImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(
+                ExtPrebid.of(null, ExtImpSmaato.of("publisherId", "adspaceId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid, Imp::getExt)
+                .containsExactly(tuple("adspaceId", null));
     }
 
     @Test
@@ -742,11 +776,13 @@ public class SmaatoBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+            Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .site(Site.builder().build())
                         .app(App.builder().build())
-                        .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(Arrays.stream(impCustomizers)
+                                .map(SmaatoBidderTest::givenImp)
+                                .collect(Collectors.toList())))
                 .build();
     }
 
