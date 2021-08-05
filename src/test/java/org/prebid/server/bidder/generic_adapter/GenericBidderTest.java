@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.generic_adapter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -9,6 +10,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -27,6 +29,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -156,11 +159,29 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, null));
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerAndVideoAndNativeIsAbsentInRequestImp()
+    public void makeBidsShouldReturnAudioBidIfAudioIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = genericBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), audio, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfBannerAndVideoAndAudioAndNativeIsAbsentInRequestImp()
             throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(

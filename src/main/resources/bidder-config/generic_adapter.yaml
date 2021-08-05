@@ -13,10 +13,12 @@ adapters:
         - banner
         - video
         - native
+        - audio
       site-media-types:
         - banner
         - video
         - native
+        - audio
       supported-vendors:
       vendor-id: 0
     usersync:
