@@ -204,15 +204,24 @@ public class OperaadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                impBuilder -> impBuilder
+                        .id("234")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
+                                "placementId", "endpointId", "publisherId")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 123"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(givenImp(impBuilder -> impBuilder.tagid("placementId")));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 234"));
     }
 
     @Test
@@ -355,10 +364,12 @@ public class OperaadsBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+            Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer)))
+                        .imp(Arrays.stream(impCustomizers)
+                                .map(OperaadsBidderTest::givenImp)
+                                .collect(Collectors.toList()))
                         .device(Device.builder().os("deviceOs").build()))
                 .build();
     }
