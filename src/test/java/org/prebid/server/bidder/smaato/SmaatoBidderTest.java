@@ -26,6 +26,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.smaato.proto.SmaatoBidExt;
 import org.prebid.server.bidder.smaato.proto.SmaatoBidRequestExt;
 import org.prebid.server.bidder.smaato.proto.SmaatoSiteExtData;
 import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
@@ -36,6 +37,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +47,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -524,10 +527,12 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(bidderError -> {
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
+                });
     }
 
     @Test
@@ -545,24 +550,25 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfNoBidAdm() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorOnEmptyBidAdm() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.id("test").impid("123"))), null);
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.id("test").impid("123"))),
+                HttpUtil.headers());
 
         // when
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Empty ad markup in bid with id: test"));
+                .containsExactly(BidderError.badInput("Empty ad markup in bid with id: test"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfNotSupportedMarkupType() throws JsonProcessingException {
         // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "anyType");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "anyType");
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -573,15 +579,15 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Unknown markup type anyType"));
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.badInput("Invalid markupType anyType"));
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfMarkupTypeIsBlank() throws JsonProcessingException {
         // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "");
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -593,14 +599,14 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid ad markup adm"));
+                .containsExactly(BidderError.badInput("Invalid ad markup adm."));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfAdmIsInvalid() throws JsonProcessingException {
         // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "");
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -611,15 +617,16 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid ad markup {\"image\": invalid"));
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot decode bid.adm:");
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
     }
 
     @Test
     public void makeBidsShouldReturnCorrectBidIfAdMarkTypeIsReachmedia() throws JsonProcessingException {
         // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Richmedia");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Richmedia");
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -641,16 +648,18 @@ public class SmaatoBidderTest extends VertxTest {
                         + "Fclick%2F2'), {cache: 'no-cache'});\"><div>hello</div><img src=\"//prebid-test.smaatolabs."
                         + "net/track/imp/1\" alt=\"\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs."
                         + "net/track/imp/2\" alt=\"\" width=\"0\" height=\"0\"/></div>")
+                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
+                .exp(300)
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+                .containsExactly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnCorrectBidIfAdMarkTypeIsImg() throws JsonProcessingException {
         // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Img");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Img");
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -676,16 +685,18 @@ public class SmaatoBidderTest extends VertxTest {
                         + "/img/320x50.jpg\" width=\"350\" height=\"50\"/><img src=\"//prebid-test.smaatolabs.net/"
                         + "track/imp/1\" alt=\"\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/"
                         + "track/imp/2\" alt=\"\" width=\"0\" height=\"0\"/></div>")
+                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
+                .exp(300)
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+                .containsExactly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnCorrectBidIfAdMarkTypeIsImgAndParametersAreEmpty() throws JsonProcessingException {
         // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Img");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Img");
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
@@ -711,10 +722,12 @@ public class SmaatoBidderTest extends VertxTest {
                         + "/img/320x50.jpg\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/"
                         + "track/imp/1\" alt=\"\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/"
                         + "track/imp/2\" alt=\"\" width=\"0\" height=\"0\"/></div>")
+                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
+                .exp(300)
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+                .containsExactly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test
@@ -725,8 +738,13 @@ public class SmaatoBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").adm("<?xml version=\"1.0\" encoding="
-                                + "\"UTF-8\" standalone=\"no\"?><VAST version=\"2.0\"></VAST>"))), headers);
+                        givenBidResponse(bidBuilder ->
+                                bidBuilder
+                                        .impid("123")
+                                        .adm("<?xml version=\"1.0\" encoding="
+                                                + "\"UTF-8\" standalone=\"no\"?><VAST version=\"2.0\"></VAST>")
+                                        .cat(singletonList("Category1"))
+                                        .ext(mapper.valueToTree(SmaatoBidExt.of(100))))), headers);
 
         // when
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
@@ -735,10 +753,14 @@ public class SmaatoBidderTest extends VertxTest {
         final Bid expectedBid = Bid.builder()
                 .impid("123")
                 .adm("Video")
+                .cat(singletonList("Category1"))
+                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder()
+                        .video(ExtBidPrebidVideo.of(100, "Category1")).build(), null)))
+                .exp(300)
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(expectedBid, video, "USD"));
+                .containsExactly(BidderBid.of(expectedBid, video, "USD"));
     }
 
     @Test

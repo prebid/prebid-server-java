@@ -321,9 +321,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, httpCall.getResponse().getHeaders());
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        } catch (PreBidException e) {
+        } catch (PreBidException | DecodeException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
