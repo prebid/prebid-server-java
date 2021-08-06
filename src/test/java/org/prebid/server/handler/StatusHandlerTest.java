@@ -2,8 +2,10 @@ package org.prebid.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -51,9 +53,7 @@ public class StatusHandlerTest extends VertxTest {
         final ZonedDateTime testTime = ZonedDateTime.now(Clock.systemUTC());
         statusHandler = new StatusHandler(Arrays.asList(healthCheck, healthCheck, healthCheck), jacksonMapper);
 
-        //given(routingContext.response()).willReturn(httpResponse);
-        given(routingContext.response())
-                .willReturn(httpResponse);
+        given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
                 .willReturn(httpResponse);
         given(healthCheck.name()).willReturn("application", "db", "other");
@@ -62,18 +62,18 @@ public class StatusHandlerTest extends VertxTest {
 
         // when
         statusHandler.handle(routingContext);
-        // then
 
+        // then
         final Map<String, StatusResponse> expectedMap = new TreeMap<>();
         expectedMap.put("application", StatusResponse.of("ready", null));
         expectedMap.put("db", StatusResponse.of("UP", testTime));
         expectedMap.put("other", StatusResponse.of("DOWN", testTime));
-        verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
         verify(httpResponse).end(eq(mapper.writeValueAsString(expectedMap)));
     }
 
     @Test
     public void shouldRespondWithNoContentWhenMessageWasNotDefined() {
+        // given
         statusHandler = new StatusHandler(emptyList(), jacksonMapper);
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(eq(204))).willReturn(httpResponse);
@@ -83,5 +83,24 @@ public class StatusHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(204));
+    }
+
+    @Test
+    public void shouldRespondWithContentTypeHeaders() throws JsonProcessingException {
+        // given
+        statusHandler = new StatusHandler(Arrays.asList(healthCheck), jacksonMapper);
+
+        given(healthCheck.name()).willReturn("healthCheckName");
+        given(healthCheck.status()).willReturn(StatusResponse.of("healthCheckStatus", null));
+
+        given(routingContext.response()).willReturn(httpResponse);
+        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
+                .willReturn(httpResponse);
+
+        // when
+        statusHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 }
