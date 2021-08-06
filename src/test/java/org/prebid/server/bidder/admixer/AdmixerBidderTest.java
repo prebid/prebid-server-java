@@ -2,7 +2,6 @@ package org.prebid.server.bidder.admixer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -25,9 +24,11 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.admixer.ExtImpAdmixer;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -54,72 +55,35 @@ public class AdmixerBidderTest extends VertxTest {
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new AdmixerBidder("invalid_url", jacksonMapper));
     }
-    /*
-    @Test
-    public void shouldSetBidfloorToZeroIfExtImpFloorValuIsNull() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdmixer.of("tentententtentententtentententetetet", null,
-                                        givenCustomParams("foo1", singletonList("bar1"))))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
-
-        // then
-        final Imp expectedImp = Imp.builder()
-                .id("123")
-                .tagid("tentententtentententtentententetetet")
-                .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
-                                givenCustomParams("foo1", singletonList("bar1")))))
-                .build();
-        assertThat(result.getErrors()).hasSize(0);
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .containsExactly(expectedImp);
-    }
-
-     */
 
     @Test
     public void shouldSetExtToNullIfCustomParamsAreNotPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
+                .imp(Collections.singletonList(givenImp(builder -> builder
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdmixer.of("tentententtentententtentententetetet", null, null))))
-                        .build()))
+                        ExtImpAdmixer.of("veryVeryVerySuperLongZoneIdValue", null, null)))))))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Imp expectedImp = Imp.builder()
-                .id("123")
-                .tagid("tentententtentententtentententetetet")
-                .ext(null)
-                .build();
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(expectedImp);
+                .containsExactly(givenImp(builder -> builder
+                        .tagid("veryVeryVerySuperLongZoneIdValue")
+                        .ext(null)));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))).build()))
+                .imp(singletonList(givenImp(builder -> builder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))))))
                 .build();
 
         // when
@@ -135,10 +99,9 @@ public class AdmixerBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfZoneIdNotHaveLength() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdmixer.of("zoneId",  BigDecimal.ONE,
-                                givenCustomParams("foo1", singletonList("bar1")))))).build()))
+                .imp(singletonList(givenImp(builder -> builder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdmixer.of("zoneId", BigDecimal.ONE,
+                        givenCustomParams("foo1", singletonList("bar1")))))))))
                 .build();
 
         // when
@@ -219,7 +182,7 @@ public class AdmixerBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .imp(singletonList(givenImp(builder -> builder)))
                         .build());
 
         // then
@@ -257,7 +220,7 @@ public class AdmixerBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .imp(singletonList(givenImp(builder -> builder.video(Video.builder().build()))))
                         .build());
 
         // then
@@ -276,7 +239,7 @@ public class AdmixerBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                        .imp(singletonList(givenImp(builder -> builder.xNative(Native.builder().build()))))
                         .build());
 
         // then
@@ -295,7 +258,7 @@ public class AdmixerBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
+                        .imp(singletonList(givenImp(builder -> builder.audio(Audio.builder().build()))))
                         .build());
 
         // then
@@ -305,65 +268,88 @@ public class AdmixerBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnNullIfBidFloorNull() {
+    public void shouldReturnNullIfBidFloorNullCustomFloorNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .bidfloor(null)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdmixer.of("tentententtentententtentententetetet", null,
-                                        givenCustomParams("foo1", singletonList("bar1"))))))
-                        .build()))
+                .imp(singletonList(givenImp(builder -> builder.bidfloor(null))))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Imp expectedImp = Imp.builder()
-                .id("123")
-                .tagid("tentententtentententtentententetetet")
-                .bidfloor(null)
-                .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
-                        givenCustomParams("foo1", singletonList("bar1")))))
-                .build();
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(expectedImp);
+                .containsExactly(givenImpWithParsedTagID(builder -> builder.bidfloor(null)));
     }
 
     @Test
-    public void shouldReturnNullIfBidFloorZero() {
+    public void shouldReturnNullIfBidFloorZeroCustomFloorNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .bidfloor(BigDecimal.ZERO)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdmixer.of("tentententtentententtentententetetet", null,
-                                        givenCustomParams("foo1", singletonList("bar1"))))))
-                        .build()))
+                .imp(singletonList(givenImp(builder -> builder.bidfloor(BigDecimal.ZERO))))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
 
         // then
-        final Imp expectedImp = Imp.builder()
-                .id("123")
-                .tagid("tentententtentententtentententetetet") //since zone must be in range 32-36 symbols
-                .bidfloor(null)
-                .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
-                        givenCustomParams("foo1", singletonList("bar1")))))
-                .build();
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(expectedImp);
+                .containsExactly(givenImpWithParsedTagID(builder -> builder.bidfloor(null)));
+    }
+
+    @Test
+    public void shouldReturnNullIfBidFloorZeroCustomFloorZero() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(builder -> builder
+                        .bidfloor(BigDecimal.ZERO)
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdmixer.of("veryVeryVerySuperLongZoneIdValue", BigDecimal.ZERO,
+                                        givenCustomParams("foo1", singletonList("bar1")))))))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(givenImpWithParsedTagID(builder -> builder
+                        .bidfloor(null)
+                        .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
+                                givenCustomParams("foo1", singletonList("bar1")))))));
+    }
+
+    @Test
+    public void shouldReturnNullIfBidFloorNullCustomFloorZero() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(builder -> builder
+                        .bidfloor(null)
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdmixer.of("veryVeryVerySuperLongZoneIdValue", BigDecimal.ZERO,
+                                        givenCustomParams("foo1", singletonList("bar1")))))))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(givenImpWithParsedTagID(builder -> builder.bidfloor(null)
+                        .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
+                                givenCustomParams("foo1", singletonList("bar1")))))));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
@@ -383,5 +369,24 @@ public class AdmixerBidderTest extends VertxTest {
 
     private static Map<String, JsonNode> givenCustomParams(String key, Object values) {
         return singletonMap(key, mapper.valueToTree(values));
+    }
+
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .id("123")
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpAdmixer.of("veryVeryVerySuperLongZoneIdValue", null,
+                        givenCustomParams("foo1", singletonList("bar1")))))))
+                .build();
+    }
+
+    //method where zoneId cut from ext and passed to tagId field
+    private static Imp givenImpWithParsedTagID(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .id("123")
+                .tagid("veryVeryVerySuperLongZoneIdValue")
+                .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
+                        givenCustomParams("foo1", singletonList("bar1"))))))
+                .build();
     }
 }
