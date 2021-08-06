@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request.ix;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -10,6 +11,7 @@ import java.util.List;
 @Value
 public class ExtImpIx {
 
+    @JsonProperty("siteId")
     @JsonAlias({"siteId", "siteid", "siteID"})
     String siteId;
 
