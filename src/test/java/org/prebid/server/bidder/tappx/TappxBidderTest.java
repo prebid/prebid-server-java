@@ -413,7 +413,8 @@ public class TappxBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTappx.of("host", "tappxkey", "endpoint", BigDecimal.ONE,
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTappx.of(
+                        "host", "tappxkey", "endpoint", BigDecimal.ONE,
                         "mktag", singletonList("bcid"), singletonList("bcrid")))))
         ).build();
     }
