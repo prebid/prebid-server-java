@@ -12,6 +12,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
+import org.prebid.server.bidder.grid.model.GridExtImp;
+import org.prebid.server.bidder.grid.model.GridExtImpData;
+import org.prebid.server.bidder.grid.model.GridExtImpDataAdServer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -229,6 +232,23 @@ public class GridBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badServerResponse("Failed to find impression for ID: 123"));
+    }
+
+    @Test
+    public void modifyImpShouldChangeImpExt() {
+        // given
+        final GridExtImp gridExtImp = GridExtImp.builder()
+                .data(GridExtImpData.of(null, GridExtImpDataAdServer.of("name", "adslot")))
+                .build();
+
+        final Imp imp = Imp.builder().ext(mapper.valueToTree(gridExtImp)).build();
+
+        // when
+        final Imp modifiedImp = gridBidder.modifyImp(imp, ExtImpGrid.of(1));
+
+        // then
+        assertThat(mapper.convertValue(modifiedImp.getExt(), GridExtImp.class).getGpid())
+                .isEqualTo(gridExtImp.getData().getAdServer().getAdSlot());
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,

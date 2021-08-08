@@ -1,10 +1,11 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Account {
 
@@ -34,6 +35,11 @@ public class Account {
 
     AccountStatus status;
 
+    @JsonProperty("cookie-sync")
+    AccountCookieSyncConfig cookieSync;
+
+    AccountHooksConfiguration hooks;
+
     public Account merge(Account another) {
         return Account.builder()
                 .id(ObjectUtils.defaultIfNull(id, another.id))
@@ -50,6 +56,7 @@ public class Account {
                 .analyticsConfig(ObjectUtils.defaultIfNull(analyticsConfig, another.analyticsConfig))
                 .bidValidations(ObjectUtils.defaultIfNull(bidValidations, another.bidValidations))
                 .status(ObjectUtils.defaultIfNull(status, another.status))
+                .cookieSync(ObjectUtils.defaultIfNull(cookieSync, another.cookieSync))
                 .build();
     }
 

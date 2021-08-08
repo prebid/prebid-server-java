@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Describes the behavior for price granularity feature.
@@ -39,7 +40,7 @@ public class PriceGranularity {
                 range(20, 0.5));
     }
 
-    static final PriceGranularity DEFAULT = STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.med);
+    public static final PriceGranularity DEFAULT = STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.med);
 
     private List<ExtGranularityRange> ranges;
     private BigDecimal rangesMax;
@@ -61,7 +62,7 @@ public class PriceGranularity {
     /**
      * Returns {@link PriceGranularity} by string representation if it is present in map, otherwise returns null.
      */
-    static PriceGranularity createFromString(String stringPriceGranularity) {
+    public static PriceGranularity createFromString(String stringPriceGranularity) {
         if (isValidStringPriceGranularityType(stringPriceGranularity)) {
             return STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.valueOf(stringPriceGranularity));
         } else {
@@ -105,15 +106,15 @@ public class PriceGranularity {
      * Creates {@link PriceGranularity} from list of {@link ExtGranularityRange}s and validates it.
      */
     private static PriceGranularity createFromRanges(Integer precision, List<ExtGranularityRange> ranges) {
-        if (CollectionUtils.isEmpty(ranges)) {
-            throw new IllegalArgumentException("Ranges list cannot be null or empty");
-        }
 
-        final BigDecimal rangeMax = ranges.stream()
+        final BigDecimal rangeMax = CollectionUtils.emptyIfNull(ranges).stream()
+                .filter(Objects::nonNull)
                 .map(ExtGranularityRange::getMax)
+                .filter(Objects::nonNull)
                 .max(BigDecimal::compareTo)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Max value among all ranges was not found. Please check if ranges are valid"));
+                        "Price granularity error: "
+                                + "Max value among all ranges was not found. Please check if ranges are valid"));
 
         return new PriceGranularity(ranges, rangeMax, precision);
     }

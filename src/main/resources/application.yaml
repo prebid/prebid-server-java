@@ -124,6 +124,7 @@ metrics:
   accounts:
     default-verbosity: none
 settings:
+  generate-storedrequest-bidrequest-id: false
   enforce-valid-account: false
   database:
     pool-size: 20
@@ -134,6 +135,7 @@ settings:
     account-invalidation-enabled: true
   targeting:
     truncate-attr-chars: 20
+  default-account-config:
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:
@@ -220,3 +222,14 @@ ipv6:
   always-mask-right: 64
   anon-left-mask-bits: 56
   private-networks: ::1/128, 2001:db8::/32, fc00::/7, fe80::/10, ff00::/8
+analytics:
+  pubstack:
+    enabled: false
+    endpoint: http://localhost:8090
+    scopeid: change-me
+    configuration-refresh-delay-ms: 7200000
+    timeout-ms: 5000
+    buffers:
+      size-bytes: 2097152
+      count: 100
+      report-ttl-ms: 900000
