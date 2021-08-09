@@ -58,6 +58,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -198,28 +199,28 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
             final String adBreakId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdbreakId, "adbreakId");
 
-            return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, publisherId)
-                    .imp(modifyImpsForAdBreak(imps, adBreakId))
-                    .build();
+            return modifyBidRequest(bidRequest, publisherId, () -> modifyImpsForAdBreak(imps, adBreakId));
         } catch (PreBidException | IllegalArgumentException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
     }
 
-    private BidRequest.BidRequestBuilder enrichRequestWithPublisherId(BidRequest.BidRequestBuilder bidRequestBuilder,
-                                                                      BidRequest bidRequest,
-                                                                      String publisherId) {
+    private BidRequest modifyBidRequest(BidRequest bidRequest, String publisherId, Supplier<List<Imp>> impSupplier) {
         final Publisher publisher = Publisher.builder().id(publisherId).build();
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
 
+        final BidRequest.BidRequestBuilder bidRequestBuilder = bidRequest.toBuilder();
         if (site != null) {
-            return bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
+            bidRequestBuilder.site(site.toBuilder().publisher(publisher).build());
         } else if (app != null) {
-            return bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
+            bidRequestBuilder.app(app.toBuilder().publisher(publisher).build());
+        } else {
+            throw new PreBidException("Missing Site/App.");
         }
-        throw new PreBidException("Missing Site/App.");
+
+        return bidRequestBuilder.imp(impSupplier.get()).build();
     }
 
     private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId) {
@@ -277,21 +278,21 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
             final String adSpaceId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdspaceId, "adspaceId");
 
-            return enrichRequestWithPublisherId(bidRequest.toBuilder(), bidRequest, publisherId)
-                    .imp(Collections.singletonList(modifyImpForAdSpace(imp, adSpaceId)))
-                    .build();
+            return modifyBidRequest(bidRequest, publisherId, () -> modifyImpForAdSpace(imp, adSpaceId));
         } catch (PreBidException | IllegalArgumentException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
     }
 
-    private Imp modifyImpForAdSpace(Imp imp, String adSpaceId) {
-        return imp.toBuilder()
+    private List<Imp> modifyImpForAdSpace(Imp imp, String adSpaceId) {
+        final Imp modifiedImp = imp.toBuilder()
                 .tagid(adSpaceId)
                 .banner(getIfNotNull(imp.getBanner(), SmaatoBidder::modifyBanner))
                 .ext(null)
                 .build();
+
+        return Collections.singletonList(modifiedImp);
     }
 
     private static Banner modifyBanner(Banner banner) {
