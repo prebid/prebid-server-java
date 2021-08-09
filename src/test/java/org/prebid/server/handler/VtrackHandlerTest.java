@@ -178,9 +178,6 @@ public class VtrackHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
-        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
-                .willReturn(httpResponse);
-
         // when
         handler.handle(routingContext);
 

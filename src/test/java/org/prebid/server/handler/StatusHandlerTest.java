@@ -2,6 +2,7 @@ package org.prebid.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Rule;
@@ -17,6 +18,7 @@ import org.prebid.server.util.HttpUtil;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 
 public class StatusHandlerTest extends VertxTest {
 
@@ -52,8 +55,8 @@ public class StatusHandlerTest extends VertxTest {
         statusHandler = new StatusHandler(Arrays.asList(healthCheck, healthCheck, healthCheck), jacksonMapper);
 
         given(routingContext.response()).willReturn(httpResponse);
-        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
-                .willReturn(httpResponse);
+        given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
+
         given(healthCheck.name()).willReturn("application", "db", "other");
         given(healthCheck.status()).willReturn(StatusResponse.of("ready", null),
                 StatusResponse.of("UP", testTime), StatusResponse.of("DOWN", testTime));
@@ -84,16 +87,14 @@ public class StatusHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithContentTypeHeaders() throws JsonProcessingException {
+    public void shouldRespondWithContentTypeHeaders() {
         // given
-        statusHandler = new StatusHandler(Arrays.asList(healthCheck), jacksonMapper);
+        statusHandler = new StatusHandler(Collections.singletonList(healthCheck), jacksonMapper);
 
         given(healthCheck.name()).willReturn("healthCheckName");
         given(healthCheck.status()).willReturn(StatusResponse.of("healthCheckStatus", null));
 
         given(routingContext.response()).willReturn(httpResponse);
-        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
-                .willReturn(httpResponse);
 
         // when
         statusHandler.handle(routingContext);
