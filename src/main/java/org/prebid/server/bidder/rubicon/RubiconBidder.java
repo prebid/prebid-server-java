@@ -1318,14 +1318,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
         final ObjectNode meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
 
-        final ObjectNode updatedMeta = meta != null ? meta.deepCopy() : mapper.mapper().createObjectNode();
+        final ObjectNode updatedMeta = ObjectUtils.defaultIfNull(meta, mapper.mapper().createObjectNode());
         updatedMeta.set("networkId", IntNode.valueOf(networkId));
 
         final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
                 ? extBidPrebid.toBuilder().meta(updatedMeta).build()
                 : ExtBidPrebid.builder().meta(updatedMeta).build();
 
-        final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
+        final ObjectNode updatedBidExt = ObjectUtils.defaultIfNull(bidExt, mapper.mapper().createObjectNode());
         updatedBidExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
 
         return bid.toBuilder().ext(updatedBidExt).build();
