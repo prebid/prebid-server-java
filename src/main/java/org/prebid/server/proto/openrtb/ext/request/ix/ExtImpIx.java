@@ -12,7 +12,7 @@ import java.util.List;
 public class ExtImpIx {
 
     @JsonProperty("siteId")
-    @JsonAlias({"siteId", "siteid", "siteID"})
+    @JsonAlias({"siteid", "siteID"})
     String siteId;
 
     List<Integer> size;
