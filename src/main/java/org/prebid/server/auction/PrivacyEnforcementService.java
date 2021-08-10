@@ -10,9 +10,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -38,7 +37,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCcpaConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
-import org.prebid.server.util.HttpUtil;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -275,8 +273,6 @@ public class PrivacyEnforcementService {
         return ObjectUtils.firstNonNull(enabledForType, accountCcpaEnabled, account.getEnforceCcpa(), ccpaEnforce);
     }
 
-    private Map<String, BidderPrivacyResult> maskCcpa(
-            Set<String> biddersToMask, Device device, Map<String, User> bidderToUser) {
     private Map<String, BidderPrivacyResult> maskCcpa(Set<String> biddersToMask,
                                                       Device device,
                                                       Map<String, User> bidderToUser) {
@@ -383,7 +379,8 @@ public class PrivacyEnforcementService {
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 
-    private Set<String> extractCcpaEnforcedBidders(List<String> bidders, BidRequest bidRequest, BidderAliases aliases) {
+    private Set<String> extractCcpaEnforcedBidders(List<String> bidders, BidRequest bidRequest, BidderAliases
+            aliases) {
         final Set<String> ccpaEnforcedBidders = new HashSet<>(bidders);
 
         final ExtRequest extBidRequest = bidRequest.getExt();
