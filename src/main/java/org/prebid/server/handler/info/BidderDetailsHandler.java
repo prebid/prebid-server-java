@@ -46,10 +46,6 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         }
     }
 
-    /**
-     * Returns a {@link Map} with bidder name (or alias, or "all" keyword) as a key
-     * and json-encoded string of {@link BidderInfoResponseModel} as a value.
-     */
     private Map<String, String> createBidderInfos(BidderCatalog bidderCatalog) {
         final Map<String, ObjectNode> nameToInfo = bidderCatalog.names().stream()
                 .collect(Collectors.toMap(Function.identity(), name -> bidderNode(bidderCatalog, name)));
@@ -61,17 +57,11 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toMap(Map.Entry::getKey, map -> mapper.encode(map.getValue())));
     }
 
-    /**
-     * Returns bidder info as {@link ObjectNode}.
-     */
     private ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
         final BidderInfo bidderInfo = bidderCatalog.bidderInfoByName(name);
         return mapper.mapper().valueToTree(BidderInfoResponseModel.from(bidderInfo));
     }
 
-    /**
-     * Returns a {@link Map} of all bidder's infos sorted by name as {@link ObjectNode}.
-     */
     private ObjectNode allInfos(Map<String, ObjectNode> nameToInfo) {
         return mapper.mapper().valueToTree(new TreeMap<>(nameToInfo));
     }
