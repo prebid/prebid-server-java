@@ -52,7 +52,6 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
      */
     private Map<String, String> createBidderInfos(BidderCatalog bidderCatalog) {
         final Map<String, ObjectNode> nameToInfo = bidderCatalog.names().stream()
-                .filter(bidderCatalog::isActive)
                 .collect(Collectors.toMap(Function.identity(), name -> bidderNode(bidderCatalog, name)));
 
         final Map<String, ObjectNode> allToInfos = Collections.singletonMap(ALL_PARAM_VALUE, allInfos(nameToInfo));
@@ -98,6 +97,14 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     @Value(staticConstructor = "of")
     private static class BidderInfoResponseModel {
 
+        private static final String STATUS_ACTIVE = "ACTIVE";
+        private static final String STATUS_DISABLED = "DISABLED";
+
+        String status;
+
+        @JsonProperty("usesHttps")
+        boolean usesHttps;
+
         BidderInfo.MaintainerInfo maintainer;
 
         BidderInfo.CapabilitiesInfo capabilities;
@@ -106,7 +113,12 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         String aliasOf;
 
         private static BidderInfoResponseModel from(BidderInfo bidderInfo) {
-            return of(bidderInfo.getMaintainer(), bidderInfo.getCapabilities(), bidderInfo.getAliasOf());
+            return of(
+                    bidderInfo.isEnabled() ? STATUS_ACTIVE : STATUS_DISABLED,
+                    bidderInfo.isUsesHttps(),
+                    bidderInfo.getMaintainer(),
+                    bidderInfo.getCapabilities(),
+                    bidderInfo.getAliasOf());
         }
     }
 }
