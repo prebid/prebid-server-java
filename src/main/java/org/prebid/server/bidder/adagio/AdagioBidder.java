@@ -5,6 +5,8 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -13,11 +15,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.*;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adagio.ExtImpAdagio;
 import org.prebid.server.proto.openrtb.ext.request.adkernel.ExtImpAdkernel;
 import org.prebid.server.proto.openrtb.ext.request.adkerneladn.ExtImpAdkernelAdn;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.*;
@@ -113,12 +117,44 @@ public class AdagioBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        return null;
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private Object extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+        if (bidResponse == null || bidResponse.getSeatbid() == null) {
+            return Collections.emptyList();
+        }
+        if (bidResponse.getSeatbid().size() != 1) {
+            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+        }
+        return bidsFromResponse(bidRequest, bidResponse);
+    }
+
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        return bidResponse.getSeatbid().stream()
+                .map(SeatBid::getBid)
+                .flatMap(Collection::stream)
+                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .collect(Collectors.toList());
+    }
+    private static BidType getType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId) && imp.getBanner() != null) {
+                return BidType.banner;
+            }
+        }
+        return BidType.video;
     }
 
     public AdagioBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+
     }
 
     private HttpRequest<BidRequest> createHttpRequest(Map.Entry<ExtImpAdagio, List<Imp>> extAndImp,
@@ -140,4 +176,18 @@ public class AdagioBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private static BidRequest createBidRequest(List<Imp> imps,
+                                               BidRequest.BidRequestBuilder requestBuilder,
+                                               Site site,
+                                               App app) {
+
+        requestBuilder.imp(imps);
+
+        if (site != null) {
+            requestBuilder.site(site.toBuilder().publisher(null).build());
+        } else {
+            requestBuilder.app(app.toBuilder().publisher(null).build());
+        }
+        return requestBuilder.build();
+    }
 }
