@@ -273,9 +273,8 @@ public class PrivacyEnforcementService {
         return ObjectUtils.firstNonNull(enabledForType, accountCcpaEnabled, account.getEnforceCcpa(), ccpaEnforce);
     }
 
-    private Map<String, BidderPrivacyResult> maskCcpa(Set<String> biddersToMask,
-                                                      Device device,
-                                                      Map<String, User> bidderToUser) {
+    private Map<String, BidderPrivacyResult> maskCcpa(
+            Set<String> biddersToMask, Device device, Map<String, User> bidderToUser) {
 
         return biddersToMask.stream()
                 .collect(Collectors.toMap(Function.identity(),

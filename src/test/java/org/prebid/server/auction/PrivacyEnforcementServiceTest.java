@@ -453,7 +453,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaWhenAccountHasCppaConfigEnabledForRequestType() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -502,7 +503,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaWhenAccountHasCppaEnforcedTrue() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -547,7 +549,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaWhenAccountHasCcpaConfigEnabled() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -1475,7 +1478,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnFalseWhenAccountCcpaConfigHasEnabledTrue() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, false);
+                bidderCatalog, privacyExtractor, tcfDefinerService, implicitParametersExtractor, ipAddressHelper,
+                metrics, false, true);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder().ccpa(AccountCcpaConfig.builder().enabled(true).build()).build();
