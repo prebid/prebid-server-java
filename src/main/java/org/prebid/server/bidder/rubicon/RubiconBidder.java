@@ -3,6 +3,7 @@ package org.prebid.server.bidder.rubicon;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.App;
@@ -88,7 +89,6 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -1316,11 +1316,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return null;
         }
         final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
-        final ExtBidPrebidMeta meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
+        final ObjectNode meta = extBidPrebid != null ? extBidPrebid.getMeta() : null;
 
-        final ExtBidPrebidMeta updatedMeta = meta != null
-                ? meta.toBuilder().networkId(networkId).build()
-                : ExtBidPrebidMeta.builder().networkId(networkId).build();
+        final ObjectNode updatedMeta = meta != null ? meta.deepCopy() : mapper.mapper().createObjectNode();
+        updatedMeta.set("networkId", IntNode.valueOf(networkId));
 
         final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
                 ? extBidPrebid.toBuilder().meta(updatedMeta).build()
