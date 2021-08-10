@@ -15,7 +15,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.tappx.model.TapxBidderExt;
+import org.prebid.server.bidder.tappx.model.TappxBidderExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -155,9 +155,9 @@ public class TappxBidder implements Bidder<BidRequest> {
 
     private ExtRequest getExtRequest(ExtImpTappx extImpTappx) {
         final ExtRequest extRequest = ExtRequest.empty();
-        final TapxBidderExt tapxBidderExt = TapxBidderExt.of(extImpTappx.getTappxkey(), extImpTappx.getMkTag(),
+        final TappxBidderExt tappxBidderExt = TappxBidderExt.of(extImpTappx.getTappxkey(), extImpTappx.getMktag(),
                 extImpTappx.getBcid(), extImpTappx.getBcrid());
-        extRequest.addProperty("bidder", mapper.mapper().valueToTree(tapxBidderExt));
+        extRequest.addProperty("bidder", mapper.mapper().valueToTree(tappxBidderExt));
 
         return extRequest;
     }

@@ -1,15 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.request.tappx;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * Defines the contract for bidRequest.imp[i].ext.tappx
- */
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtImpTappx {
@@ -22,8 +18,7 @@ public class ExtImpTappx {
 
     BigDecimal bidfloor;
 
-    @JsonProperty("mktag")
-    String mkTag;
+    String mktag;
 
     List<String> bcid;
 

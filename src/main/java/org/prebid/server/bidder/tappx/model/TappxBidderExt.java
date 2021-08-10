@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.tappx.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -8,13 +7,11 @@ import java.util.List;
 
 @Value
 @AllArgsConstructor(staticName = "of")
-public class TapxBidderExt {
+public class TappxBidderExt {
 
-    @JsonProperty("tappxkey")
-    String tappxKey;
+    String tappxkey;
 
-    @JsonProperty("mktag")
-    String mkTag;
+    String mktag;
 
     List<String> bcid;
 

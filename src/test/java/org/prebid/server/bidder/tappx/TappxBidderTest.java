@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.tappx.model.TapxBidderExt;
+import org.prebid.server.bidder.tappx.model.TappxBidderExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
@@ -99,9 +99,9 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         final ExtRequest extRequest = ExtRequest.empty();
-        final TapxBidderExt tapxBidderExt = TapxBidderExt.of("tappxkey", "mktag", singletonList("bcid"),
+        final TappxBidderExt tappxBidderExt = TappxBidderExt.of("tappxkey", "mktag", singletonList("bcid"),
                 singletonList("bcrid"));
-        extRequest.addProperty("bidder", mapper.valueToTree(tapxBidderExt));
+        extRequest.addProperty("bidder", mapper.valueToTree(tappxBidderExt));
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
@@ -119,9 +119,9 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         final ExtRequest extRequest = ExtRequest.empty();
-        final TapxBidderExt tapxBidderExt = TapxBidderExt.of("tappxkey", "mktag", singletonList("bcid"),
+        final TappxBidderExt tappxBidderExt = TappxBidderExt.of("tappxkey", "mktag", singletonList("bcid"),
                 singletonList("bcrid"));
-        extRequest.addProperty("bidder", mapper.valueToTree(tapxBidderExt));
+        extRequest.addProperty("bidder", mapper.valueToTree(tappxBidderExt));
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
