@@ -879,7 +879,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillSiteExtRpWithIabAttributeIfSegtaxEqualsOneOrTwo() {
+    public void makeHttpRequestsShouldFillSiteExtRpWithIabAttributeIfSegtaxEqualsOneOrTwoOrFiveOrSix() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.site(Site.builder()
@@ -887,7 +887,9 @@ public class RubiconBidderTest extends VertxTest {
                                 .data(asList(
                                         givenDataWithSegmentEntry(1, "firstSegmentId"),
                                         givenDataWithSegmentEntry(2, "secondSegmentId"),
-                                        givenDataWithSegmentEntry(3, "thirdSegmentId")))
+                                        givenDataWithSegmentEntry(3, "thirdSegmentId"),
+                                        givenDataWithSegmentEntry(5, "fifthSegmentId"),
+                                        givenDataWithSegmentEntry(6, "sixthSegmentId")))
                                 .build())
                         .build()),
                 builder -> builder.video(Video.builder().build()),
@@ -901,6 +903,9 @@ public class RubiconBidderTest extends VertxTest {
         final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
         expectedIabAttribute.add("firstSegmentId");
         expectedIabAttribute.add("secondSegmentId");
+        expectedIabAttribute.add("fifthSegmentId");
+        expectedIabAttribute.add("sixthSegmentId");
+
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
