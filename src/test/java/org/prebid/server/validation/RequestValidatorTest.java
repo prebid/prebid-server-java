@@ -1027,33 +1027,16 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothMissed() {
         // given
-        final BidRequest.BidRequestBuilder bidRequestBuilder = overwriteSite(validBidRequestBuilder(),
-                Function.identity());
-
-        final BidRequest bidRequest = overwriteApp(bidRequestBuilder, Function.identity()).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site or request.app must be defined, but not both");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothPresent() {
-        // given
-        final BidRequest.BidRequestBuilder bidRequestBuilder = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder().id("1").page("2"));
-
-        final BidRequest bidRequest = overwriteApp(bidRequestBuilder, appBuilder -> App.builder().id("3")).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .site(null)
+                .app(null)
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site or request.app must be defined, but not both");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.site or request.app must be defined");
     }
 
     @Test

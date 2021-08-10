@@ -724,12 +724,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 mergeIntoArray(targetNode, currentFieldName, currentField.textValue());
             } else if (currentField.isIntegralNumber()) {
                 mergeIntoArray(targetNode, currentFieldName, Long.toString(currentField.longValue()));
+            } else if (currentField.isBoolean()) {
+                mergeIntoArray(targetNode, currentFieldName, Boolean.toString(currentField.booleanValue()));
+            } else if (isBooleanArray(currentField)) {
+                mergeIntoArray(targetNode, currentFieldName, booleanArrayToStringList(currentField));
             }
         }
     }
 
     private static boolean isTextualArray(JsonNode node) {
         return node.isArray() && StreamSupport.stream(node.spliterator(), false).allMatch(JsonNode::isTextual);
+    }
+
+    private static boolean isBooleanArray(JsonNode node) {
+        return node.isArray() && StreamSupport.stream(node.spliterator(), false).allMatch(JsonNode::isBoolean);
     }
 
     private ArrayNode stringsToStringArray(String... values) {
@@ -746,6 +754,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return StreamSupport.stream(stringArray.spliterator(), false)
                 .map(JsonNode::asText)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private static List<String> booleanArrayToStringList(JsonNode booleanArray) {
+        return StreamSupport.stream(booleanArray.spliterator(), false)
+                .map(JsonNode::booleanValue)
+                .map(value -> Boolean.toString(value))
+                .collect(Collectors.toList());
     }
 
     private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
@@ -1274,7 +1289,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cpmOverrideFromRequest, bidResponse))
-                .filter(RubiconBidder::validatePrice)
                 .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
@@ -1324,11 +1338,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Invalid ext passed in bid with id: %s", bidId));
         }
-    }
-
-    private static boolean validatePrice(Bid bid) {
-        final BigDecimal price = bid.getPrice();
-        return bid.getDealid() != null ? price.compareTo(BigDecimal.ZERO) >= 0 : price.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private Bid updateBid(Bid bid, Imp imp, Float cpmOverrideFromRequest, RubiconBidResponse bidResponse) {

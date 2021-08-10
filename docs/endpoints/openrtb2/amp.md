@@ -116,11 +116,14 @@ This endpoint supports the following query parameters:
 6. `curl` - the canonical URL of the page
 7. `timeout` - the publisher-specified timeout for the RTC callout
    - A configuration option `amp.default-timeout-ms` may be set to account for estimated latency so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
-8. `us_privacy` - CCPA value for request. 
-9. `gdpr_consent` - GDPR value for request.
+8. `gdpr_consent` - consent string for request.
+9. `consent_string` - consent string for request.
 10. `debug` - When set to `1`, the responses will contain extra info for debugging.
 11. `account` - accountId parameter for Site object.
 12. `slot` - tagId parameter for Imp object.
+13. `gdpr_applies` - GDPR param for Regs Ext object.
+14. `consent_type` - param to define what type of consent_string passed.
+15. `attl_consent` - consentedProviders param for User Ext ConsentedProvidersSettings object.
 
  
 For information on how these get from AMP into this endpoint, see [this pull request adding the query params to the Prebid callout](https://github.com/ampproject/amphtml/pull/14155) and [this issue adding support for network-level RTC macros](https://github.com/ampproject/amphtml/issues/12374).
@@ -130,11 +133,14 @@ If present, these will override parts of your Stored Request.
 1. `ow`, `oh`, `w`, `h`, and/or `ms` will be used to set `request.imp[0].banner.format` if `request.imp[0].banner` is present.
 2. `curl` will be used to set `request.site.page`
 3. `timeout` will generally be used to set `request.tmax`. However, the Prebid Server host can [configure](../../config.md) their deploy to reduce this timeout for technical reasons.
-4. `us_privacy` will be used to set `request.regs.ext.us_privacy` 
-5. `debug` will be used to set `request.test`, causing the `response.debug` to have extra debugging info in it.
-6. `account` - will be used to set `site.publisher.id` parameter for Site object.
-7. `slot` - will be used to set `tagId` parameter to overwrite Imp object.
-8. `gdpr_consent` will be used to set `user.ext.consent`.
+4. `debug` will be used to set `request.test`, causing the `response.debug` to have extra debugging info in it.
+5. `account` - will be used to set `site.publisher.id` parameter for Site object.
+6. `slot` - will be used to set `tagId` parameter to overwrite Imp object.
+7. `gdpr_applies` will be used to set `request.regs.ext.gdpr`
+8. `consent_type` will be used to check what should be done with consent string
+9. `attl_consent` will be used to set `user.ext.ConsentedProvidersSettings.consented_providers`.
+10. `gdpr_consent` will be used to set `request.regs.ext.us_privacy` or `user.ext.consent`
+11. `consent_string` will be used to set `request.regs.ext.us_privacy` or `user.ext.consent`. This param has bigger priority then `gdpr_consent`.
   
 
  

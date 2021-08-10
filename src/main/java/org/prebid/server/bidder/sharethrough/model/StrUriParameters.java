@@ -11,6 +11,8 @@ public class StrUriParameters {
 
     String bidID;
 
+    String gpid;
+
     Boolean consentRequired;
 
     String consentString;

@@ -49,6 +49,10 @@ class SharethroughUriBuilderUtil {
         if (StringUtils.isNotBlank(stxuid)) {
             uriBuilder.addParameter("stxuid", stxuid);
         }
+        final String gpid = params.getGpid();
+        if (StringUtils.isNotBlank(gpid)) {
+            uriBuilder.addParameter("gpid", gpid);
+        }
 
         return uriBuilder.toString();
     }

@@ -96,7 +96,6 @@ import java.util.function.Function;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
-import static java.math.BigDecimal.ZERO;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -1107,11 +1106,12 @@ public class RubiconBidderTest extends VertxTest {
                 // will be normalized to array of strings
                 .put("property2", "value1")
                 .put("property3", 123)
+                .put("property4", false)
+                .<ObjectNode>set("property5", mapper.createArrayNode().add(true).add(false))
                 // remnants will be discarded
-                .<ObjectNode>set("property4", mapper.createArrayNode().add("value1").add(123))
-                .<ObjectNode>set("property5", mapper.createObjectNode().put("sub-property1", "value1"))
-                .put("property6", 123.456d)
-                .put("property7", false);
+                .<ObjectNode>set("property6", mapper.createArrayNode().add("value1").add(123))
+                .<ObjectNode>set("property7", mapper.createObjectNode().put("sub-property1", "value1"))
+                .put("property8", 123.456d);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
@@ -1138,7 +1138,11 @@ public class RubiconBidderTest extends VertxTest {
                                                 .add("value1")
                                                 .add("value2"))
                                         .<ObjectNode>set("property2", mapper.createArrayNode().add("value1"))
-                                        .<ObjectNode>set("property3", mapper.createArrayNode().add("123"))))
+                                        .<ObjectNode>set("property3", mapper.createArrayNode().add("123"))
+                                        .<ObjectNode>set("property4", mapper.createArrayNode().add("false"))
+                                        .<ObjectNode>set("property5", mapper.createArrayNode()
+                                                .add("true")
+                                                .add("false"))))
                                 .build()));
     }
 
@@ -2799,48 +2803,6 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldNotReturnImpIfNonDealBidPriceLessThanZero() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                givenBidResponse(BigDecimal.valueOf(-1)));
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldNotReturnImpIfNonDealBidPriceEqualToZero() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                givenBidResponse(ZERO));
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldNotReturnImpIfDealBidPriceLessThanZero() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                givenBidResponse(BigDecimal.valueOf(-1)));
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnBidWithOverriddenCpmFromRequest() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
@@ -2988,6 +2950,31 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBidWithDchainFromRequest() throws JsonProcessingException {
+        // given
+        final ObjectNode requestNode = mapper.valueToTree(ExtBidPrebid.builder()
+                .meta(ExtBidPrebidMeta.builder().dChain("dChain").build())
+                .build());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenBid(bid -> bid.ext(requestNode).price(ONE))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(requestNode);
+    }
+
+    @Test
     public void extractTargetingShouldReturnEmptyMapForEmptyExtension() {
         // when and then
         assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
@@ -3039,7 +3026,7 @@ public class RubiconBidderTest extends VertxTest {
                                               Function<ImpBuilder, ImpBuilder> impCustomizer,
                                               Function<ExtImpRubiconBuilder, ExtImpRubiconBuilder> extCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -3055,7 +3042,8 @@ public class RubiconBidderTest extends VertxTest {
     private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer,
                                 Function<ExtImpRubiconBuilder, ExtImpRubiconBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
                 .build();
     }
 

@@ -61,7 +61,6 @@
     "macmd5": "macmd5"
   },
   "user": {
-    "buyeruid": "appnexus",
     "yob": 1991,
     "gender": "F",
     "keywords": "Hotels, Travelling",
@@ -105,6 +104,9 @@
       },
       "channel": {
         "name": "web"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/video"
       }
     },
     "appnexus": {

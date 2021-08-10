@@ -170,10 +170,8 @@ public class RequestValidator {
                 validateImp(bidRequest.getImp().get(index), aliases, index);
             }
 
-            if ((bidRequest.getSite() == null && bidRequest.getApp() == null)
-                    || (bidRequest.getSite() != null && bidRequest.getApp() != null)) {
-
-                throw new ValidationException("request.site or request.app must be defined, but not both");
+            if (bidRequest.getSite() == null && bidRequest.getApp() == null) {
+                throw new ValidationException("request.site or request.app must be defined");
             }
             validateSite(bidRequest.getSite());
             validateDevice(bidRequest.getDevice());
