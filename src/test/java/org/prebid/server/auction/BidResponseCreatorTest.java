@@ -2367,7 +2367,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidRequest,
                 builder -> builder
                         .debugWarnings(warnings)
-                        .debugContext(DebugContext.of(true, null)));
+                        .debugContext(DebugContext.of(true, true, null)));
         givenCacheServiceResult(CacheServiceResult.of(
                 DebugHttpCall.builder()
                         .endpoint("http://cache-service/cache")

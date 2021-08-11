@@ -23,11 +23,13 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
@@ -84,9 +86,13 @@ public class VideoRequestFactoryTest extends VertxTest {
     private HttpServerRequest httpServerRequest;
     @Mock
     private TimeoutResolver timeoutResolver;
+    @Mock
+    private DebugResolver debugResolver;
 
     @Before
     public void setUp() {
+        given(debugResolver.getDebugContext(any()))
+                .willReturn(DebugContext.of(true, true, null));
         given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.video)))
                 .willReturn(AuctionContext.builder().build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
@@ -113,6 +119,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
     }
 
@@ -146,6 +153,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
 
         // when
@@ -169,6 +177,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
 
         given(routingContext.getBodyAsString()).willReturn("body");

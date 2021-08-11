@@ -2914,7 +2914,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(true, null))
+                .debugContext(DebugContext.of(true, true, null))
                 .build();
 
         // when
@@ -2981,7 +2981,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(false, TraceLevel.basic))
+                .debugContext(DebugContext.of(false, false, TraceLevel.basic))
                 .build();
 
         // when
@@ -3074,7 +3074,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(false, TraceLevel.verbose))
+                .debugContext(DebugContext.of(false, false, TraceLevel.verbose))
                 .build();
 
         // when
@@ -3114,7 +3114,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(true, TraceLevel.basic))
+                .debugContext(DebugContext.of(true, true, TraceLevel.basic))
                 .build();
 
         // when
@@ -3135,7 +3135,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(true, TraceLevel.basic))
+                .debugContext(DebugContext.of(true, true, TraceLevel.basic))
                 .requestRejected(true)
                 .build();
 
@@ -3163,7 +3163,7 @@ public class ExchangeServiceTest extends VertxTest {
                         new EnumMap<>(singletonMap(
                                 Stage.entrypoint,
                                 singletonList(StageExecutionOutcome.of("http-request", emptyList()))))))
-                .debugContext(DebugContext.of(false, TraceLevel.basic))
+                .debugContext(DebugContext.of(false, false, TraceLevel.basic))
                 .build();
 
         // when

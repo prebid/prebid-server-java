@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-
 import com.iab.openrtb.request.BidRequest;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;

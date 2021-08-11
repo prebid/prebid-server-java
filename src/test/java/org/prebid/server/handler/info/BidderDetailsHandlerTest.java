@@ -164,6 +164,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
     private static BidderInfo givenBidderInfo(String aliasOf) {
         return BidderInfo.create(
                 true,
+                true,
                 aliasOf,
                 "test@email.org",
                 singletonList("mediaType1"),

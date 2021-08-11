@@ -664,7 +664,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
-                .debugContext(DebugContext.of(true, TraceLevel.basic))
+                .debugContext(DebugContext.of(true, false, TraceLevel.basic))
                 .build());
     }
 
@@ -685,7 +685,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 100);
 
         // then
-        assertThat(result.getDebugContext()).isEqualTo(DebugContext.of(true, null));
+        assertThat(result.getDebugContext()).isEqualTo(DebugContext.of(true, false, null));
     }
 
     @Test
