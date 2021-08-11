@@ -90,7 +90,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         final ObjectNode interactiveOffersExt = (ObjectNode) mapper.readTree("{\"bidder\":{\"partnerId\":\"abc123\"}}");
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of("abc123"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of("partnerId"))))
                         .build()))
                 .build();
 
@@ -205,7 +205,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of(35))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of("35"))))
                 .build();
     }
 

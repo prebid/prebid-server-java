@@ -44,9 +44,9 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
         String url = endpointUrl;
         String partnerId;
         try {
-            partnerId = request.getImp().get(0).getExt().get("bidder").get("partnerId")+"";
-            if(partnerId.length() > 2){
-                partnerId = partnerId.substring(1, partnerId.length()-1);
+            partnerId = request.getImp().get(0).getExt().get("bidder").get("partnerId") + "";
+            if (partnerId.length() > 2) {
+                partnerId = partnerId.substring(1, partnerId.length() - 1);
             }
             url += partnerId;
         } catch (PreBidException e) {
