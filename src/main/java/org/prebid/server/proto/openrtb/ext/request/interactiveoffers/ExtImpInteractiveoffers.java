@@ -10,5 +10,5 @@ import lombok.Value;
 @Value
 public class ExtImpInteractiveoffers {
 
-    Integer pubid;
+    String partnerId;
 }

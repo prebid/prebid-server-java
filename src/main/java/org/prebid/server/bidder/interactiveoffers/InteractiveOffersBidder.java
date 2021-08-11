@@ -16,6 +16,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.proto.openrtb.ext.request.interactiveoffers.ExtImpInteractiveoffers;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -38,9 +39,22 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+
+        ExtImpInteractiveoffers extImpInteractiveoffers = null;
+        String url = endpointUrl;
+        String partnerId;
+        try {
+            partnerId = request.getImp().get(0).getExt().get("bidder").get("partnerId")+"";
+            if(partnerId.length() > 2){
+                partnerId = partnerId.substring(1, partnerId.length()-1);
+            }
+            url += partnerId;
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(endpointUrl)
+                .uri(url)
                 .headers(HttpUtil.headers())
                 .payload(request)
                 .body(mapper.encode(request))
