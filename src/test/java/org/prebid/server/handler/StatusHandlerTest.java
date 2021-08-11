@@ -53,15 +53,9 @@ public class StatusHandlerTest extends VertxTest {
         // given
         final ZonedDateTime testTime = ZonedDateTime.now(Clock.systemUTC());
         statusHandler = new StatusHandler(Arrays.asList(healthCheck, healthCheck, healthCheck), jacksonMapper);
-      
-        given(routingContext.response())
-                .willReturn(httpResponse);
-        given(httpResponse.putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON))
-                .willReturn(httpResponse);
-      
+
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
-
 
         given(healthCheck.name()).willReturn("application", "db", "other");
         given(healthCheck.status()).willReturn(StatusResponse.of("ready", null),
@@ -69,14 +63,12 @@ public class StatusHandlerTest extends VertxTest {
 
         // when
         statusHandler.handle(routingContext);
-      
+
         // then
         final Map<String, StatusResponse> expectedMap = new TreeMap<>();
         expectedMap.put("application", StatusResponse.of("ready", null));
         expectedMap.put("db", StatusResponse.of("UP", testTime));
         expectedMap.put("other", StatusResponse.of("DOWN", testTime));
-     
-        verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
         verify(httpResponse).end(eq(mapper.writeValueAsString(expectedMap)));
     }
 
