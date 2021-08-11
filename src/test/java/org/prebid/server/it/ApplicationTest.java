@@ -131,7 +131,8 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
-                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS), openrtbCacheDebugCustomization());
+                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS),
+                openrtbCacheDebugCustomization(), headersDebugCustomization());
     }
 
     @Test
