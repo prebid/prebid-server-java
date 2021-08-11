@@ -184,13 +184,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    DebugResolver debugResolver() {
-        return DebugResolver.withoutDebugOverrideCapability();
-    }
-
-    @Bean
-    DebugResolver videoDebugResolver(@Value("${video.debug-override-token:#{null}") String debugOverrideToken) {
-        return DebugResolver.withDebugOverrideCapability(debugOverrideToken);
+    DebugResolver debugResolver(@Value("${video.debug-override-token:#{null}") String debugOverrideToken) {
+        return new DebugResolver(debugOverrideToken);
     }
 
     @Bean
@@ -216,14 +211,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Primary
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator,
             TimeoutResolver timeoutResolver,
-            DebugResolver debugResolver,
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings,
@@ -238,36 +231,6 @@ public class ServiceConfiguration {
                 uidsCookieService,
                 requestValidator,
                 timeoutResolver,
-                debugResolver,
-                timeoutFactory,
-                storedRequestProcessor,
-                applicationSettings,
-                ipAddressHelper,
-                hookStageExecutor);
-    }
-
-    @Bean
-    Ortb2RequestFactory videoOpenRtb2RequestFactory(
-            @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
-            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
-            UidsCookieService uidsCookieService,
-            RequestValidator requestValidator,
-            TimeoutResolver timeoutResolver,
-            DebugResolver videoDebugResolver,
-            TimeoutFactory timeoutFactory,
-            StoredRequestProcessor storedRequestProcessor,
-            ApplicationSettings applicationSettings,
-            IpAddressHelper ipAddressHelper,
-            HookStageExecutor hookStageExecutor) {
-
-        final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
-        return new Ortb2RequestFactory(
-                enforceValidAccount,
-                blacklistedAccounts,
-                uidsCookieService,
-                requestValidator,
-                timeoutResolver,
-                videoDebugResolver,
                 timeoutFactory,
                 storedRequestProcessor,
                 applicationSettings,
@@ -346,6 +309,7 @@ public class ServiceConfiguration {
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver timeoutResolver,
+            DebugResolver debugResolver,
             JacksonMapper mapper) {
 
         return new VideoRequestFactory(
@@ -356,6 +320,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 mapper);
     }
 

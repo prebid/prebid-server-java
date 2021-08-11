@@ -19,6 +19,8 @@ public class Account {
 
     Boolean eventsEnabled;
 
+    Boolean allowedDebug;
+
     Boolean enforceCcpa;
 
     AccountGdprConfig gdpr;

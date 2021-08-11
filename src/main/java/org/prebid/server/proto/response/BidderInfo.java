@@ -10,6 +10,8 @@ public class BidderInfo {
 
     boolean enabled;
 
+    boolean allowedDebug;
+
     String aliasOf;
 
     MaintainerInfo maintainer;
@@ -25,6 +27,7 @@ public class BidderInfo {
     boolean modifyingVastXmlAllowed;
 
     public static BidderInfo create(boolean enabled,
+                                    boolean allowedDebug,
                                     String aliasOf,
                                     String maintainerEmail,
                                     List<String> appMediaTypes,
@@ -37,6 +40,7 @@ public class BidderInfo {
 
         return of(
                 enabled,
+                allowedDebug,
                 aliasOf,
                 new MaintainerInfo(maintainerEmail),
                 new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),

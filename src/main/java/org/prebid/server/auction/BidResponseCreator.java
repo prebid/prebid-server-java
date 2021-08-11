@@ -28,6 +28,7 @@ import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
@@ -323,13 +324,6 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private JsonNode getAndRemoveProperty(String propertyName, ObjectNode node) {
-        final JsonNode property = node.get(propertyName);
-        node.remove(propertyName);
-
-        return property;
-    }
-
     /**
      * Checks whether bidder responses are empty or contain no bids.
      */
@@ -388,10 +382,10 @@ public class BidResponseCreator {
                                                                             AuctionContext auctionContext) {
 
         return CompositeFuture.join(bidderResponses.stream()
-                .map(bidderResponse -> hookStageExecutor
-                        .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
-                        .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
-                .collect(Collectors.toList()))
+                        .map(bidderResponse -> hookStageExecutor
+                                .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
+                                .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
+                        .collect(Collectors.toList()))
                 .map(CompositeFuture::list);
     }
 
@@ -615,10 +609,12 @@ public class BidResponseCreator {
                                             Map<String, List<ExtBidderError>> bidErrors) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
+        final DebugContext debugContext = auctionContext.getDebugContext();
+        final boolean debugEnabled = debugContext.isDebugEnabled();
+        final boolean debugOverride = debugContext.isDebugOverride();
 
         final ExtResponseDebug extResponseDebug = debugEnabled
-                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponseInfos, cacheResult), bidRequest)
+                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponseInfos, cacheResult, debugOverride), bidRequest)
                 : null;
 
         final Map<String, List<ExtBidderError>> errors =
@@ -699,9 +695,13 @@ public class BidResponseCreator {
         return cacheResult;
     }
 
-    private static Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
-                                                                 CacheServiceResult cacheResult) {
+    private Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
+                                                          CacheServiceResult cacheResult,
+                                                          boolean debugOverride) {
+
         final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
+                .filter(bidderResponseInfo -> debugOverride
+                        || bidderCatalog.isDebugAllowed(bidderResponseInfo.getBidder()))
                 .collect(Collectors.toMap(
                         BidderResponseInfo::getBidder,
                         bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));

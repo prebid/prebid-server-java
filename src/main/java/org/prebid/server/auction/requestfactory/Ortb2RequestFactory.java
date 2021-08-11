@@ -69,7 +69,6 @@ public class Ortb2RequestFactory {
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
     private final TimeoutResolver timeoutResolver;
-    private final DebugResolver debugResolver;
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
@@ -81,7 +80,6 @@ public class Ortb2RequestFactory {
                                UidsCookieService uidsCookieService,
                                RequestValidator requestValidator,
                                TimeoutResolver timeoutResolver,
-                               DebugResolver debugResolver,
                                TimeoutFactory timeoutFactory,
                                StoredRequestProcessor storedRequestProcessor,
                                ApplicationSettings applicationSettings,
@@ -93,7 +91,6 @@ public class Ortb2RequestFactory {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
-        this.debugResolver = Objects.requireNonNull(debugResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
@@ -122,7 +119,6 @@ public class Ortb2RequestFactory {
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
                 .timeout(timeout(bidRequest, startTime))
-                .debugContext(debugResolver.getDebugContext(httpRequest, bidRequest))
                 .build();
     }
 
@@ -234,17 +230,6 @@ public class Ortb2RequestFactory {
         }
 
         return stageResult.getPayload().bidRequest();
-    }
-
-    private static DebugContext debugContext(BidRequest bidRequest) {
-        final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-
-        final boolean debugEnabled = Objects.equals(bidRequest.getTest(), 1)
-                || Objects.equals(getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
-
-        final TraceLevel traceLevel = getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
-
-        return DebugContext.of(debugEnabled, traceLevel);
     }
 
     /**
