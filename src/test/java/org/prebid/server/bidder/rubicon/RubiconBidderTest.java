@@ -906,7 +906,6 @@ public class RubiconBidderTest extends VertxTest {
         expectedIabAttribute.add("fifthSegmentId");
         expectedIabAttribute.add("sixthSegmentId");
 
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
